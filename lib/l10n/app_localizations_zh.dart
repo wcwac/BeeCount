@@ -5532,6 +5532,8 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get transactionReceiptShareFailed => '分享失败，请重试。';
+  @override
+  String get accountTypePrepaid => '充值账户';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -10996,4 +10998,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String logExportCount(int count) {
     return '日誌數量：$count';
   }
+  @override
+  String get accountTypePrepaid => '儲值帳戶';
 }

@@ -5,6 +5,8 @@ import 'package:flutter/services.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
+import '../../providers/finance_providers.dart';
+import '../finance/finance_detail_page.dart';
 import '../../providers/budget_providers.dart';
 import '../../data/db.dart';
 import '../../data/repositories/local/local_repository.dart';
@@ -112,6 +114,11 @@ class _TransactionEditorPageState extends ConsumerState<TransactionEditorPage>
     // 注意：转账类型不走这个逻辑
     if (widget.quickAdd && widget.initialCategoryId != null && widget.initialKind != 'transfer') {
       WidgetsBinding.instance.addPostFrameCallback((_) async {
+        if (widget.editingTransactionId != null) {
+          final managed = await ref.read(financeRepositoryProvider)
+              .isManagedTransaction(widget.editingTransactionId!);
+          if (!mounted || managed) return;
+        }
         if (!mounted || _autoOpened) return;
         final repo = ref.read(repositoryProvider);
         // §7 共享账本:initialCategoryId 可能是 synthetic(< 0)— Editor 编辑
@@ -138,6 +145,20 @@ class _TransactionEditorPageState extends ConsumerState<TransactionEditorPage>
 
   @override
   Widget build(BuildContext context) {
+    final editingId = widget.editingTransactionId;
+    if (editingId != null) {
+      final managed = ref.watch(financePlanForTransactionProvider(editingId));
+      if (managed.isLoading) {
+        return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      }
+      if (managed.hasError) {
+        return Scaffold(appBar: AppBar(), body: Center(child: TextButton(
+          onPressed: () => ref.invalidate(financePlanForTransactionProvider(editingId)),
+          child: Text(AppLocalizations.of(context).helpCenterRetry))));
+      }
+      final planId = managed.valueOrNull;
+      if (planId != null) return FinanceDetailPage(planId: planId);
+    }
     return Scaffold(
       body: Column(
         children: [

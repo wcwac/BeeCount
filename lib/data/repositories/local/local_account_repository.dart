@@ -2,6 +2,7 @@ import 'package:drift/drift.dart' as d;
 import 'package:uuid/uuid.dart';
 
 import '../../db.dart';
+import '../../../models/finance.dart';
 import '../../../services/system/logger_service.dart';
 import '../../../utils/account_type_utils.dart';
 import '../../../utils/app_localizations_resolver.dart';
@@ -15,6 +16,18 @@ class LocalAccountRepository implements AccountRepository {
   final BeeDatabase db;
 
   LocalAccountRepository(this.db);
+
+  Future<bool> _isManaged(int accountId) async =>
+      (await db.customSelect(
+        'SELECT 1 FROM finance_plans WHERE account_id = ? LIMIT 1',
+        variables: [d.Variable<int>(accountId)],
+      ).get()).isNotEmpty;
+
+  Future<void> _requireOrdinary(int accountId) async {
+    if (await _isManaged(accountId)) {
+      throw const FinanceFailure('managed_account');
+    }
+  }
 
   @override
   Stream<List<Account>> watchAccountsForLedger(int ledgerId) {
@@ -97,6 +110,9 @@ class LocalAccountRepository implements AccountRepository {
     String? note,
     String? syncId,
   }) async {
+    if (financeAccountTypes.contains(type)) {
+      throw const FinanceFailure('managed_account');
+    }
     // 撞同名抛 DuplicateNameException(name 全局唯一)。静默路径(import /
     // app-link 等)请改用 [upsertAccount]。
     final existingByName =
@@ -184,6 +200,19 @@ class LocalAccountRepository implements AccountRepository {
     bool clearMetadataFields = false,
     bool? hidden,
   }) async {
+    if (initialBalance != null || type != null || currency != null) {
+      if (await _isManaged(id)) {
+        final current = await getAccount(id);
+        if (initialBalance != null ||
+            (type != null && type != current?.type) ||
+            (currency != null && currency != current?.currency)) {
+          throw const FinanceFailure('managed_account');
+        }
+      } else if (type != null && financeAccountTypes.contains(type)) {
+        throw const FinanceFailure('managed_account');
+      }
+    }
+
     await (db.update(db.accounts)..where((a) => a.id.equals(id))).write(
       AccountsCompanion(
         name: name != null ? d.Value(name) : const d.Value.absent(),
@@ -222,6 +251,7 @@ class LocalAccountRepository implements AccountRepository {
 
   @override
   Future<void> deleteAccount(int id) async {
+    await _requireOrdinary(id);
     await (db.delete(db.accounts)..where((a) => a.id.equals(id))).go();
   }
 
@@ -537,19 +567,31 @@ class LocalAccountRepository implements AccountRepository {
     required int fromAccountId,
     required int toAccountId,
   }) async {
-    final beforeCount = await getTransactionCountByAccount(fromAccountId);
+    return db.transaction(() async {
 
-    // 迁移作为主账户的交易
-    await (db.update(db.transactions)
-          ..where((t) => t.accountId.equals(fromAccountId)))
-        .write(TransactionsCompanion(accountId: d.Value(toAccountId)));
+      await _requireOrdinary(fromAccountId);
+      await _requireOrdinary(toAccountId);
+      final linked = await db.customSelect(
+        'SELECT 1 FROM finance_transaction_links l JOIN transactions t '
+        'ON t.id=l.transaction_id WHERE t.account_id=? OR t.to_account_id=? LIMIT 1',
+        variables: [d.Variable<int>(fromAccountId), d.Variable<int>(fromAccountId)],
+      ).get();
+      if (linked.isNotEmpty) throw const FinanceFailure('linked_transaction');
 
-    // 迁移作为转入账户的交易
-    await (db.update(db.transactions)
-          ..where((t) => t.toAccountId.equals(fromAccountId)))
-        .write(TransactionsCompanion(toAccountId: d.Value(toAccountId)));
+      final beforeCount = await getTransactionCountByAccount(fromAccountId);
 
-    return beforeCount;
+      // 迁移作为主账户的交易
+      await (db.update(db.transactions)
+            ..where((t) => t.accountId.equals(fromAccountId)))
+          .write(TransactionsCompanion(accountId: d.Value(toAccountId)));
+
+      // 迁移作为转入账户的交易
+      await (db.update(db.transactions)
+            ..where((t) => t.toAccountId.equals(fromAccountId)))
+          .write(TransactionsCompanion(toAccountId: d.Value(toAccountId)));
+
+      return beforeCount;
+    });
   }
 
   @override
@@ -586,6 +628,9 @@ class LocalAccountRepository implements AccountRepository {
 
   @override
   Future<void> batchInsertAccounts(List<AccountsCompanion> accounts) async {
+    if (accounts.any((a) => a.type.present && financeAccountTypes.contains(a.type.value))) {
+      throw const FinanceFailure('managed_account');
+    }
     await db.batch((batch) {
       batch.insertAll(db.accounts, accounts);
     });
@@ -660,6 +705,34 @@ class LocalAccountRepository implements AccountRepository {
     int accountId, {required DateTime startDate, required DateTime endDate}) async {
     final account = await getAccount(accountId);
     if (account == null) return [];
+
+    // Financial positions are event-sourced: later valuations must not rewrite
+    // earlier net-worth history. The current account balance is only a mirror.
+    if (financeAccountTypes.contains(account.type)) {
+      final rows = await db.customSelect(
+        'SELECT e.happened_at,e.value_after_cents FROM finance_events e '
+        'JOIN finance_plans p ON p.id=e.plan_id WHERE p.account_id=? '
+        'ORDER BY e.happened_at,e.id',
+        variables: [d.Variable<int>(accountId)],
+      ).get();
+      final result = <({DateTime date, double balance})>[];
+      var day = DateTime(startDate.year, startDate.month, startDate.day);
+      final end = DateTime(endDate.year, endDate.month, endDate.day);
+      var index = 0;
+      var balance = 0.0;
+      final sign = isLiabilityType(account.type) ? -1 : 1;
+      while (!day.isAfter(end)) {
+        final next = DateTime(day.year, day.month, day.day + 1);
+        while (index < rows.length &&
+            DateTime.parse(rows[index].read<String>('happened_at')).isBefore(next)) {
+          balance = sign * rows[index].read<int>('value_after_cents') / 100;
+          index++;
+        }
+        result.add((date: day, balance: balance));
+        day = next;
+      }
+      return result;
+    }
 
     // 估值账户：每天返回固定估值
     if (isValuationOnlyType(account.type)) {
@@ -947,6 +1020,7 @@ class LocalAccountRepository implements AccountRepository {
 
   @override
   Future<void> updateAccountValuation(int accountId, double newValue) async {
+    await _requireOrdinary(accountId);
     await (db.update(db.accounts)..where((a) => a.id.equals(accountId))).write(
       AccountsCompanion(
         initialBalance: d.Value(newValue),

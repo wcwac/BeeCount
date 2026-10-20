@@ -10,6 +10,8 @@ import 'package:drift/native.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 
+import 'finance_schema.dart';
+
 part 'db.g.dart';
 
 // --- Tables ---
@@ -511,7 +513,7 @@ class BeeDatabase extends _$BeeDatabase {
   BeeDatabase.forTesting(QueryExecutor executor) : super(executor);
 
   @override
-  int get schemaVersion => 33; // v33: Agent 本地记忆、摘要与审计表
+  int get schemaVersion => 34; // v34: 离线财务计划、事件与流水关联
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -1258,9 +1260,11 @@ class BeeDatabase extends _$BeeDatabase {
             await _createAgentMemoryFtsTable();
             logger.info('DBMigration', 'v33 迁移完成');
           }
+          if (from < 34) await createFinanceSchema(this);
         },
         onCreate: (m) async {
           await m.createAll();
+          await createFinanceSchema(this);
           await customStatement(
               'CREATE UNIQUE INDEX IF NOT EXISTS idx_rate_override_pair '
               'ON exchange_rate_overrides (base_currency, quote_currency);');

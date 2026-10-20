@@ -5699,6 +5699,12 @@ abstract class AppLocalizations {
   ///
   /// In en, this message translates to:
   /// **'Cash'**
+  /// No description provided for @accountTypePrepaid.
+  ///
+  /// In en, this message translates to:
+  /// **'Prepaid card'**
+  String get accountTypePrepaid;
+
   String get accountTypeCash;
 
   /// No description provided for @accountTypeBankCard.

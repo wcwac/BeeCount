@@ -25,6 +25,11 @@ import '../currency/exchange_rate_page.dart';
 import 'account_edit_page.dart';
 import 'account_detail_page.dart';
 import 'net_worth_trend_page.dart';
+import '../finance/finance_page.dart';
+import '../finance/finance_text.dart';
+import '../finance/finance_detail_page.dart';
+import '../../models/finance.dart';
+import '../../providers/finance_providers.dart';
 
 class AccountsPage extends ConsumerStatefulWidget {
   final bool asTab;
@@ -115,6 +120,16 @@ class _AccountsPageState extends ConsumerState<AccountsPage> {
                 tooltip: l10n.commonSettings,
               ),
             ],
+          ),
+
+          ListTile(
+            leading: const Icon(Icons.account_balance_outlined),
+            title: Text(FinanceText(context).title),
+            subtitle: Text(FinanceText(context).subtitle),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => const FinancePage(),
+            )),
           ),
 
           // ======== 主内容 ========
@@ -1259,6 +1274,10 @@ class _AccountsPageState extends ConsumerState<AccountsPage> {
 
   Future<void> _editAccount(BuildContext context, WidgetRef ref,
       db.Account account, int ledgerId) async {
+    if (financeAccountTypes.contains(account.type)) {
+      await _openFinanceAccount(context, ref, account);
+      return;
+    }
     await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => AccountEditPage(
@@ -1273,11 +1292,30 @@ class _AccountsPageState extends ConsumerState<AccountsPage> {
 
   void _viewAccountDetail(
       BuildContext context, WidgetRef ref, db.Account account) {
+    if (financeAccountTypes.contains(account.type)) {
+      _openFinanceAccount(context, ref, account);
+      return;
+    }
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => AccountDetailPage(account: account),
       ),
     );
+  }
+
+  Future<void> _openFinanceAccount(
+      BuildContext context, WidgetRef ref, db.Account account) async {
+    try {
+      final planId = await ref.read(financeRepositoryProvider).planIdForAccount(account.id);
+      if (!context.mounted) return;
+      await Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => planId == null
+            ? FinancePage(ledgerId: account.ledgerId)
+            : FinanceDetailPage(planId: planId),
+      ));
+    } catch (error) {
+      if (context.mounted) showToast(context, FinanceText(context).error(error));
+    }
   }
 
   /// 「已隐藏」分区卡片上的「恢复」快捷入口(账户隐藏 #240)。恢复无需确认

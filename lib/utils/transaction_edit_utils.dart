@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/db.dart';
 import '../pages/transaction/transaction_editor_page.dart';
 import '../data/repositories/local/local_repository.dart';
+import '../data/repositories/finance_repository.dart';
+import '../pages/finance/finance_detail_page.dart';
 import '../providers/database_providers.dart';
 import '../l10n/app_localizations.dart';
 import '../widgets/ui/toast.dart';
@@ -33,6 +35,17 @@ class TransactionEditUtils {
   }) async {
     // 获取交易关联的标签ID(主表 + §7 override 表)
     final repo = ref.read(repositoryProvider);
+    // Copying a managed cash entry alone would detach it from its financial
+    // position. Both editing and copying belong to the complete finance record.
+    if (repo is LocalRepository) {
+      final planId = await FinanceRepository(repo.db).planIdForTransaction(transaction.id);
+      if (!context.mounted) return;
+      if (planId != null) {
+        await Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => FinanceDetailPage(planId: planId)));
+        return;
+      }
+    }
     final source =
         asCopy ? await repo.getTransactionById(transaction.id) : transaction;
     transaction = source ?? transaction;

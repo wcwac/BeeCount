@@ -13,6 +13,7 @@ import '../../providers/font_scale_provider.dart';
 import '../../providers/currency_providers.dart';
 import '../../services/system/logger_service.dart';
 import '../../services/export/config_export_service.dart';
+import '../../services/billing/post_processor.dart';
 import '../../services/attachment_export_import_service.dart';
 import '../../utils/currencies.dart';
 import '../../widgets/ui/ui.dart';
@@ -37,6 +38,64 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
   bool _isImporting = false; // 导入状态
   bool _isExistingUserFlow = false; // 老用户流程
   bool _isImportingAttachment = false; // 附件导入状态
+  bool _isNavigating = false;
+  bool _isUpdatingLanguage = false;
+  bool get _busy => _isInitializing || _isImporting ||
+      _isImportingAttachment || _isNavigating || _isUpdatingLanguage;
+
+  Future<void> _movePage(int page) async {
+    if (_busy || !_pageController.hasClients) return;
+    setState(() => _isNavigating = true);
+    try {
+      await _pageController.animateToPage(page,
+        duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+    } finally {
+      if (mounted) setState(() => _isNavigating = false);
+    }
+  }
+
+  Future<void> _changeLanguage(Locale? locale) async {
+    if (_busy) return;
+    setState(() => _isUpdatingLanguage = true);
+    try {
+      await ref.read(languageProvider.notifier).setLanguage(locale);
+    } catch (error, stack) {
+      await _showFailure(error, stack);
+    } finally {
+      if (mounted) setState(() => _isUpdatingLanguage = false);
+    }
+  }
+
+  Future<void> _showFailure(Object error, StackTrace stack) async {
+    logger.error('welcome', '欢迎流程未完成，可重试', error, stack);
+    if (!mounted) return;
+    final l10n = AppLocalizations.of(context);
+    await showDialog<void>(context: context, builder: (dialogContext) => AlertDialog(
+      title: Text(l10n.commonError),
+      content: SingleChildScrollView(child: Text(error.toString())),
+      actions: [TextButton(onPressed: () => Navigator.pop(dialogContext),
+        child: Text(l10n.commonClose))],
+    ));
+  }
+
+  Future<void> _persistCompletion(SharedPreferences prefs) async {
+    if (!mounted) return;
+    final ledgers = await ref.read(repositoryProvider).getAllLedgers();
+    if (!mounted) return;
+    final currentId = ref.read(currentLedgerIdProvider);
+    if (ledgers.isNotEmpty && !ledgers.any((ledger) => ledger.id == currentId)) {
+      ref.read(currentLedgerIdProvider.notifier).state = ledgers.first.id;
+    }
+    ref.read(cachedTransactionsProvider.notifier).state = null;
+    ref.read(cachedTransactionsWithCategoryProvider.notifier).state = null;
+    await PostProcessor.run(ref,
+      ledgerId: ref.read(currentLedgerIdProvider), tags: true, attachments: true);
+    if (!mounted) return;
+    if (!await prefs.setBool('welcome_shown', true)) {
+      throw StateError('Unable to save setup completion. Please try again.');
+    }
+    if (mounted) ref.read(shouldShowWelcomeProvider.notifier).state = false;
+  }
 
   @override
   void dispose() {
@@ -65,7 +124,9 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
     final pages = _isExistingUserFlow ? existingUserPages : newUserPages;
     final pageCount = pages.length;
 
-    return Scaffold(
+    return PopScope(
+      canPop: !_busy,
+      child: Scaffold(
       backgroundColor: theme.primaryColor,
       body: SafeArea(
         child: Column(
@@ -92,76 +153,61 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
               ),
             ),
 
-            // 页面内容
             Expanded(
-              child: PageView(
-                controller: _pageController,
-                physics: _isExistingUserFlow ? const NeverScrollableScrollPhysics() : null,
-                onPageChanged: (index) {
-                  setState(() {
-                    _currentPage = index;
-                  });
-                },
-                children: pages,
+              child: AbsorbPointer(
+                absorbing: _busy,
+                child: PageView(
+                  controller: _pageController,
+                  physics: const NeverScrollableScrollPhysics(),
+                  onPageChanged: (index) {
+                    if (mounted) setState(() => _currentPage = index);
+                  },
+                  children: pages,
+                ),
               ),
             ),
-
-            // 底部按钮（老用户流程不显示，由页面内自带按钮处理）
             if (!_isExistingUserFlow)
               Padding(
-                padding: const EdgeInsets.all(24),
-                child: Row(
+                padding: const EdgeInsets.all(16),
+                child: OverflowBar(
+                  alignment: _currentPage > 0 ? MainAxisAlignment.spaceBetween : MainAxisAlignment.end,
+                  overflowAlignment: OverflowBarAlignment.end,
+                  spacing: 8,
+                  overflowSpacing: 8,
                   children: [
                     if (_currentPage > 0)
                       TextButton(
-                        onPressed: () {
-                          _pageController.previousPage(
-                            duration: const Duration(milliseconds: 300),
-                            curve: Curves.easeInOut,
-                          );
-                        },
-                        style: TextButton.styleFrom(
-                          foregroundColor: Colors.white,
-                        ),
+                        key: const ValueKey('welcome-previous'),
+                        onPressed: _busy ? null : () => _movePage(_currentPage - 1),
+                        style: TextButton.styleFrom(foregroundColor: Colors.white),
                         child: Text(l10n.commonPrevious),
                       ),
-                    const Spacer(),
-                    if (_currentPage < 4)
+                    if (_currentPage < pageCount - 1)
                       FilledButton(
-                        onPressed: () {
-                          _pageController.nextPage(
-                            duration: const Duration(milliseconds: 300),
-                            curve: Curves.easeInOut,
-                          );
-                        },
-                        style: FilledButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          foregroundColor: theme.primaryColor,
-                        ),
+                        key: const ValueKey('welcome-next'),
+                        onPressed: _busy ? null : () => _movePage(_currentPage + 1),
+                        style: FilledButton.styleFrom(backgroundColor: Colors.white,
+                          foregroundColor: theme.primaryColor),
                         child: Text(l10n.commonNext),
                       )
                     else
                       FilledButton(
-                        onPressed: _isInitializing ? null : () => _finishWelcome(context),
-                        style: FilledButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          foregroundColor: theme.primaryColor,
-                        ),
+                        key: const ValueKey('welcome-finish'),
+                        onPressed: _busy ? null : () => _finishWelcome(context),
+                        style: FilledButton.styleFrom(backgroundColor: Colors.white,
+                          foregroundColor: theme.primaryColor),
                         child: _isInitializing
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              )
+                            ? const SizedBox(width: 20, height: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2))
                             : Text(l10n.commonFinish),
                       ),
-                ],
+                  ],
+                ),
               ),
-            ),
           ],
         ),
       ),
-    );
+    ));
   }
 
   /// 第1页：欢迎
@@ -256,7 +302,7 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
 
                 return InkWell(
                   onTap: () {
-                    languageNotifier.setLanguage(locale);
+                    _changeLanguage(locale);
                   },
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -288,7 +334,7 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
           // 老用户导入配置（紧凑样式）
           const SizedBox(height: 24),
           TextButton(
-            onPressed: _isImporting ? null : () => _importConfig(context),
+            onPressed: _busy ? null : () => _importConfig(context),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -308,7 +354,7 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
                     color: Colors.white.withValues(alpha: 0.7),
                   ),
                 const SizedBox(width: 6),
-                Text(
+                Flexible(child: Text(
                   _isImporting
                       ? l10n.welcomeImportingConfig
                       : '${l10n.welcomeExistingUserTitle} ${l10n.welcomeExistingUserButton}',
@@ -317,7 +363,7 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
                     decoration: TextDecoration.underline,
                     decorationColor: Colors.white.withValues(alpha: 0.5),
                   ),
-                ),
+                )),
               ],
             ),
           ),
@@ -326,184 +372,51 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
     );
   }
 
-  /// 第2页：货币选择
+  /// Currency choices share one scroll view, so the footer remains reachable
+  /// even on short screens and with large accessibility text.
   Widget _buildCurrencyPage(
       BuildContext context, ThemeData theme, AppLocalizations l10n) {
-    // 从工具类获取货币列表
     final currencies = getCurrencies(context);
-
-    return Padding(
-      padding: const EdgeInsets.all(32),
-      child: Column(
-        children: [
-          // 货币图标
-          Container(
-            width: 120,
-            height: 120,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.attach_money,
-              size: 64,
-              color: Colors.white,
-            ),
+    return ListView(
+      padding: const EdgeInsets.all(24),
+      children: [
+        const Icon(Icons.attach_money, size: 64, color: Colors.white),
+        const SizedBox(height: 16),
+        Text(l10n.ledgersCurrency, textAlign: TextAlign.center,
+          style: theme.textTheme.headlineSmall?.copyWith(color: Colors.white)),
+        const SizedBox(height: 12),
+        Text(l10n.welcomeCurrencyDescription, textAlign: TextAlign.center,
+          style: theme.textTheme.bodyLarge?.copyWith(color: Colors.white)),
+        const SizedBox(height: 16),
+        CheckboxListTile(
+          contentPadding: EdgeInsets.zero,
+          value: _createDefaultLedger,
+          activeColor: Colors.white,
+          checkColor: theme.primaryColor,
+          title: Text(l10n.welcomeCreateDefaultLedger, style: const TextStyle(color: Colors.white)),
+          onChanged: _busy ? null : (value) => setState(() => _createDefaultLedger = value ?? false),
+        ),
+        const Divider(color: Colors.white54),
+        for (final currency in currencies)
+          RadioListTile<String>(
+            contentPadding: EdgeInsets.zero,
+            value: currency.code,
+            groupValue: _selectedCurrency,
+            activeColor: Colors.white,
+            title: Text('${currency.name} (${currency.code})', style: const TextStyle(color: Colors.white)),
+            subtitle: Text(getCurrencySymbol(currency.code), style: const TextStyle(color: Colors.white70)),
+            onChanged: _busy ? null : (value) {
+              if (value != null) setState(() => _selectedCurrency = value);
+            },
           ),
-          const SizedBox(height: 32),
-
-          // 标题
-          Text(
-            l10n.ledgersCurrency,
-            style: theme.textTheme.headlineMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 16),
-
-          // 描述
-          Text(
-            l10n.welcomeCurrencyDescription,
-            style: theme.textTheme.bodyLarge?.copyWith(
-              color: Colors.white.withValues(alpha: 0.9),
-            ),
-            textAlign: TextAlign.center,
-          ),
-
-          const SizedBox(height: 32),
-
-          // 货币选择列表占满"上方文字 + 底部复选框"之外的剩余空间。Expanded
-          // + Column 不指定 mainAxisAlignment,让 ListView 内部自己滚动。
-          Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: ListView.separated(
-                itemCount: currencies.length,
-                separatorBuilder: (context, index) => Divider(
-                  height: 1,
-                  color: Colors.white.withValues(alpha: 0.2),
-                ),
-                itemBuilder: (context, index) {
-                  final currency = currencies[index];
-                  final isSelected = _selectedCurrency == currency.code;
-                  final symbol = getCurrencySymbol(currency.code);
-
-                  return InkWell(
-                    onTap: () {
-                      setState(() {
-                        _selectedCurrency = currency.code;
-                      });
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                      child: Row(
-                        children: [
-                          // 选中标记
-                          Icon(
-                            isSelected
-                                ? Icons.radio_button_checked
-                                : Icons.radio_button_unchecked,
-                            color: Colors.white,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 12),
-
-                          // 货币符号
-                          SizedBox(
-                            width: 40,
-                            child: Text(
-                              symbol,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-
-                          // 货币名称
-                          Expanded(
-                            child: Text(
-                              '${currency.name} (${currency.code})',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: isSelected
-                                    ? FontWeight.w600
-                                    : FontWeight.normal,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 16),
-
-          // 创建默认账本复选框
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(12),
-              onTap: () {
-                setState(() {
-                  _createDefaultLedger = !_createDefaultLedger;
-                });
-              },
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 16, vertical: 12),
-                child: Row(
-                  children: [
-                    Icon(
-                      _createDefaultLedger
-                          ? Icons.check_box
-                          : Icons.check_box_outline_blank,
-                      color: Colors.white,
-                      size: 22,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        l10n.welcomeCreateDefaultLedger,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
+      ],
     );
   }
 
-  /// 第5页：开源透明与社群驱动
+  /// 第4页：开源透明与社群驱动
   Widget _buildPrivacyAndOpenSourcePage(
       BuildContext context, ThemeData theme, AppLocalizations l10n) {
-    return Padding(
+    return SingleChildScrollView(
       padding: const EdgeInsets.all(32),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -603,77 +516,42 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
     );
   }
 
-  /// 完成欢迎页面
+  /// Persist completion only after the entire seed transaction succeeds.
   Future<void> _finishWelcome(BuildContext context) async {
-    // 设置初始化状态
-    setState(() {
-      _isInitializing = true;
-    });
-
+    if (_busy || !mounted) return;
+    final l10n = AppLocalizations.of(context);
+    final db = ref.read(databaseProvider);
+    final currency = _selectedCurrency;
+    final categoryMode = _categoryMode;
+    final createLedger = _createDefaultLedger;
+    setState(() => _isInitializing = true);
     try {
+      await db.transaction(() => db.ensureSeed(
+        l10n: l10n,
+        currency: currency,
+        useHierarchicalCategories: categoryMode == 'hierarchical',
+        skipCategories: categoryMode == 'none',
+        createDefaultLedger: createLedger,
+      ));
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool('welcome_shown', true);
-      // 保存用户选择的分类模式
-      await prefs.setString('category_mode', _categoryMode);
-      // 保存用户选择的货币
-      await prefs.setString('selected_currency', _selectedCurrency);
-      // 多币种 MVP:主币种随初始化选币一并落定,新装用户开箱即正确
-      await prefs.setString('baseCurrency', _selectedCurrency);
-      // 同步 provider:splash init 已先行兜底 CNY,这里用用户所选币种即时纠正(首会话即正确)
-      ref.read(baseCurrencyProvider.notifier).state = _selectedCurrency.toUpperCase();
-
-      // 初始化数据库（使用用户选择的语言和设置）
-      if (context.mounted) {
-        logger.info('welcome', '开始初始化数据库');
-        logger.info('welcome', '货币: $_selectedCurrency');
-        final categoryModeText = _categoryMode == 'hierarchical'
-            ? '二级分类'
-            : _categoryMode == 'flat'
-                ? '一级分类'
-                : '不创建分类';
-        logger.info('welcome', '分类模式: $categoryModeText');
-
-        final l10n = AppLocalizations.of(context);
-        final db = ref.read(databaseProvider);
-
-        // 根据用户选择创建分类
-        // 注意: 使用 databaseProvider 直接访问数据库，因为 ensureSeed 是数据库初始化方法
-        if (_categoryMode != 'none') {
-          await db.ensureSeed(
-            l10n: l10n,
-            currency: _selectedCurrency,
-            useHierarchicalCategories: _categoryMode == 'hierarchical',
-            createDefaultLedger: _createDefaultLedger,
-          );
-        } else {
-          // 只创建默认账本，不创建分类
-          await db.ensureSeed(
-            l10n: l10n,
-            currency: _selectedCurrency,
-            skipCategories: true,
-            createDefaultLedger: _createDefaultLedger,
-          );
-        }
-
-        logger.info('welcome', '数据库初始化完成');
+      if (!await prefs.setString('category_mode', categoryMode) ||
+          !await prefs.setString('selected_currency', currency) ||
+          !await prefs.setString('baseCurrency', currency)) {
+        throw StateError('Unable to save setup preferences. Please try again.');
       }
-
-      if (context.mounted) {
-        // 首次启动的情况，标记欢迎页面已完成，触发重新构建
-        // 这将显示启屏页面（如果初始化未完成）或主应用（如果已完成）
-        ref.read(shouldShowWelcomeProvider.notifier).state = false;
-      }
+      if (!mounted) return;
+      ref.read(baseCurrencyProvider.notifier).state = currency.toUpperCase();
+      await _persistCompletion(prefs);
+    } catch (error, stack) {
+      await _showFailure(error, stack);
     } finally {
-      if (mounted) {
-        setState(() {
-          _isInitializing = false;
-        });
-      }
+      if (mounted) setState(() => _isInitializing = false);
     }
   }
 
   /// 导入配置文件（老用户）
   Future<void> _importConfig(BuildContext context) async {
+    if (_busy || !mounted) return;
     final l10n = AppLocalizations.of(context);
 
     setState(() {
@@ -699,12 +577,14 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
         return;
       }
 
+      if (!mounted) return;
       // 读取文件内容
       final file = File(filePath);
       final yamlContent = await file.readAsString();
 
       logger.info('welcome', '开始导入配置文件');
 
+      if (!mounted) return;
       // 不再调 ensureSeed:删了"配置无账本时自动创建默认账本"后 db 变量没用了。
       final repo = ref.read(repositoryProvider);
 
@@ -721,9 +601,7 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
       final ledgers = await repo.getAllLedgers();
       logger.info('welcome', '配置包含 ${ledgers.length} 个账本');
 
-      // 标记欢迎页面已完成
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool('welcome_shown', true);
+      if (!mounted) return;
 
       // 刷新所有配置相关的 providers，使导入的配置立即生效
       ref.invalidate(primaryColorInitProvider);
@@ -741,6 +619,7 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
           _isExistingUserFlow = true;
           _currentPage = 0;
         });
+        _pageController.jumpToPage(0);
       }
     } catch (e, st) {
       logger.error('welcome', '导入配置文件失败', e, st);
@@ -759,7 +638,7 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
   /// 附件导入页面（老用户流程）
   Widget _buildAttachmentImportPage(
       BuildContext context, ThemeData theme, AppLocalizations l10n) {
-    return Padding(
+    return SingleChildScrollView(
       padding: const EdgeInsets.all(32),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -803,7 +682,7 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
 
           // 导入按钮
           FilledButton.icon(
-            onPressed: _isImportingAttachment ? null : () => _importAttachments(context),
+            onPressed: _busy ? null : () => _importAttachments(context),
             icon: _isImportingAttachment
                 ? const SizedBox(
                     width: 18,
@@ -829,7 +708,7 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
 
           // 跳过按钮
           TextButton(
-            onPressed: _isImportingAttachment ? null : _finishExistingUserFlow,
+            onPressed: _busy ? null : _finishExistingUserFlow,
             child: Text(
               l10n.welcomeImportAttachmentSkip,
               style: TextStyle(
@@ -844,13 +723,22 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
     );
   }
 
-  /// 完成老用户流程
-  void _finishExistingUserFlow() {
-    ref.read(shouldShowWelcomeProvider.notifier).state = false;
+  Future<void> _finishExistingUserFlow() async {
+    if (_busy || !mounted) return;
+    setState(() => _isInitializing = true);
+    try {
+      await _persistCompletion(await SharedPreferences.getInstance());
+    } catch (error, stack) {
+      await _showFailure(error, stack);
+    } finally {
+      if (mounted) setState(() => _isInitializing = false);
+    }
   }
 
   /// 导入附件
   Future<void> _importAttachments(BuildContext context) async {
+    if (_busy || !mounted) return;
+    setState(() => _isImportingAttachment = true);
     final l10n = AppLocalizations.of(context);
 
     try {
@@ -885,7 +773,7 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
       if (importResult.success) {
         showToast(context, l10n.welcomeImportAttachmentSuccess(importResult.imported));
         // 导入成功，完成流程
-        _finishExistingUserFlow();
+        await _persistCompletion(await SharedPreferences.getInstance());
       } else {
         showToast(context, l10n.welcomeImportAttachmentFailed(importResult.message ?? ''));
       }
@@ -903,7 +791,7 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
     }
   }
 
-  /// 第5页：分类模式选择
+  /// 第3页：分类模式选择
   Widget _buildCategoryModePage(
       BuildContext context, ThemeData theme, AppLocalizations l10n) {
     return SingleChildScrollView(

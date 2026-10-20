@@ -57,6 +57,7 @@ class _AccountEditPageState extends ConsumerState<AccountEditPage> {
     'credit_card',
     'alipay',
     'wechat',
+    'prepaid',
     'other',
   ];
 

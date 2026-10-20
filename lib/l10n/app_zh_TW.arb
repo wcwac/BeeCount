@@ -2082,5 +2082,6 @@
   "accountMissing": "帳戶不存在",
   "logExportTitle": "=== BeeCount 日誌匯出 ===",
   "logExportTime": "匯出時間：{time}",
-  "logExportCount": "日誌數量：{count}"
+  "logExportCount": "日誌數量：{count}",
+  "accountTypePrepaid": "儲值帳戶"
 }

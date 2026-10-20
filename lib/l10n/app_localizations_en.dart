@@ -5534,4 +5534,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get transactionReceiptShareFailed => 'Unable to share. Please try again.';
+  @override
+  String get accountTypePrepaid => 'Prepaid card';
 }

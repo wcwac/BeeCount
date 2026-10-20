@@ -4,6 +4,7 @@ import 'package:yaml/yaml.dart';
 import 'package:drift/drift.dart' as d;
 import '../../utils/app_localizations_resolver.dart';
 import '../../data/db.dart';
+import '../../models/finance.dart';
 import '../../data/repositories/base_repository.dart';
 import '../system/logger_service.dart';
 
@@ -1029,7 +1030,11 @@ class ConfigExportService {
     AccountsConfig? accountsConfig;
     if (repository != null && (options.accounts || requiredAccountIds.isNotEmpty)) {
       try {
-        final accountsList = await repository.getAllAccounts();
+        // Managed balances require events and links from the complete JSON
+        // backup. Configuration-only export must not turn them into freehand
+        // accounts and silently duplicate assets on import.
+        final accountsList = (await repository.getAllAccounts())
+            .where((a) => !financeAccountTypes.contains(a.type)).toList();
 
         if (accountsList.isNotEmpty) {
           // 如果用户选择了导出账户，则导出全部

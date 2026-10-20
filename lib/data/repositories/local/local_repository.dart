@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart' as d;
 
 import '../../db.dart';
+import '../../../models/finance.dart';
 import '../../../services/currency/rate_math.dart';
 import '../../../utils/shared_ledger_picker_filter.dart';
 import '../../../utils/app_localizations_resolver.dart';
@@ -1305,6 +1306,9 @@ class LocalRepository extends BaseRepository {
     final account = await getAccount(accountId);
     if (account == null) {
       throw StateError(resolveAppLocalizations(null).accountMissing);
+    }
+    if (financeAccountTypes.contains(account.type)) {
+      throw const FinanceFailure('managed_account');
     }
     final oldBalance = await getAccountBalance(accountId);
     final difference = targetBalance - oldBalance;

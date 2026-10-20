@@ -27,16 +27,17 @@ String? positiveAssetCompositionType(String type, double balance) {
 
 /// 是否为负债类型
 bool isLiabilityType(String type) {
-  return type == 'credit_card' || type == 'loan';
+  return type == 'credit_card' || type == 'loan' || type == 'finance_debt';
 }
 
 /// 估值账户类型（资产类）
 const valuationOnlyAssetTypes = [
   'real_estate', 'vehicle', 'investment', 'insurance', 'social_fund',
+  'finance_receivable', 'finance_investment',
 ];
 
 /// 估值账户类型（负债类）
-const valuationOnlyLiabilityTypes = ['loan'];
+const valuationOnlyLiabilityTypes = ['loan', 'finance_debt'];
 
 /// 所有估值账户类型
 const valuationOnlyTypes = [
@@ -52,24 +53,28 @@ bool isTradableType(String type) => !isValuationOnlyType(type);
 
 /// 账户类型常量（完整排序）
 const accountTypeOrder = [
-  'cash', 'bank_card', 'credit_card', 'alipay', 'wechat', 'other',
+  'cash', 'bank_card', 'prepaid', 'credit_card', 'alipay', 'wechat', 'other',
   'real_estate', 'vehicle', 'investment', 'insurance', 'social_fund', 'loan',
+  'finance_receivable', 'finance_investment', 'finance_debt',
 ];
 
 /// 资产类型排序
 const assetTypeOrder = [
-  'cash', 'bank_card', 'alipay', 'wechat', 'other',
+  'cash', 'bank_card', 'prepaid', 'alipay', 'wechat', 'other',
   'real_estate', 'vehicle', 'investment', 'insurance', 'social_fund',
+  'finance_receivable', 'finance_investment',
 ];
 
 /// 负债类型排序
-const liabilityTypeOrder = ['credit_card', 'loan'];
+const liabilityTypeOrder = ['credit_card', 'loan', 'finance_debt'];
 
 /// 获取账户类型的 Material 图标（备用，用于无 SVG 的场景）
 IconData getIconForAccountType(String type) {
   switch (type) {
     case 'cash':
       return Icons.payments_outlined;
+    case 'prepaid':
+      return Icons.confirmation_number_outlined;
     case 'bank_card':
       return Icons.credit_card;
     case 'credit_card':
@@ -78,10 +83,13 @@ IconData getIconForAccountType(String type) {
       return Icons.currency_yuan;
     case 'wechat':
       return Icons.chat;
+    case 'finance_investment':
     case 'investment':
       return Icons.trending_up;
+    case 'finance_debt':
     case 'loan':
       return Icons.house_outlined;
+    case 'finance_receivable':
     case 'receivable':
       return Icons.call_received;
     case 'real_estate':
@@ -107,6 +115,8 @@ String getAccountTypeLabel(BuildContext context, String type) {
       return l10n.creditCardOverpayment;
     case 'cash':
       return l10n.accountTypeCash;
+    case 'prepaid':
+      return l10n.accountTypePrepaid;
     case 'bank_card':
       return l10n.accountTypeBankCard;
     case 'credit_card':
@@ -115,10 +125,13 @@ String getAccountTypeLabel(BuildContext context, String type) {
       return l10n.accountTypeAlipay;
     case 'wechat':
       return l10n.accountTypeWechat;
+    case 'finance_investment':
     case 'investment':
       return l10n.accountTypeInvestment;
+    case 'finance_debt':
     case 'loan':
       return l10n.accountTypeLoan;
+    case 'finance_receivable':
     case 'receivable':
       return l10n.accountTypeReceivable;
     case 'real_estate':
@@ -145,14 +158,19 @@ Color getColorForAccountType(String type, Color primaryColor) {
       return const Color(0xFF07C160);
     case 'cash':
       return Colors.orange;
+    case 'prepaid':
+      return Colors.teal;
     case 'bank_card':
       return const Color(0xFF1890FF);
     case 'credit_card':
       return Colors.purple;
+    case 'finance_investment':
     case 'investment':
       return const Color(0xFFFF9800);
+    case 'finance_debt':
     case 'loan':
       return const Color(0xFFE91E63);
+    case 'finance_receivable':
     case 'receivable':
       return const Color(0xFF009688);
     case 'real_estate':
@@ -181,10 +199,13 @@ String _getSvgPath(String type) {
       return 'assets/icons/alipay.svg';
     case 'wechat':
       return 'assets/icons/wechat.svg';
+    case 'finance_investment':
     case 'investment':
       return 'assets/icons/investment.svg';
+    case 'finance_debt':
     case 'loan':
       return 'assets/icons/loan.svg';
+    case 'finance_receivable':
     case 'receivable':
       return 'assets/icons/receivable.svg';
     case 'real_estate':

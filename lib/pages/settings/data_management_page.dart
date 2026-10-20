@@ -1,3 +1,6 @@
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
+
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -6,6 +9,8 @@ import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../providers.dart';
+import '../../services/backup/local_database_backup.dart';
+import '../../services/billing/post_processor.dart';
 import '../../widgets/ui/ui.dart';
 import '../../widgets/biz/biz.dart';
 import '../../styles/tokens.dart';
@@ -30,6 +35,7 @@ class DataManagementPage extends ConsumerStatefulWidget {
 }
 
 class _DataManagementPageState extends ConsumerState<DataManagementPage> {
+  bool _databaseBusy = false;
   bool _isExporting = false;
   bool _isImporting = false;
   int _exportProgress = 0;
@@ -41,7 +47,11 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return PopScope(
+      canPop: !_databaseBusy,
+      child: AbsorbPointer(
+        absorbing: _databaseBusy,
+        child: Scaffold(
       backgroundColor: BeeTokens.scaffoldBackground(context),
       body: Column(
         children: [
@@ -65,6 +75,8 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
                     ),
                   ),
                 ),
+                _buildDatabaseBackupSection(),
+                SizedBox(height: 8.0.scaled(context, ref)),
                 // 导入导出
                 SectionCard(
                   margin: EdgeInsets.zero,
@@ -212,7 +224,117 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
           ),
         ],
       ),
+    ),
+      ),
     );
+  }
+
+  String _backupText(String zh, String en) =>
+      Localizations.localeOf(context).languageCode == 'zh' ? zh : en;
+
+  Widget _buildDatabaseBackupSection() {
+    final unavailable = _databaseBusy || _isExporting || _isImporting ||
+        ref.watch(importProgressProvider).running;
+    return SectionCard(
+      margin: EdgeInsets.zero,
+      child: Column(children: [
+        AppListTile(
+          leading: Icons.backup_outlined,
+          title: _backupText('备份全部账务数据', 'Back up all financial data'),
+          subtitle: _backupText('包含账本、流水及财务计划；附件文件请另行导出',
+              'Includes ledgers, transactions and finance plans. Export attachment files separately.'),
+          trailing: _databaseBusy ? const SizedBox(width: 24, height: 24,
+              child: CircularProgressIndicator(strokeWidth: 2)) : null,
+          onTap: unavailable ? null : _exportDatabase,
+        ),
+        BeeTokens.cardDivider(context),
+        AppListTile(
+          leading: Icons.restore,
+          title: _backupText('从完整备份恢复', 'Restore a full database backup'),
+          subtitle: _backupText('覆盖全部账务数据，不修改偏好、应用锁或附件文件',
+              'Replaces all financial data. Keeps settings, app lock and attachment files.'),
+          onTap: unavailable ? null : _restoreDatabase,
+        ),
+      ]),
+    );
+  }
+
+  Future<void> _exportDatabase() async {
+    if (_databaseBusy) return;
+    setState(() => _databaseBusy = true);
+    try {
+      final bytes = await LocalDatabaseBackupService(ref.read(databaseProvider)).exportBytes();
+      final temporary = await getTemporaryDirectory();
+      final directory = await Directory('${temporary.path}/database_backups').create(recursive: true);
+      // Only this feature's stale temporary files are removed; exported copies
+      // remain owned by the receiving share target.
+      for (final entity in directory.listSync()) {
+        if (entity is File && entity.path.endsWith('.json')) {
+          await entity.delete();
+        }
+      }
+      final file = File('${directory.path}/beecount-backup-${DateTime.now().millisecondsSinceEpoch}.json');
+      await file.writeAsBytes(bytes, flush: true);
+      if (!mounted) return;
+      final box = context.findRenderObject() as RenderBox?;
+      await Share.shareXFiles([XFile(file.path)],
+          sharePositionOrigin: box == null ? null : box.localToGlobal(Offset.zero) & box.size);
+    } catch (error) {
+      if (mounted) await AppDialog.error(context,
+          title: _backupText('备份失败', 'Backup failed'), message: '$error');
+    } finally {
+      if (mounted) setState(() => _databaseBusy = false);
+    }
+  }
+
+  Future<void> _restoreDatabase() async {
+    if (_databaseBusy) return;
+    var restored = false;
+    setState(() => _databaseBusy = true);
+    try {
+      final selection = await FilePicker.platform.pickFiles(
+          type: FileType.custom, allowedExtensions: ['json']);
+      if (selection == null || selection.files.isEmpty) return;
+      final file = selection.files.single;
+      if (file.size > LocalDatabaseBackupService.maxBytes) {
+        throw const FormatException('文件超过 100 MB / File exceeds 100 MB');
+      }
+      final service = LocalDatabaseBackupService(ref.read(databaseProvider));
+      final bytes = file.bytes ?? (file.path == null ? null : await service.readFile(File(file.path!)));
+      if (bytes == null) throw const FormatException('无法读取文件 / File unavailable');
+      final snapshot = await service.inspectBytes(bytes);
+      if (!mounted) return;
+      final confirmed = await AppDialog.confirm<bool>(context,
+        title: _backupText('覆盖全部本地账务数据？', 'Replace all local financial data?'),
+        message: _backupText(
+          '此备份包含 ${snapshot.rowCount} 条记录。恢复会替换所有账本、账户、流水、分类、预算、周期账单及财务计划事件，不是合并。请先备份当前数据。应用偏好和附件文件不会更改；附件需通过附件导入单独恢复。',
+          'This backup contains ${snapshot.rowCount} rows. It replaces all ledgers, accounts, transactions, categories, budgets, recurring bills and finance events; it does not merge them. Back up current data first. Settings and attachment files are unchanged; restore attachment files separately.'),
+        okLabel: _backupText('覆盖并恢复', 'Replace and restore'),
+      );
+      if (confirmed != true || !mounted) return;
+      final previousLedger = ref.read(currentLedgerIdProvider);
+      final firstLedger = await service.restore(snapshot);
+      restored = true;
+      if (!mounted) return;
+      final previousExists = await ref.read(repositoryProvider).getLedgerById(previousLedger);
+      if (!mounted) return;
+      final ledgerId = previousExists == null ? (firstLedger ?? 1) : previousLedger;
+      ref.read(currentLedgerIdProvider.notifier).state = ledgerId;
+      ref.read(cachedTransactionsProvider.notifier).state = null;
+      ref.read(cachedTransactionsWithCategoryProvider.notifier).state = null;
+      ref.read(homeSwitchToStreamProvider.notifier).state++;
+      await PostProcessor.run(ref, ledgerId: ledgerId, tags: true, attachments: true);
+      if (mounted) showToast(context, _backupText('账务数据已恢复，附件请另行导入',
+          'Database restored. Import attachment files separately.'));
+    } catch (error) {
+      if (mounted) await AppDialog.error(context,
+          title: restored
+              ? _backupText('数据已恢复，界面刷新失败', 'Data restored; screen refresh failed')
+              : _backupText('恢复失败，现有数据已保留', 'Restore failed; existing data preserved'),
+          message: '$error');
+    } finally {
+      if (mounted) setState(() => _databaseBusy = false);
+    }
   }
 
   // ============================================

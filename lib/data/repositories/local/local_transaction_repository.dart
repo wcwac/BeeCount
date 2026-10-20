@@ -7,6 +7,7 @@ import 'package:path/path.dart' as path;
 import 'package:uuid/uuid.dart';
 
 import '../../db.dart';
+import '../../../models/finance.dart';
 import '../../../utils/month_range.dart';
 import '../../../utils/shared_ledger_picker_filter.dart';
 import '../../../models/note_history.dart';
@@ -19,6 +20,42 @@ class LocalTransactionRepository implements TransactionRepository {
   final BeeDatabase db;
 
   LocalTransactionRepository(this.db);
+
+  Future<void> _requireUnlinked(Iterable<int> transactionIds) async {
+    final ids = transactionIds.toSet().toList();
+    for (var offset = 0; offset < ids.length; offset += 500) {
+      final batch = ids.skip(offset).take(500).toList();
+      final placeholders = List.filled(batch.length, '?').join(',');
+      final linked = await db.customSelect(
+        'SELECT 1 FROM finance_transaction_links '
+        'WHERE transaction_id IN ($placeholders) LIMIT 1',
+        variables: [for (final id in batch) d.Variable<int>(id)],
+      ).get();
+      if (linked.isNotEmpty) throw const FinanceFailure('linked_transaction');
+    }
+  }
+
+  Future<void> _requireOrdinaryAccounts(Iterable<int?> accountIds) async {
+    final ids = accountIds.whereType<int>().toSet();
+    if (ids.isEmpty) return;
+    final managed = await db.customSelect(
+      "SELECT id FROM accounts WHERE type IN "
+      "('finance_receivable','finance_debt','finance_investment')",
+      readsFrom: {db.accounts},
+    ).get();
+    if (managed.any((row) => ids.contains(row.read<int>('id')))) {
+      throw const FinanceFailure('managed_account');
+    }
+  }
+
+  Future<void> _validateCompanions(Iterable<TransactionsCompanion> items) =>
+      _requireOrdinaryAccounts(items.expand((item) => [
+        if (item.accountId.present) item.accountId.value,
+        if (item.toAccountId.present) item.toAccountId.value,
+      ]));
+
+  int? _accountValue(dynamic value) => value is d.Value<int?>
+      ? (value.present ? value.value : null) : value as int?;
 
   @override
   Stream<List<Transaction>> watchRecentTransactions({
@@ -431,6 +468,8 @@ class LocalTransactionRepository implements TransactionRepository {
     String? currencyCode,
     double? nativeAmount,
   }) async {
+    await _requireOrdinaryAccounts([accountId, toAccountId]);
+
     // v30:子仓收「已定值」直写;带折算的兜底(查账户/汇率)在聚合
     // LocalRepository 包装层(子仓拿不到汇率)。
     return db.into(db.transactions).insert(TransactionsCompanion.insert(
@@ -456,6 +495,7 @@ class LocalTransactionRepository implements TransactionRepository {
   @override
   Future<int> insertTransactionsBatch(
     List<TransactionsCompanion> items) async {
+    await _validateCompanions(items);
     // 在 LocalRepository wrapper 那一层。这里保留参数只是为了接口一致。
     if (items.isEmpty) return 0;
     final effectiveItems = items.map((item) {
@@ -476,6 +516,8 @@ class LocalTransactionRepository implements TransactionRepository {
     Map<int, List<int>> tagIdsByIndex = const {},
     Map<int, List<BatchAttachmentData>> attachmentsByIndex = const {},
   }) async {
+    await _validateCompanions(transactions);
+
     if (transactions.isEmpty) return const [];
     // 预填充 syncId — batch insertAll 不返回 row id,必须靠 syncId 反查。
     final effective = transactions.map((tx) {
@@ -565,6 +607,9 @@ class LocalTransactionRepository implements TransactionRepository {
     String? currencyCode,
     double? nativeAmount,
   }) async {
+    await _requireUnlinked([id]);
+    await _requireOrdinaryAccounts([_accountValue(accountId)]);
+
     // 处理 accountId 参数
     final d.Value<int?> accountIdValue;
     if (accountId == null) {
@@ -616,16 +661,21 @@ class LocalTransactionRepository implements TransactionRepository {
 
   @override
   Future<void> deleteTransaction(int id) async {
-    // 先删除关联的标签
-    await (db.delete(db.transactionTags)
-          ..where((tt) => tt.transactionId.equals(id)))
-        .go();
+    await db.transaction(() async {
 
-    // 再删除关联的附件
-    await _deleteAttachmentsForTransaction(id);
+      // Guard before touching attachment files or tags; SQL triggers alone run too late.
+      await _requireUnlinked([id]);
+      // 先删除关联的标签
+      await (db.delete(db.transactionTags)
+            ..where((tt) => tt.transactionId.equals(id)))
+          .go();
 
-    // 最后删除交易记录
-    await (db.delete(db.transactions)..where((t) => t.id.equals(id))).go();
+      // 再删除关联的附件
+      await _deleteAttachmentsForTransaction(id);
+
+      // 最后删除交易记录
+      await (db.delete(db.transactions)..where((t) => t.id.equals(id))).go();
+    });
   }
 
   /// 删除交易关联的所有附件（包括文件和数据库记录）
@@ -688,6 +738,7 @@ class LocalTransactionRepository implements TransactionRepository {
   @override
   Future<int> insertTransactionCompanion(
     TransactionsCompanion item) async {
+    await _validateCompanions([item]);
     final effective =
         item.syncId == const d.Value.absent() || item.syncId.value == null
             ? item.copyWith(syncId: d.Value(_uuid.v4()))
@@ -947,6 +998,9 @@ class LocalTransactionRepository implements TransactionRepository {
     bool writeAccountSyncIdOverride = false,
     bool writeToAccountSyncIdOverride = false,
   }) async {
+    await _requireUnlinked([id]);
+    await _requireOrdinaryAccounts([_accountValue(accountId), _accountValue(toAccountId)]);
+
     // accountId / toAccountId 接受 null(absent / 不更新)、int(直接写)、
     // `d.Value<int?>`(显式 null 清空)三种语义,跟 updateTransaction 对齐。
     final d.Value<int?> accountIdValue;
@@ -1023,6 +1077,8 @@ class LocalTransactionRepository implements TransactionRepository {
     required int id,
     required int ledgerId,
   }) async {
+    await _requireUnlinked([id]);
+
     await (db.update(db.transactions)..where((t) => t.id.equals(id))).write(
       TransactionsCompanion(ledgerId: d.Value(ledgerId)),
     );
@@ -1494,6 +1550,10 @@ class LocalTransactionRepository implements TransactionRepository {
     required DateTime happenedAt,
     String? note,
   }) async {
+    final existing = await getTransactionBySyncId(syncId);
+    if (existing != null) await _requireUnlinked([existing.id]);
+    await _requireOrdinaryAccounts([accountId, toAccountId]);
+
     await (db.update(db.transactions)..where((t) => t.syncId.equals(syncId)))
         .write(TransactionsCompanion(
       type: d.Value(type),
@@ -1520,6 +1580,11 @@ class LocalTransactionRepository implements TransactionRepository {
     List<TransactionUpdateBySyncIdData> updates) async {
     if (updates.isEmpty) return const {};
     return db.transaction(() async {
+      final existing = await (db.select(db.transactions)
+        ..where((t) => t.syncId.isIn(updates.map((u) => u.syncId).toList()))).get();
+      await _requireUnlinked(existing.map((t) => t.id));
+      await _requireOrdinaryAccounts(updates.expand((u) => [u.accountId, u.toAccountId]));
+
       await db.batch((b) {
         for (final u in updates) {
           b.update(
@@ -1560,6 +1625,7 @@ class LocalTransactionRepository implements TransactionRepository {
           .get();
       final txIds = rows.map((r) => r.id).toList();
       if (txIds.isEmpty) return 0;
+      await _requireUnlinked(txIds);
       // 删关联数据(级联)
       await (db.delete(db.transactionTags)
             ..where((t) => t.transactionId.isIn(txIds)))

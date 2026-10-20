@@ -3,6 +3,8 @@ import 'package:uuid/uuid.dart';
 
 import '../../db.dart';
 import '../ledger_repository.dart';
+import '../finance_repository.dart';
+import '../../../models/finance.dart';
 import '../../../utils/app_localizations_resolver.dart';
 
 const _uuid = Uuid();
@@ -110,6 +112,18 @@ class LocalLedgerRepository implements LedgerRepository {
           ..where((t) => t.ledgerId.equals(ledgerId)))
         .get();
 
+    // Sale receipts already contain principal and profit. Their separate
+    // non-cash P/L entry belongs in income/expense charts, not cash-flow balance.
+    final nonCashSaleRows = await db.customSelect(
+      "SELECT t.id FROM transactions t "
+      "JOIN finance_transaction_links l ON l.transaction_id=t.id "
+      "JOIN finance_events e ON e.id=l.event_id "
+      "WHERE t.ledger_id=? AND e.action='sell' AND l.owned=1 "
+      "AND t.account_id IS NULL AND t.to_account_id IS NULL",
+      variables: [d.Variable<int>(ledgerId)], readsFrom: {db.transactions},
+    ).get();
+    final nonCashSaleIds = nonCashSaleRows.map((r) => r.read<int>('id')).toSet();
+
     // 交易数
     final transactionCount = rows.length;
 
@@ -120,6 +134,7 @@ class LocalLedgerRepository implements LedgerRepository {
     // 兜底,单币种账本 native==amount 结果不变)。原先裸加 t.amount 在多币种
     // 账本下把不同币种原值直接相加(CNY+JPY),且改主币种后不随折算更新。
     for (final t in rows) {
+      if (nonCashSaleIds.contains(t.id)) continue;
       final v = t.nativeAmount ?? t.amount;
       if (t.type == 'income') {
         balance += v;
@@ -183,10 +198,8 @@ class LocalLedgerRepository implements LedgerRepository {
 
   @override
   Future<void> deleteLedger(int id) async {
-    // 先删除该账本下的所有交易，再删除账本本身
     await db.transaction(() async {
-      await (db.delete(db.transactions)..where((t) => t.ledgerId.equals(id)))
-          .go();
+      await clearLedgerTransactions(id);
       await (db.delete(db.ledgers)..where((tbl) => tbl.id.equals(id))).go();
     });
   }
@@ -223,6 +236,10 @@ class LocalLedgerRepository implements LedgerRepository {
           .ledgerTargetIdExists(toId.toString()));
     }
     await db.transaction(() async {
+      if ((await FinanceRepository(db).list(fromId)).isNotEmpty) {
+        throw const FinanceFailure('linked_transaction');
+      }
+
       // 先迁移子表中的外键引用
       await db.customUpdate(
         'UPDATE accounts SET ledger_id = ?1 WHERE ledger_id = ?2',
@@ -245,29 +262,23 @@ class LocalLedgerRepository implements LedgerRepository {
 
   @override
   Future<int> clearLedgerTransactions(int ledgerId) async {
-    // 先查询该账本所有交易ID
-    final txIds = await (db.select(db.transactions)
-          ..where((t) => t.ledgerId.equals(ledgerId)))
-        .map((t) => t.id)
-        .get();
-
-    if (txIds.isNotEmpty) {
-      // 删除关联的 transaction_tags
-      await (db.delete(db.transactionTags)
-            ..where((tt) => tt.transactionId.isIn(txIds)))
-          .go();
-
-      // 删除关联的 transaction_attachments
-      await (db.delete(db.transactionAttachments)
-            ..where((a) => a.transactionId.isIn(txIds)))
-          .go();
-    }
-
-    // 删除 transactions
-    final count = await (db.delete(db.transactions)
-          ..where((t) => t.ledgerId.equals(ledgerId)))
-        .go();
-    return count;
+    return db.transaction(() async {
+      // Remove financial ownership before deleting the same ledger's entries.
+      // An error in either half rolls back plans, events, mirrors and entries.
+      await FinanceRepository(db).clearLedger(ledgerId);
+      final txIds = await (db.select(db.transactions)
+            ..where((t) => t.ledgerId.equals(ledgerId)))
+          .map((t) => t.id)
+          .get();
+      if (txIds.isNotEmpty) {
+        await (db.delete(db.transactionTags)
+              ..where((tt) => tt.transactionId.isIn(txIds))).go();
+        await (db.delete(db.transactionAttachments)
+              ..where((a) => a.transactionId.isIn(txIds))).go();
+      }
+      return (db.delete(db.transactions)
+            ..where((t) => t.ledgerId.equals(ledgerId))).go();
+    });
   }
 
   @override

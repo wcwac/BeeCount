@@ -3,6 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/db.dart' as db;
 import '../../providers.dart';
+import '../../models/finance.dart';
+import '../../providers/finance_providers.dart';
+import '../finance/finance_detail_page.dart';
 import '../../widgets/ui/ui.dart';
 import '../../widgets/biz/biz.dart';
 import '../../styles/tokens.dart';
@@ -182,6 +185,18 @@ class _AccountDetailPageState extends ConsumerState<AccountDetailPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (financeAccountTypes.contains(widget.account.type)) {
+      final plan = ref.watch(financePlanForAccountProvider(widget.account.id));
+      return plan.when(
+        data: (id) => id == null
+          ? Scaffold(appBar: AppBar(), body: const Center(child: Icon(Icons.info_outline)))
+          : FinanceDetailPage(planId: id),
+        loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
+        error: (_, __) => Scaffold(appBar: AppBar(), body: Center(child: TextButton(
+          onPressed: () => ref.invalidate(financePlanForAccountProvider(widget.account.id)),
+          child: Text(AppLocalizations.of(context).helpCenterRetry)))),
+      );
+    }
     final l10n = AppLocalizations.of(context);
     final primaryColor = ref.watch(primaryColorProvider);
     final statsAsync = ref.watch(accountStatsProvider(widget.account.id));
