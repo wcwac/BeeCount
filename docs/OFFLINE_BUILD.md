@@ -5,14 +5,20 @@
 
 ## 当前状态
 
-- 已禁用联网功能，移除 Supabase、WebDAV、S3、iCloud 后端包及 AI 服务商包。
+- 已禁用联网功能，移除 Supabase、WebDAV、S3、iCloud 后端包、AI 服务商包、
+  Agent 执行与界面包、录音、网络状态监测、快捷操作和 APK 打开插件。
 - 保留本地记账、统计、导入导出和备份，以及部分供旧代码引用的禁用接口。
 - Android 使用独立应用 ID `io.github.wcwac.beecount.offline`。
   Kotlin namespace 保持原值，以兼容现有原生类和桌面组件类名。
 - 与原版数据目录隔离。迁移需要先从原版导出，再导入离线版；请先验证备份。
-- 当前只完成静态检查。尚未执行依赖解析、分析器、测试、构建或真机验证。
-- 锁定文件尚未重新解析；首次获准构建后，必须检查解析差异并将新的
-  `pubspec.lock` 提交到分支。CI 会将实际使用的锁定文件随 APK 一起保存。
+- CI 已通过依赖解析、源码分析（警告和提示暂不阻断）、本地记账/统计/附件回归和离线限制测试。
+  APK 构建与真机验证状态见 Actions 运行结果。
+- 已取回并提交 CI 实际使用的依赖锁定文件。相对上游，直接运行依赖
+  从 64 项减至 41 项，根锁文件包数从 254 减至 191，本地子包从 10 个减至 1 个。
+  `http` 直接依赖移入开发依赖，供保留的上游可选联网集成测试使用；
+  云同步兼容包仍有自己的 HTTP 依赖，其联网入口在离线版被禁用。
+- SQLite 原生库、图片附件和本地通知等本地功能依赖仍然保留。
+  CI 会将实际使用的锁定文件随 APK 一起保存。
 
 ## 手动触发
 
@@ -61,8 +67,8 @@ keytool -genkeypair -v -keystore beecount-offline.jks \
   -alias beecount-offline -keyalg RSA -keysize 3072 -validity 10000
 ```
 
-此命令会交互询问密码和证书信息，不要把密码放在命令行中。生成和上传
-Secrets 需另行完成；仓库准备过程没有替你执行。
+此命令会交互询问密码和证书信息，不要把密码放在命令行中。此仓库已配置
+固定签名和对应 Secrets；上述命令仅供新部署参考，不要重新生成密钥替换现有签名。
 
 ## 执行范围与验证
 
@@ -77,15 +83,14 @@ Gradle 通过仓库 wrapper 下载并执行。来源和版本写在 workflow 与
 
 ```sh
 flutter pub get
+(cd packages/flutter_cloud_sync && flutter pub get)
 flutter analyze --no-pub --no-fatal-infos --no-fatal-warnings
 flutter test --no-pub test/offline \
-  test/ai/providers/ai_provider_factory_test.dart \
   test/pages/ai/ai_chat_page_lifecycle_test.dart \
   test/services/exchange_rate_service_test.dart \
-  test/utils/website_urls_test.dart
-# 在 packages/flutter_cloud_sync 目录：
-flutter pub get
-flutter test --no-pub test/auth_privacy_test.dart
+  test/services/attachment_service_test.dart \
+  test/data/repositories/local test/repositories
+(cd packages/flutter_cloud_sync && flutter test --no-pub test/auth_privacy_test.dart)
 # 在仓库根目录，版本和构建号由 workflow 提供：
 flutter build apk --release --flavor prod --no-pub \
   --build-name=<version> --build-number=<run_number>
