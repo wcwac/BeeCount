@@ -40,10 +40,15 @@ void main() {
 
     await repo.addTransaction(ledgerId: ledgerId, type: 'expense', amount: 125,
         happenedAt: now);
+    final dateKey = now.toIso8601String().substring(0, 10);
+    // Verify the database query separately from Riverpod invalidation: Drift
+    // stores timestamps as epoch seconds, so SQLite must decode that format.
+    expect(await repo.getTransactionDatesByMonth(ledgerId: ledgerId, month: month),
+        [dateKey]);
     await PostProcessor.runC(container, ledgerId: ledgerId);
 
     expect((await container.read(budgetOverviewProvider.future))!.totalBudget!.used, 125);
-    expect(await container.read(datesProvider.future), hasLength(1));
+    expect(await container.read(datesProvider.future), [dateKey]);
     expect((await container.read(localLedgersProvider.future)).single.transactionCount, 1);
     expect(await db.select(db.localChanges).get(), isEmpty);
   });

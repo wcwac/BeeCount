@@ -1450,7 +1450,7 @@ class LocalTransactionRepository implements TransactionRepository {
     final endDate = DateTime(month.year, month.month + 1, 0, 23, 59, 59);
 
     final query = '''
-      SELECT DISTINCT DATE(happened_at) as date
+      SELECT DISTINCT DATE(happened_at, 'unixepoch', 'localtime') as date
       FROM transactions
       WHERE ledger_id = ?
         AND happened_at >= ?

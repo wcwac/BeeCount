@@ -8,6 +8,7 @@ import 'package:beecount/data/db.dart';
 import 'package:beecount/data/repositories/local/local_repository.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
   late BeeDatabase database;
   late LocalRepository repository;
   late AccountEditController controller;
