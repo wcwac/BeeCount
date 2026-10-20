@@ -85,6 +85,10 @@ void main() {
     expect(find.text('setup-complete'), findsOneWidget);
     expect((await SharedPreferences.getInstance()).getBool('welcome_shown'),
         isTrue);
+    // Error logging is throttled for two seconds; advance the test clock so
+    // its real persistence timer finishes before this widget test is disposed.
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
   });
 
