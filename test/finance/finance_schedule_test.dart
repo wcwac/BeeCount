@@ -3,10 +3,14 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   List<RepaymentRow> schedule(int principal, int rate, int periods,
-      {RepaymentMethod method = RepaymentMethod.annuity,
-      DateTime? firstDue}) => repaymentSchedule(
-        principalCents: principal, annualRateBps: rate, periods: periods,
-        firstDueAt: firstDue ?? DateTime(2026, 1, 31), method: method);
+          {RepaymentMethod method = RepaymentMethod.annuity,
+          DateTime? firstDue}) =>
+      repaymentSchedule(
+          principalCents: principal,
+          annualRateBps: rate,
+          periods: periods,
+          firstDueAt: firstDue ?? DateTime(2026, 1, 31),
+          method: method);
 
   test('zero-rate payments conserve every cent and finish at zero', () {
     for (final method in RepaymentMethod.values) {
@@ -19,8 +23,12 @@ void main() {
 
   test('month-end schedule recovers original day after February', () {
     final rows = schedule(100000, 300, 4);
-    expect(rows.map((r) => r.dueAt), [DateTime(2026, 1, 31),
-      DateTime(2026, 2, 28), DateTime(2026, 3, 31), DateTime(2026, 4, 30)]);
+    expect(rows.map((r) => r.dueAt), [
+      DateTime(2026, 1, 31),
+      DateTime(2026, 2, 28),
+      DateTime(2026, 3, 31),
+      DateTime(2026, 4, 30)
+    ]);
     final leap = schedule(10000, 0, 2, firstDue: DateTime(2028, 1, 31));
     expect(leap.last.dueAt, DateTime(2028, 2, 29));
   });
@@ -36,8 +44,8 @@ void main() {
   });
 
   test('equal principal repayments have decreasing interest', () {
-    final rows = schedule(12000000, 600, 12,
-      method: RepaymentMethod.equalPrincipal);
+    final rows =
+        schedule(12000000, 600, 12, method: RepaymentMethod.equalPrincipal);
     expect(rows.every((r) => r.principalCents == 1000000), isTrue);
     expect(rows.first.totalCents, 1060000);
     expect(rows.last.totalCents, 1005000);
@@ -48,21 +56,32 @@ void main() {
       for (final principal in [600, 601, 10001, 100000000000000]) {
         for (final rate in [0, 1, 600, 10000]) {
           final rows = schedule(principal, rate, 600, method: method);
-          expect(rows.every((r) => r.principalCents > 0 &&
-            r.interestCents >= 0 && r.balanceCents >= 0), isTrue);
+          expect(
+              rows.every((r) =>
+                  r.principalCents > 0 &&
+                  r.interestCents >= 0 &&
+                  r.balanceCents >= 0),
+              isTrue);
           expect(rows.last.balanceCents, 0);
-          expect(rows.fold<int>(0, (sum, r) => sum + r.principalCents), principal);
+          expect(
+              rows.fold<int>(0, (sum, r) => sum + r.principalCents), principal);
         }
       }
     }
   });
 
   test('invalid contract terms are rejected before any plan exists', () {
-    for (final args in [(0, 0, 12), (100, -1, 12), (100, 10001, 12),
-      (100, 0, 0), (100, 0, 601), (1, 0, 12),
-      (100000000000001, 0, 12)]) {
+    for (final args in [
+      (0, 0, 12),
+      (100, -1, 12),
+      (100, 10001, 12),
+      (100, 0, 0),
+      (100, 0, 601),
+      (1, 0, 12),
+      (100000000000001, 0, 12)
+    ]) {
       expect(() => schedule(args.$1, args.$2, args.$3),
-        throwsA(isA<FinanceFailure>()));
+          throwsA(isA<FinanceFailure>()));
     }
   });
 }

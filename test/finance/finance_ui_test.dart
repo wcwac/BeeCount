@@ -14,7 +14,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('decimal entry preserves cents and micro-units without binary rounding', () {
+  test('decimal entry preserves cents and micro-units without binary rounding',
+      () {
     expect(parseFinanceDecimal('0.29', 2), 29);
     expect(parseFinanceDecimal('12.345678', 6), 12345678);
     expect(parseFinanceDecimal('1.001', 2), isNull);
@@ -24,7 +25,9 @@ void main() {
     expect(financeDecimal(12345678, 6), '12.345678');
   });
 
-  testWidgets('finance filters remain scrollable at narrow width and double text scale', (tester) async {
+  testWidgets(
+      'finance filters remain scrollable at narrow width and double text scale',
+      (tester) async {
     tester.view.physicalSize = const Size(320, 640);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
@@ -45,7 +48,9 @@ void main() {
     expect(find.text('Trip advance'), findsOneWidget);
   });
 
-  testWidgets('partial reimbursement sends exact principal and prevents double submission', (tester) async {
+  testWidgets(
+      'partial reimbursement sends exact principal and prevents double submission',
+      (tester) async {
     final repository = _RecordingRepository();
     final plan = _plan(kind: FinanceKind.reimbursement);
     await tester.pumpWidget(_app(
@@ -53,14 +58,17 @@ void main() {
       repository: repository,
     ));
     await tester.pumpAndSettle();
-    await tester.enterText(find.byKey(const ValueKey('finance-principal')), '0');
+    await tester.enterText(
+        find.byKey(const ValueKey('finance-principal')), '0');
     await tester.ensureVisible(find.text('Record'));
     await tester.tap(find.text('Record'));
     await tester.pump();
     expect(repository.postings, isEmpty);
 
-    await tester.scrollUntilVisible(find.byKey(const ValueKey('finance-principal')), -200);
-    await tester.enterText(find.byKey(const ValueKey('finance-principal')), '25.50');
+    await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('finance-principal')), -200);
+    await tester.enterText(
+        find.byKey(const ValueKey('finance-principal')), '25.50');
     await tester.ensureVisible(find.text('Record'));
     await tester.tap(find.text('Record'));
     await tester.pump();
@@ -68,7 +76,8 @@ void main() {
     expect(repository.postings.single.principalCents, 2550);
     expect(repository.postings.single.interestCents, 0);
     expect(repository.postings.single.cashAccountId, 10);
-    expect(tester.widget<FilledButton>(find.byType(FilledButton)).onPressed, isNull);
+    expect(tester.widget<FilledButton>(find.byType(FilledButton)).onPressed,
+        isNull);
     expect(tester.takeException(), isNull);
 
     // Leave while the fake I/O is pending, then finish it: mounted guards must
@@ -98,51 +107,78 @@ void main() {
   });
 }
 
-Widget _app({required Widget home, required _RecordingRepository repository,
-    List<FinancePlan> plans = const [], FinancePlan? plan, double textScale = 1}) => ProviderScope(
-  overrides: [
-    financeRepositoryProvider.overrideWithValue(repository),
-    financePlansProvider(1).overrideWith((ref) async => plans),
-    financePlanProvider(1).overrideWith((ref) async => plan),
-    financeEventsProvider(1).overrideWith((ref) async => <FinanceEvent>[]),
-  ],
-  child: MaterialApp(
-    locale: const Locale('en'),
-    localizationsDelegates: AppLocalizations.localizationsDelegates,
-    supportedLocales: AppLocalizations.supportedLocales,
-    builder: (context, child) => MediaQuery(
-      data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(textScale)),
-      child: child!,
-    ),
-    home: home,
-  ),
-);
+Widget _app(
+        {required Widget home,
+        required _RecordingRepository repository,
+        List<FinancePlan> plans = const [],
+        FinancePlan? plan,
+        double textScale = 1}) =>
+    ProviderScope(
+      overrides: [
+        financeRepositoryProvider.overrideWithValue(repository),
+        financePlansProvider(1).overrideWith((ref) async => plans),
+        financePlanProvider(1).overrideWith((ref) async => plan),
+        financeEventsProvider(1).overrideWith((ref) async => <FinanceEvent>[]),
+      ],
+      child: MaterialApp(
+        locale: const Locale('en'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(context)
+              .copyWith(textScaler: TextScaler.linear(textScale)),
+          child: child!,
+        ),
+        home: home,
+      ),
+    );
 
-FinancePlan _plan({required FinanceKind kind, bool closed = false}) => FinancePlan(
-  id: 1, ledgerId: 1, accountId: 20, kind: kind,
-  title: 'Trip advance', party: '', currency: 'CNY', note: '',
-  principalCents: 10000, annualRateBps: 0, periods: 12,
-  method: RepaymentMethod.annuity,
-  openedAt: DateTime(2020, 1, 1), firstDueAt: DateTime(2020, 2, 1),
-  outstandingCents: closed ? 0 : 10000,
-  unitsMicros: closed ? 0 : 1000000,
-  valueCents: closed ? 0 : 10000,
-  realizedProfitCents: 0, paidInterestCents: 0,
-);
+FinancePlan _plan({required FinanceKind kind, bool closed = false}) =>
+    FinancePlan(
+      id: 1,
+      ledgerId: 1,
+      accountId: 20,
+      kind: kind,
+      title: 'Trip advance',
+      party: '',
+      currency: 'CNY',
+      note: '',
+      principalCents: 10000,
+      annualRateBps: 0,
+      periods: 12,
+      method: RepaymentMethod.annuity,
+      openedAt: DateTime(2020, 1, 1),
+      firstDueAt: DateTime(2020, 2, 1),
+      outstandingCents: closed ? 0 : 10000,
+      unitsMicros: closed ? 0 : 1000000,
+      valueCents: closed ? 0 : 10000,
+      realizedProfitCents: 0,
+      paidInterestCents: 0,
+    );
 
 class _RecordingRepository implements FinanceRepository {
   final postings = <FinancePosting>[];
   final completion = Completer<void>();
   @override
-  Future<List<db.Account>> cashAccounts(int ledgerId, {String? currency}) async => [
-    const db.Account(id: 10, ledgerId: 1, name: 'Cash', type: 'cash',
-      currency: 'CNY', initialBalance: 1000, sortOrder: 0, hidden: false),
-  ];
+  Future<List<db.Account>> cashAccounts(int ledgerId,
+          {String? currency}) async =>
+      [
+        const db.Account(
+            id: 10,
+            ledgerId: 1,
+            name: 'Cash',
+            type: 'cash',
+            currency: 'CNY',
+            initialBalance: 1000,
+            sortOrder: 0,
+            hidden: false),
+      ];
   @override
   Future<void> post(int id, FinancePosting posting) {
     postings.add(posting);
     return completion.future;
   }
+
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }

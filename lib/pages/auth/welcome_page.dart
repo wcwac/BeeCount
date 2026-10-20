@@ -40,15 +40,19 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
   bool _isImportingAttachment = false; // 附件导入状态
   bool _isNavigating = false;
   bool _isUpdatingLanguage = false;
-  bool get _busy => _isInitializing || _isImporting ||
-      _isImportingAttachment || _isNavigating || _isUpdatingLanguage;
+  bool get _busy =>
+      _isInitializing ||
+      _isImporting ||
+      _isImportingAttachment ||
+      _isNavigating ||
+      _isUpdatingLanguage;
 
   Future<void> _movePage(int page) async {
     if (_busy || !_pageController.hasClients) return;
     setState(() => _isNavigating = true);
     try {
       await _pageController.animateToPage(page,
-        duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+          duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
     } finally {
       if (mounted) setState(() => _isNavigating = false);
     }
@@ -70,12 +74,17 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
     logger.error('welcome', '欢迎流程未完成，可重试', error, stack);
     if (!mounted) return;
     final l10n = AppLocalizations.of(context);
-    await showDialog<void>(context: context, builder: (dialogContext) => AlertDialog(
-      title: Text(l10n.commonError),
-      content: SingleChildScrollView(child: Text(error.toString())),
-      actions: [TextButton(onPressed: () => Navigator.pop(dialogContext),
-        child: Text(l10n.commonClose))],
-    ));
+    await showDialog<void>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+              title: Text(l10n.commonError),
+              content: SingleChildScrollView(child: Text(error.toString())),
+              actions: [
+                TextButton(
+                    onPressed: () => Navigator.pop(dialogContext),
+                    child: Text(l10n.commonClose))
+              ],
+            ));
   }
 
   Future<void> _persistCompletion(SharedPreferences prefs) async {
@@ -83,13 +92,16 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
     final ledgers = await ref.read(repositoryProvider).getAllLedgers();
     if (!mounted) return;
     final currentId = ref.read(currentLedgerIdProvider);
-    if (ledgers.isNotEmpty && !ledgers.any((ledger) => ledger.id == currentId)) {
+    if (ledgers.isNotEmpty &&
+        !ledgers.any((ledger) => ledger.id == currentId)) {
       ref.read(currentLedgerIdProvider.notifier).state = ledgers.first.id;
     }
     ref.read(cachedTransactionsProvider.notifier).state = null;
     ref.read(cachedTransactionsWithCategoryProvider.notifier).state = null;
     await PostProcessor.run(ref,
-      ledgerId: ref.read(currentLedgerIdProvider), tags: true, attachments: true);
+        ledgerId: ref.read(currentLedgerIdProvider),
+        tags: true,
+        attachments: true);
     if (!mounted) return;
     if (!await prefs.setBool('welcome_shown', true)) {
       throw StateError('Unable to save setup completion. Please try again.');
@@ -125,89 +137,102 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
     final pageCount = pages.length;
 
     return PopScope(
-      canPop: !_busy,
-      child: Scaffold(
-      backgroundColor: theme.primaryColor,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // 页面指示器
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(
-                  pageCount,
-                  (index) => Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 4),
-                    width: _currentPage == index ? 24 : 8,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      color: _currentPage == index
-                          ? Colors.white
-                          : Colors.white.withValues(alpha: 0.5),
-                      borderRadius: BorderRadius.circular(4),
+        canPop: !_busy,
+        child: Scaffold(
+          backgroundColor: theme.primaryColor,
+          body: SafeArea(
+            child: Column(
+              children: [
+                // 页面指示器
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(
+                      pageCount,
+                      (index) => Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 4),
+                        width: _currentPage == index ? 24 : 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: _currentPage == index
+                              ? Colors.white
+                              : Colors.white.withValues(alpha: 0.5),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ),
 
-            Expanded(
-              child: AbsorbPointer(
-                absorbing: _busy,
-                child: PageView(
-                  controller: _pageController,
-                  physics: const NeverScrollableScrollPhysics(),
-                  onPageChanged: (index) {
-                    if (mounted) setState(() => _currentPage = index);
-                  },
-                  children: pages,
+                Expanded(
+                  child: AbsorbPointer(
+                    absorbing: _busy,
+                    child: PageView(
+                      controller: _pageController,
+                      physics: const NeverScrollableScrollPhysics(),
+                      onPageChanged: (index) {
+                        if (mounted) setState(() => _currentPage = index);
+                      },
+                      children: pages,
+                    ),
+                  ),
                 ),
-              ),
+                if (!_isExistingUserFlow)
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: OverflowBar(
+                      alignment: _currentPage > 0
+                          ? MainAxisAlignment.spaceBetween
+                          : MainAxisAlignment.end,
+                      overflowAlignment: OverflowBarAlignment.end,
+                      spacing: 8,
+                      overflowSpacing: 8,
+                      children: [
+                        if (_currentPage > 0)
+                          TextButton(
+                            key: const ValueKey('welcome-previous'),
+                            onPressed: _busy
+                                ? null
+                                : () => _movePage(_currentPage - 1),
+                            style: TextButton.styleFrom(
+                                foregroundColor: Colors.white),
+                            child: Text(l10n.commonPrevious),
+                          ),
+                        if (_currentPage < pageCount - 1)
+                          FilledButton(
+                            key: const ValueKey('welcome-next'),
+                            onPressed: _busy
+                                ? null
+                                : () => _movePage(_currentPage + 1),
+                            style: FilledButton.styleFrom(
+                                backgroundColor: Colors.white,
+                                foregroundColor: theme.primaryColor),
+                            child: Text(l10n.commonNext),
+                          )
+                        else
+                          FilledButton(
+                            key: const ValueKey('welcome-finish'),
+                            onPressed:
+                                _busy ? null : () => _finishWelcome(context),
+                            style: FilledButton.styleFrom(
+                                backgroundColor: Colors.white,
+                                foregroundColor: theme.primaryColor),
+                            child: _isInitializing
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2))
+                                : Text(l10n.commonFinish),
+                          ),
+                      ],
+                    ),
+                  ),
+              ],
             ),
-            if (!_isExistingUserFlow)
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: OverflowBar(
-                  alignment: _currentPage > 0 ? MainAxisAlignment.spaceBetween : MainAxisAlignment.end,
-                  overflowAlignment: OverflowBarAlignment.end,
-                  spacing: 8,
-                  overflowSpacing: 8,
-                  children: [
-                    if (_currentPage > 0)
-                      TextButton(
-                        key: const ValueKey('welcome-previous'),
-                        onPressed: _busy ? null : () => _movePage(_currentPage - 1),
-                        style: TextButton.styleFrom(foregroundColor: Colors.white),
-                        child: Text(l10n.commonPrevious),
-                      ),
-                    if (_currentPage < pageCount - 1)
-                      FilledButton(
-                        key: const ValueKey('welcome-next'),
-                        onPressed: _busy ? null : () => _movePage(_currentPage + 1),
-                        style: FilledButton.styleFrom(backgroundColor: Colors.white,
-                          foregroundColor: theme.primaryColor),
-                        child: Text(l10n.commonNext),
-                      )
-                    else
-                      FilledButton(
-                        key: const ValueKey('welcome-finish'),
-                        onPressed: _busy ? null : () => _finishWelcome(context),
-                        style: FilledButton.styleFrom(backgroundColor: Colors.white,
-                          foregroundColor: theme.primaryColor),
-                        child: _isInitializing
-                            ? const SizedBox(width: 20, height: 20,
-                                child: CircularProgressIndicator(strokeWidth: 2))
-                            : Text(l10n.commonFinish),
-                      ),
-                  ],
-                ),
-              ),
-          ],
-        ),
-      ),
-    ));
+          ),
+        ));
   }
 
   /// 第1页：欢迎
@@ -298,14 +323,16 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
               itemBuilder: (context, index) {
                 final locale = availableLocales[index];
                 final isSelected = currentLocale == locale;
-                final displayName = languageNotifier.getLanguageDisplayName(context, locale);
+                final displayName =
+                    languageNotifier.getLanguageDisplayName(context, locale);
 
                 return InkWell(
                   onTap: () {
                     _changeLanguage(locale);
                   },
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
                     child: Row(
                       children: [
                         Expanded(
@@ -313,7 +340,9 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
                             displayName,
                             style: theme.textTheme.bodyLarge?.copyWith(
                               color: Colors.white,
-                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                              fontWeight: isSelected
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
                             ),
                           ),
                         ),
@@ -354,7 +383,8 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
                     color: Colors.white.withValues(alpha: 0.7),
                   ),
                 const SizedBox(width: 6),
-                Flexible(child: Text(
+                Flexible(
+                    child: Text(
                   _isImporting
                       ? l10n.welcomeImportingConfig
                       : '${l10n.welcomeExistingUserTitle} ${l10n.welcomeExistingUserButton}',
@@ -382,19 +412,26 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
       children: [
         const Icon(Icons.attach_money, size: 64, color: Colors.white),
         const SizedBox(height: 16),
-        Text(l10n.ledgersCurrency, textAlign: TextAlign.center,
-          style: theme.textTheme.headlineSmall?.copyWith(color: Colors.white)),
+        Text(l10n.ledgersCurrency,
+            textAlign: TextAlign.center,
+            style:
+                theme.textTheme.headlineSmall?.copyWith(color: Colors.white)),
         const SizedBox(height: 12),
-        Text(l10n.welcomeCurrencyDescription, textAlign: TextAlign.center,
-          style: theme.textTheme.bodyLarge?.copyWith(color: Colors.white)),
+        Text(l10n.welcomeCurrencyDescription,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyLarge?.copyWith(color: Colors.white)),
         const SizedBox(height: 16),
         CheckboxListTile(
           contentPadding: EdgeInsets.zero,
           value: _createDefaultLedger,
           activeColor: Colors.white,
           checkColor: theme.primaryColor,
-          title: Text(l10n.welcomeCreateDefaultLedger, style: const TextStyle(color: Colors.white)),
-          onChanged: _busy ? null : (value) => setState(() => _createDefaultLedger = value ?? false),
+          title: Text(l10n.welcomeCreateDefaultLedger,
+              style: const TextStyle(color: Colors.white)),
+          onChanged: _busy
+              ? null
+              : (value) =>
+                  setState(() => _createDefaultLedger = value ?? false),
         ),
         const Divider(color: Colors.white54),
         for (final currency in currencies)
@@ -403,11 +440,16 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
             value: currency.code,
             groupValue: _selectedCurrency,
             activeColor: Colors.white,
-            title: Text('${currency.name} (${currency.code})', style: const TextStyle(color: Colors.white)),
-            subtitle: Text(getCurrencySymbol(currency.code), style: const TextStyle(color: Colors.white70)),
-            onChanged: _busy ? null : (value) {
-              if (value != null) setState(() => _selectedCurrency = value);
-            },
+            title: Text('${currency.name} (${currency.code})',
+                style: const TextStyle(color: Colors.white)),
+            subtitle: Text(getCurrencySymbol(currency.code),
+                style: const TextStyle(color: Colors.white70)),
+            onChanged: _busy
+                ? null
+                : (value) {
+                    if (value != null)
+                      setState(() => _selectedCurrency = value);
+                  },
           ),
       ],
     );
@@ -527,12 +569,12 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
     setState(() => _isInitializing = true);
     try {
       await db.transaction(() => db.ensureSeed(
-        l10n: l10n,
-        currency: currency,
-        useHierarchicalCategories: categoryMode == 'hierarchical',
-        skipCategories: categoryMode == 'none',
-        createDefaultLedger: createLedger,
-      ));
+            l10n: l10n,
+            currency: currency,
+            useHierarchicalCategories: categoryMode == 'hierarchical',
+            skipCategories: categoryMode == 'none',
+            createDefaultLedger: createLedger,
+          ));
       final prefs = await SharedPreferences.getInstance();
       if (!await prefs.setString('category_mode', categoryMode) ||
           !await prefs.setString('selected_currency', currency) ||
@@ -771,11 +813,13 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
       if (!context.mounted) return;
 
       if (importResult.success) {
-        showToast(context, l10n.welcomeImportAttachmentSuccess(importResult.imported));
+        showToast(context,
+            l10n.welcomeImportAttachmentSuccess(importResult.imported));
         // 导入成功，完成流程
         await _persistCompletion(await SharedPreferences.getInstance());
       } else {
-        showToast(context, l10n.welcomeImportAttachmentFailed(importResult.message ?? ''));
+        showToast(context,
+            l10n.welcomeImportAttachmentFailed(importResult.message ?? ''));
       }
     } catch (e, st) {
       logger.error('welcome', '导入附件失败', e, st);
@@ -915,7 +959,8 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
               : Colors.white.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.3),
+            color:
+                isSelected ? Colors.white : Colors.white.withValues(alpha: 0.3),
             width: 2,
           ),
         ),
@@ -925,7 +970,9 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
             Row(
               children: [
                 Icon(
-                  isSelected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+                  isSelected
+                      ? Icons.radio_button_checked
+                      : Icons.radio_button_unchecked,
                   color: Colors.white,
                   size: 24,
                 ),
@@ -955,27 +1002,27 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
             ),
             const SizedBox(height: 12),
             ...features.map((feature) => Padding(
-              padding: const EdgeInsets.only(bottom: 4),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(
-                    Icons.check_circle_outline,
-                    color: Colors.white.withValues(alpha: 0.8),
-                    size: 16,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      feature,
-                      style: theme.textTheme.bodySmall?.copyWith(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        Icons.check_circle_outline,
                         color: Colors.white.withValues(alpha: 0.8),
+                        size: 16,
                       ),
-                    ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          feature,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: Colors.white.withValues(alpha: 0.8),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            )),
+                )),
           ],
         ),
       ),
