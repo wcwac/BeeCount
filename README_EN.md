@@ -1,7 +1,7 @@
 > **Local offline edition**: cloud sync, AI/image/voice recognition, online updates, public rates and external links are disabled. Manual bookkeeping, local statistics, attachments and file import/export remain available. Automatic backups are disabled; keep exported backups. Online features described below belong to the upstream version.
 
 Offline source: [wcwac/BeeCount · offline](https://github.com/wcwac/BeeCount/tree/offline).
-See the [offline build guide (Chinese)](docs/OFFLINE_BUILD.md) for Android builds, signing and releases. Compilation and device testing are still pending.
+See the [offline build guide (Chinese)](docs/OFFLINE_BUILD.md) for Android builds, signing and releases. The simplified edition passed 437 tests, signed APK compilation and permission checks. Device testing is still pending.
 
 # BeeCount &nbsp; [中文](README.md)
 
