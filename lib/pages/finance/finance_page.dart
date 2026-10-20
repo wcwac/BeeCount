@@ -21,7 +21,8 @@ class _FinancePageState extends ConsumerState<FinancePage> {
   @override
   Widget build(BuildContext context) {
     final text = FinanceText(context);
-    final int ledgerId = widget.ledgerId ?? ref.watch<int>(currentLedgerIdProvider);
+    final int ledgerId =
+        widget.ledgerId ?? ref.watch<int>(currentLedgerIdProvider);
     final plans = ref.watch(financePlansProvider(ledgerId));
     return Scaffold(
       appBar: AppBar(title: Text(text.title)),

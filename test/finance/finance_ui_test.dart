@@ -67,8 +67,10 @@ void main() {
 
     await tester.scrollUntilVisible(
         find.byKey(const ValueKey('finance-principal')), -200,
-        scrollable: find.descendant(of: find.byType(ListView),
-          matching: find.byType(Scrollable)).first);
+        scrollable: find
+            .descendant(
+                of: find.byType(ListView), matching: find.byType(Scrollable))
+            .first);
     await tester.enterText(
         find.byKey(const ValueKey('finance-principal')), '25.50');
     await tester.ensureVisible(find.text('Record'));

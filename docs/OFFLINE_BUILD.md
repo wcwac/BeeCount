@@ -103,3 +103,24 @@ REQUEST_INSTALL_PACKAGES 权限；确认独立包名、`allowBackup=false`，
 运行会消耗 Actions 配额，构建产物上传到 GitHub；只有选择
 `create_release` 时才发布预发行版。CI 成功仍需真机检查本地记账、
 备份恢复、桌面组件和网络行为。
+
+
+## 0.2.0 验证记录
+
+[Actions 构建 10](https://github.com/wcwac/BeeCount/actions/runs/39464878776)
+从提交 `e47d808a01920aabf619752ed868dbf81b29f356` 构建，版本 `0.2.0`，
+Android versionCode `10`。工作流格式化和本地化生成后的源码作为
+`finance-sources-10` 保存，仓库随后同步该源码；同步不改变业务逻辑。
+
+- 静态检查通过（旧代码的 warning/info 不作为失败条件）。
+- 完整测试 476 项通过，1 项原有手动小组件预览生成测试跳过。
+- 新测试覆盖报销、借贷、理财成本和盈亏、分期房贷、历史净资产、
+  数据库升级、完整备份恢复/回滚、欢迎页四步完成/失败重试/窄屏大字号。
+- 生成 ARM64、ARMv7、x86_64 和通用 APK，固定签名通过验证。
+- 所有 APK 均确认没有 INTERNET、ACCESS_NETWORK_STATE、RECORD_AUDIO、
+  REQUEST_INSTALL_PACKAGES 权限，独立应用 ID 和关闭系统备份的设置正确。
+- 没有运行本机 Flutter、JDK、项目测试或构建；执行发生在已授权的 Actions。
+- 尚未完成 Android 真机复测，iOS 未编译验证。
+
+这版同时修复欢迎页从五页精简到四页后仍显示“下一步”的问题：末页按实际页数
+显示“完成”；数据库初始化成功后才保存完成标记，失败可重试。

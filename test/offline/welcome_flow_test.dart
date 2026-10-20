@@ -129,8 +129,11 @@ void main() {
     expect(tester.takeException(), isNull);
     // Honour the opt-out; finishing may leave the database without any ledger.
     await tester.scrollUntilVisible(find.byType(CheckboxListTile), 160,
-      scrollable: find.descendant(of: find.byType(ListView).hitTestable(),
-        matching: find.byType(Scrollable)).first);
+        scrollable: find
+            .descendant(
+                of: find.byType(ListView).hitTestable(),
+                matching: find.byType(Scrollable))
+            .first);
     await tester.tap(find.byType(CheckboxListTile));
     await tester.pump();
     await _tap(tester, _next);
@@ -236,7 +239,8 @@ class _SeedRepository implements BaseRepository {
   _SeedRepository(this.database);
   final _SeedDatabase database;
   @override
-  Future<List<db.Ledger>> getAllLedgers() async => List.of(database.seededLedgers);
+  Future<List<db.Ledger>> getAllLedgers() async =>
+      List.of(database.seededLedgers);
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
