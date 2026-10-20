@@ -13,70 +13,9 @@ class CloudServiceStore {
 
   /// 加载当前激活的云服务配置
   Future<CloudServiceConfig> loadActive() async {
-    final sp = await SharedPreferences.getInstance();
-    final activeType = sp.getString(_kActiveType) ?? 'local';
-
-    switch (activeType) {
-      case 'local':
-        return CloudServiceConfig.localStorage();
-
-      case 'beecount_cloud':
-        final raw = sp.getString(_kBeeCountCloudCfg);
-        if (raw != null) {
-          try {
-            return decodeCloudConfig(raw);
-          } catch (e) {
-            // 解析失败，静默回退到本地存储
-          }
-        }
-        return CloudServiceConfig.localStorage();
-
-      case 'supabase':
-        final raw = sp.getString(_kSupabaseCfg);
-        if (raw != null) {
-          try {
-            return decodeCloudConfig(raw);
-          } catch (e) {
-            // 解析失败，静默回退到本地存储
-          }
-        }
-        // 回退到本地存储
-        return CloudServiceConfig.localStorage();
-
-      case 'webdav':
-        final raw = sp.getString(_kWebdavCfg);
-        if (raw != null) {
-          try {
-            return decodeCloudConfig(raw);
-          } catch (e) {
-            // 解析失败，静默回退到本地存储
-          }
-        }
-        // 回退到本地存储
-        return CloudServiceConfig.localStorage();
-
-      case 'icloud':
-        // iCloud 无需额外配置，返回 iCloud 类型的配置
-        return const CloudServiceConfig(
-          type: CloudBackendType.icloud,
-          name: 'iCloud',
-        );
-
-      case 's3':
-        final raw = sp.getString(_kS3Cfg);
-        if (raw != null) {
-          try {
-            return decodeCloudConfig(raw);
-          } catch (e) {
-            // 解析失败，静默回退到本地存储
-          }
-        }
-        // 回退到本地存储
-        return CloudServiceConfig.localStorage();
-
-      default:
-        return CloudServiceConfig.localStorage();
-    }
+    // Ignore persisted cloud choices, including configurations imported from an
+    // online installation. Keep saved data intact, but never activate it.
+    return CloudServiceConfig.localStorage();
   }
 
   /// 加载 BeeCount Cloud 配置(不管是否激活)
@@ -129,6 +68,9 @@ class CloudServiceStore {
 
   /// 保存并激活配置
   Future<void> saveAndActivate(CloudServiceConfig cfg) async {
+    if (cfg.type != CloudBackendType.local) {
+      throw UnsupportedError('Cloud services are disabled in this offline build.');
+    }
     final sp = await SharedPreferences.getInstance();
 
     switch (cfg.type) {
@@ -200,6 +142,7 @@ class CloudServiceStore {
 
   /// 激活指定类型的配置
   Future<bool> activate(CloudBackendType type) async {
+    if (type != CloudBackendType.local) return false;
     final sp = await SharedPreferences.getInstance();
 
     switch (type) {

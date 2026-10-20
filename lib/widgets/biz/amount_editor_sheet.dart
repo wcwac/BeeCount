@@ -170,7 +170,7 @@ class _AvatarSlot extends StatelessWidget {
       child: CircleAvatar(
         radius: 11,
         backgroundColor: BeeTokens.surfaceCapsule(context),
-        foregroundImage: absolute != null ? NetworkImage(absolute) : null,
+        foregroundImage: null,
         child: Text(
           letter,
           style: TextStyle(

@@ -1,7 +1,7 @@
 import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:url_launcher/url_launcher.dart';
+import '../../services/security/offline_url_launcher.dart';
 
 import '../../services/system/logger_service.dart';
 import '../../styles/tokens.dart';

@@ -9,7 +9,6 @@ import 'currency_providers.dart';
 import 'statistics_providers.dart';
 import 'budget_providers.dart';
 import 'font_scale_provider.dart';
-import 'update_providers.dart';
 import 'smart_billing_providers.dart';
 import '../data/db.dart';
 import '../utils/month_range.dart';
@@ -51,12 +50,6 @@ final selectedMonthProvider = StateProvider<DateTime>((ref) {
 
 // 视角：'month' 或 'year'
 final selectedViewProvider = StateProvider<String>((ref) => 'month');
-
-// 检查更新状态 - 防止重复点击
-final checkUpdateLoadingProvider = StateProvider<bool>((ref) => false);
-
-// 下载进度状态
-final downloadProgressProvider = StateProvider<UpdateProgress?>((ref) => null);
 
 // ---------- Analytics 提示持久化（本地 SharedPreferences） ----------
 final analyticsHeaderHintDismissedProvider =
@@ -153,8 +146,7 @@ final accountFeatureEnabledProvider =
 
 class AccountFeatureSetter {
   Future<void> setEnabled(bool enabled) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('account_feature_enabled', enabled);
+    // Offline-only: imported preferences cannot enable AI.
   }
 }
 
@@ -410,11 +402,8 @@ final defaultAccountSetterProvider = Provider<DefaultAccountSetter>((ref) {
 // AI小助手开关状态持久化
 final aiAssistantEnabledProvider =
     FutureProvider.autoDispose<bool>((ref) async {
-  final prefs = await SharedPreferences.getInstance();
-  final link = ref.keepAlive();
-  ref.onDispose(() => link.close());
-  return prefs.getBool(AIConstants.keyAiBillExtractionEnabled) ?? true; // 默认开启
-});
+  return false;
+  });
 
 class AIAssistantSetter {
   Future<void> setEnabled(bool enabled) async {

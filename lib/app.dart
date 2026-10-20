@@ -158,55 +158,7 @@ class _BeeAppState extends ConsumerState<BeeApp>
   /// 数据到 BeeCount Cloud"。这里 listenManual 保持 provider 活跃，并在它从占位
   /// 对象变成真正的 SyncEngine 时主动触发一次 sync。
   void _refreshLedgersStatusInBackground() {
-    // 冷启动时先 eager-await beecountCloudProviderInstance 一次，强制让这个
-    // FutureProvider 真正跑起来。否则只是"被定义"但没人读，
-    // BeeCountCloudAuthService.initialize() 永远不会跑，session 不会从
-    // SharedPreferences 恢复 —— 就是之前用户感受到的"必须打开配置保存才会
-    // 登录"bug 的根因。后面的 listenManual 再做后续响应式逻辑。
-    Future.microtask(() async {
-      try {
-        await ref.read(sp.beecountCloudProviderInstance.future);
-      } catch (_) {
-        // 非 BeeCount Cloud 配置或初始化失败：忽略，让下面的 listenManual 兜住。
-      }
-    });
-
-    // 启动同步走 `Future.microtask` 而**不是** `addPostFrameCallback`。
-    //
-    // 历史:之前为了首屏更快试过 addPostFrameCallback,首帧渲染完才开始 sync,
-    // 代价是 sync 完成后 bump 一堆 refresh ticker → home 已渲染好的内容触发
-    // 二次 cascade rebuild,FutureProvider invalidate 走 loading→data 切换,
-    // 用户感知"进首页 → 出现预算卡片 / 列表展开 → 整页刷新一遍"。
-    //
-    // 改回 microtask:让 sync 在首屏渲染**之前**就开始抢占主线程跑,首屏出
-    // 来时 ticker bump 已经发生或正在发生,跟首屏渲染叠加成单次"加载",没
-    // 有"先显示后又刷新"的二次绘制感。Phase1/Phase2 分层结构保留(下面的
-    // `_triggerInitialCloudSync` 还是分层并行,避免多账本场景重复跑用户级
-    // 操作),只换了 trigger 时机。
-    Future.microtask(() async {
-      try {
-        final syncService = ref.read(syncServiceProvider);
-        if (syncService is TransactionsSyncManager) {
-          await syncService.refreshAllLedgersStatus();
-          ref.read(ledgerListRefreshProvider.notifier).state++;
-        } else if (syncService is SyncEngine) {
-          _triggerInitialCloudSync(syncService);
-        }
-      } catch (e) {
-        // 静默失败,不影响 App 启动
-      }
-    });
-
-    // 持续监听 syncServiceProvider：即使第一次读到的是 LocalOnly（配置尚未加载）
-    // 也能在 SyncEngine 实例就绪后再触发一次同步。
-    ref.listenManual<SyncService>(
-      syncServiceProvider,
-      (prev, next) {
-        if (prev is SyncEngine || next is! SyncEngine) return;
-        _triggerInitialCloudSync(next);
-      },
-      fireImmediately: false,
-    );
+    // Offline build never starts sync or subscribes to cloud providers.
   }
 
   void _triggerInitialCloudSync(SyncEngine engine) {
@@ -593,41 +545,15 @@ class _BeeAppState extends ConsumerState<BeeApp>
   }
 
   void _onLongPressStart(LongPressStartDetails details) {
-    _expandController.forward();
-    _showOverlay();
+    // Offline build has no AI capture shortcuts.
   }
 
   void _onLongPressMoveUpdate(LongPressMoveUpdateDetails details) {
-    _updateHoveredIndex(details.globalPosition);
+    // Offline build has no AI capture shortcuts.
   }
 
   void _onLongPressEnd(LongPressEndDetails details) {
-    final centerActions = [
-      SpeedDialAction(
-        icon: Icons.camera_alt_rounded,
-        label: AppLocalizations.of(context).fabActionCamera,
-        onTap: () => ImageBillingHelper.openCameraForBilling(context, ref),
-      ),
-      SpeedDialAction(
-        icon: Icons.photo_library_rounded,
-        label: AppLocalizations.of(context).fabActionGallery,
-        onTap: () => ImageBillingHelper.pickImageForBilling(context, ref),
-      ),
-      SpeedDialAction(
-        icon: Icons.mic_rounded,
-        label: AppLocalizations.of(context).fabActionVoice,
-        onTap: () => VoiceBillingHelper.startVoiceBilling(context, ref),
-      ),
-    ];
-
-    if (_hoveredIndex != null && _hoveredIndex! < centerActions.length) {
-      final action = centerActions[_hoveredIndex!];
-      if (action.enabled && action.onTap != null) {
-        action.onTap!();
-      }
-    }
-
-    _dismissOverlay();
+    // Offline build has no AI capture shortcuts.
   }
 
   void _dismissOverlay() {

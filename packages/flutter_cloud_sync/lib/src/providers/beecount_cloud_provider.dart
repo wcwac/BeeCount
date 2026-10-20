@@ -2,10 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
-import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
-import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
@@ -112,34 +110,7 @@ class BeeCountCloudProvider implements CloudProvider {
 
   @override
   Future<void> initialize(Map<String, dynamic> config) async {
-    if (!validateConfig(config)) {
-      throw CloudConfigurationException(
-          'Invalid BeeCount Cloud config. Required: baseUrl');
-    }
-
-    final rawBaseUrl = (config['baseUrl'] as String).trim();
-    final rawApiPrefix = (config['apiPrefix'] as String?)?.trim();
-    final baseUrl = rawBaseUrl.replaceFirst(RegExp(r'/$'), '');
-    final apiPrefix = _normalizeApiPrefix(rawApiPrefix ?? '/api/v1');
-
-    final authService = BeeCountCloudAuthService(
-      baseUrl: baseUrl,
-      apiPrefix: apiPrefix,
-      twoFactorHandler: BeeCountCloudProvider.globalTwoFactorHandler,
-    );
-    await authService.initialize();
-
-    _auth = authService;
-    final storage = BeeCountCloudStorageService(
-      baseUrl: baseUrl,
-      apiPrefix: apiPrefix,
-      auth: authService,
-    );
-    _storage = storage;
-    _realtime = BeeCountCloudRealtimeClient(
-      baseUrl: baseUrl,
-      auth: authService,
-    );
+    throw UnsupportedError('Cloud services are disabled in this offline build.');
   }
 
   @override
@@ -1076,41 +1047,16 @@ class _BeeCountDeviceMetadata {
     required this.deviceId,
     required this.deviceName,
     required this.platform,
-    this.appVersion,
-    this.osVersion,
-    this.deviceModel,
   });
 
   final String deviceId;
   final String deviceName;
   final String platform;
-  final String? appVersion;
-  final String? osVersion;
-  final String? deviceModel;
 }
 
 String? _trimOrNull(String? value) {
   final normalized = value?.trim() ?? '';
   return normalized.isEmpty ? null : normalized;
-}
-
-String _firstNonEmpty(List<String?> values, {required String fallback}) {
-  for (final value in values) {
-    final normalized = _trimOrNull(value);
-    if (normalized != null) {
-      return normalized;
-    }
-  }
-  return fallback;
-}
-
-String _joinNonEmpty(List<String?> values) {
-  return values
-      .map(_trimOrNull)
-      .whereType<String>()
-      .where((value) => value.isNotEmpty)
-      .join(' ')
-      .trim();
 }
 
 class BeeCountCloudAuthService implements CloudAuthService {
@@ -1175,23 +1121,7 @@ class BeeCountCloudAuthService implements CloudAuthService {
   }
 
   Future<void> initialize() async {
-    final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_sessionStorageKey);
-    if (raw == null || raw.isEmpty) {
-      return;
-    }
-
-    try {
-      final json = jsonDecode(raw) as Map<String, dynamic>;
-      _session = _BeeCountCloudSession.fromJson(json);
-      if (_isAccessTokenExpired(_session!)) {
-        await _refreshSessionOrClear();
-      } else {
-        _emitCurrentUser();
-      }
-    } catch (_) {
-      await _clearSession();
-    }
+    // Stored sessions are not restored in the offline build.
   }
 
   @override
@@ -1332,9 +1262,6 @@ class BeeCountCloudAuthService implements CloudAuthService {
       'device_id': metadata.deviceId,
       'device_name': metadata.deviceName,
       'platform': metadata.platform,
-      if (metadata.appVersion != null) 'app_version': metadata.appVersion,
-      if (metadata.osVersion != null) 'os_version': metadata.osVersion,
-      if (metadata.deviceModel != null) 'device_model': metadata.deviceModel,
     };
   }
 
@@ -1360,137 +1287,12 @@ class BeeCountCloudAuthService implements CloudAuthService {
   }
 
   Future<_BeeCountDeviceMetadata> _loadDeviceMetadata() async {
-    final localDeviceId = await _resolveOrCreateLocalDeviceId();
-    String deviceName = 'BeeCount App';
-    String platform = 'flutter';
-    String? appVersion;
-    String? osVersion;
-    String? deviceModel;
-
-    try {
-      final packageInfo = await PackageInfo.fromPlatform();
-      final version = _trimOrNull(packageInfo.version);
-      final buildNumber = _trimOrNull(packageInfo.buildNumber);
-      appVersion = _trimOrNull(_joinNonEmpty([version, buildNumber]));
-      deviceName = _firstNonEmpty(
-        [packageInfo.appName, deviceName],
-        fallback: deviceName,
-      );
-    } catch (_) {
-      // Ignore package info failure and fall back to defaults.
-    }
-
-    try {
-      final deviceInfo = DeviceInfoPlugin();
-      if (kIsWeb) {
-        final web = await deviceInfo.webBrowserInfo;
-        platform = 'web';
-        osVersion = _trimOrNull(web.platform);
-        deviceModel = _trimOrNull(web.userAgent);
-        deviceName = _firstNonEmpty(
-          [
-            web.browserName.name,
-            deviceName,
-          ],
-          fallback: deviceName,
-        );
-      } else {
-        switch (defaultTargetPlatform) {
-          case TargetPlatform.android:
-            final info = await deviceInfo.androidInfo;
-            platform = 'android';
-            osVersion = _joinNonEmpty(
-              ['Android', _trimOrNull(info.version.release)],
-            );
-            deviceModel = _joinNonEmpty([
-              _trimOrNull(info.brand),
-              _trimOrNull(info.model),
-            ]);
-            deviceName = _firstNonEmpty(
-              [info.brand, info.model, deviceName],
-              fallback: deviceName,
-            );
-            break;
-          case TargetPlatform.iOS:
-            final info = await deviceInfo.iosInfo;
-            platform = 'ios';
-            osVersion = _joinNonEmpty([
-              _trimOrNull(info.systemName),
-              _trimOrNull(info.systemVersion),
-            ]);
-            deviceModel = _joinNonEmpty([
-              _trimOrNull(info.model),
-              _trimOrNull(info.utsname.machine),
-            ]);
-            deviceName = _firstNonEmpty(
-              [info.name, info.model, deviceName],
-              fallback: deviceName,
-            );
-            break;
-          case TargetPlatform.macOS:
-            final info = await deviceInfo.macOsInfo;
-            platform = 'macos';
-            osVersion = _joinNonEmpty([
-              _trimOrNull(info.osRelease),
-              _trimOrNull(info.arch),
-            ]);
-            deviceModel = _joinNonEmpty([
-              _trimOrNull(info.model),
-              _trimOrNull(info.hostName),
-            ]);
-            deviceName = _firstNonEmpty(
-              [info.computerName, info.model, deviceName],
-              fallback: deviceName,
-            );
-            break;
-          case TargetPlatform.windows:
-            final info = await deviceInfo.windowsInfo;
-            platform = 'windows';
-            osVersion = _joinNonEmpty([
-              _trimOrNull(info.displayVersion),
-              _trimOrNull(info.releaseId),
-            ]);
-            deviceModel = _joinNonEmpty([
-              _trimOrNull(info.productName),
-              _trimOrNull(info.deviceId),
-            ]);
-            deviceName = _firstNonEmpty(
-              [info.computerName, info.productName, deviceName],
-              fallback: deviceName,
-            );
-            break;
-          case TargetPlatform.linux:
-            final info = await deviceInfo.linuxInfo;
-            platform = 'linux';
-            osVersion = _joinNonEmpty([
-              _trimOrNull(info.prettyName),
-              _trimOrNull(info.version),
-            ]);
-            deviceModel = _joinNonEmpty([
-              _trimOrNull(info.machineId),
-              _trimOrNull(info.id),
-            ]);
-            deviceName = _firstNonEmpty(
-              [info.name, info.prettyName, deviceName],
-              fallback: deviceName,
-            );
-            break;
-          case TargetPlatform.fuchsia:
-            platform = 'fuchsia';
-            break;
-        }
-      }
-    } catch (_) {
-      // Ignore device info failure and keep fallback values.
-    }
-
+    // Device identity is required for sync and session management. Do not read
+    // the user's device name, hardware model, OS version or app version.
     return _BeeCountDeviceMetadata(
-      deviceId: localDeviceId,
-      deviceName: deviceName,
-      platform: platform,
-      appVersion: _trimOrNull(appVersion),
-      osVersion: _trimOrNull(osVersion),
-      deviceModel: _trimOrNull(deviceModel),
+      deviceId: await _resolveOrCreateLocalDeviceId(),
+      deviceName: 'BeeCount App',
+      platform: 'flutter',
     );
   }
 
@@ -1758,9 +1560,6 @@ class BeeCountCloudAuthService implements CloudAuthService {
         deviceId: session.deviceId,
         deviceName: metadata.deviceName,
         platform: metadata.platform,
-        appVersion: metadata.appVersion,
-        osVersion: metadata.osVersion,
-        deviceModel: metadata.deviceModel,
       );
     }
     _emitCurrentUser();
@@ -1805,18 +1604,7 @@ class BeeCountCloudAuthService implements CloudAuthService {
     Map<String, dynamic>? body,
     String? accessToken,
   }) async {
-    final uri = Uri.parse('$baseUrl$apiPrefix$path');
-    final request = http.Request(method, uri);
-    request.headers['Content-Type'] = 'application/json';
-    if (accessToken != null && accessToken.isNotEmpty) {
-      request.headers['Authorization'] = 'Bearer $accessToken';
-    }
-    if (body != null) {
-      request.body = jsonEncode(body);
-    }
-
-    final streamed = await _httpClient.send(request);
-    return http.Response.fromStream(streamed);
+    throw UnsupportedError('Cloud requests are disabled in this offline build.');
   }
 }
 
@@ -3321,20 +3109,7 @@ class BeeCountCloudStorageService implements CloudStorageService {
     Map<String, String>? headers,
     required String token,
   }) async {
-    final uri = Uri.parse('$baseUrl$apiPrefix$path').replace(
-      queryParameters: query == null || query.isEmpty ? null : query,
-    );
-    final request = http.Request(method, uri);
-    request.headers['Authorization'] = 'Bearer $token';
-    request.headers['Content-Type'] = 'application/json';
-    if (headers != null && headers.isNotEmpty) {
-      request.headers.addAll(headers);
-    }
-    if (body != null) {
-      request.body = jsonEncode(body);
-    }
-    final streamed = await _httpClient.send(request);
-    return http.Response.fromStream(streamed);
+    throw UnsupportedError('Cloud requests are disabled in this offline build.');
   }
 
   Future<http.Response> _multipartRequest({

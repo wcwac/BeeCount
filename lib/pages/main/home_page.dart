@@ -638,8 +638,6 @@ class _HomePageState extends ConsumerState<HomePage> {
     final ledgerId = ref.watch(currentLedgerIdProvider);
     final month = ref.watch(selectedMonthProvider);
     final hide = ref.watch(hideAmountsProvider);
-    final aiEnabledAsync = ref.watch(aiAssistantEnabledProvider);
-    final aiEnabled = aiEnabledAsync.asData?.value ?? true; // 默认开启
 
     // 检测账本切换，强制刷新 StreamBuilder 并清空缓存
     if (_lastLedgerId != null && _lastLedgerId != ledgerId) {
@@ -867,11 +865,6 @@ class _HomePageState extends ConsumerState<HomePage> {
                           ),
                         ),
                         // 右侧操作按钮
-                        if (aiEnabled)
-                          AgentEntryButton(
-                            tooltip: AppLocalizations.of(context).aiChatTitle,
-                            onTap: _openAIChat,
-                          ),
                         IconButton(
                           tooltip: AppLocalizations.of(context).calendarTitle,
                           padding: const EdgeInsets.all(6),

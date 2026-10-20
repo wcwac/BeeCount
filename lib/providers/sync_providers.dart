@@ -89,19 +89,15 @@ final lastSyncErrorProvider = StateProvider<String?>((ref) => null);
 
 // 自动同步开关：值与设置
 final autoSyncValueProvider = FutureProvider.autoDispose<bool>((ref) async {
-  final prefs = await SharedPreferences.getInstance();
-  final link = ref.keepAlive();
-  ref.onDispose(() => link.close());
-  return prefs.getBool('auto_sync') ?? false;
-});
+  return false;
+  });
 
 class AutoSyncSetter {
   AutoSyncSetter(this._ref);
   final Ref _ref;
   Future<void> set(bool v) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('auto_sync', v);
-    // 使缓存失效，触发读取最新值
+    await prefs.setBool('auto_sync', false);
     _ref.invalidate(autoSyncValueProvider);
   }
 }

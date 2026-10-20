@@ -108,23 +108,18 @@ final effectiveRatesProvider =
   );
 });
 
-/// 币种选择弹窗的展示汇率:1 该币种 ≈ ? base。拉一次全量(fawaz base→quote
-/// 全量返回),手动 override 优先。仅展示用,不落库。family key = base(大写)。
-/// 值 = 「1 quote 币种 = value base」(便于 UI 显示 1 JPY ≈ 0.048 CNY)。
+/// 币种选择只读取本地缓存和手动汇率，不访问公共汇率服务。
+/// 值 = 1 quote 币种对应的 base 金额。
 final currencyPickerRatesProvider =
     FutureProvider.family<Map<String, double>, String>((ref, base) async {
   ref.watch(rateRefreshTickProvider);
   final baseUp = base.toUpperCase();
   final repo = ref.watch(repositoryProvider);
   final out = <String, double>{};
-  // 先公网/服务端全量(1 base = y quote → 1 quote = 1/y base)
-  try {
-    final result = await ref.read(exchangeRateServiceProvider).fetch(baseUp);
-    for (final e in result.ratesBaseToQuote.entries) {
-      final y = double.tryParse(e.value);
-      if (y != null && y > 0) out[e.key.toUpperCase()] = 1 / y;
-    }
-  } catch (_) {/* 拉不到就只用本地 override,下方覆盖 */}
+  for (final rate in await repo.getLatestAutoRates(baseUp)) {
+    final value = double.tryParse(rate.rate);
+    if (value != null && value > 0) out[rate.quoteCurrency.toUpperCase()] = value;
+  }
   // 手动 override 覆盖(1 quote = rate base,直接用)
   try {
     for (final o in await repo.getOverrides(baseUp)) {
@@ -334,7 +329,7 @@ Future<bool> _fetchAndStoreRatesForBase({
           ? null
           : await cloudProvider.fetchExchangeRates(base: base);
     } catch (e) {
-      logger.warning('currency_providers', 'server 汇率源失败,下滑公网: $e');
+      logger.warning('currency_providers', '配置的云端汇率源失败: $e');
       serverBody = null;
     }
     // serverBody['stale'] 有意不消费:rateDate 如实落库(UI 日期不撒谎),代价是

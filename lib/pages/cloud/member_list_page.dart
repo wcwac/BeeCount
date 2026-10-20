@@ -334,7 +334,7 @@ class _MemberAvatar extends ConsumerWidget {
         ? relativeUrl
         : '$base$relativeUrl';
     return CircleAvatar(
-      backgroundImage: NetworkImage(absoluteUrl),
+      backgroundImage: null,
       onBackgroundImageError: (_, __) {/* fallback child 显示 */},
       child: Text(letter),
     );

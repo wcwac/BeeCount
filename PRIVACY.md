@@ -1,5 +1,31 @@
 # Privacy Policy for BeeCount
 
+> **离线修改版说明（2026-10-20）**
+>
+> 此版本禁用所有云同步、AI 对话、图片/语音识别上传、在线更新、公共汇率服务、
+> 外部网站跳转及应用商店调用。旧云配置和 API Key 不会恢复这些功能。
+> 帮助与政策从本地资源读取；远程图片不加载。记账、统计、手动汇率、
+> 本地附件和文件导入导出继续可用。日志保存在本地，不自动上传。
+>
+> Android 移除网络权限并关闭应用自动备份；iOS 移除 iCloud 授权，
+> 为本地数据目录设置不参与系统备份标记。请使用本地导出自行保存备份。
+> 主动通过系统分享面板交给其他应用的文件由接收应用处理。
+> 以下保留上游隐私政策供参考，关于可选联网功能的描述不适用于本离线版。
+>
+> **Offline modification notice (2026-10-20)**
+>
+> This edition disables cloud sync, AI requests, image/audio uploads, online
+> updates, public exchange rates, external website launches and store calls.
+> Saved cloud settings and API keys cannot re-enable them. Documentation is
+> bundled, remote images are not loaded, and logs stay local. Local bookkeeping,
+> statistics, manual rates, attachments and file import/export remain available.
+>
+> Android network permission and automatic app backup are disabled. iCloud
+> entitlements are removed on iOS and local data directories are marked as
+> excluded from system backups. Keep your own exported backups. Files explicitly
+> shared with another app are handled by that app. The upstream policy below is
+> retained for reference; its optional online features do not apply to this build.
+
 **Last updated**: 2026-06-25
 
 BeeCount ("we", "our", or "the app") is committed to protecting your privacy. This Privacy Policy explains how we handle your data when you use our application.

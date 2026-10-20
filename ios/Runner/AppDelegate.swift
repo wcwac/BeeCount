@@ -8,6 +8,7 @@ import UserNotifications
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
+    excludeLocalDataFromBackup()
     GeneratedPluginRegistrant.register(with: self)
 
     // 注册AppIntents桥接插件
@@ -51,7 +52,29 @@ import UserNotifications
 
   override func applicationDidBecomeActive(_ application: UIApplication) {
     super.applicationDidBecomeActive(application)
+    excludeLocalDataFromBackup()
     clearNotificationBadge()
+  }
+
+  /// Offline bookkeeping data must not enter automatic iCloud device backups.
+  private func excludeLocalDataFromBackup() {
+    let manager = FileManager.default
+    var directories = manager.urls(for: .documentDirectory, in: .userDomainMask)
+    directories += manager.urls(for: .libraryDirectory, in: .userDomainMask)
+    if let group = manager.containerURL(
+      forSecurityApplicationGroupIdentifier: "group.com.tntlikely.beecount"
+    ) {
+      directories.append(group)
+    }
+    for var directory in directories {
+      do {
+        var values = URLResourceValues()
+        values.isExcludedFromBackup = true
+        try directory.setResourceValues(values)
+      } catch {
+        NSLog("Unable to exclude local data from backup: %@", error.localizedDescription)
+      }
+    }
   }
 
   private func clearNotificationBadge() {

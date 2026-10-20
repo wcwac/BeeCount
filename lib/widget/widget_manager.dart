@@ -1,3 +1,4 @@
+import '../services/security/offline_network_policy.dart';
 import 'dart:async' show Completer;
 import 'dart:io';
 import 'dart:ui' show PlatformDispatcher;
@@ -1037,6 +1038,7 @@ class WidgetManager {
   /// Background callback for widget interactions
   @pragma('vm:entry-point')
   static Future<void> _backgroundCallback(Uri? uri) async {
+    installOfflineNetworkPolicy();
     // Handle widget tap events
     // Could be used to navigate to specific pages
     // 图片方案下点击目前靠深链跳转(services/platform/app_link_service.dart),

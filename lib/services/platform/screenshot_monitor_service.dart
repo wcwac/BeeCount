@@ -48,39 +48,12 @@ class ScreenshotMonitorService {
 
   /// 检查是否已启用
   Future<bool> isEnabled() async {
-    if (_isGooglePlayBuild) return false;
-    final prefs = await SharedPreferences.getInstance();
-    _isEnabled = prefs.getBool(_enabledKey) ?? false;
-    return _isEnabled;
+    return false;
   }
 
   /// 启用截图监听
   Future<void> enable() async {
-    try {
-      print('📸 [ScreenshotMonitor] 开始启用截图监听...');
-
-      if (_isGooglePlayBuild) {
-        throw UnsupportedError('Screenshot monitoring is not available in Google Play builds');
-      }
-
-      // 只在 Android 平台启用
-      if (!Platform.isAndroid) {
-        throw UnsupportedError('仅支持 Android 平台');
-      }
-
-      print('📸 [ScreenshotMonitor] 调用原生方法 startScreenshotObserver');
-      await _channel.invokeMethod('startScreenshotObserver');
-
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool(_enabledKey, true);
-      _isEnabled = true;
-      _isMonitoring = true;
-
-      print('✅ [ScreenshotMonitor] 截图监听已启用，_isEnabled=$_isEnabled, _isMonitoring=$_isMonitoring');
-    } catch (e) {
-      print('❌ [ScreenshotMonitor] 启用截图监听失败: $e');
-      rethrow;
-    }
+    throw UnsupportedError('Screenshot recognition is disabled in this offline build.');
   }
 
   /// 禁用截图监听

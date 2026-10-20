@@ -362,26 +362,8 @@ class AIProviderManager {
   static Future<AIServiceProviderConfig?> getProviderForCapability(
     AICapabilityType type,
   ) async {
-    final binding = await getCapabilityBinding();
-    String? providerId;
-
-    switch (type) {
-      case AICapabilityType.text:
-        providerId = binding.textProviderId;
-        break;
-      case AICapabilityType.vision:
-        providerId = binding.visionProviderId;
-        break;
-      case AICapabilityType.speech:
-        providerId = binding.speechProviderId;
-        break;
-    }
-
-    if (providerId == null) {
-      return AIServiceProviderConfig.zhipuDefault;
-    }
-
-    return await getProvider(providerId);
+    // Stored keys and imported bindings cannot enable uploads.
+    return null;
   }
 
   /// 指定能力对应的 provider 是否已配置好(有 apiKey)。

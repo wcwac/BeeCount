@@ -1,3 +1,8 @@
+> **本地离线修改版**：云同步、AI/图片/语音识别、在线更新、公共汇率和外部跳转已禁用。保留手动记账、本地统计、附件和文件导入导出。自动备份已关闭，请自行导出备份。以下为上游功能介绍，联网功能不适用于此版本。
+
+离线版源码：[wcwac/BeeCount · offline](https://github.com/wcwac/BeeCount/tree/offline)。
+Android 构建、签名和发布方式见 [离线版构建说明](docs/OFFLINE_BUILD.md)。当前尚未完成编译与真机验证。
+
 # 蜜蜂记账(BeeCount) &nbsp; [English](README_EN.md)
 
 <div align="center">

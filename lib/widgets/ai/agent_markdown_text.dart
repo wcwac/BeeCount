@@ -20,6 +20,7 @@ class AgentMarkdownText extends StatelessWidget {
     return MarkdownBody(
       data: data,
       selectable: true,
+      imageBuilder: (uri, title, alt) => Text(alt ?? ''),
       styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
         p: baseStyle,
         h1: baseStyle.copyWith(fontSize: 22, fontWeight: FontWeight.w700),

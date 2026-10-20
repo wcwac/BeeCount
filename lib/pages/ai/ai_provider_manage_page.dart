@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:agentcore/agentcore.dart';
-import 'package:url_launcher/url_launcher.dart';
+import '../../services/security/offline_url_launcher.dart';
 
 import '../../widgets/ui/ui.dart';
 import '../../widgets/biz/section_card.dart';
@@ -1049,10 +1049,9 @@ class _AIProviderEditPageState extends ConsumerState<AIProviderEditPage> {
     );
   }
 
-  /// 打开智谱 GLM 邀请注册链接:与官网教程同一入口(cfg.beejz.com/invite,
-  /// Worker 302 到池内当前该用的码:置顶 → 未满),App 侧不再维护链接池
+  /// 用户主动打开服务商官网，不经过邀请重定向。
   Future<void> _openGlmWebsite() async {
-    final uri = Uri.parse(WebsiteUrls.glmInvite);
+    final uri = Uri.parse(WebsiteUrls.glmWebsite);
     try {
       if (await canLaunchUrl(uri)) {
         await launchUrl(uri, mode: LaunchMode.externalApplication);

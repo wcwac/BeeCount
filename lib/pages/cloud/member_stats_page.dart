@@ -293,7 +293,7 @@ class _StatsAvatar extends ConsumerWidget {
         ? relativeUrl
         : '$base$relativeUrl';
     return CircleAvatar(
-      backgroundImage: NetworkImage(absoluteUrl),
+      backgroundImage: null,
       onBackgroundImageError: (_, __) {},
       child: Text(letter),
     );

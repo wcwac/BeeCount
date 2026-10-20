@@ -1,3 +1,4 @@
+import 'services/security/offline_network_policy.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_cloud_sync/flutter_cloud_sync.dart';
@@ -43,6 +44,7 @@ import 'package:path_provider/path_provider.dart';
 final GlobalKey<NavigatorState> globalNavigatorKey = GlobalKey<NavigatorState>();
 
 Future<void> main() async {
+  installOfflineNetworkPolicy();
   WidgetsFlutterBinding.ensureInitialized();
 
   // Edge-to-edge:让 Flutter 自己把内容(PrimaryHeader/皮肤)画到状态栏底下,
@@ -276,26 +278,12 @@ Future<void> _restoreUserReminder() async {
 /// - 在应用启动时检查用户是否开启了截图监听
 /// - 如果开启了，重新启动监听服务
 Future<void> _restoreScreenshotMonitor(ProviderContainer container) async {
-  if (!Platform.isAndroid) return;
-
   try {
-    print('📸 检查并恢复截图自动识别...');
-    final screenshotMonitor = ScreenshotMonitorService(container);
-    final isEnabled = await screenshotMonitor.isEnabled();
-
-    if (isEnabled) {
-      print('✅ 发现用户已启用截图自动识别');
-      print('🔄 正在重新启动监听服务...');
-      await screenshotMonitor.enable();
-      print('✅ 截图监听服务已成功恢复');
-    } else {
-      print('ℹ️  用户未启用截图自动识别，跳过恢复');
-    }
-  } catch (e) {
-    print('❌ 恢复截图监听失败: $e');
-    // 不抛出异常，避免影响应用启动
+    await ScreenshotMonitorService(container).disable();
+  } catch (error) {
+    logger.warning('Offline', 'Unable to stop an old screenshot observer: $error');
   }
-}
+  }
 
 /// 初始化应用模式
 ///

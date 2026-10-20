@@ -9,7 +9,7 @@ import 'package:beecount/utils/website_urls.dart';
 /// 断言当前实现:
 /// - 中文(zh / zh_TW)无语言前缀,其它语言带 /en;
 /// - 路径为 `/docs/cloud-sync/<topic>`;
-/// - embed 参数齐全:embed=1 + theme(dark/light) + primary(主题色 hex)。
+/// - 不携带主题、颜色或来源参数。
 void main() {
   group('WebsiteUrls.docsCloudSyncEmbed', () {
     test('中文无前缀 + supabase topic + 浅色', () {
@@ -21,8 +21,7 @@ void main() {
       );
       expect(
         url,
-        'https://count.beejz.com/docs/cloud-sync/supabase'
-        '?embed=1&theme=light&primary=ffcc00',
+        'https://count.beejz.com/docs/cloud-sync/supabase',
       );
     });
 
@@ -35,8 +34,7 @@ void main() {
       );
       expect(
         url,
-        'https://count.beejz.com/docs/cloud-sync/beecount-cloud'
-        '?embed=1&theme=dark&primary=123456',
+        'https://count.beejz.com/docs/cloud-sync/beecount-cloud',
       );
     });
 
@@ -49,8 +47,7 @@ void main() {
       );
       expect(
         url,
-        'https://count.beejz.com/en/docs/cloud-sync/overview'
-        '?embed=1&theme=light&primary=abcdef',
+        'https://count.beejz.com/en/docs/cloud-sync/overview',
       );
     });
 
@@ -63,8 +60,7 @@ void main() {
       );
       expect(
         url,
-        'https://count.beejz.com/docs/cloud-sync/supabase'
-        '?embed=1&theme=dark&primary=000000',
+        'https://count.beejz.com/docs/cloud-sync/supabase',
       );
     });
   });
