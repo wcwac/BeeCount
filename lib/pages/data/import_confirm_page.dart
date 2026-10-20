@@ -557,7 +557,7 @@ class _ImportConfirmPageState extends ConsumerState<ImportConfirmPage> {
       // fire-and-forget:不阻塞导入完成动画。
       try {
         // ignore: unawaited_futures
-        PostProcessor.syncC(container, ledgerId: ledgerId);
+        PostProcessor.refreshLocalC(container, ledgerId: ledgerId);
       } catch (_) {
         // 忽略同步触发错误,导入本身已经成功
       }
@@ -598,7 +598,7 @@ class _ImportConfirmPageState extends ConsumerState<ImportConfirmPage> {
           // 触发全局统计刷新（用于"我的"页顶部聚合信息）
           container.read(statsRefreshProvider.notifier).state++;
           // 触发一次同步状态刷新（UI 端会复用缓存避免闪烁）
-          container.read(syncStatusRefreshProvider.notifier).state++;
+          container.read(localDataRevisionProvider.notifier).state++;
         } catch (_) {
           // 忽略延迟刷新错误
         }

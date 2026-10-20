@@ -289,7 +289,7 @@ class _TagEditPageState extends ConsumerState<TagEditPage> {
       final activeLedgerId = ref.read(currentLedgerIdProvider);
       if (activeLedgerId > 0) {
         // 不 await：后台异步推送，不阻塞 UI 关闭。
-        unawaited(PostProcessor.sync(ref, ledgerId: activeLedgerId));
+        unawaited(PostProcessor.refreshLocal(ref, ledgerId: activeLedgerId));
       }
 
       if (mounted) {

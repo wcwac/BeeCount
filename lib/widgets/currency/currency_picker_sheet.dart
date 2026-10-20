@@ -150,7 +150,7 @@ Future<String?> showCurrencyPickerSheet(
   );
 }
 
-/// 应用主币种选择:同值跳过 / set provider / 已有手动汇率提示 / force 重拉自动汇率。
+/// 应用主币种选择:同值跳过 / set provider / 已有手动汇率提示。
 ///
 /// 汇率页与个性化页共用 —— 选完后统一走这条收尾逻辑。mounted 守卫照旧。
 Future<void> applyBaseCurrencySelection(
@@ -164,12 +164,11 @@ Future<void> applyBaseCurrencySelection(
   if (next == current) return;
 
   ref.read(baseCurrencyProvider.notifier).state = next;
-  // 新主币种若已有手动汇率,提示并立即生效;随后 force 重拉自动汇率。
+  // 新主币种若已有手动汇率，提示并立即生效。
   final repo = ref.read(repositoryProvider);
   final overrides = await repo.getOverrides(next);
   if (!context.mounted) return;
   if (overrides.isNotEmpty) {
     showToast(context, l10n.rateManualApplied(overrides.length));
   }
-  await refreshExchangeRatesFromUi(ref, force: true);
 }

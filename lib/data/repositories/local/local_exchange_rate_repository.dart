@@ -1,19 +1,15 @@
 import 'package:drift/drift.dart' as d;
 import 'package:uuid/uuid.dart';
 
-import '../../../cloud/sync/change_tracker.dart';
 import '../../db.dart';
 import '../exchange_rate_repository.dart';
 
-/// Drift 实现。tracker 用 getter 闭包注入:LocalRepository.changeTracker 是
-/// 可变字段(构造后才赋值),直接传引用会捕获 null —— 2026-04 的 orphan-change
-/// 坑就是这类时序问题,闭包取值规避。
+/// 本地持久化汇率缓存与手动汇率。
 class LocalExchangeRateRepository implements ExchangeRateRepository {
   static const _uuid = Uuid();
   final BeeDatabase db;
-  final ChangeTracker? Function() trackerGetter;
 
-  LocalExchangeRateRepository(this.db, {required this.trackerGetter});
+  LocalExchangeRateRepository(this.db);
 
   @override
   Future<void> upsertAutoRates({
@@ -104,7 +100,7 @@ class LocalExchangeRateRepository implements ExchangeRateRepository {
     final now = DateTime.now().toUtc();
     if (existing == null) {
       final syncId = _uuid.v4();
-      final id = await db.into(db.exchangeRateOverrides).insert(
+      await db.into(db.exchangeRateOverrides).insert(
             ExchangeRateOverridesCompanion.insert(
               baseCurrency: baseUp,
               quoteCurrency: quoteUp,
@@ -113,12 +109,6 @@ class LocalExchangeRateRepository implements ExchangeRateRepository {
               updatedAt: d.Value(now),
             ),
           );
-      await trackerGetter()?.recordUserGlobalChange(
-        entityType: 'exchange_rate_override',
-        entityId: id,
-        entitySyncId: syncId,
-        action: 'create',
-      );
     } else {
       final syncId = existing.syncId ?? _uuid.v4();
       await (db.update(db.exchangeRateOverrides)
@@ -128,12 +118,6 @@ class LocalExchangeRateRepository implements ExchangeRateRepository {
         syncId: d.Value(syncId),
         updatedAt: d.Value(now),
       ));
-      await trackerGetter()?.recordUserGlobalChange(
-        entityType: 'exchange_rate_override',
-        entityId: existing.id,
-        entitySyncId: syncId,
-        action: 'update',
-      );
     }
   }
 
@@ -148,14 +132,5 @@ class LocalExchangeRateRepository implements ExchangeRateRepository {
     await (db.delete(db.exchangeRateOverrides)
           ..where((t) => t.id.equals(existing.id)))
         .go();
-    final syncId = existing.syncId;
-    if (syncId != null) {
-      await trackerGetter()?.recordUserGlobalChange(
-        entityType: 'exchange_rate_override',
-        entityId: existing.id,
-        entitySyncId: syncId,
-        action: 'delete',
-      );
-    }
   }
 }

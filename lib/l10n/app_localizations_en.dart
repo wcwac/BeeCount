@@ -7518,7 +7518,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get baseCurrencyLabel => 'Primary Currency';
 
   @override
-  String get rateSourceAuto => 'Auto';
+  String get rateSourceAuto => 'Local cache';
 
   @override
   String get rateSourceManual => 'Manual';
@@ -7529,7 +7529,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get rateNotFetched => 'Not fetched';
+  String get rateNotFetched => 'Not set';
 
   @override
   String get rateTapToSet => 'Tap to set manually';
@@ -7543,7 +7543,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get rateResetToAuto => 'Reset to auto';
+  String get rateResetToAuto => 'Remove manual rate';
 
   @override
   String get rateRefreshSuccess => 'Rates updated';
@@ -7555,7 +7555,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get ratesEmptyHint => 'Rates appear here once your accounts use different currencies';
 
   @override
-  String get rateDisclaimer => 'Source: open exchange-rate data, updated daily. Conversion is for reference only and may differ from bank rates.';
+  String get rateDisclaimer => 'Rates come from local cache or manual entries and are not updated automatically. Conversion is for reference and may differ from bank rates.';
 
   @override
   String convertedNetWorth(String currency) {

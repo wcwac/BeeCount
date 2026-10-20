@@ -8,7 +8,7 @@ import '../../utils/lru_cache.dart';
 import '../../utils/account_type_utils.dart';
 import '../../utils/shared_ledger_picker_filter.dart';
 import '../../providers.dart';
-import '../../providers/shared_ledger_providers.dart';
+import '../../providers/local_data_providers.dart';
 import '../../services/system/logger_service.dart';
 import '../../l10n/app_localizations.dart';
 
@@ -179,7 +179,7 @@ class _AccountSelectorState extends ConsumerState<AccountSelector> {
     // §7 共享账本:WS shared_resource_change 推送后 tick bump,触发 _loadAccounts
     // 重查 SharedLedgerAccounts。否则 A 在 web/mobile 改账户名,B 的 picker
     // 永远显示旧名,要重启 app。
-    ref.listen<int>(sharedResourceRefreshProvider, (prev, next) {
+    ref.listen<int>(localDataRevisionProvider, (prev, next) {
       if (prev != next) _loadAccounts();
     });
     if (_isLoading) {

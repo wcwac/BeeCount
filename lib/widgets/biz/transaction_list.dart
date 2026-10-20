@@ -299,7 +299,7 @@ class TransactionListState extends ConsumerState<TransactionList> {
   }
 
   /// 共享账本 WS 推送强制切到 Stream 模式 — 没有导航动画顾虑,立即切。
-  /// 用于 sharedResourceRefreshProvider tick 触发的场景:Owner 改 tx 引用的
+  /// 用于 localDataRevisionProvider tick 触发的场景:Owner 改 tx 引用的
   /// account/category/tag,Editor 这边需要立即丢掉 preloaded(里面挂的是
   /// Splash 阶段的旧 accountName)走 provider 拉新值。
   void forceStreamModeImmediate() {
@@ -390,7 +390,7 @@ class TransactionListState extends ConsumerState<TransactionList> {
       Future.microtask(() => _loadAttachmentCounts());
     }
 
-    // D 方案后:不再 watch sharedResourceRefreshProvider 触发 _loadAccountNames
+    // D 方案后:不再 watch localDataRevisionProvider 触发 _loadAccountNames
     // —— account / toAccount 由 Drift JOIN + SharedLedger* table-watch 自动
     // 推送,UI 直接读 it.account?.name。
 
@@ -520,7 +520,7 @@ class TransactionListState extends ConsumerState<TransactionList> {
                 ref.invalidate(countsForLedgerProvider(curLedger));
                 ref.read(statsRefreshProvider.notifier).state++;
                 ref.read(budgetRefreshProvider.notifier).state++;
-                PostProcessor.sync(ref, ledgerId: curLedger);
+                PostProcessor.refreshLocal(ref, ledgerId: curLedger);
 
                 if (context.mounted) {
                   showToast(context, AppLocalizations.of(context).ledgersDeleted);

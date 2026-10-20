@@ -163,8 +163,7 @@ class AttachmentExportImportService {
       final gzData = GZipEncoder().encode(tarData);
 
       if (gzData == null) {
-        logger.error('AttachmentExportImport', 'GZip 压缩失败');
-        return null;
+        throw StateError('Could not compress the attachment backup.');
       }
 
       // 保存到临时目录
@@ -179,7 +178,7 @@ class AttachmentExportImportService {
       return exportPath;
     } catch (e, stackTrace) {
       logger.error('AttachmentExportImport', '导出附件失败', e, stackTrace);
-      return null;
+      rethrow;
     }
   }
 
@@ -681,25 +680,14 @@ class AttachmentExportImportService {
     }
   }
 
-  /// 获取导出目录
+  /// Temporary staging only; the caller opens the system share sheet to save it.
   Future<Directory> _getExportDirectory() async {
-    if (Platform.isAndroid) {
-      // Android: 使用公共下载目录
-      final dir = Directory('/storage/emulated/0/Download/BeeCount');
-      if (!await dir.exists()) {
-        await dir.create(recursive: true);
-      }
-      return dir;
-    } else {
-      // iOS: 使用文档目录
-      final docDir = await getApplicationDocumentsDirectory();
-      final dir = Directory('${docDir.path}/exports');
-      if (!await dir.exists()) {
-        await dir.create(recursive: true);
-      }
-      return dir;
-    }
+    final temporaryDirectory = await getTemporaryDirectory();
+    final directory = Directory(path.join(temporaryDirectory.path, 'exports'));
+    await directory.create(recursive: true);
+    return directory;
   }
+
 }
 
 /// 附件导入结果

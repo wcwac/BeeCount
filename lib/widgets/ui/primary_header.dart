@@ -4,8 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers.dart';
 import '../../providers/theme_providers.dart';
 import '../../styles/tokens.dart';
-import '../../styles/header_skins.dart';
-import 'skin_animation_scope.dart';
 
 class PrimaryHeader extends ConsumerWidget {
   final String title;
@@ -61,10 +59,6 @@ class PrimaryHeader extends ConsumerWidget {
     // ⭐ 使用 Token 系统
     final isDark = BeeTokens.isDark(context);
 
-    // ⭐ 头部皮肤:亮暗通用同一款(暗色由皮肤内部渲染成纯黑底 + 偏淡主题色图形)。
-    // 'none' → null = 纯主题色 / 纯黑。
-    final skin = headerSkinById(ref.watch(headerSkinProvider));
-
     // ⭐ Header 背景颜色：亮色模式用主题色，暗黑模式用纯黑
     final headerBg = isDark ? Colors.black : primary;
 
@@ -92,11 +86,6 @@ class PrimaryHeader extends ConsumerWidget {
           decoration: decoration ?? BoxDecoration(color: headerBg), // ⭐ 根据设置决定背景色
           child: Stack(
             children: [
-              // ⭐ 头部皮肤层(主题色之上的装饰);未选皮肤时为纯主题色 / 纯黑
-              if (skin != null)
-                Positioned.fill(
-                    child: SkinAnimationScope(
-                        child: skin.builder(primary, isDark))),
               // 主内容
               SafeArea(
                 bottom: false,

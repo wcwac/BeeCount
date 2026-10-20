@@ -23,12 +23,6 @@ class BudgetPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final overviewAsync = ref.watch(budgetOverviewProvider);
-    // §7 共享账本:Editor 视角下 budget 是 owner-only(预算属账本元数据,
-    // 跟改账本名同级权限)。隐藏 + 按钮 + 编辑入口。
-    final currentLedger = ref.watch(currentLedgerProvider).asData?.value;
-    final isEditorInShared = currentLedger != null &&
-        currentLedger.isShared &&
-        currentLedger.myRole != 'owner';
 
     return Scaffold(
       backgroundColor: BeeTokens.scaffoldBackground(context),
@@ -39,7 +33,6 @@ class BudgetPage extends ConsumerWidget {
             showBack: true,
             compact: true,
             actions: [
-              if (!isEditorInShared)
                 IconButton(
                   onPressed: () => _addBudget(context),
                   icon: const Icon(Icons.add),
@@ -92,11 +85,6 @@ class BudgetPage extends ConsumerWidget {
 
   Widget _buildEmptyState(
       BuildContext context, WidgetRef ref, AppLocalizations l10n) {
-    // §7 共享账本 Editor 视角:预算空时不显示"添加"CTA(owner-only)
-    final currentLedger = ref.watch(currentLedgerProvider).asData?.value;
-    final isEditorInShared = currentLedger != null &&
-        currentLedger.isShared &&
-        currentLedger.myRole != 'owner';
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -115,7 +103,7 @@ class BudgetPage extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 24),
-          if (!isEditorInShared)
+
             ElevatedButton.icon(
               onPressed: () => _addBudget(context),
               icon: Icon(Icons.add,
@@ -156,7 +144,7 @@ class BudgetPage extends ConsumerWidget {
                   color: BeeTokens.textPrimary(context),
                 ),
               ),
-              if (!_isEditorInShared(ref))
+
                 TextButton(
                   onPressed: () => _editTotalBudget(context, ref),
                   child: Text(l10n.commonEdit),
@@ -279,7 +267,7 @@ class BudgetPage extends ConsumerWidget {
                   color: BeeTokens.textPrimary(context),
                 ),
               ),
-              if (!_isEditorInShared(ref))
+
                 TextButton(
                   onPressed: () => _addCategoryBudget(context),
                   child: Text(l10n.commonAdd),
@@ -290,9 +278,7 @@ class BudgetPage extends ConsumerWidget {
             (usage) => CategoryBudgetTile(
               usage: usage,
               currencySymbol: currencySymbol,
-              onTap: _isEditorInShared(ref)
-                  ? null
-                  : () => _editCategoryBudget(context, ref, usage),
+              onTap: () => _editCategoryBudget(context, ref, usage),
             ),
           ),
         ],
@@ -329,17 +315,7 @@ class BudgetPage extends ConsumerWidget {
     );
   }
 
-  /// §7 共享账本:Editor 视角不允许编辑预算
-  bool _isEditorInShared(WidgetRef ref) {
-    final l = ref.read(currentLedgerProvider).asData?.value;
-    return l != null && l.isShared && l.myRole != 'owner';
-  }
-
   Future<void> _editTotalBudget(BuildContext context, WidgetRef ref) async {
-    if (_isEditorInShared(ref)) {
-      showToast(context, '只有账本所有者能编辑预算');
-      return;
-    }
     final budget = await ref.read(totalBudgetProvider.future);
     if (budget != null && context.mounted) {
       Navigator.push(
@@ -363,10 +339,6 @@ class BudgetPage extends ConsumerWidget {
     WidgetRef ref,
     CategoryBudgetUsage usage,
   ) async {
-    if (_isEditorInShared(ref)) {
-      showToast(context, '只有账本所有者能编辑预算');
-      return;
-    }
     final allBudgets = await ref.read(allBudgetsProvider.future);
     final budget = allBudgets.where((b) => b.id == usage.budgetId).firstOrNull;
     if (budget != null && context.mounted) {

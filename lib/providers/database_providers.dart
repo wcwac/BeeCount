@@ -1,14 +1,11 @@
-import 'package:flutter_cloud_sync/flutter_cloud_sync.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../data/db.dart';
+import 'local_data_providers.dart';
 import '../data/repositories/local/local_repository.dart';
 import '../data/repositories/base_repository.dart';
-import '../cloud/sync/change_tracker.dart';
 import '../services/system/logger_service.dart';
 import '../utils/shared_ledger_picker_filter.dart';
-import 'shared_ledger_providers.dart';
-import 'sync_providers.dart';
 
 // 数据库Provider
 final databaseProvider = Provider<BeeDatabase>((ref) {
@@ -17,23 +14,9 @@ final databaseProvider = Provider<BeeDatabase>((ref) {
   return db;
 });
 
-// 仓储Provider — 一律 LocalRepository(本地优先 + ChangeTracker 推 BeeCount Cloud)。
-// 历史上还有过 CloudRepository(数据全存 Supabase),但 BeeCount Cloud 上线后
-// 整条范式从「云优先」迁到「本地优先 + 推送」,Cloud* 仓库整组随之删掉。
+// 仓储只依赖本地数据库，偏好设置不会重建数据库访问层。
 final repositoryProvider = Provider<BaseRepository>((ref) {
-  final db = ref.watch(databaseProvider);
-
-  // 仅 BeeCount Cloud 后端激活时注入 ChangeTracker(记录增量变更供同步引擎推送)。
-  // 其它备份后端(iCloud / WebDAV / S3 / Supabase)走快照备份路径,不需要变更追踪。
-  final backendState = ref.watch(activeCloudConfigProvider.select(
-    (value) => (value.valueOrNull?.type, value.valueOrNull?.valid),
-  ));
-  final tracker = (backendState.$1 == CloudBackendType.beecountCloud &&
-          backendState.$2 == true)
-      ? ChangeTracker(db)
-      : null;
-  logger.info('RepositoryProvider', '✅ LocalRepository (changeTracker=${tracker != null})');
-  return LocalRepository(db, changeTracker: tracker);
+  return LocalRepository(ref.watch(databaseProvider));
 });
 
 // 记住当前账本：启动时加载，切换时持久化
@@ -95,7 +78,7 @@ final _ledgerChangeListener = Provider<void>((ref) {
   // 激活持久化监听
   ref.read(_currentLedgerPersist);
   ref.listen<int>(currentLedgerIdProvider, (prev, next) {
-    ref.read(syncStatusRefreshProvider.notifier).state++;
+    ref.read(localDataRevisionProvider.notifier).state++;
   });
 });
 
@@ -108,7 +91,7 @@ final appInitProvider = FutureProvider<void>((ref) async {
 // 分类Provider
 final categoriesProvider = FutureProvider<List<Category>>((ref) async {
   // 同步代数 bump 后重算，让 web 改分类能立即反映到 mobile。
-  ref.watch(syncGenerationProvider);
+  ref.watch(localDataRevisionProvider);
   final repo = ref.watch(repositoryProvider);
   return await repo.getAllCategories();
 });
@@ -162,11 +145,10 @@ final allAccountsStreamProvider = StreamProvider<List<Account>>((ref) {
 final accountForTxProvider =
     FutureProvider.family<Account?, ({int? accountId, String? syncIdOverride})>(
         (ref, key) async {
-  ref.watch(syncGenerationProvider);
+  ref.watch(localDataRevisionProvider);
   // §7 共享账本:WS shared_resource_change 推送时也强制重算,跟 picker /
   // 洞察 等其它 widget 监听同一个 tick 一致;否则共享账户改名 tx 列表
   // 不刷新。
-  ref.watch(sharedResourceRefreshProvider);
   final repo = ref.watch(repositoryProvider);
   if (key.accountId != null && key.accountId! >= 0) {
     return await repo.getAccount(key.accountId!);
@@ -202,7 +184,7 @@ final accountForTxProvider =
 
 // 获取单个账户信息
 final accountByIdProvider = FutureProvider.family<Account?, int>((ref, accountId) async {
-  ref.watch(syncGenerationProvider);
+  ref.watch(localDataRevisionProvider);
   final repo = ref.watch(repositoryProvider);
   return await repo.getAccount(accountId);
 });

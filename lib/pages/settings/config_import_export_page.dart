@@ -32,22 +32,6 @@ class _ConfigImportExportPageState
   bool _isImporting = false;
   String? _lastExportedFilePath;
 
-  /// 获取配置导出目录
-  Future<Directory> _getExportDirectory() async {
-    if (Platform.isAndroid) {
-      // Android: 保存到公共 Download/BeeCount 目录
-      final downloadPath = '/storage/emulated/0/Download/BeeCount';
-      final dir = Directory(downloadPath);
-      if (!await dir.exists()) {
-        await dir.create(recursive: true);
-      }
-      return dir;
-    } else {
-      // iOS: 使用分享功能
-      return await getTemporaryDirectory();
-    }
-  }
-
   Future<void> _exportConfig() async {
     // Step 1: 显示选择导出内容对话框
     final options = await showDialog<ExportOptions>(
@@ -82,51 +66,31 @@ class _ConfigImportExportPageState
         builder: (context) => _ExportPreviewDialog(yamlContent: yamlContent),
       );
 
-      if (confirm != true || !mounted) {
-        setState(() => _isExporting = false);
-        return;
-      }
+      if (confirm != true || !mounted) return;
 
-      // Step 4: 执行导出
+      // Build a temporary file, then let the user choose its destination in the
+      // system share sheet. Public Download paths are not writable on all Android versions.
       final timestamp = DateTime.now().toIso8601String().replaceAll(':', '-');
-      final fileName = 'beecount_config_$timestamp.yml';
-
-      if (Platform.isAndroid) {
-        // Android: 直接保存到 Download/BeeCount 目录
-        final exportDir = await _getExportDirectory();
-        final filePath = '${exportDir.path}/$fileName';
-
-        final file = File(filePath);
-        await file.writeAsString(yamlContent);
-
-        logger.info('ConfigExport', '配置已导出到: $filePath');
-
-        if (!mounted) return;
-
-        setState(() {
-          _lastExportedFilePath = filePath;
-        });
-
+      final tempDir = await getTemporaryDirectory();
+      final filePath = '${tempDir.path}/beecount_config_$timestamp.yml';
+      await File(filePath).writeAsString(yamlContent);
+      if (!mounted) return;
+      setState(() => _lastExportedFilePath = filePath);
+      final box = context.findRenderObject() as RenderBox?;
+      final result = await Share.shareXFiles(
+        [XFile(filePath)],
+        subject: AppLocalizations.of(context).configExportShareSubject,
+        sharePositionOrigin: box == null ? null : box.localToGlobal(Offset.zero) & box.size,
+      );
+      if (!mounted) return;
+      if (result.status == ShareResultStatus.success) {
         showToast(context, AppLocalizations.of(context).configExportSuccess);
-      } else {
-        // iOS: 使用分享功能
-        final tempDir = await getTemporaryDirectory();
-        final filePath = '${tempDir.path}/$fileName';
-
-        final file = File(filePath);
-        await file.writeAsString(yamlContent);
-
-        if (!mounted) return;
-
-        final result = await Share.shareXFiles(
-          [XFile(filePath)],
-          subject: AppLocalizations.of(context).configExportShareSubject,
+      } else if (result.status == ShareResultStatus.unavailable) {
+        await AppDialog.error(
+          context,
+          title: AppLocalizations.of(context).configExportFailed,
+          message: AppLocalizations.of(context).commonFailed,
         );
-
-        if (result.status == ShareResultStatus.success) {
-          if (!mounted) return;
-          showToast(context, AppLocalizations.of(context).configExportSuccess);
-        }
       }
     } catch (e) {
       logger.error('ConfigExport', '导出配置失败: $e');
@@ -313,12 +277,6 @@ class _ConfigImportExportPageState
         logger.info('ConfigImport', '交易时间显示已刷新: $showTransactionTime');
       }
 
-      // 刷新头部皮肤
-      final headerSkin = prefs.getString('headerSkin');
-      if (headerSkin != null) {
-        ref.read(headerSkinProvider.notifier).state = headerSkin;
-        logger.info('ConfigImport', '头部皮肤已刷新: $headerSkin');
-      }
       logger.info('ConfigImport', 'Provider 状态刷新完成');
     } catch (e) {
       logger.error('ConfigImport', '刷新 Provider 状态失败: $e');
@@ -407,53 +365,12 @@ class _ConfigImportExportPageState
                             : null,
                         onTap: _isExporting ? null : _exportConfig,
                       ),
-                      // Android平台显示导出路径和打开按钮
-                      if (Platform.isAndroid && _lastExportedFilePath != null) ...[
+                      if (_lastExportedFilePath != null) ...[
                         BeeTokens.cardDivider(context),
-                        Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 16.0.scaled(context, ref),
-                            vertical: 12.0.scaled(context, ref),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Icon(
-                                    Icons.check_circle,
-                                    size: 16.0.scaled(context, ref),
-                                    color: Colors.green,
-                                  ),
-                                  SizedBox(width: 8.0.scaled(context, ref)),
-                                  Expanded(
-                                    child: Text(
-                                      l10n.configExportSavedTo(_lastExportedFilePath!.replaceAll('/storage/emulated/0/', '')),
-                                      style: TextStyle(
-                                        fontSize: 13.0.scaled(context, ref),
-                                        color: BeeTokens.textSecondary(context),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              SizedBox(height: 8.0.scaled(context, ref)),
-                              SizedBox(
-                                width: double.infinity,
-                                child: OutlinedButton.icon(
-                                  onPressed: _viewExportedContent,
-                                  icon: const Icon(Icons.visibility_outlined, size: 18),
-                                  label: Text(l10n.configExportViewContent),
-                                  style: OutlinedButton.styleFrom(
-                                    foregroundColor: ref.watch(primaryColorProvider),
-                                    side: BorderSide(
-                                      color: ref.watch(primaryColorProvider).withValues(alpha: 0.5),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
+                        OutlinedButton.icon(
+                          onPressed: _viewExportedContent,
+                          icon: const Icon(Icons.visibility_outlined),
+                          label: Text(l10n.configExportViewContent),
                         ),
                       ],
                       BeeTokens.cardDivider(context),
@@ -500,34 +417,6 @@ class _ConfigImportExportPageState
                           ref,
                           Icons.book_outlined,
                           l10n.configIncludeLedgers,
-                        ),
-                        SizedBox(height: 8.0.scaled(context, ref)),
-                        _buildConfigItem(
-                          context,
-                          ref,
-                          Icons.cloud_outlined,
-                          l10n.configIncludeSupabase,
-                        ),
-                        SizedBox(height: 8.0.scaled(context, ref)),
-                        _buildConfigItem(
-                          context,
-                          ref,
-                          Icons.folder_outlined,
-                          l10n.configIncludeWebdav,
-                        ),
-                        SizedBox(height: 8.0.scaled(context, ref)),
-                        _buildConfigItem(
-                          context,
-                          ref,
-                          Icons.storage,
-                          l10n.configIncludeS3,
-                        ),
-                        SizedBox(height: 8.0.scaled(context, ref)),
-                        _buildConfigItem(
-                          context,
-                          ref,
-                          Icons.smart_toy_outlined,
-                          l10n.configIncludeAI,
                         ),
                         SizedBox(height: 8.0.scaled(context, ref)),
                         _buildConfigItem(
@@ -866,7 +755,6 @@ class _ExportOptionsDialogState extends State<_ExportOptionsDialog> {
   bool _budgets = true;
   bool _recurringTransactions = true;
   bool _appSettings = true;
-  bool _ai = true;
 
   @override
   Widget build(BuildContext context) {
@@ -966,21 +854,6 @@ class _ExportOptionsDialogState extends State<_ExportOptionsDialog> {
                   contentPadding: EdgeInsets.zero,
                 ),
                 CheckboxListTile(
-                  value: _ai,
-                  onChanged: (v) => setState(() => _ai = v ?? true),
-                  title: Text(l10n.configIncludeAI),
-                  subtitle: Text(
-                    l10n.configIncludeAISubtitle,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: BeeTokens.textSecondary(context),
-                    ),
-                  ),
-                  secondary: Icon(Icons.smart_toy_outlined, color: primary),
-                  controlAffinity: ListTileControlAffinity.trailing,
-                  contentPadding: EdgeInsets.zero,
-                ),
-                CheckboxListTile(
                   value: _appSettings,
                   onChanged: (v) => setState(() => _appSettings = v ?? true),
                   title: Text(l10n.configIncludeOtherSettings),
@@ -1020,7 +893,6 @@ class _ExportOptionsDialogState extends State<_ExportOptionsDialog> {
                       budgets: _budgets,
                       recurringTransactions: _recurringTransactions,
                       appSettings: _appSettings,
-                      ai: _ai,
                     );
                     Navigator.pop(context, options);
                   },
@@ -1156,7 +1028,6 @@ class _ImportPreviewDialogState extends State<_ImportPreviewDialog> {
   late bool _budgets;
   late bool _recurringTransactions;
   late bool _appSettings;
-  late bool _ai;
 
   @override
   void initState() {
@@ -1168,7 +1039,6 @@ class _ImportPreviewDialogState extends State<_ImportPreviewDialog> {
     _budgets = widget.contentInfo.hasBudgets;
     _recurringTransactions = widget.contentInfo.hasRecurringTransactions;
     _appSettings = widget.contentInfo.hasAppSettings;
-    _ai = widget.contentInfo.hasAi;
   }
 
   @override
@@ -1348,23 +1218,6 @@ class _ImportPreviewDialogState extends State<_ImportPreviewDialog> {
                       contentPadding: EdgeInsets.zero,
                       dense: true,
                     ),
-                  if (info.hasAi)
-                    CheckboxListTile(
-                      value: _ai,
-                      onChanged: (v) => setState(() => _ai = v ?? true),
-                      title: Text(l10n.configIncludeAI),
-                      subtitle: Text(
-                        l10n.configIncludeAISubtitle,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: BeeTokens.textSecondary(context),
-                        ),
-                      ),
-                      secondary: Icon(Icons.smart_toy_outlined, color: primary),
-                      controlAffinity: ListTileControlAffinity.trailing,
-                      contentPadding: EdgeInsets.zero,
-                      dense: true,
-                    ),
                   if (info.hasAppSettings)
                     CheckboxListTile(
                       value: _appSettings,
@@ -1414,7 +1267,6 @@ class _ImportPreviewDialogState extends State<_ImportPreviewDialog> {
                       budgets: _budgets,
                       recurringTransactions: _recurringTransactions,
                       appSettings: _appSettings,
-                      ai: _ai,
                     );
                     Navigator.pop(context, options);
                   },

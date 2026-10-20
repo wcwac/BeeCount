@@ -4,17 +4,14 @@ import 'package:flutter_list_view/flutter_list_view.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
-import '../../providers/budget_providers.dart';
-import '../budget/budget_page.dart';
 import '../../providers.dart';
-import '../settings/personalize_page.dart' show headerStyleProvider;
 import '../../data/db.dart';
 import '../../widgets/ui/ui.dart';
 import '../../widgets/biz/biz.dart';
 import '../../widgets/biz/bee_icon.dart';
 import '../../styles/tokens.dart';
 import '../transaction/search_page.dart';
-import '../ai/ai_chat_page.dart';
+import '../../controllers/home_reminder_controller.dart';
 import '../../l10n/app_localizations.dart';
 import '../../services/system/logger_service.dart';
 import '../../utils/format_utils.dart';
@@ -25,7 +22,7 @@ import '../calendar/calendar_page.dart';
 import '../../widgets/biz/ledger_picker_sheet.dart';
 import '../../widgets/biz/home_budget_summary.dart';
 import 'ledgers_page_new.dart';
-import '../../providers/shared_ledger_providers.dart';
+import '../../providers/local_data_providers.dart';
 
 // 优化版首页 - 使用FlutterListView实现精准定位和丝滑跳转
 class HomePage extends ConsumerStatefulWidget {
@@ -51,7 +48,7 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   // home build 缓存的 tx stream。repo.transactionsWithCategoryAll 内部每次调
   // 都 new StreamController,如果在 build 里直接调,只要 home 因任何 setState
-  // (例如 _showBudgetSetupHint / _showLastMonthReminder 异步加载完成)重 build,
+  // (例如 _showLastMonthReminder 异步加载完成)重 build,
   // StreamBuilder 看到 stream 引用变了就重新订阅 → snapshot.data 短暂为 null
   // → fallback 到 cachedFullData(只有前 20 条预加载)→ 等 Drift 推数据 → 切回
   // 完整列表,视觉上"整页闪一下"。这里把 stream 缓存到 State,只在 ledgerId
@@ -66,132 +63,36 @@ class _HomePageState extends ConsumerState<HomePage> {
           })>>? _txStream;
   int? _txStreamLedgerId;
 
-  // 月初提醒状态
   bool _showLastMonthReminder = false;
-  static const String _reminderDismissedKey = 'last_month_reminder_dismissed';
-
-  // 年度账单提醒状态（12月15日 - 次年1月31日显示）
   bool _showAnnualReportReminder = false;
-  static const String _annualReportDismissedKey =
-      'annual_report_reminder_dismissed';
-
-  // 预算设置引导卡片状态
-  bool _showBudgetSetupHint = false;
-  static const String _budgetSetupHintDismissedKey =
-      'budget_setup_hint_dismissed';
+  HomeReminderController? _reminders;
 
   @override
   void initState() {
     super.initState();
     _listController = FlutterListViewController();
-    _checkLastMonthReminder();
-    _checkAnnualReportReminder();
-    _checkBudgetSetupHint();
+    _loadReminders();
   }
 
-  // 检查是否应该显示上月报告提醒
-  Future<void> _checkLastMonthReminder() async {
-    final now = DateTime.now();
-    // 只在每月前7天显示提醒
-    if (now.day > 7) return;
-
+  Future<void> _loadReminders() async {
     final prefs = await SharedPreferences.getInstance();
-    final dismissedMonth = prefs.getString(_reminderDismissedKey);
-    final currentMonth = '${now.year}-${now.month}';
-
-    // 如果当月已经关闭过，不再显示
-    if (dismissedMonth == currentMonth) return;
-
-    if (mounted) {
-      setState(() {
-        _showLastMonthReminder = true;
-      });
-    }
+    if (!mounted) return;
+    final reminders = HomeReminderController(prefs);
+    setState(() {
+      _reminders = reminders;
+      _showLastMonthReminder = reminders.showMonthly;
+      _showAnnualReportReminder = reminders.showAnnual;
+    });
   }
 
-  // 关闭上月报告提醒
   Future<void> _dismissLastMonthReminder() async {
-    final now = DateTime.now();
-    final currentMonth = '${now.year}-${now.month}';
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_reminderDismissedKey, currentMonth);
-
-    if (mounted) {
-      setState(() {
-        _showLastMonthReminder = false;
-      });
-    }
+    await _reminders?.dismissMonthly();
+    if (mounted) setState(() => _showLastMonthReminder = false);
   }
 
-  // 检查是否应该显示年度账单提醒（12月15日 - 次年1月31日）
-  Future<void> _checkAnnualReportReminder() async {
-    final now = DateTime.now();
-
-    // 判断是否在提醒时间范围内：12月15日 - 次年1月31日
-    final isInRange = (now.month == 12 && now.day >= 15) || now.month == 1;
-    if (!isInRange) return;
-
-    // 确定要展示的年度（12月展示当年，1月展示上一年）
-    final reportYear = now.month == 1 ? now.year - 1 : now.year;
-
-    final prefs = await SharedPreferences.getInstance();
-    final dismissedYear = prefs.getInt(_annualReportDismissedKey);
-
-    // 如果这个年度已经关闭过，不再显示
-    if (dismissedYear == reportYear) return;
-
-    if (mounted) {
-      setState(() {
-        _showAnnualReportReminder = true;
-      });
-    }
-  }
-
-  // 关闭年度账单提醒
   Future<void> _dismissAnnualReportReminder() async {
-    final now = DateTime.now();
-    final reportYear = now.month == 1 ? now.year - 1 : now.year;
-
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_annualReportDismissedKey, reportYear);
-
-    if (mounted) {
-      setState(() {
-        _showAnnualReportReminder = false;
-      });
-    }
-  }
-
-  // 检查是否应该显示预算设置引导卡片
-  Future<void> _checkBudgetSetupHint() async {
-    final prefs = await SharedPreferences.getInstance();
-    final dismissed = prefs.getBool(_budgetSetupHintDismissedKey) ?? false;
-    if (dismissed) return;
-
-    if (mounted) {
-      setState(() {
-        _showBudgetSetupHint = true;
-      });
-    }
-  }
-
-  // 关闭预算设置引导卡片（永不再显示）
-  Future<void> _dismissBudgetSetupHint() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_budgetSetupHintDismissedKey, true);
-
-    if (mounted) {
-      setState(() {
-        _showBudgetSetupHint = false;
-      });
-    }
-  }
-
-  void _openAIChat() {
-    _transactionListKey.currentState?.switchToStreamMode();
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const AIChatPage()),
-    );
+    await _reminders?.dismissAnnual();
+    if (mounted) setState(() => _showAnnualReportReminder = false);
   }
 
   @override
@@ -425,7 +326,7 @@ class _HomePageState extends ConsumerState<HomePage> {
   Widget _buildAnnualReportReminderCard(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final now = DateTime.now();
-    final reportYear = now.month == 1 ? now.year - 1 : now.year;
+    final reportYear = HomeReminderController.reportYear(now);
     final primaryColor = ref.watch(primaryColorProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -529,106 +430,6 @@ class _HomePageState extends ConsumerState<HomePage> {
     );
   }
 
-  // 预算设置引导卡片（无预算时显示，样式与月初提醒一致）
-  Widget _buildBudgetSetupHintCard(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final primaryColor = ref.watch(primaryColorProvider);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Container(
-      margin: const EdgeInsets.fromLTRB(12, 4, 12, 8),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-        boxShadow: isDark
-            ? null
-            : [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.04),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: Stack(
-          children: [
-            // 左侧装饰条
-            Positioned(
-              left: 0,
-              top: 0,
-              bottom: 0,
-              child: Container(
-                width: 4,
-                color: primaryColor,
-              ),
-            ),
-            // 主体内容
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
-              child: Row(
-                children: [
-                  // 图标 + 文案
-                  Expanded(
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.pie_chart_outline_rounded,
-                          color: primaryColor,
-                          size: 18,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            l10n.budgetSetupHint,
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: isDark ? Colors.white70 : Colors.black54,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  // 去设置按钮
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const BudgetPage()),
-                      );
-                    },
-                    child: Text(
-                      l10n.budgetSetupAction,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: primaryColor,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  // 关闭按钮
-                  GestureDetector(
-                    onTap: _dismissBudgetSetupHint,
-                    behavior: HitTestBehavior.opaque,
-                    child: Icon(
-                      Icons.close,
-                      size: 18,
-                      color: isDark ? Colors.white38 : Colors.black26,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final repo = ref.watch(repositoryProvider);
@@ -671,9 +472,9 @@ class _HomePageState extends ConsumerState<HomePage> {
     // accountForTxProvider 这种激进刷新 — 那会让 Editor 编辑 tx 的本地
     // push-pull 循环触发整个 StreamBuilder 子树重建("首页全局刷新"症状)。
     // 如果有 forceStreamModeImmediate 的语义需要(强制把 preloaded 切到
-    // live stream),可以单独 listen sharedResourceRefreshProvider 处理,
+    // live stream),可以单独 listen localDataRevisionProvider 处理,
     // 但 StreamBuilder key 重建保持不动。
-    ref.listen<int>(sharedResourceRefreshProvider, (previous, next) {
+    ref.listen<int>(localDataRevisionProvider, (previous, next) {
       if (previous != next) {
         _transactionListKey.currentState?.forceStreamModeImmediate();
       }
@@ -684,7 +485,6 @@ class _HomePageState extends ConsumerState<HomePage> {
       body: Column(
         children: [
           Consumer(builder: (context, ref, _) {
-            ref.watch(headerStyleProvider);
             final hide = ref.watch(hideAmountsProvider);
             return PrimaryHeader(
               title: '',
@@ -810,32 +610,6 @@ class _HomePageState extends ConsumerState<HomePage> {
                                                     ),
                                                   ),
                                                 ),
-                                                // v24 共享账本:header 也显示 🤝 角标 + 成员数
-                                                if (!isEmpty &&
-                                                    ledger.isShared) ...[
-                                                  const SizedBox(width: 4),
-                                                  Icon(
-                                                    Icons.handshake,
-                                                    size: 12,
-                                                    color: Theme.of(context)
-                                                        .textTheme
-                                                        .bodyMedium
-                                                        ?.color
-                                                        ?.withOpacity(0.7),
-                                                  ),
-                                                  const SizedBox(width: 1),
-                                                  Text(
-                                                    '${ledger.memberCount}',
-                                                    style: TextStyle(
-                                                      fontSize: 12,
-                                                      color: Theme.of(context)
-                                                          .textTheme
-                                                          .bodyMedium
-                                                          ?.color
-                                                          ?.withOpacity(0.7),
-                                                    ),
-                                                  ),
-                                                ],
                                                 // 没账本时不显示下拉箭头(没东西可选)
                                                 if (!isEmpty) ...[
                                                   const SizedBox(width: 2),
@@ -1002,20 +776,6 @@ class _HomePageState extends ConsumerState<HomePage> {
           // 年度账单提醒卡片（12月15日 - 次年1月31日）
           if (_showAnnualReportReminder)
             _buildAnnualReportReminderCard(context),
-          // 预算设置引导卡片（无预算 + 未关闭过）
-          Consumer(builder: (context, ref, _) {
-            final overviewAsync = ref.watch(budgetOverviewProvider);
-            final hasBudget = overviewAsync.when(
-              data: (overview) =>
-                  overview != null && overview.totalBudget != null,
-              loading: () => true, // loading 时不显示引导
-              error: (_, __) => true, // 出错时不显示引导
-            );
-            if (!hasBudget && _showBudgetSetupHint) {
-              return _buildBudgetSetupHintCard(context);
-            }
-            return const SizedBox.shrink();
-          }),
           Expanded(
             child: StreamBuilder<
                 List<
@@ -1027,8 +787,8 @@ class _HomePageState extends ConsumerState<HomePage> {
                     })>>(
               key: ValueKey('transactions_$_streamBuilderKey'), // 使用递增key强制重建
               stream: () {
-                // ledgerId 变了或第一次进来才重建 stream;无关 setState(预算
-                // 提示卡片、月度提醒等)的 home rebuild 复用同一 stream 引用,
+                // ledgerId 变了或第一次进来才重建 stream;无关 setState(月度
+                // 提醒等)的 home rebuild 复用同一 stream 引用,
                 // StreamBuilder 不会重新订阅,不会闪到 fallback 数据。
                 if (_txStream == null || _txStreamLedgerId != ledgerId) {
                   _txStream =

@@ -1,16 +1,5 @@
-/// 共享账本 picker 过滤工具(v25 重写)。
-///
-/// §7 决策最终方案:**不 mirror 主表**,SharedLedger{Categories,Accounts,Tags}
-/// 是 Editor 在共享账本下使用的唯一源。
-///
-/// picker 数据源策略:
-/// - **单人账本 / Owner 视角**:直接读主表(本来就是用户自己 user-global)。
-/// - **共享账本 + Editor 视角**:**完全替换** — 主表内容丢弃,把
-///   SharedLedger* 行转 synthetic Category/Account/Tag 返回,id 用负数
-///   (`-syncId.hashCode`)避免跟本地 int 冲突。
-///   tx 写入时调用方判断 if (selected.id < 0) → 写 override 字段。
-///
-/// Synthetic id 规则:`_syntheticIdForSyncId(syncId)` 一律负数,稳定可复现。
+/// 本地选择器兼容旧备份中的 SharedLedger* 镜像。
+/// 镜像保留负数 synthetic id，避免破坏旧交易引用；本地数据始终可选。
 library;
 
 import 'package:drift/drift.dart' show OrderingTerm, Variable;
@@ -88,7 +77,7 @@ extension SharedLedgerPickerFilter on BeeDatabase {
       q.where((t) => t.level.equals(1));
     }
     final shared = await q.get();
-    return shared.map(_sharedCategoryAsMain).toList();
+    return [...all, ...shared.map(_sharedCategoryAsMain)];
   }
 
   /// 共享账本下,根据 synthetic 父分类 id 反查 level=2 子分类。
@@ -134,7 +123,7 @@ extension SharedLedgerPickerFilter on BeeDatabase {
     final shared = await (select(sharedLedgerAccounts)
           ..where((t) => t.ledgerSyncId.equals(ctx.ledgerSyncId!)))
         .get();
-    return shared.map(_sharedAccountAsMain).toList();
+    return [...all.where((a) => !a.hidden), ...shared.map(_sharedAccountAsMain)];
   }
 
   /// 拿 picker 用的 tags。规则同 categories。
@@ -154,7 +143,7 @@ extension SharedLedgerPickerFilter on BeeDatabase {
     final shared = await (select(sharedLedgerTags)
           ..where((t) => t.ledgerSyncId.equals(ctx.ledgerSyncId!)))
         .get();
-    return shared.map(_sharedTagAsMain).toList();
+    return [...all, ...shared.map(_sharedTagAsMain)];
   }
 
   /// 共享账本 Editor 视角的「最近使用」tags(#443)。

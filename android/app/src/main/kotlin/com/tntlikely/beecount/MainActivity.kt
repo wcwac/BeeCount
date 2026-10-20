@@ -7,38 +7,28 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageInstaller
 import android.net.Uri
 import android.os.Build
 import android.os.PowerManager
 import android.provider.Settings
-import androidx.core.content.FileProvider
-import java.io.File
-import java.io.FileInputStream
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity: FlutterFragmentActivity() {
     private val CHANNEL = "notification_channel"
-    private val INSTALL_CHANNEL = "com.tntlikely.beecount/install"
-    private val SCREENSHOT_CHANNEL = "com.tntlikely.beecount/screenshot"
     private val LOGGER_CHANNEL = "com.beecount.logger"
-    private val SHARE_CHANNEL = "com.tntlikely.beecount/share"
 
-    private var screenshotObserver: ScreenshotObserver? = null
 
     override fun onCreate(savedInstanceState: android.os.Bundle?) {
         super.onCreate(savedInstanceState)
         handleNotificationIntent(intent)
-        handleSharedImage(intent)
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent) // 重要：更新当前intent
         handleNotificationIntent(intent)
-        handleSharedImage(intent)
     }
 
     override fun onResume() {
@@ -66,74 +56,6 @@ class MainActivity: FlutterFragmentActivity() {
             }
         } catch (e: Exception) {
             LoggerPlugin.warning("MainActivity", "清除通知角标失败: ${e.message}")
-        }
-    }
-
-    private fun handleSharedImage(intent: Intent?) {
-        if (intent?.action == Intent.ACTION_SEND && intent.type?.startsWith("image/") == true) {
-            android.util.Log.d("MainActivity", "✅ 收到图片分享")
-            LoggerPlugin.info("MainActivity", "收到图片分享")
-
-            val imageUri = intent.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)
-            if (imageUri != null) {
-                android.util.Log.d("MainActivity", "图片URI: $imageUri")
-                LoggerPlugin.info("MainActivity", "分享图片URI: $imageUri")
-
-                try {
-                    // 复制图片到临时文件
-                    val imagePath = copySharedImageToTemp(imageUri)
-                    if (imagePath != null) {
-                        android.util.Log.d("MainActivity", "图片已保存到: $imagePath")
-                        LoggerPlugin.info("MainActivity", "分享图片已保存: $imagePath")
-
-                        // 通知Flutter端（延迟一下确保Flutter已初始化）
-                        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-                            notifyFlutterSharedImage(imagePath)
-                        }, 500)
-                    }
-                } catch (e: Exception) {
-                    android.util.Log.e("MainActivity", "处理分享图片失败: $e")
-                    LoggerPlugin.error("MainActivity", "处理分享图片失败: ${e.message}")
-                }
-            }
-        }
-    }
-
-    private fun copySharedImageToTemp(uri: Uri): String? {
-        return try {
-            val inputStream = contentResolver.openInputStream(uri) ?: return null
-
-            // 创建临时文件
-            val tempDir = File(cacheDir, "shared_images")
-            tempDir.mkdirs()
-
-            val timestamp = System.currentTimeMillis()
-            val tempFile = File(tempDir, "shared_$timestamp.jpg")
-
-            // 复制图片数据
-            tempFile.outputStream().use { output ->
-                inputStream.copyTo(output)
-            }
-            inputStream.close()
-
-            tempFile.absolutePath
-        } catch (e: Exception) {
-            android.util.Log.e("MainActivity", "复制图片失败: $e")
-            LoggerPlugin.error("MainActivity", "复制分享图片失败: ${e.message}")
-            null
-        }
-    }
-
-    private fun notifyFlutterSharedImage(imagePath: String) {
-        try {
-            flutterEngine?.dartExecutor?.binaryMessenger?.let { messenger ->
-                MethodChannel(messenger, SHARE_CHANNEL).invokeMethod("onImageShared", imagePath)
-                android.util.Log.d("MainActivity", "✅ 已通知Flutter端: $imagePath")
-                LoggerPlugin.info("MainActivity", "已通知Flutter端收到分享图片")
-            }
-        } catch (e: Exception) {
-            android.util.Log.e("MainActivity", "通知Flutter失败: $e")
-            LoggerPlugin.error("MainActivity", "通知Flutter失败: ${e.message}")
         }
     }
 
@@ -171,48 +93,6 @@ class MainActivity: FlutterFragmentActivity() {
         android.util.Log.e("MainActivity", "即将调用 LoggerPlugin.setup")
         LoggerPlugin.setup(loggerChannel)
         android.util.Log.e("MainActivity", "LoggerPlugin.setup 调用完成")
-
-        // 测试日志
-        LoggerPlugin.info("MainActivity", "日志系统已初始化")
-
-        // 延迟发送测试日志，确保 Flutter 端已就绪
-        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-            LoggerPlugin.info("MainActivity", "延迟测试日志 - Flutter 端应该已就绪")
-            LoggerPlugin.debug("MainActivity", "这是一条 DEBUG 日志")
-            LoggerPlugin.warning("MainActivity", "这是一条 WARNING 日志")
-            LoggerPlugin.error("MainActivity", "这是一条 ERROR 日志")
-        }, 2000)
-
-        // 截图监听的MethodChannel
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, SCREENSHOT_CHANNEL).setMethodCallHandler { call, result ->
-            when (call.method) {
-                "startScreenshotObserver" -> {
-                    startScreenshotObserver(flutterEngine)
-                    result.success(true)
-                }
-                "stopScreenshotObserver" -> {
-                    stopScreenshotObserver()
-                    result.success(true)
-                }
-                else -> result.notImplemented()
-            }
-        }
-
-        // 安装APK的MethodChannel
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, INSTALL_CHANNEL).setMethodCallHandler { call, result ->
-            when (call.method) {
-                "installApk" -> {
-                    val filePath = call.argument<String>("filePath")
-                    if (filePath != null) {
-                        val success = installApkWithIntent(filePath)
-                        result.success(success)
-                    } else {
-                        result.error("INVALID_ARGUMENT", "文件路径不能为空", null)
-                    }
-                }
-                else -> result.notImplemented()
-            }
-        }
 
         // 通知相关的MethodChannel
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
@@ -510,142 +390,4 @@ class MainActivity: FlutterFragmentActivity() {
         }
     }
 
-    private fun startScreenshotObserver(flutterEngine: FlutterEngine) {
-        try {
-            android.util.Log.d("MainActivity", "========== 开始启动截图监听服务 ==========")
-            LoggerPlugin.info("MainActivity", "开始启动截图监听服务")
-
-            // 先停止旧的监听(如果有)
-            stopScreenshotObserver()
-
-            // 使用 ContentObserver 监听媒体库变化
-            android.util.Log.d("MainActivity", "启动 ContentObserver 模式")
-            LoggerPlugin.info("MainActivity", "截图监听模式: ContentObserver (监听媒体库变化)")
-            startContentObserverMonitor(flutterEngine)
-
-            android.util.Log.d("MainActivity", "========== 截图监听服务启动完成 ==========")
-        } catch (e: Exception) {
-            android.util.Log.e("MainActivity", "❌ 启动截图监听失败", e)
-            LoggerPlugin.error("MainActivity", "启动截图监听失败: ${e.message}")
-        }
-    }
-
-    /**
-     * 启动 ContentObserver 截图监听
-     * 监听媒体库变化，检测新增的截图文件
-     */
-    private fun startContentObserverMonitor(flutterEngine: FlutterEngine) {
-        android.util.Log.d("MainActivity", "📸 配置 ContentObserver 模式...")
-        LoggerPlugin.info("MainActivity", "开始配置 ContentObserver 截图监听")
-
-        // 创建ContentObserver
-        screenshotObserver = ScreenshotObserver(this) { screenshotPath ->
-            android.util.Log.d("MainActivity", "✅ ContentObserver 检测到截图: $screenshotPath")
-            LoggerPlugin.info("MainActivity", "ContentObserver 检测到截图，路径: ${screenshotPath.substringAfterLast('/')}")
-
-            // 通知 Flutter 端
-            MethodChannel(flutterEngine.dartExecutor.binaryMessenger, SCREENSHOT_CHANNEL)
-                .invokeMethod("onScreenshotDetected", screenshotPath)
-        }
-
-        // 注册ContentObserver
-        val uri = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
-            android.provider.MediaStore.Images.Media.getContentUri(android.provider.MediaStore.VOLUME_EXTERNAL)
-        } else {
-            android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI
-        }
-
-        android.util.Log.d("MainActivity", "   监听URI: $uri")
-        contentResolver.registerContentObserver(uri, true, screenshotObserver!!)
-        android.util.Log.d("MainActivity", "✅ ContentObserver 已注册到 MediaStore")
-        LoggerPlugin.info("MainActivity", "ContentObserver 已注册到 MediaStore")
-    }
-
-    private fun stopScreenshotObserver() {
-        try {
-            // 停止ContentObserver
-            screenshotObserver?.let {
-                contentResolver.unregisterContentObserver(it)
-                screenshotObserver = null
-                android.util.Log.d("MainActivity", "✅ ContentObserver已注销")
-            }
-
-            android.util.Log.d("MainActivity", "✅ 截图监听已停止")
-        } catch (e: Exception) {
-            android.util.Log.e("MainActivity", "❌ 停止截图监听失败", e)
-        }
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        stopScreenshotObserver()
-    }
-
-    private fun installApkWithIntent(filePath: String): Boolean {
-        return try {
-            android.util.Log.d("MainActivity", "UPDATE_CRASH: 开始原生Intent安装APK: $filePath")
-
-            val sourceFile = File(filePath)
-            if (!sourceFile.exists()) {
-                android.util.Log.e("MainActivity", "UPDATE_CRASH: APK文件不存在: $filePath")
-                return false
-            }
-
-            android.util.Log.d("MainActivity", "UPDATE_CRASH: APK文件大小: ${sourceFile.length()} 字节")
-
-            // 直接在缓存根目录创建APK，避免子目录配置问题
-            android.util.Log.d("MainActivity", "UPDATE_CRASH: 复制APK到缓存根目录")
-            val cachedApk = File(cacheDir, "install.apk")
-            sourceFile.copyTo(cachedApk, overwrite = true)
-            android.util.Log.d("MainActivity", "UPDATE_CRASH: APK已复制到: ${cachedApk.absolutePath}")
-
-            val intent = Intent(Intent.ACTION_VIEW)
-
-            android.util.Log.d("MainActivity", "UPDATE_CRASH: 使用FileProvider创建URI")
-            try {
-                android.util.Log.d("MainActivity", "UPDATE_CRASH: 包名: $packageName")
-                android.util.Log.d("MainActivity", "UPDATE_CRASH: Authority: $packageName.fileprovider")
-                android.util.Log.d("MainActivity", "UPDATE_CRASH: 缓存APK路径: ${cachedApk.absolutePath}")
-                android.util.Log.d("MainActivity", "UPDATE_CRASH: 调试 - applicationId: $packageName")
-                android.util.Log.d("MainActivity", "UPDATE_CRASH: 调试 - Authority完整: $packageName.fileprovider")
-
-                val uri = FileProvider.getUriForFile(
-                    this,
-                    "$packageName.fileprovider",
-                    cachedApk
-                )
-                android.util.Log.d("MainActivity", "UPDATE_CRASH: ✅ FileProvider URI创建成功: $uri")
-
-                intent.setDataAndType(uri, "application/vnd.android.package-archive")
-                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                android.util.Log.d("MainActivity", "UPDATE_CRASH: URI权限已设置")
-
-            } catch (e: IllegalArgumentException) {
-                android.util.Log.e("MainActivity", "UPDATE_CRASH: ❌ FileProvider路径配置错误", e)
-                return false
-            } catch (e: Exception) {
-                android.util.Log.e("MainActivity", "UPDATE_CRASH: ❌ FileProvider创建URI失败", e)
-                return false
-            }
-
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-
-            android.util.Log.d("MainActivity", "UPDATE_CRASH: 启动APK安装Intent")
-
-            // 检查是否有应用可以处理该Intent
-            if (intent.resolveActivity(packageManager) != null) {
-                android.util.Log.d("MainActivity", "UPDATE_CRASH: 找到可处理APK安装的应用")
-                startActivity(intent)
-                android.util.Log.d("MainActivity", "UPDATE_CRASH: ✅ APK安装Intent启动成功")
-                return true
-            } else {
-                android.util.Log.e("MainActivity", "UPDATE_CRASH: ❌ 没有应用可以处理APK安装")
-                return false
-            }
-
-        } catch (e: Exception) {
-            android.util.Log.e("MainActivity", "UPDATE_CRASH: ❌ 原生Intent安装失败: $e")
-            return false
-        }
-    }
 }

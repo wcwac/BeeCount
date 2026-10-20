@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../services/security/offline_url_launcher.dart';
 import '../../widgets/biz/bee_icon.dart';
 import 'dart:io';
 import '../../l10n/app_localizations.dart';
@@ -55,13 +54,12 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
       _buildAttachmentImportPage(context, theme, l10n),
     ];
 
-    // 新用户流程：5页
+    // 新用户流程：语言、币种、分类与隐私说明
     final newUserPages = [
       _buildWelcomePage(context, theme, l10n), // 第1屏：语言选择
       _buildCurrencyPage(context, theme, l10n), // 第2屏：货币选择
       _buildCategoryModePage(context, theme, l10n), // 第3屏：分类模式
-      _buildCloudSyncPage(context, theme, l10n), // 第4屏：云同步
-      _buildPrivacyAndOpenSourcePage(context, theme, l10n), // 第5屏：隐私保护+开源透明
+      _buildPrivacyAndOpenSourcePage(context, theme, l10n), // 第4屏：隐私保护+开源透明
     ];
 
     final pages = _isExistingUserFlow ? existingUserPages : newUserPages;
@@ -572,106 +570,16 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
           ),
           const SizedBox(height: 24),
 
-          // GitHub链接按钮
-          OutlinedButton.icon(
-            onPressed: () => _launchGitHub(context),
-            icon: const Icon(Icons.open_in_new, size: 18, color: Colors.white),
-            label: Text(l10n.welcomeViewGitHub,
-                style: const TextStyle(color: Colors.white)),
-            style: OutlinedButton.styleFrom(
-              side: const BorderSide(color: Colors.white),
-              padding: const EdgeInsets.symmetric(
-                horizontal: 24,
-                vertical: 12,
-              ),
-            ),
+          const SelectableText(
+            'BeeCount · TNT-Likely\nhttps://github.com/TNT-Likely/BeeCount',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.white),
           ),
         ],
       ),
     );
   }
 
-  /// 第4页：云同步说明
-  Widget _buildCloudSyncPage(
-      BuildContext context, ThemeData theme, AppLocalizations l10n) {
-    return Padding(
-      padding: const EdgeInsets.all(32),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // 云同步图标
-          Container(
-            width: 120,
-            height: 120,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.cloud_outlined,
-              size: 64,
-              color: Colors.white,
-            ),
-          ),
-          const SizedBox(height: 32),
-
-          // 标题
-          Text(
-            l10n.welcomeCloudSyncTitle,
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 16),
-
-          // 描述
-          Text(
-            l10n.welcomeCloudSyncDescription,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: Colors.white.withValues(alpha: 0.9),
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 24),
-
-          // 特性列表
-          Center(
-            child: IntrinsicWidth(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildFeatureItem(
-                    context,
-                    Icons.offline_bolt_outlined,
-                    Colors.white,
-                    l10n.welcomeCloudSyncFeature1,
-                  ),
-                  const SizedBox(height: 12),
-                  _buildFeatureItem(
-                    context,
-                    Icons.dns_outlined,
-                    Colors.white,
-                    l10n.welcomeCloudSyncFeature2,
-                  ),
-                  const SizedBox(height: 12),
-                  _buildFeatureItem(
-                    context,
-                    Icons.cloud_upload_outlined,
-                    Colors.white,
-                    l10n.welcomeCloudSyncFeature3,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// 构建特性条目
   Widget _buildFeatureItem(
     BuildContext context,
     IconData icon,
@@ -693,24 +601,6 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
         ),
       ],
     );
-  }
-
-  /// 打开GitHub链接
-  Future<void> _launchGitHub(BuildContext context) async {
-    final url = Uri.parse('https://github.com/TNT-Likely/BeeCount');
-    try {
-      if (await canLaunchUrl(url)) {
-        await launchUrl(url, mode: LaunchMode.externalApplication);
-      } else {
-        if (context.mounted) {
-          showToast(context, AppLocalizations.of(context).privacyOpenSourceUrlError);
-        }
-      }
-    } catch (e) {
-      if (context.mounted) {
-        showToast(context, AppLocalizations.of(context).privacyOpenSourceUrlError);
-      }
-    }
   }
 
   /// 完成欢迎页面
@@ -839,7 +729,6 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
       ref.invalidate(primaryColorInitProvider);
       ref.invalidate(themeModeInitProvider);
       ref.invalidate(compactAmountInitProvider);
-      ref.invalidate(skinAnimationInitProvider);
       ref.invalidate(showTransactionTimeInitProvider);
       ref.invalidate(noteDisplayModeInitProvider);
       ref.invalidate(fontScaleInitProvider);

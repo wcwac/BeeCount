@@ -224,20 +224,14 @@ abstract class TransactionRepository {
 
   /// 批量新增交易，单事务内插入，返回插入条数。
   ///
-  /// [recordChanges] 默认 true,会逐条登记 changeTracker.recordLedgerChange。
   /// FullPull 路径需要传 false 避免"从云端拉下来的数据又被反向 push 回去"。
   Future<int> insertTransactionsBatch(
-    List<TransactionsCompanion> items, {
-    bool recordChanges = true,
-  });
+    List<TransactionsCompanion> items);
 
   /// 插入单条交易（使用 Companion 对象）
   ///
-  /// [recordChanges] 同 [insertTransactionsBatch]。
   Future<int> insertTransactionCompanion(
-    TransactionsCompanion item, {
-    bool recordChanges = true,
-  });
+    TransactionsCompanion item);
 
   /// 批量插入交易 + 关联数据(tag / attachment),全部在单事务内完成。
   ///
@@ -249,14 +243,12 @@ abstract class TransactionRepository {
   /// [tagIdsByIndex] - 批次内 index → tagId 列表。调用方需保证 tagIds 去重
   ///   (TransactionTags 表无 UNIQUE 约束,本方法不做 select 防重)。
   /// [attachmentsByIndex] - 批次内 index → 附件元数据列表。
-  /// [recordChanges] - 同 [insertTransactionsBatch]。
   ///
   /// 返回插入的 tx id 列表,顺序跟 [transactions] 输入对齐。
   Future<List<int>> insertTransactionsBatchWithRelations({
     required List<TransactionsCompanion> transactions,
     Map<int, List<int>> tagIdsByIndex = const {},
     Map<int, List<BatchAttachmentData>> attachmentsByIndex = const {},
-    bool recordChanges = true,
   });
 
   /// 更新交易
@@ -412,12 +404,9 @@ abstract class TransactionRepository {
   /// 旧账本 + 用户选择"以远端为准"覆盖,N 条 delete by syncId 单条 await 会
   /// 跑几分钟;本方法用单条 `DELETE WHERE syncId IN (...)` 一次性删除)。
   ///
-  /// [recordChanges] 默认 true,wrapper 会批量补 transaction:delete change log。
   /// 返回实际删除的条数。
   Future<int> deleteTransactionsBatchBySyncIds(
-    List<String> syncIds, {
-    bool recordChanges = true,
-  });
+    List<String> syncIds);
 
   /// 批量按 syncId 更新交易主表字段。同事务内逐条 UPDATE,N 次跨 isolate
   /// boundary 但 BEGIN/COMMIT 只跑一次。
@@ -425,7 +414,5 @@ abstract class TransactionRepository {
   /// **不涉及 tag 更新** — caller 拿到 returned `Map<syncId, txId>` 后自己批量
   /// 调 `updateTransactionTags`(或者更高效的 batch 接口,如果将来加的话)。
   Future<Map<String, int>> updateTransactionsBatchBySyncId(
-    List<TransactionUpdateBySyncIdData> updates, {
-    bool recordChanges = true,
-  });
+    List<TransactionUpdateBySyncIdData> updates);
 }

@@ -8,7 +8,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:drift/native.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:beecount/cloud/sync/change_tracker.dart';
 import 'package:beecount/data/db.dart';
 import 'package:beecount/data/repositories/local/local_repository.dart';
 
@@ -276,10 +275,7 @@ void main() {
       expect(await repo.countUnconvertedForeignTx(lid), 1);
     });
 
-    test('重算逐笔记 change(L13):pending 条数 == 改动笔数', () async {
-      db = BeeDatabase.forTesting(NativeDatabase.memory());
-      final tracker = ChangeTracker(db);
-      repo = LocalRepository(db, changeTracker: tracker);
+    test('offline currency recomputation does not enqueue changes', () async {
       final lid = await seedLedger();
       final aid = await seedAccount(currency: 'USD');
       await seedUsdRates();
@@ -292,7 +288,7 @@ void main() {
       final n = await repo.recomputeForeignTxForLedger(lid);
       expect(n, 1);
       final after = (await db.select(db.localChanges).get()).length;
-      expect(after - before, 1, reason: '重算必须逐笔记 change,否则云端投影不更新');
+      expect(after, before);
     });
   });
 }

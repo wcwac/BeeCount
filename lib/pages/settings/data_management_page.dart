@@ -16,7 +16,6 @@ import '../category/category_manage_page.dart';
 import '../category/category_migration_page.dart';
 import '../tag/tag_manage_page.dart';
 import '../settings/config_import_export_page.dart';
-import '../settings/storage_management_page.dart';
 import '../settings/attachment_preview_page.dart';
 import '../maintenance/orphan_cleanup_page.dart';
 import '../../l10n/app_localizations.dart';
@@ -191,18 +190,6 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
                         },
                       ),
                       BeeTokens.cardDivider(context),
-                      // 存储空间管理
-                      AppListTile(
-                        leading: Icons.storage_outlined,
-                        title: AppLocalizations.of(context).storageManagementTitle,
-                        subtitle: AppLocalizations.of(context).storageManagementSubtitle,
-                        onTap: () async {
-                          await Navigator.of(context).push(
-                            MaterialPageRoute(builder: (_) => const StorageManagementPage()),
-                          );
-                        },
-                      ),
-                      BeeTokens.cardDivider(context),
                       // 数据清理(孤儿数据)
                       AppListTile(
                         leading: Icons.cleaning_services_outlined,
@@ -363,51 +350,48 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
   Future<void> _handleExport() async {
     final l10n = AppLocalizations.of(context);
     final service = ref.read(attachmentExportImportServiceProvider);
-
-    // 先获取实际存在的文件数用于进度显示
-    final previewData = await service.getExportPreviewImages();
-    final attachmentCount = previewData.attachments.length;
-    final iconCount = previewData.customIcons.length;
-    final actualFileCount = attachmentCount + iconCount;
-
-    setState(() {
-      _isExporting = true;
-      _exportProgress = 0;
-      _exportTotal = actualFileCount; // 使用实际文件数（附件 + 图标）
-      _exportAttachmentCount = attachmentCount;
-      _exportIconCount = iconCount;
-    });
-
-    final exportPath = await service.exportAttachments(
-      onProgress: (current, total) {
-        if (mounted) {
-          setState(() {
-            _exportProgress = current;
-            _exportTotal = total;
-          });
-        }
-      },
-    );
-
-    setState(() {
-      _isExporting = false;
-    });
-
-    if (!mounted) return;
-
-    if (exportPath != null) {
-      showToast(context, l10n.attachmentExportSuccess);
-
-      // iOS 弹出分享
-      if (Platform.isIOS) {
-        await Share.shareXFiles([XFile(exportPath)]);
-      } else {
-        // Android 显示保存路径
-        showToast(context, l10n.attachmentExportSavedTo(exportPath));
+    setState(() => _isExporting = true);
+    try {
+      final previewData = await service.getExportPreviewImages();
+      if (!mounted) return;
+      setState(() {
+        _exportProgress = 0;
+        _exportAttachmentCount = previewData.attachments.length;
+        _exportIconCount = previewData.customIcons.length;
+        _exportTotal = _exportAttachmentCount + _exportIconCount;
+      });
+      final exportPath = await service.exportAttachments(
+        onProgress: (current, total) {
+          if (mounted) {
+            setState(() {
+              _exportProgress = current;
+              _exportTotal = total;
+            });
+          }
+        },
+      );
+      if (!mounted) return;
+      if (exportPath == null) {
+        showToast(context, l10n.attachmentExportEmpty);
+        return;
       }
-    } else {
-      // exportPath 为 null 表示没有内容需要导出
-      showToast(context, l10n.attachmentExportEmpty);
+      final box = context.findRenderObject() as RenderBox?;
+      final result = await Share.shareXFiles(
+        [XFile(exportPath)],
+        sharePositionOrigin: box == null ? null : box.localToGlobal(Offset.zero) & box.size,
+      );
+      if (!mounted) return;
+      if (result.status == ShareResultStatus.success) {
+        showToast(context, l10n.attachmentExportSuccess);
+      } else if (result.status == ShareResultStatus.unavailable) {
+        await AppDialog.error(context, title: l10n.commonFailed, message: l10n.commonFailed);
+      }
+    } catch (error) {
+      if (mounted) {
+        await AppDialog.error(context, title: l10n.commonFailed, message: '$error');
+      }
+    } finally {
+      if (mounted) setState(() => _isExporting = false);
     }
   }
 

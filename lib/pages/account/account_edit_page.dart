@@ -6,12 +6,11 @@ import '../../widgets/ui/ui.dart';
 import '../../widgets/biz/section_card.dart';
 import '../../data/db.dart' as db;
 import '../../l10n/app_localizations.dart';
-import '../../services/billing/post_processor.dart';
+import '../../controllers/account_edit_controller.dart';
 import '../../utils/currencies.dart';
 import '../../styles/tokens.dart';
 import '../../utils/ui_scale_extensions.dart';
 import '../../utils/account_type_utils.dart';
-import '../../providers/credit_card_reminder_providers.dart';
 
 class AccountEditPage extends ConsumerStatefulWidget {
   final db.Account? account; // null表示新建
@@ -1025,330 +1024,110 @@ class _AccountEditPageState extends ConsumerState<AccountEditPage> {
     );
   }
 
-  Future<void> _save() async {
-    if (!_balanceLoaded || _balanceLoadFailed) return;
-    if (!_formKey.currentState!.validate()) return;
+  AccountEditController get _controller =>
+      AccountEditController(ref.read(repositoryProvider));
 
-    if (_selectedType == 'credit_card' && _reminderEnabled && _paymentDueDay == null) {
+  void _refreshAccountState(int accountId) {
+    ref.invalidate(accountStatsProvider(accountId));
+    ref.invalidate(defaultIncomeAccountIdProvider);
+    ref.invalidate(defaultExpenseAccountIdProvider);
+    ref.read(statsRefreshProvider.notifier).state++;
+    ref.read(tagListRefreshProvider.notifier).state++;
+  }
+
+  Future<void> _save() async {
+    if (_saving || !_balanceLoaded || _balanceLoadFailed) return;
+    if (!_formKey.currentState!.validate()) return;
+    if (_selectedType == 'credit_card' &&
+        _reminderEnabled && _paymentDueDay == null) {
       showToast(context, AppLocalizations.of(context).creditCardReminderDueRequired);
       return;
     }
-
     setState(() => _saving = true);
-
     try {
-      final repo = ref.read(repositoryProvider);
-      final name = _nameController.text.trim();
-      final initialBalanceText = _initialBalanceController.text.trim();
-      final enteredBalance =
-          initialBalanceText.isEmpty ? 0.0 : double.parse(initialBalanceText);
-      var initialBalance = enteredBalance;
-      if (_selectedType == 'credit_card') {
-        initialBalance = enteredBalance == 0 ? 0 :
-            (_creditOverpayment ? enteredBalance : -enteredBalance);
-      }
-
-      // 贷款类型：用户输入正数，存储为负数
-      if (_selectedType == 'loan' && initialBalance > 0) {
-        initialBalance = -initialBalance;
-      }
-
-      // 信用卡字段
-      final isCreditCard = _selectedType == 'credit_card';
-      final creditLimitText = _creditLimitController.text.trim();
-      final creditLimit = isCreditCard && creditLimitText.isNotEmpty
-          ? double.parse(creditLimitText)
-          : null;
-
-      if (isEditing) {
-        // 检查币种是否变化
-        String? currencyToUpdate;
-        if (_selectedCurrency != widget.account!.currency) {
-          // 币种变化了，需要再次检查是否有交易
-          final hasTransactions = await repo.hasTransactions(widget.account!.id);
-          if (hasTransactions) {
-            if (mounted) {
-              setState(() => _saving = false);
-              final l10n = AppLocalizations.of(context);
-              await AppDialog.info(
-                context,
-                title: l10n.commonNotice,
-                message: l10n.accountCurrencyLocked,
-              );
-            }
-            return;
-          }
-          currencyToUpdate = _selectedCurrency;
-        }
-
-        var balanceNeedsUpdate = false;
-        var createBalanceAdjustment = false;
-        final targetBalance = initialBalance;
-        if (!isValuationOnlyType(widget.account!.type) &&
-            !isValuationOnlyType(_selectedType)) {
-          final currentBalance =
-              await repo.getAccountBalance(widget.account!.id);
-          if (!mounted) return;
-          // Metadata saves must not overwrite transactions added meanwhile.
-          if ((targetBalance - (_loadedCurrentBalance ?? currentBalance)).abs() >= 0.0000001) {
-            final choice = await _promptBalanceAdjustmentChoice(
-              currentBalance: currentBalance,
-              targetBalance: targetBalance,
-              l10n: AppLocalizations.of(context),
-            );
-            if (!mounted || choice == null) return;
-            balanceNeedsUpdate = true;
-            createBalanceAdjustment = choice;
-          }
-        }
-
-        // 如果从信用卡切换到其他类型，清空信用卡字段
-        final wasCreditCard = widget.account!.type == 'credit_card';
-        final clearCreditCardFields = wasCreditCard;
-
-        // 元信息字段
-        final isBankOrCredit = _selectedType == 'bank_card' || _selectedType == 'credit_card';
-        final wasBankOrCredit = widget.account!.type == 'bank_card' || widget.account!.type == 'credit_card';
-        final clearMetadataFields = wasBankOrCredit && !isBankOrCredit;
-        final bankName = isBankOrCredit ? _bankNameController.text.trim() : null;
-        final cardLastFour = isBankOrCredit ? _cardLastFourController.text.trim() : null;
-        final noteText = _noteController.text.trim();
-
-        await repo.updateAccount(
-          widget.account!.id,
-          name: name,
-          type: _selectedType,
-          currency: currencyToUpdate,
-          creditLimit: isCreditCard ? creditLimit : null,
-          billingDay: isCreditCard ? _billingDay : null,
-          paymentDueDay: isCreditCard ? _paymentDueDay : null,
-          clearCreditCardFields: clearCreditCardFields,
-          bankName: bankName != null && bankName.isNotEmpty ? bankName : null,
-          cardLastFour: cardLastFour != null && cardLastFour.isNotEmpty ? cardLastFour : null,
-          note: noteText.isNotEmpty ? noteText : null,
-          clearMetadataFields: clearMetadataFields,
-        );
-
-        if (balanceNeedsUpdate) {
-          await repo.setAccountBalance(
-            ledgerId: widget.ledgerId,
-            accountId: widget.account!.id,
-            targetBalance: targetBalance,
-            createBalanceAdjustment: createBalanceAdjustment,
-          );
-          ref.invalidate(accountStatsProvider(widget.account!.id));
-          ref.read(statsRefreshProvider.notifier).state++;
-          ref.read(tagListRefreshProvider.notifier).state++;
-        }
-
-        // 保存还款提醒设置
-        if (isCreditCard) {
-          await _saveReminderSettings(widget.account!.id);
-        }
-      } else {
-        final isBankOrCredit = _selectedType == 'bank_card' || _selectedType == 'credit_card';
-        final bankNameText = isBankOrCredit ? _bankNameController.text.trim() : null;
-        final cardLastFourText = isBankOrCredit ? _cardLastFourController.text.trim() : null;
-        final noteText = _noteController.text.trim();
-
-        final id = await repo.createAccount(
-          ledgerId: widget.ledgerId,
-          name: name,
+      final result = await _controller.save(
+        ledgerId: widget.ledgerId,
+        account: widget.account,
+        loadedCurrentBalance: _loadedCurrentBalance,
+        values: AccountEditValues(
+          name: _nameController.text,
           type: _selectedType,
           currency: _selectedCurrency,
-          initialBalance: initialBalance,
-          creditLimit: creditLimit,
-          billingDay: isCreditCard ? _billingDay : null,
-          paymentDueDay: isCreditCard ? _paymentDueDay : null,
-          bankName: bankNameText != null && bankNameText.isNotEmpty ? bankNameText : null,
-          cardLastFour: cardLastFourText != null && cardLastFourText.isNotEmpty ? cardLastFourText : null,
-          note: noteText.isNotEmpty ? noteText : null,
-        );
-
-        // 保存还款提醒设置
-        if (isCreditCard) {
-          await _saveReminderSettings(id);
-        }
-      }
-
-      // 触发账本同步(后台异步,不阻塞页面关闭)
+          enteredBalance: double.tryParse(_initialBalanceController.text.trim()) ?? 0,
+          creditOverpayment: _creditOverpayment,
+          creditLimit: _selectedType == 'credit_card' &&
+                  _creditLimitController.text.trim().isNotEmpty
+              ? double.parse(_creditLimitController.text.trim()) : null,
+          billingDay: _billingDay,
+          paymentDueDay: _paymentDueDay,
+          bankName: _bankNameController.text,
+          cardLastFour: _cardLastFourController.text,
+          note: _noteController.text,
+          reminderEnabled: _reminderEnabled,
+          reminderDaysBefore: _reminderDaysBefore,
+        ),
+        confirmBalanceAdjustment: (current, target) async {
+          if (!mounted) return null;
+          final choice = await _promptBalanceAdjustmentChoice(
+            currentBalance: current,
+            targetBalance: target,
+            l10n: AppLocalizations.of(context),
+          );
+          return mounted ? choice : null;
+        },
+      );
+      if (!mounted || result == null) return;
+      _refreshAccountState(result.accountId);
+      Navigator.of(context).pop(true);
+    } on AccountCurrencyLocked {
       if (mounted) {
-        PostProcessor.sync(ref, ledgerId: widget.ledgerId);
-        Navigator.of(context).pop(true);
+        final l10n = AppLocalizations.of(context);
+        await AppDialog.info(context,
+            title: l10n.commonNotice, message: l10n.accountCurrencyLocked);
       }
     } catch (e) {
       if (mounted) {
         showToast(context, '${AppLocalizations.of(context).commonError}: $e');
       }
     } finally {
-      if (mounted) {
-        setState(() => _saving = false);
-      }
+      if (mounted) setState(() => _saving = false);
     }
   }
 
   Future<void> _delete() async {
-    final l10n = AppLocalizations.of(context);
-
-    // 检查是否有关联交易
-    final repo = ref.read(repositoryProvider);
-    final txCount = await repo.getTransactionCountByAccount(widget.account!.id);
-
-    if (txCount > 0) {
-      // 有关联交易，提示用户
-      if (!mounted) return;
-      final confirm = await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: Text(l10n.accountDeleteWarningTitle),
-          content: Text(l10n.accountDeleteWarningMessage(txCount)),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: Text(l10n.commonCancel),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              style: TextButton.styleFrom(foregroundColor: Colors.red),
-              child: Text(l10n.commonDelete),
-            ),
-          ],
-        ),
-      );
-
-      if (confirm != true) return;
-    } else {
-      // 没有关联交易，简单确认
-      if (!mounted) return;
-      final confirm = await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: Text(l10n.commonConfirm),
-          content: Text(l10n.accountDeleteConfirm),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: Text(l10n.commonCancel),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              style: TextButton.styleFrom(foregroundColor: Colors.red),
-              child: Text(l10n.commonDelete),
-            ),
-          ],
-        ),
-      );
-
-      if (confirm != true) return;
-    }
-
-    setState(() => _saving = true);
-
-    try {
-      await repo.deleteAccount(widget.account!.id);
-
-      // 触发账本同步(后台异步,不阻塞页面关闭)
-      if (mounted) {
-        PostProcessor.sync(ref, ledgerId: widget.ledgerId);
-        Navigator.of(context).pop(true);
-      }
-    } catch (e) {
-      if (mounted) {
-        showToast(context, '${l10n.commonError}: $e');
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _saving = false);
-      }
-    }
-  }
-
-  /// 隐藏 / 恢复账户（账户隐藏 #240,产品设计 01 §3.2/§五）。
-  /// - 恢复:低风险、可逆,不弹确认,即时生效(同管理页「已隐藏」分区的恢复按钮)。
-  /// - 隐藏:弹确认框,若该账户被活跃周期模板引用(E2)追加提示;隐藏后若它是
-  ///   默认收/支账户则清空该设置(E3)。
-  Future<void> _toggleHidden() async {
+    if (_saving) return;
     final l10n = AppLocalizations.of(context);
     final account = widget.account!;
-    final repo = ref.read(repositoryProvider);
-
-    if (account.hidden) {
-      setState(() => _saving = true);
-      try {
-        await repo.setAccountHidden(account.id, false);
-        if (mounted) {
-          PostProcessor.sync(ref, ledgerId: widget.ledgerId);
-          showToast(context, l10n.accountRestoredToast);
-          Navigator.of(context).pop(true);
-        }
-      } catch (e) {
-        if (mounted) showToast(context, '${l10n.commonError}: $e');
-      } finally {
-        if (mounted) setState(() => _saving = false);
-      }
-      return;
-    }
-
-    // E2:隐藏前查活跃周期模板数,>0 则确认框追加提示。
-    final recurringCount =
-        await repo.getActiveRecurringCountByAccount(account.id);
-
-    if (!mounted) return;
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.accountHideConfirmTitle),
-        content: Text(recurringCount > 0
-            ? '${l10n.accountHideConfirmBody}\n${l10n.accountHideRecurringWarn(recurringCount)}'
-            : l10n.accountHideConfirmBody),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text(l10n.commonCancel),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: Text(l10n.accountHide),
-          ),
-        ],
-      ),
-    );
-
-    if (confirm != true) return;
-
+    final controller = _controller;
     setState(() => _saving = true);
     try {
-      await repo.setAccountHidden(account.id, true);
-
-      // E3:隐藏的是默认收/支账户 → 清空该设置 + toast。
-      final defaultIncomeId =
-          await ref.read(defaultIncomeAccountIdProvider.future);
-      final defaultExpenseId =
-          await ref.read(defaultExpenseAccountIdProvider.future);
-      var clearedDefault = false;
-      if (defaultIncomeId == account.id) {
-        await ref
-            .read(defaultAccountSetterProvider)
-            .setDefaultIncomeAccountId(null);
-        ref.invalidate(defaultIncomeAccountIdProvider);
-        clearedDefault = true;
-      }
-      if (defaultExpenseId == account.id) {
-        await ref
-            .read(defaultAccountSetterProvider)
-            .setDefaultExpenseAccountId(null);
-        ref.invalidate(defaultExpenseAccountIdProvider);
-        clearedDefault = true;
-      }
-
+      final txCount = await controller.transactionCount(account.id);
+      if (!mounted) return;
+      final confirm = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(txCount > 0
+              ? l10n.accountDeleteWarningTitle : l10n.commonConfirm),
+          content: Text(txCount > 0
+              ? l10n.accountDeleteWarningMessage(txCount)
+              : l10n.accountDeleteConfirm),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: Text(l10n.commonCancel),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              child: Text(l10n.commonDelete),
+            ),
+          ],
+        ),
+      );
+      if (!mounted || confirm != true) return;
+      await controller.delete(account.id);
       if (mounted) {
-        PostProcessor.sync(ref, ledgerId: widget.ledgerId);
-        showToast(
-          context,
-          clearedDefault
-              ? '${l10n.accountHiddenToast} · ${l10n.accountHideClearedDefault}'
-              : l10n.accountHiddenToast,
-        );
+        _refreshAccountState(account.id);
         Navigator.of(context).pop(true);
       }
     } catch (e) {
@@ -1358,21 +1137,50 @@ class _AccountEditPageState extends ConsumerState<AccountEditPage> {
     }
   }
 
-  Future<void> _saveReminderSettings(int accountId) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('cc_reminder_enabled_$accountId', _reminderEnabled);
-    await prefs.setInt('cc_reminder_days_$accountId', _reminderDaysBefore);
-
-    // 调度或取消提醒
-    if (_reminderEnabled && _paymentDueDay != null) {
-      await CreditCardReminderService.scheduleReminder(
-        accountId: accountId,
-        accountName: _nameController.text.trim(),
-        paymentDueDay: _paymentDueDay!,
-        daysBefore: _reminderDaysBefore,
-      );
-    } else {
-      await CreditCardReminderService.cancelReminder(accountId);
+  Future<void> _toggleHidden() async {
+    if (_saving) return;
+    final l10n = AppLocalizations.of(context);
+    final account = widget.account!;
+    final controller = _controller;
+    setState(() => _saving = true);
+    try {
+      if (!account.hidden) {
+        final recurringCount = await controller.recurringCount(account.id);
+        if (!mounted) return;
+        final confirm = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Text(l10n.accountHideConfirmTitle),
+            content: Text(recurringCount > 0
+                ? '${l10n.accountHideConfirmBody}\n${l10n.accountHideRecurringWarn(recurringCount)}'
+                : l10n.accountHideConfirmBody),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: Text(l10n.commonCancel),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: Text(l10n.accountHide),
+              ),
+            ],
+          ),
+        );
+        if (!mounted || confirm != true) return;
+      }
+      final clearedDefault = await controller.setHidden(account.id, !account.hidden);
+      if (!mounted) return;
+      _refreshAccountState(account.id);
+      showToast(context, account.hidden
+          ? l10n.accountRestoredToast
+          : clearedDefault
+              ? '${l10n.accountHiddenToast} · ${l10n.accountHideClearedDefault}'
+              : l10n.accountHiddenToast);
+      Navigator.of(context).pop(true);
+    } catch (e) {
+      if (mounted) showToast(context, '${l10n.commonError}: $e');
+    } finally {
+      if (mounted) setState(() => _saving = false);
     }
   }
 

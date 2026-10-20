@@ -42,9 +42,7 @@ class TransactionEditUtils {
         (source == null ||
             ledger == null ||
             !const {'expense', 'income', 'transfer'}
-                .contains(transaction.type) ||
-            (ledger.isShared &&
-                !const {'owner', 'editor'}.contains(ledger.myRole)))) {
+                .contains(transaction.type))) {
       showToast(
           context, AppLocalizations.of(context).transactionCopyUnavailable);
       return;

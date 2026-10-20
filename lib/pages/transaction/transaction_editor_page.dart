@@ -16,7 +16,6 @@ import '../../widgets/transaction/transfer_form.dart';
 import '../../styles/tokens.dart';
 import '../../services/billing/post_processor.dart';
 import '../../services/attachment_service.dart';
-import '../../services/data/tx_author_service.dart';
 
 /// 交易编辑器页面
 /// 支持创建/编辑收入、支出和转账记录
@@ -337,7 +336,6 @@ class _TransactionEditorPageState extends ConsumerState<TransactionEditorPage>
             transactionId = widget.editingTransactionId!;
             // 共享账本:本地 lastEditedByUserId 立即回填,UI 头像组直接展示
             // 当前 user 为编辑人(否则要等 server 下次 pull 才回来)
-            await TxAuthorService.markEdited(ref, transactionId);
           } else {
             transactionId = await repo.addTransaction(
               ledgerId: ledgerId,
@@ -355,7 +353,6 @@ class _TransactionEditorPageState extends ConsumerState<TransactionEditorPage>
               nativeAmount: res.nativeAmount,
             );
             // 共享账本:新建本地 tx 也回填创建人 + 编辑人(同一个 user)
-            await TxAuthorService.markCreated(ref, transactionId);
           }
           // 保存待上传的附件
           if (res.pendingAttachments.isNotEmpty) {
@@ -432,7 +429,7 @@ class _TransactionEditorPageState extends ConsumerState<TransactionEditorPage>
             }
           }
           // 统一处理：自动/手动同步与状态刷新（后台静默）
-          PostProcessor.sync(ref, ledgerId: ledgerId);
+          PostProcessor.refreshLocal(ref, ledgerId: ledgerId);
           // 刷新：账本笔数与全局统计
           ref.invalidate(countsForLedgerProvider(ledgerId));
           ref.read(statsRefreshProvider.notifier).state++;

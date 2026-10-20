@@ -16,7 +16,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:beecount/data/db.dart';
 import 'package:beecount/data/repositories/local/local_repository.dart';
-import 'package:beecount/cloud/sync/change_tracker.dart';
 import 'package:beecount/utils/shared_ledger_picker_filter.dart';
 
 void main() {
@@ -37,9 +36,8 @@ void main() {
 
   tearDown(() async => db.close());
 
-  test('updateAccount(id, hidden: true) 落值且记 change', () async {
-    final tracker = ChangeTracker(db);
-    final trackedRepo = LocalRepository(db, changeTracker: tracker);
+  test('updateAccount persists hidden without enqueueing cloud changes', () async {
+    final trackedRepo = LocalRepository(db);
     final lid = await trackedRepo.createLedger(name: 'L');
     final aid = await trackedRepo.createAccount(
         ledgerId: lid, name: 'A', syncId: 'ax-hidden-1');
@@ -54,9 +52,7 @@ void main() {
           ..where((c) => c.entitySyncId.equals('ax-hidden-1'))
           ..where((c) => c.action.equals('update')))
         .get();
-    expect(changes, isNotEmpty,
-        reason:
-            '隐藏必须走会记 change 的 updateAccount,否则隐藏状态不会 push 到云端');
+    expect(changes, isEmpty);
   });
 
   test('setAccountHidden 便捷法往返(true → false)', () async {

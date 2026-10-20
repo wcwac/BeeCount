@@ -5,12 +5,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/db.dart';
 import '../../data/repositories/local/local_repository.dart';
 import '../../providers.dart';
-import '../../providers/shared_ledger_providers.dart';
+import '../../providers/local_data_providers.dart';
 import '../../l10n/app_localizations.dart';
 import '../../styles/tokens.dart';
 import '../../services/billing/post_processor.dart';
 import '../../services/attachment_service.dart';
-import '../../services/data/tx_author_service.dart';
 import '../biz/amount_editor_sheet.dart';
 import '../../utils/account_type_utils.dart';
 import '../../utils/shared_ledger_picker_filter.dart';
@@ -220,9 +219,6 @@ class _TransferFormState extends ConsumerState<TransferForm> {
                 toAccountSyncIdOverride: toOverride,
                 writeToAccountSyncIdOverride: true,
               );
-              // 共享账本:回填编辑人,UI 头像组立即展示
-              await TxAuthorService.markEdited(
-                  ref, widget.editingTransactionId!);
               // 更新标签
               if (result.tagIds.isNotEmpty) {
                 await repo.updateTransactionTags(
@@ -249,7 +245,7 @@ class _TransferFormState extends ConsumerState<TransferForm> {
               }
 
               // 统一处理：自动/手动同步与状态刷新
-              await PostProcessor.sync(ref, ledgerId: ledgerId);
+              await PostProcessor.refreshLocal(ref, ledgerId: ledgerId);
               // 刷新统计
               ref.invalidate(countsForLedgerProvider(ledgerId));
               ref.read(statsRefreshProvider.notifier).state++;
@@ -277,7 +273,6 @@ class _TransferFormState extends ConsumerState<TransferForm> {
                 nativeAmount: result.nativeAmount,
               );
               // 共享账本:本地立即标记创建人 + 编辑人
-              await TxAuthorService.markCreated(ref, txId);
 
               // 关联标签
               if (result.tagIds.isNotEmpty) {
@@ -301,7 +296,7 @@ class _TransferFormState extends ConsumerState<TransferForm> {
               }
 
               // 统一处理：自动/手动同步与状态刷新
-              await PostProcessor.sync(ref, ledgerId: ledgerId);
+              await PostProcessor.refreshLocal(ref, ledgerId: ledgerId);
               // 刷新统计
               ref.invalidate(countsForLedgerProvider(ledgerId));
               ref.read(statsRefreshProvider.notifier).state++;
@@ -374,7 +369,7 @@ class _TransferFormState extends ConsumerState<TransferForm> {
     final currentCurrency = currentLedgerAsync.asData?.value?.currency ?? 'CNY';
     // WS shared_resource_change 推 Owner 账户更新后 rebuild,重查 SharedLedger
     // Accounts。
-    ref.watch(sharedResourceRefreshProvider);
+    ref.watch(localDataRevisionProvider);
 
     return FutureBuilder<List<Account>>(
       future: _loadFilteredAccounts(),

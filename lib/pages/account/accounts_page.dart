@@ -7,12 +7,10 @@ import 'package:collection/collection.dart';
 import '../../providers.dart';
 import '../../services/billing/post_processor.dart';
 import '../../services/currency/rate_math.dart';
-import '../../services/marketing/product_promos.dart';
 import '../../widgets/ui/ui.dart';
 import '../../widgets/biz/amount_text.dart';
 import '../../widgets/biz/format_money.dart';
 import '../../widgets/biz/section_card.dart';
-import '../../widgets/biz/product_promo_card.dart';
 import '../../data/db.dart' as db;
 import '../../l10n/app_localizations.dart';
 import '../../styles/tokens.dart';
@@ -39,15 +37,6 @@ class AccountsPage extends ConsumerStatefulWidget {
 class _AccountsPageState extends ConsumerState<AccountsPage> {
   /// 拖拽后临时保持本地排序，防止 stream rebuild 闪烁
   Map<String, List<db.Account>>? _reorderingGroups;
-
-  @override
-  void initState() {
-    super.initState();
-    // 进页静默刷新汇率:内部自带多币种总闸(D6)+ 24h 节流,单币种零请求。
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      refreshExchangeRatesFromUi(ref);
-    });
-  }
 
   Map<String, List<db.Account>> _groupAccounts(List<db.Account> accounts) {
     final Map<String, List<db.Account>> grouped = {};
@@ -84,7 +73,7 @@ class _AccountsPageState extends ConsumerState<AccountsPage> {
       // （非 0），走常规 push 路径即可。
       final activeLedgerId = ref.read(currentLedgerIdProvider);
       if (activeLedgerId > 0) {
-        unawaited(PostProcessor.sync(ref, ledgerId: activeLedgerId));
+        unawaited(PostProcessor.refreshLocal(ref, ledgerId: activeLedgerId));
       }
       Future.delayed(const Duration(milliseconds: 300), () {
         if (mounted) setState(() => _reorderingGroups = null);
@@ -114,18 +103,12 @@ class _AccountsPageState extends ConsumerState<AccountsPage> {
             title: l10n.accountsTitle,
             showBack: !widget.asTab,
             compact: true,
-            // 顺序(左 → 右):加号 / 蜜蜂家当入口 / 设置。
-            // 设置放最右边(Material 设计惯例,溢出 / 设置类放最右),
-            // 蜜蜂家当放中间,顺手能点到但不抢主操作位。
             actions: [
               IconButton(
                 onPressed: () => _addAccount(context, ref, ledgerId),
                 icon: const Icon(Icons.add),
                 tooltip: l10n.accountAddTooltip,
               ),
-              // 蜜蜂家当 BeeAssets 入口 — 行为走 ProductPromoLauncher
-              // (iOS 跳商店 / Android 弹窗)。
-              _BeeAssetsHeaderEntry(),
               IconButton(
                 onPressed: () => _showSettingsSheet(context, ref, accountFeatureAsync, accountsAsync),
                 icon: const Icon(Icons.settings_outlined),
@@ -1307,7 +1290,7 @@ class _AccountsPageState extends ConsumerState<AccountsPage> {
     // 账户变更推同步,同 _onReorder 的写法。
     final activeLedgerId = ref.read(currentLedgerIdProvider);
     if (activeLedgerId > 0) {
-      unawaited(PostProcessor.sync(ref, ledgerId: activeLedgerId));
+      unawaited(PostProcessor.refreshLocal(ref, ledgerId: activeLedgerId));
     }
 
     // 只 bump tick,不 invalidate,避免资产页整页 loading 闪烁(同 _addAccount)。
@@ -2517,26 +2500,3 @@ class _CompactDefaultAccount extends ConsumerWidget {
     );
   }
 }
-
-/// 资产管理页 header 右上角的「蜜蜂家当」入口。
-///
-/// 用 Material 标准的 Premium / 进阶版图标(`workspace_premium_outlined`),
-/// 跟 setting / add 等 outlined 图标视觉重量完全一致;语义上暗示「升级 /
-/// 进阶版本」,鼓励点击。颜色自适应 header 背景。点击进入介绍弹窗。
-class _BeeAssetsHeaderEntry extends StatelessWidget {
-  const _BeeAssetsHeaderEntry();
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final info = beeAssetsPromo(context);
-    final texts = buildPromoTexts(context, l10n.aboutBeeAssets);
-
-    return IconButton(
-      onPressed: () => ProductPromoLauncher.open(context, info, texts),
-      tooltip: info.title,
-      icon: const Icon(Icons.auto_awesome_outlined),
-    );
-  }
-}
-

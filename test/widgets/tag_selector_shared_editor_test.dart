@@ -99,7 +99,7 @@ void main() {
     );
   }
 
-  testWidgets('共享账本 Editor 不显示新建标签入口，并提示由 Owner 管理', (tester) async {
+  testWidgets('历史共享账本在离线版可以创建本地标签', (tester) async {
     await tester.pumpWidget(host(
       role: 'editor',
       tags: [tag(id: -101, name: 'Owner Tag')],
@@ -107,11 +107,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Owner Tag'), findsWidgets);
-    expect(find.text('新建标签'), findsNothing);
-    expect(find.text('共享账本标签由所有者管理'), findsOneWidget);
+    expect(find.text('新建标签'), findsOneWidget);
+    expect(find.text('共享账本标签由所有者管理'), findsNothing);
   });
 
-  testWidgets('共享账本 Editor 搜索无结果时仍显示 Owner 管理提示', (tester) async {
+  testWidgets('历史共享账本搜索无结果仍可创建本地标签', (tester) async {
     await tester.pumpWidget(host(
       role: 'editor',
       tags: [tag(id: -101, name: 'Owner Tag')],
@@ -122,8 +122,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Owner Tag'), findsNothing);
-    expect(find.text('新建标签'), findsNothing);
-    expect(find.text('共享账本标签由所有者管理'), findsOneWidget);
+    expect(find.text('新建标签'), findsOneWidget);
+    expect(find.text('共享账本标签由所有者管理'), findsNothing);
   });
 
   testWidgets('共享账本 Owner 仍可从标签选择器新建标签', (tester) async {
@@ -156,9 +156,8 @@ void main() {
     await tester.tap(find.text('确定'));
     await tester.pumpAndSettle();
 
-    expect(result, [ownerTag.id]);
-    expect(result, isNot(contains(42)),
-        reason: 'picker 隐藏的旧 Editor 个人标签不能被偷偷写回交易');
+    expect(result, containsAll([42, ownerTag.id]));
+
   });
 
   testWidgets('共享资源暂时为空时 Editor 确认仍保留已有 Owner synthetic ID', (tester) async {
@@ -174,8 +173,8 @@ void main() {
     await tester.tap(find.text('确定'));
     await tester.pumpAndSettle();
 
-    expect(result, [-202], reason: '资源镜像拉取失败不能让确认动作静默删除仍有效的 Owner 标签');
-    expect(result, isNot(contains(42)), reason: '历史个人标签仍必须过滤');
+    expect(result, containsAll([-202, 42]));
+
   });
 
   test('账本 provider reload 时不沿用上一个 Owner 的创建权限', () async {

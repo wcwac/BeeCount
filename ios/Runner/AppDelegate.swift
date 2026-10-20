@@ -11,15 +11,6 @@ import UserNotifications
     excludeLocalDataFromBackup()
     GeneratedPluginRegistrant.register(with: self)
 
-    // 注册AppIntents桥接插件
-    if #available(iOS 13.0, *) {
-      let controller = window?.rootViewController as! FlutterViewController
-      let registrar = self.registrar(forPlugin: "AppIntentsBridge")
-      if let registrar = registrar {
-        AppIntentsBridge.register(with: registrar)
-      }
-    }
-
     // 设置通知中心代理
     if #available(iOS 10.0, *) {
       UNUserNotificationCenter.current().delegate = self
@@ -32,17 +23,6 @@ import UserNotifications
       binaryMessenger: controller.binaryMessenger
     )
     LoggerPlugin.setup(channel: loggerChannel)
-
-    // 监听 iCloud 日志（从插件模块发送）
-    NotificationCenter.default.addObserver(
-      forName: NSNotification.Name("ICloudLog"),
-      object: nil,
-      queue: .main
-    ) { notification in
-      if let message = notification.userInfo?["message"] as? String {
-        LoggerPlugin.info(tag: "iCloud", message: message)
-      }
-    }
 
     // 测试日志
     LoggerPlugin.info(tag: "AppDelegate", message: "日志系统已初始化")

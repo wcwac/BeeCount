@@ -8,7 +8,6 @@ import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:beecount/cloud/sync/change_tracker.dart';
 import 'package:beecount/data/db.dart';
 import 'package:beecount/data/repositories/local/local_repository.dart';
 
@@ -17,13 +16,11 @@ void main() {
   SharedPreferences.setMockInitialValues({});
 
   late BeeDatabase db;
-  late ChangeTracker tracker;
   late LocalRepository repo;
 
   setUp(() {
     db = BeeDatabase.forTesting(NativeDatabase.memory());
-    tracker = ChangeTracker(db);
-    repo = LocalRepository(db, changeTracker: tracker);
+    repo = LocalRepository(db);
   });
 
   tearDown(() async {
@@ -49,7 +46,7 @@ void main() {
     expect(jpy.rate, '0.047'); // 06-10 没有 JPY → 最新仍是 06-09
     expect((await repo.getLastFetchedAt('CNY'))?.toUtc(),
         DateTime.utc(2026, 6, 10));
-    expect(await tracker.getUnpushedChangesForLedger(0), isEmpty); // 红线
+    expect(await db.select(db.localChanges).get(), isEmpty); // 红线
   });
 
   test('setOverride 币对 upsert 复用 syncId;removeOverride 记 delete', () async {
@@ -68,10 +65,8 @@ void main() {
     await repo.removeOverride(base: 'CNY', quote: 'USD');
     expect(await repo.getOverrides('CNY'), isEmpty);
 
-    final changes = await tracker.getUnpushedChangesForLedger(0);
-    expect(changes.map((c) => c.action).toList(), ['create', 'update', 'delete']);
-    expect(changes.every((c) => c.entityType == 'exchange_rate_override'), isTrue);
-    expect(changes.every((c) => c.ledgerId == 0), isTrue);
+    final changes = await db.select(db.localChanges).get();
+    expect(changes, isEmpty);
   });
 
   test('getUsedCurrencies 去重大写', () async {

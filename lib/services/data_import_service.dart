@@ -172,8 +172,6 @@ class DataImportService {
   /// [data] - 导入数据
   /// [defaultCurrency] - 默认货币（用于创建账户）
   /// [onProgress] - 进度回调 (done, total)
-  /// [recordChanges] - 默认 true,会调 repo.insertTransactionsBatch 时登记
-  ///   changeTracker。FullPull 路径传 false,避免"从云端拉下来的数据又反向推
   ///   回去"。
   Future<ImportResult> importData(
     BaseRepository repo,
@@ -181,7 +179,6 @@ class DataImportService {
     ImportData data, {
     String defaultCurrency = 'CNY',
     void Function(int done, int total)? onProgress,
-    bool recordChanges = true,
   }) async {
     // 1. 更新账本信息（如果提供）
     if (data.ledgerName != null || data.currency != null) {
@@ -216,7 +213,6 @@ class DataImportService {
       categoryCache: categoryCache,
       tagNameToId: tagNameToId,
       onProgress: onProgress,
-      recordChanges: recordChanges,
     );
 
     return result;
@@ -430,14 +426,13 @@ class DataImportService {
     required Map<String, int> categoryCache,
     required Map<String, int> tagNameToId,
     void Function(int done, int total)? onProgress,
-    bool recordChanges = true,
   }) async {
     int inserted = 0;
     int failed = 0;
     int processed = 0;
     final total = transactions.length;
     logger.info('TxImport',
-        '开始导入交易: $total 条 (recordChanges=$recordChanges)');
+        '开始导入交易: $total 条');
 
     // v30 交易级多币种(02 §六导入修补):批量预取本位币/账户币种/有效汇率,
     // 逐条填 currencyCode + nativeAmount,不再落 NULL(NULL 行 L11 检测
@@ -487,7 +482,6 @@ class DataImportService {
           transactions: List.of(batchTx),
           tagIdsByIndex: Map.of(batchTagsByIndex),
           attachmentsByIndex: Map.of(batchAttachmentsByIndex),
-          recordChanges: recordChanges,
         );
         inserted += ids.length;
         logger.info('TxImport',

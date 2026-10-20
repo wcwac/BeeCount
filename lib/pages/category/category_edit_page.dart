@@ -551,7 +551,7 @@ class _CategoryEditPageState extends ConsumerState<CategoryEditPage> {
       // 触发一次 sync 把新增/重命名推到服务端，web 秒刷。
       final activeLedgerId = ref.read(currentLedgerIdProvider);
       if (activeLedgerId > 0) {
-        unawaited(PostProcessor.sync(ref, ledgerId: activeLedgerId));
+        unawaited(PostProcessor.refreshLocal(ref, ledgerId: activeLedgerId));
       }
 
       if (!mounted) return;
@@ -620,7 +620,7 @@ class _CategoryEditPageState extends ConsumerState<CategoryEditPage> {
       // 把分类删除推到服务端（user-scoped ledgerId=0 变更搭车）。
       final activeLedgerId = ref.read(currentLedgerIdProvider);
       if (activeLedgerId > 0) {
-        unawaited(PostProcessor.sync(ref, ledgerId: activeLedgerId));
+        unawaited(PostProcessor.refreshLocal(ref, ledgerId: activeLedgerId));
       }
 
       showToast(context,

@@ -1,37 +1,14 @@
 import 'dart:io';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yaml/yaml.dart';
-import 'package:flutter_cloud_sync/flutter_cloud_sync.dart';
 import 'package:drift/drift.dart' as d;
 import '../../utils/app_localizations_resolver.dart';
 import '../../data/db.dart';
 import '../../data/repositories/base_repository.dart';
 import '../system/logger_service.dart';
-import '../../ai/providers/ai_constants.dart';
-import '../../ai/providers/ai_provider_config.dart';
-import '../../ai/providers/ai_provider_manager.dart';
 
 // 导入 OrderingTerm
 typedef OrderingTerm = d.OrderingTerm;
-
-/// 递归转换 Map 为 Map<String, dynamic>
-/// YAML 解析后的 Map 可能是 YamlMap，键可能不是 String 类型
-Map<String, dynamic> _convertToStringDynamicMap(Map map) {
-  return map.map((key, value) {
-    final stringKey = key.toString();
-    if (value is Map) {
-      return MapEntry(stringKey, _convertToStringDynamicMap(value));
-    } else if (value is List) {
-      return MapEntry(stringKey, value.map((item) {
-        if (item is Map) {
-          return _convertToStringDynamicMap(item);
-        }
-        return item;
-      }).toList());
-    }
-    return MapEntry(stringKey, value);
-  });
-}
 
 /// 导出选项 - 控制导出哪些内容
 class ExportOptions {
@@ -41,13 +18,7 @@ class ExportOptions {
   final bool tags;
   final bool recurringTransactions;
   final bool budgets;
-  final bool appSettings; // 包含云服务配置等
-  final bool ai; // AI 服务商配置、能力绑定等
-  /// 是否把 BeeCount Cloud 的登录态（access/refresh token）一起导出。
-  /// 默认 false —— 只导出 base_url + email，密码 / token 不写进 yaml。
-  /// 测试或跨设备快速登录时显式勾选。
-  final bool beecountCloudCredentials;
-
+  final bool appSettings; // 本地应用偏好
   const ExportOptions({
     this.ledgers = true,
     this.categories = true,
@@ -56,8 +27,6 @@ class ExportOptions {
     this.recurringTransactions = true,
     this.budgets = true,
     this.appSettings = true,
-    this.ai = true,
-    this.beecountCloudCredentials = false,
   });
 
   /// 全选
@@ -72,17 +41,11 @@ class ExportOptions {
     recurringTransactions: false,
     budgets: false,
     appSettings: false,
-    ai: false,
   );
 }
 
 /// 应用配置模型
 class AppConfig {
-  final SupabaseConfig? supabase;
-  final WebdavConfig? webdav;
-  final S3Config? s3;
-  final BeeCountCloudConfig? beecountCloud;
-  final AIConfig? ai;
   final AppSettingsConfig? appSettings;
   final LedgersConfig? ledgers;
   final RecurringTransactionsConfig? recurringTransactions;
@@ -92,11 +55,6 @@ class AppConfig {
   final BudgetsConfig? budgets;
 
   const AppConfig({
-    this.supabase,
-    this.webdav,
-    this.s3,
-    this.beecountCloud,
-    this.ai,
     this.appSettings,
     this.ledgers,
     this.recurringTransactions,
@@ -109,25 +67,15 @@ class AppConfig {
   Map<String, dynamic> toYaml() {
     final map = <String, dynamic>{};
 
-    if (supabase != null) {
-      map['supabase'] = supabase!.toMap();
-    }
 
-    if (beecountCloud != null) {
-      map['beecount_cloud'] = beecountCloud!.toMap();
-    }
 
-    if (webdav != null) {
-      map['webdav'] = webdav!.toMap();
-    }
 
-    if (s3 != null) {
-      map['s3'] = s3!.toMap();
-    }
 
-    if (ai != null) {
-      map['ai'] = ai!.toMap();
-    }
+
+
+
+
+
 
     if (appSettings != null) {
       map['app_settings'] = appSettings!.toMap();
@@ -162,25 +110,6 @@ class AppConfig {
 
   static AppConfig fromYaml(Map<dynamic, dynamic> yaml) {
     return AppConfig(
-      supabase: yaml.containsKey('supabase')
-          ? SupabaseConfig.fromMap(
-              Map<String, dynamic>.from(yaml['supabase'] as Map))
-          : null,
-      webdav: yaml.containsKey('webdav')
-          ? WebdavConfig.fromMap(
-              Map<String, dynamic>.from(yaml['webdav'] as Map))
-          : null,
-      s3: yaml.containsKey('s3')
-          ? S3Config.fromMap(
-              Map<String, dynamic>.from(yaml['s3'] as Map))
-          : null,
-      beecountCloud: yaml.containsKey('beecount_cloud')
-          ? BeeCountCloudConfig.fromMap(
-              Map<String, dynamic>.from(yaml['beecount_cloud'] as Map))
-          : null,
-      ai: yaml.containsKey('ai')
-          ? AIConfig.fromMap(_convertToStringDynamicMap(yaml['ai'] as Map))
-          : null,
       appSettings: yaml.containsKey('app_settings')
           ? AppSettingsConfig.fromMap(
               Map<String, dynamic>.from(yaml['app_settings'] as Map))
@@ -213,283 +142,6 @@ class AppConfig {
   }
 }
 
-/// Supabase配置
-class SupabaseConfig {
-  final String url;
-  final String anonKey;
-  final String? bucket;
-  final String? email;
-  final String? password;
-
-  const SupabaseConfig({
-    required this.url,
-    required this.anonKey,
-    this.bucket,
-    this.email,
-    this.password,
-  });
-
-  Map<String, dynamic> toMap() {
-    final map = <String, dynamic>{
-      'url': url,
-      'anon_key': anonKey,
-    };
-    if (bucket != null && bucket!.isNotEmpty) {
-      map['bucket'] = bucket;
-    }
-    if (email != null && email!.isNotEmpty) {
-      map['email'] = email;
-    }
-    if (password != null && password!.isNotEmpty) {
-      map['password'] = password;
-    }
-    return map;
-  }
-
-  static SupabaseConfig fromMap(Map<String, dynamic> map) => SupabaseConfig(
-        url: map['url'] as String,
-        anonKey: map['anon_key'] as String,
-        bucket: map['bucket'] as String?,
-        email: map['email'] as String?,
-        password: map['password'] as String?,
-      );
-}
-
-/// BeeCount Cloud 配置（自部署 FastAPI 后端的 base URL + 可选登录态）
-///
-/// 多设备同步测试的便利入口：A 设备导出配置，B 设备导入就能直接进入 Cloud 模式
-/// 而不用再手动敲 server URL / 登录。
-///
-/// 安全：accessToken / refreshToken 是登录态，导出的 yaml 文件要当作密钥级别
-/// 保管。导出 UI 应默认不带 token，只有显式勾选"包含登录态"才会写进来。
-class BeeCountCloudConfig {
-  final String baseUrl;
-  final String? email;
-  final String? password;
-  final String? accessToken;
-  final String? refreshToken;
-  final String? deviceId;
-
-  const BeeCountCloudConfig({
-    required this.baseUrl,
-    this.email,
-    this.password,
-    this.accessToken,
-    this.refreshToken,
-    this.deviceId,
-  });
-
-  Map<String, dynamic> toMap() {
-    final map = <String, dynamic>{
-      'base_url': baseUrl,
-    };
-    if (email != null && email!.isNotEmpty) map['email'] = email;
-    if (password != null && password!.isNotEmpty) map['password'] = password;
-    if (accessToken != null && accessToken!.isNotEmpty) {
-      map['access_token'] = accessToken;
-    }
-    if (refreshToken != null && refreshToken!.isNotEmpty) {
-      map['refresh_token'] = refreshToken;
-    }
-    if (deviceId != null && deviceId!.isNotEmpty) map['device_id'] = deviceId;
-    return map;
-  }
-
-  static BeeCountCloudConfig fromMap(Map<String, dynamic> map) =>
-      BeeCountCloudConfig(
-        baseUrl: map['base_url'] as String,
-        email: map['email'] as String?,
-        password: map['password'] as String?,
-        accessToken: map['access_token'] as String?,
-        refreshToken: map['refresh_token'] as String?,
-        deviceId: map['device_id'] as String?,
-      );
-}
-
-/// WebDAV配置
-class WebdavConfig {
-  final String url;
-  final String username;
-  final String password;
-  final String? remotePath;
-
-  const WebdavConfig({
-    required this.url,
-    required this.username,
-    required this.password,
-    this.remotePath,
-  });
-
-  Map<String, dynamic> toMap() {
-    final map = <String, dynamic>{
-      'url': url,
-      'username': username,
-      'password': password,
-    };
-    if (remotePath != null && remotePath!.isNotEmpty) {
-      map['remote_path'] = remotePath;
-    }
-    return map;
-  }
-
-  static WebdavConfig fromMap(Map<String, dynamic> map) => WebdavConfig(
-        url: map['url'] as String,
-        username: map['username'] as String,
-        password: map['password'] as String,
-        remotePath: map['remote_path'] as String?,
-      );
-}
-
-/// S3配置
-class S3Config {
-  final String endpoint;
-  final String region;
-  final String accessKey;
-  final String secretKey;
-  final String bucket;
-  final bool? useSSL;
-  final int? port;
-
-  const S3Config({
-    required this.endpoint,
-    required this.region,
-    required this.accessKey,
-    required this.secretKey,
-    required this.bucket,
-    this.useSSL,
-    this.port,
-  });
-
-  Map<String, dynamic> toMap() {
-    final map = <String, dynamic>{
-      'endpoint': endpoint,
-      'region': region,
-      'access_key': accessKey,
-      'secret_key': secretKey,
-      'bucket': bucket,
-    };
-    if (useSSL != null) {
-      map['use_ssl'] = useSSL;
-    }
-    if (port != null) {
-      map['port'] = port;
-    }
-    return map;
-  }
-
-  static S3Config fromMap(Map<String, dynamic> map) => S3Config(
-        endpoint: map['endpoint'] as String,
-        region: map['region'] as String,
-        accessKey: map['access_key'] as String,
-        secretKey: map['secret_key'] as String,
-        bucket: map['bucket'] as String,
-        useSSL: map['use_ssl'] as bool?,
-        port: map['port'] as int?,
-      );
-}
-
-/// AI配置
-class AIConfig {
-  // 基础设置（向后兼容）
-  final String? glmApiKey;
-  final String? glmModel;
-  final String? glmVisionModel;
-  final String? strategy;
-  final bool? enabled;
-  final bool? useVision;
-
-  // 新增：服务商列表
-  final List<AIServiceProviderConfig>? providers;
-
-  // 新增：能力绑定
-  final AICapabilityBinding? capabilityBinding;
-
-  const AIConfig({
-    this.glmApiKey,
-    this.glmModel,
-    this.glmVisionModel,
-    this.strategy,
-    this.enabled,
-    this.useVision,
-    this.providers,
-    this.capabilityBinding,
-  });
-
-  Map<String, dynamic> toMap() {
-    final map = <String, dynamic>{};
-
-    // 基础设置（向后兼容）
-    if (glmApiKey != null && glmApiKey!.isNotEmpty) {
-      map[AIConstants.keyGlmApiKey] = glmApiKey;
-    }
-    if (glmModel != null && glmModel!.isNotEmpty) {
-      map[AIConstants.keyGlmModel] = glmModel;
-    }
-    if (glmVisionModel != null && glmVisionModel!.isNotEmpty) {
-      map[AIConstants.keyGlmVisionModel] = glmVisionModel;
-    }
-    if (strategy != null && strategy!.isNotEmpty) {
-      map[AIConstants.keyAiStrategy] = strategy;
-    }
-    if (enabled != null) {
-      map[AIConstants.keyAiBillExtractionEnabled] = enabled;
-    }
-    if (useVision != null) {
-      map[AIConstants.keyAiUseVision] = useVision;
-    }
-
-    // 服务商列表
-    if (providers != null && providers!.isNotEmpty) {
-      map['providers'] = providers!.map((p) => p.toJson()).toList();
-    }
-
-    // 能力绑定
-    if (capabilityBinding != null) {
-      map['capability_binding'] = capabilityBinding!.toJson();
-    }
-
-    return map;
-  }
-
-  static AIConfig fromMap(Map<String, dynamic> map) {
-    logger.debug('AIConfig', 'fromMap keys: ${map.keys.toList()}');
-
-    // 解析服务商列表
-    List<AIServiceProviderConfig>? providers;
-    if (map['providers'] != null) {
-      final providersList = map['providers'] as List;
-      providers = providersList
-          .map((p) => AIServiceProviderConfig.fromJson(_convertToStringDynamicMap(p as Map)))
-          .toList();
-      logger.debug('AIConfig', '解析到 ${providers.length} 个服务商');
-    }
-
-    // 解析能力绑定
-    AICapabilityBinding? capabilityBinding;
-    if (map['capability_binding'] != null) {
-      logger.debug('AIConfig', 'capability_binding raw: ${map['capability_binding']}');
-      final bindingMap = _convertToStringDynamicMap(map['capability_binding'] as Map);
-      logger.debug('AIConfig', 'capability_binding converted: $bindingMap');
-      capabilityBinding = AICapabilityBinding.fromJson(bindingMap);
-      logger.debug('AIConfig', '解析到能力绑定: text=${capabilityBinding.textProviderId}, vision=${capabilityBinding.visionProviderId}');
-    } else {
-      logger.debug('AIConfig', 'capability_binding 为 null');
-    }
-
-    return AIConfig(
-      glmApiKey: map[AIConstants.keyGlmApiKey] as String?,
-      glmModel: map[AIConstants.keyGlmModel] as String?,
-      glmVisionModel: map[AIConstants.keyGlmVisionModel] as String?,
-      strategy: map[AIConstants.keyAiStrategy] as String?,
-      enabled: map[AIConstants.keyAiBillExtractionEnabled] as bool?,
-      useVision: map[AIConstants.keyAiUseVision] as bool?,
-      providers: providers,
-      capabilityBinding: capabilityBinding,
-    );
-  }
-}
-
-/// 应用设置配置
 class AppSettingsConfig {
   // 账户管理
   final bool? accountFeatureEnabled;
@@ -512,8 +164,6 @@ class AppSettingsConfig {
 
   // 外观设置
   final String? themeMode;
-  final String? darkModePatternStyle;
-  final String? headerSkin; // 头部皮肤
   final bool? compactAmount;
   final bool? showTransactionTime;
   final String? noteDisplayMode; // 备注显示方式:'category' | 'note'
@@ -523,12 +173,8 @@ class AppSettingsConfig {
   final bool? incomeExpenseColorScheme; // 收支颜色方案：true=红色收入/绿色支出，false=红色支出/绿色收入
 
   // 云服务选择
-  final String? cloudServiceType;
-  final bool? autoSync; // 自动同步
 
   // 自动记账功能
-  final bool? autoScreenshotEnabled;
-  final bool? shortcutPreferCamera;
 
   const AppSettingsConfig({
     this.accountFeatureEnabled,
@@ -543,8 +189,6 @@ class AppSettingsConfig {
     this.fontScaleLevel,
     this.customFontScale,
     this.themeMode,
-    this.darkModePatternStyle,
-    this.headerSkin,
     this.compactAmount,
     this.showTransactionTime,
     this.noteDisplayMode,
@@ -552,10 +196,6 @@ class AppSettingsConfig {
     this.noteHistorySort,
     this.noteHistoryLimit,
     this.incomeExpenseColorScheme,
-    this.cloudServiceType,
-    this.autoSync,
-    this.autoScreenshotEnabled,
-    this.shortcutPreferCamera,
   });
 
   Map<String, dynamic> toMap() {
@@ -597,12 +237,6 @@ class AppSettingsConfig {
     if (themeMode != null && themeMode!.isNotEmpty) {
       map['theme_mode'] = themeMode;
     }
-    if (darkModePatternStyle != null && darkModePatternStyle!.isNotEmpty) {
-      map['dark_mode_pattern_style'] = darkModePatternStyle;
-    }
-    if (headerSkin != null && headerSkin!.isNotEmpty) {
-      map['header_skin'] = headerSkin;
-    }
     if (compactAmount != null) {
       map['compact_amount'] = compactAmount;
     }
@@ -624,18 +258,6 @@ class AppSettingsConfig {
     if (incomeExpenseColorScheme != null) {
       map['income_expense_color_scheme'] = incomeExpenseColorScheme;
     }
-    if (cloudServiceType != null && cloudServiceType!.isNotEmpty) {
-      map['cloud_service_type'] = cloudServiceType;
-    }
-    if (autoSync != null) {
-      map['auto_sync'] = autoSync;
-    }
-    if (autoScreenshotEnabled != null) {
-      map['auto_screenshot_enabled'] = autoScreenshotEnabled;
-    }
-    if (shortcutPreferCamera != null) {
-      map['shortcut_prefer_camera'] = shortcutPreferCamera;
-    }
 
     return map;
   }
@@ -656,8 +278,6 @@ class AppSettingsConfig {
             ? (map['custom_font_scale'] as num).toDouble()
             : null,
         themeMode: map['theme_mode'] as String?,
-        darkModePatternStyle: map['dark_mode_pattern_style'] as String?,
-        headerSkin: map['header_skin'] as String?,
         compactAmount: map['compact_amount'] as bool?,
         showTransactionTime: map['show_transaction_time'] as bool?,
         noteDisplayMode: map['note_display_mode'] as String?,
@@ -665,10 +285,6 @@ class AppSettingsConfig {
         noteHistorySort: map['note_history_sort'] as String?,
         noteHistoryLimit: map['note_history_limit'] as int?,
         incomeExpenseColorScheme: map['income_expense_color_scheme'] as bool?,
-        cloudServiceType: map['cloud_service_type'] as String?,
-        autoSync: map['auto_sync'] as bool?,
-        autoScreenshotEnabled: map['auto_screenshot_enabled'] as bool?,
-        shortcutPreferCamera: map['shortcut_prefer_camera'] as bool?,
       );
 }
 
@@ -1189,8 +805,7 @@ class ConfigContentInfo {
   final bool hasTags;
   final bool hasRecurringTransactions;
   final bool hasBudgets;
-  final bool hasAppSettings; // 包含云服务配置、应用设置
-  final bool hasAi; // AI 服务商配置、能力绑定
+  final bool hasAppSettings; // 本地应用偏好
 
   const ConfigContentInfo({
     this.hasLedgers = false,
@@ -1200,7 +815,6 @@ class ConfigContentInfo {
     this.hasRecurringTransactions = false,
     this.hasBudgets = false,
     this.hasAppSettings = false,
-    this.hasAi = false,
   });
 }
 
@@ -1221,11 +835,7 @@ class ConfigExportService {
         hasTags: doc.containsKey('tags'),
         hasRecurringTransactions: doc.containsKey('recurring_transactions'),
         hasBudgets: doc.containsKey('budgets'),
-        hasAppSettings: doc.containsKey('supabase') ||
-            doc.containsKey('webdav') ||
-            doc.containsKey('s3') ||
-            doc.containsKey('app_settings'),
-        hasAi: doc.containsKey('ai'),
+        hasAppSettings: doc.containsKey('app_settings'),
       );
     } catch (_) {
       return const ConfigContentInfo();
@@ -1242,139 +852,6 @@ class ConfigExportService {
     ExportOptions options = ExportOptions.all,
   }) async {
     final prefs = await SharedPreferences.getInstance();
-
-    // 读取Supabase配置
-    SupabaseConfig? supabaseConfig;
-    final supabaseCfgRaw = prefs.getString('cloud_supabase_cfg');
-    if (supabaseCfgRaw != null) {
-      try {
-        final cfg = decodeCloudConfig(supabaseCfgRaw);
-        if (cfg.supabaseUrl != null && cfg.supabaseAnonKey != null) {
-          supabaseConfig = SupabaseConfig(
-            url: cfg.supabaseUrl!,
-            anonKey: cfg.supabaseAnonKey!,
-            bucket: cfg.supabaseBucket,
-            email: cfg.supabaseEmail,
-            password: cfg.supabasePassword,
-          );
-        }
-      } catch (e) {
-        logger.warning('ConfigExport', '读取Supabase配置失败: $e');
-      }
-    }
-
-    // 读取WebDAV配置
-    WebdavConfig? webdavConfig;
-    final webdavCfgRaw = prefs.getString('cloud_webdav_cfg');
-    if (webdavCfgRaw != null) {
-      try {
-        final cfg = decodeCloudConfig(webdavCfgRaw);
-        if (cfg.webdavUrl != null &&
-            cfg.webdavUsername != null &&
-            cfg.webdavPassword != null) {
-          webdavConfig = WebdavConfig(
-            url: cfg.webdavUrl!,
-            username: cfg.webdavUsername!,
-            password: cfg.webdavPassword!,
-            remotePath: cfg.webdavRemotePath,
-          );
-        }
-      } catch (e) {
-        logger.warning('ConfigExport', '读取WebDAV配置失败: $e');
-      }
-    }
-
-    // 读取S3配置
-    S3Config? s3Config;
-    final s3CfgRaw = prefs.getString('cloud_s3_cfg');
-    if (s3CfgRaw != null) {
-      try {
-        final cfg = decodeCloudConfig(s3CfgRaw);
-        if (cfg.s3Endpoint != null &&
-            cfg.s3Region != null &&
-            cfg.s3AccessKey != null &&
-            cfg.s3SecretKey != null &&
-            cfg.s3Bucket != null) {
-          s3Config = S3Config(
-            endpoint: cfg.s3Endpoint!,
-            region: cfg.s3Region!,
-            accessKey: cfg.s3AccessKey!,
-            secretKey: cfg.s3SecretKey!,
-            bucket: cfg.s3Bucket!,
-            useSSL: cfg.s3UseSSL,
-            port: cfg.s3Port,
-          );
-        }
-      } catch (e) {
-        logger.warning('ConfigExport', '读取S3配置失败: $e');
-      }
-    }
-
-    // 读取 BeeCount Cloud 配置。base_url + email 总是导出（方便 B 设备导入
-    // 快速填回登录表单）；access/refresh token 属于登录态，需 options 显式
-    // 勾选才带上。当前实现：cloud_beecount_cloud_cfg 里只存 base_url+email，
-    // session token 另一把 SharedPreferences key 管 —— 导出 yaml 只取前者。
-    BeeCountCloudConfig? beecountCloudConfig;
-    final beecountCfgRaw = prefs.getString('cloud_beecount_cloud_cfg');
-    if (beecountCfgRaw != null) {
-      try {
-        final cfg = decodeCloudConfig(beecountCfgRaw);
-        final baseUrl = cfg.beecountCloudBaseUrl ?? '';
-        if (baseUrl.isNotEmpty) {
-          beecountCloudConfig = BeeCountCloudConfig(
-            baseUrl: baseUrl,
-            email: cfg.beecountCloudEmail,
-            // 跟 Supabase 一样：如果用户在 mobile 勾过 "记住账号密码"，
-            // beecountCloudPassword 就会在 SharedPreferences 里，带上它方便
-            // B 设备导入后无感登录。没勾就是 null，yaml 也不写这一行。
-            password: cfg.beecountCloudPassword,
-            // access/refresh token 走独立 session storage（key 里带 baseUrl
-            // sha1），跨设备迁移风险高，导出 yaml 不带。
-          );
-        }
-      } catch (e) {
-        logger.warning('ConfigExport', '读取 BeeCount Cloud 配置失败: $e');
-      }
-    }
-
-    // 读取AI配置
-    AIConfig? aiConfig;
-    final glmApiKey = prefs.getString(AIConstants.keyGlmApiKey);
-    final glmModel = prefs.getString(AIConstants.keyGlmModel);
-    final glmVisionModel = prefs.getString(AIConstants.keyGlmVisionModel);
-    final aiStrategy = prefs.getString(AIConstants.keyAiStrategy);
-    final aiEnabled = prefs.getBool(AIConstants.keyAiBillExtractionEnabled);
-    final aiUseVision = prefs.getBool(AIConstants.keyAiUseVision);
-
-    // 读取服务商列表和能力绑定
-    List<AIServiceProviderConfig>? aiProviders;
-    AICapabilityBinding? aiCapabilityBinding;
-    try {
-      aiProviders = await AIProviderManager.getProviders();
-      aiCapabilityBinding = await AIProviderManager.getCapabilityBinding();
-      logger.info('ConfigExport', 'AI服务商数量: ${aiProviders.length}');
-      for (final p in aiProviders) {
-        logger.info('ConfigExport', '  服务商: ${p.name} (${p.id}), isBuiltIn=${p.isBuiltIn}');
-      }
-      logger.info('ConfigExport', 'AI能力绑定: text=${aiCapabilityBinding.textProviderId}, vision=${aiCapabilityBinding.visionProviderId}, speech=${aiCapabilityBinding.speechProviderId}');
-    } catch (e) {
-      logger.warning('ConfigExport', '读取AI服务商配置失败: $e');
-    }
-
-    if (glmApiKey != null || aiStrategy != null || aiEnabled != null ||
-        aiUseVision != null || glmModel != null || glmVisionModel != null ||
-        aiProviders != null || aiCapabilityBinding != null) {
-      aiConfig = AIConfig(
-        glmApiKey: glmApiKey,
-        glmModel: glmModel,
-        glmVisionModel: glmVisionModel,
-        strategy: aiStrategy,
-        enabled: aiEnabled,
-        useVision: aiUseVision,
-        providers: aiProviders,
-        capabilityBinding: aiCapabilityBinding,
-      );
-    }
 
     // 预先获取所有账本、分类、账户的名称映射（用于关联数据导出）
     Map<int, String> ledgerIdToName = {};
@@ -1415,8 +892,6 @@ class ConfigExportService {
     final fontScaleLevel = prefs.getInt('fontScaleLevel');
     final customFontScale = prefs.getDouble('customFontScale');
     final themeMode = prefs.getString('themeMode');
-    final darkModePatternStyle = prefs.getString('darkModePatternStyle');
-    final headerSkin = prefs.getString('headerSkin');
     final compactAmount = prefs.getBool('compactAmount');
     final showTransactionTime = prefs.getBool('showTransactionTime');
     final noteDisplayMode = prefs.getString('noteDisplayMode');
@@ -1427,11 +902,6 @@ class ConfigExportService {
     final noteHistoryLimit =
         prefs.getInt('noteHistoryLimit') ?? 20;
     final incomeExpenseColorScheme = prefs.getBool('incomeExpenseColorScheme');
-    final cloudServiceType = prefs.getString('cloud_active_type');
-    final autoSync = prefs.getBool('auto_sync');
-    final autoScreenshotEnabled =
-        prefs.getBool('auto_screenshot_billing_enabled');
-    final shortcutPreferCamera = prefs.getBool('shortcut_prefer_camera');
 
     // 获取默认账户名称并收集需要强制导出的账户
     String? defaultIncomeAccountName;
@@ -1462,19 +932,13 @@ class ConfigExportService {
         fontScaleLevel != null ||
         customFontScale != null ||
         themeMode != null ||
-        darkModePatternStyle != null ||
-        headerSkin != null ||
         compactAmount != null ||
         showTransactionTime != null ||
         noteDisplayMode != null ||
         noteHistoryScope != null ||
         noteHistorySort != null ||
         noteHistoryLimit != null ||
-        incomeExpenseColorScheme != null ||
-        cloudServiceType != null ||
-        autoSync != null ||
-        autoScreenshotEnabled != null ||
-        shortcutPreferCamera != null) {
+        incomeExpenseColorScheme != null) {
       appSettings = AppSettingsConfig(
         accountFeatureEnabled: accountFeatureEnabled,
         defaultIncomeAccountName: defaultIncomeAccountName,
@@ -1488,8 +952,6 @@ class ConfigExportService {
         fontScaleLevel: fontScaleLevel,
         customFontScale: customFontScale,
         themeMode: themeMode,
-        darkModePatternStyle: darkModePatternStyle,
-        headerSkin: headerSkin,
         compactAmount: compactAmount,
         showTransactionTime: showTransactionTime,
         noteDisplayMode: noteDisplayMode,
@@ -1497,10 +959,6 @@ class ConfigExportService {
         noteHistorySort: noteHistorySort,
         noteHistoryLimit: noteHistoryLimit,
         incomeExpenseColorScheme: incomeExpenseColorScheme,
-        cloudServiceType: cloudServiceType,
-        autoSync: autoSync,
-        autoScreenshotEnabled: autoScreenshotEnabled,
-        shortcutPreferCamera: shortcutPreferCamera,
       );
     }
 
@@ -1710,27 +1168,8 @@ class ConfigExportService {
       }
     }
 
-    // 根据选项过滤云服务和AI配置
-    final exportSupabase = options.appSettings ? supabaseConfig : null;
-    final exportWebdav = options.appSettings ? webdavConfig : null;
-    final exportS3 = options.appSettings ? s3Config : null;
-    final exportBeecountCloud =
-        options.appSettings ? beecountCloudConfig : null;
-    final exportAi = options.ai ? aiConfig : null;
-    final exportAppSettings = options.appSettings ? appSettings : null;
-
-    logger.info('ConfigExport', '导出选项: ai=${options.ai}, aiConfig是否存在=${aiConfig != null}');
-    if (exportAi != null) {
-      logger.info('ConfigExport', '导出AI配置: providers数量=${exportAi.providers?.length ?? 0}');
-    }
-
     final config = AppConfig(
-      supabase: exportSupabase,
-      webdav: exportWebdav,
-      s3: exportS3,
-      beecountCloud: exportBeecountCloud,
-      ai: exportAi,
-      appSettings: exportAppSettings,
+      appSettings: options.appSettings ? appSettings : null,
       ledgers: ledgersConfig,
       recurringTransactions: recurringConfig,
       accounts: accountsConfig,
@@ -1747,146 +1186,6 @@ class ConfigExportService {
     buffer.writeln('# BeeCount 应用配置');
     buffer.writeln('# 导出时间: ${DateTime.now().toIso8601String()}');
     buffer.writeln();
-
-    if (yamlMap.containsKey('supabase')) {
-      buffer.writeln('supabase:');
-      final sb = yamlMap['supabase'] as Map<String, dynamic>;
-      buffer.writeln('  url: "${sb['url']}"');
-      buffer.writeln('  anon_key: "${sb['anon_key']}"');
-      if (sb.containsKey('bucket')) {
-        buffer.writeln('  # Storage bucket 名称，留空则使用默认值 beecount-backups');
-        buffer.writeln('  bucket: "${sb['bucket']}"');
-      }
-      if (sb.containsKey('email') || sb.containsKey('password')) {
-        buffer.writeln('  # 记住账号密码功能：导入后登录页面会自动填充');
-      }
-      if (sb.containsKey('email')) {
-        buffer.writeln('  email: "${sb['email']}"');
-      }
-      if (sb.containsKey('password')) {
-        buffer.writeln('  password: "${sb['password']}"');
-      }
-      buffer.writeln();
-    }
-
-    if (yamlMap.containsKey('webdav')) {
-      buffer.writeln('webdav:');
-      final wd = yamlMap['webdav'] as Map<String, dynamic>;
-      buffer.writeln('  url: "${wd['url']}"');
-      buffer.writeln('  username: "${wd['username']}"');
-      buffer.writeln('  password: "${wd['password']}"');
-      if (wd.containsKey('remote_path')) {
-        buffer.writeln('  remote_path: "${wd['remote_path']}"');
-      }
-      buffer.writeln();
-    }
-
-    if (yamlMap.containsKey('s3')) {
-      buffer.writeln('s3:');
-      final s3 = yamlMap['s3'] as Map<String, dynamic>;
-      buffer.writeln('  endpoint: "${s3['endpoint']}"');
-      buffer.writeln('  region: "${s3['region']}"');
-      buffer.writeln('  access_key: "${s3['access_key']}"');
-      buffer.writeln('  secret_key: "${s3['secret_key']}"');
-      buffer.writeln('  bucket: "${s3['bucket']}"');
-      if (s3.containsKey('use_ssl')) {
-        buffer.writeln('  use_ssl: ${s3['use_ssl']}');
-      }
-      if (s3.containsKey('port')) {
-        buffer.writeln('  port: ${s3['port']}');
-      }
-      buffer.writeln();
-    }
-
-    if (yamlMap.containsKey('beecount_cloud')) {
-      buffer.writeln('beecount_cloud:');
-      final bc = yamlMap['beecount_cloud'] as Map<String, dynamic>;
-      buffer.writeln('  # BeeCount Cloud 自部署后端配置');
-      buffer.writeln('  base_url: "${bc['base_url']}"');
-      if (bc.containsKey('email') || bc.containsKey('password')) {
-        buffer.writeln('  # 记住账号密码功能：导入后登录页面会自动填充');
-      }
-      if (bc.containsKey('email')) {
-        buffer.writeln('  email: "${bc['email']}"');
-      }
-      if (bc.containsKey('password')) {
-        buffer.writeln('  password: "${bc['password']}"');
-      }
-      if (bc.containsKey('access_token')) {
-        buffer.writeln('  access_token: "${bc['access_token']}"');
-      }
-      if (bc.containsKey('refresh_token')) {
-        buffer.writeln('  refresh_token: "${bc['refresh_token']}"');
-      }
-      if (bc.containsKey('device_id')) {
-        buffer.writeln('  device_id: "${bc['device_id']}"');
-      }
-      buffer.writeln();
-    }
-
-    if (yamlMap.containsKey('ai')) {
-      buffer.writeln('ai:');
-      final ai = yamlMap['ai'] as Map<String, dynamic>;
-      if (ai.containsKey(AIConstants.keyGlmApiKey)) {
-        buffer.writeln('  ${AIConstants.keyGlmApiKey}: "${ai[AIConstants.keyGlmApiKey]}"');
-      }
-      if (ai.containsKey(AIConstants.keyGlmModel)) {
-        buffer.writeln('  ${AIConstants.keyGlmModel}: "${ai[AIConstants.keyGlmModel]}"');
-      }
-      if (ai.containsKey(AIConstants.keyGlmVisionModel)) {
-        buffer.writeln('  ${AIConstants.keyGlmVisionModel}: "${ai[AIConstants.keyGlmVisionModel]}"');
-      }
-      if (ai.containsKey(AIConstants.keyAiStrategy)) {
-        buffer.writeln('  ${AIConstants.keyAiStrategy}: "${ai[AIConstants.keyAiStrategy]}"');
-      }
-      if (ai.containsKey(AIConstants.keyAiBillExtractionEnabled)) {
-        buffer.writeln('  ${AIConstants.keyAiBillExtractionEnabled}: ${ai[AIConstants.keyAiBillExtractionEnabled]}');
-      }
-      if (ai.containsKey(AIConstants.keyAiUseVision)) {
-        buffer.writeln('  ${AIConstants.keyAiUseVision}: ${ai[AIConstants.keyAiUseVision]}');
-      }
-      // 服务商列表
-      if (ai.containsKey('providers')) {
-        buffer.writeln('  providers:');
-        final providers = ai['providers'] as List;
-        for (final p in providers) {
-          final provider = p as Map<String, dynamic>;
-          buffer.writeln('    - id: "${provider['id']}"');
-          buffer.writeln('      name: "${provider['name']}"');
-          buffer.writeln('      isBuiltIn: ${provider['isBuiltIn']}');
-          if (provider['apiKey'] != null && (provider['apiKey'] as String).isNotEmpty) {
-            buffer.writeln('      apiKey: "${provider['apiKey']}"');
-          }
-          if (provider['baseUrl'] != null && (provider['baseUrl'] as String).isNotEmpty) {
-            buffer.writeln('      baseUrl: "${provider['baseUrl']}"');
-          }
-          if (provider['textModel'] != null && (provider['textModel'] as String).isNotEmpty) {
-            buffer.writeln('      textModel: "${provider['textModel']}"');
-          }
-          if (provider['visionModel'] != null && (provider['visionModel'] as String).isNotEmpty) {
-            buffer.writeln('      visionModel: "${provider['visionModel']}"');
-          }
-          if (provider['audioModel'] != null && (provider['audioModel'] as String).isNotEmpty) {
-            buffer.writeln('      audioModel: "${provider['audioModel']}"');
-          }
-        }
-      }
-      // 能力绑定
-      if (ai.containsKey('capability_binding')) {
-        buffer.writeln('  capability_binding:');
-        final binding = ai['capability_binding'] as Map<String, dynamic>;
-        if (binding['textProviderId'] != null) {
-          buffer.writeln('    textProviderId: "${binding['textProviderId']}"');
-        }
-        if (binding['visionProviderId'] != null) {
-          buffer.writeln('    visionProviderId: "${binding['visionProviderId']}"');
-        }
-        if (binding['speechProviderId'] != null) {
-          buffer.writeln('    speechProviderId: "${binding['speechProviderId']}"');
-        }
-      }
-      buffer.writeln();
-    }
 
     if (yamlMap.containsKey('app_settings')) {
       buffer.writeln('app_settings:');
@@ -1948,7 +1247,6 @@ class ConfigExportService {
       }
 
       if (settings.containsKey('theme_mode') ||
-          settings.containsKey('dark_mode_pattern_style') ||
           settings.containsKey('compact_amount') ||
           settings.containsKey('show_transaction_time') ||
           settings.containsKey('note_display_mode') ||
@@ -1958,9 +1256,6 @@ class ConfigExportService {
         buffer.writeln('  # 外观设置');
         if (settings.containsKey('theme_mode')) {
           buffer.writeln('  theme_mode: "${settings['theme_mode']}"');
-        }
-        if (settings.containsKey('dark_mode_pattern_style')) {
-          buffer.writeln('  dark_mode_pattern_style: "${settings['dark_mode_pattern_style']}"');
         }
         if (settings.containsKey('compact_amount')) {
           buffer.writeln('  compact_amount: ${settings['compact_amount']}');
@@ -1979,28 +1274,6 @@ class ConfigExportService {
         }
         if (settings.containsKey('note_history_limit')) {
           buffer.writeln('  note_history_limit: ${settings['note_history_limit']}');
-        }
-      }
-
-      if (settings.containsKey('cloud_service_type') ||
-          settings.containsKey('auto_sync')) {
-        buffer.writeln('  # 云服务');
-        if (settings.containsKey('cloud_service_type')) {
-          buffer.writeln('  cloud_service_type: "${settings['cloud_service_type']}"');
-        }
-        if (settings.containsKey('auto_sync')) {
-          buffer.writeln('  auto_sync: ${settings['auto_sync']}');
-        }
-      }
-
-      if (settings.containsKey('auto_screenshot_enabled') ||
-          settings.containsKey('shortcut_prefer_camera')) {
-        buffer.writeln('  # 自动记账');
-        if (settings.containsKey('auto_screenshot_enabled')) {
-          buffer.writeln('  auto_screenshot_enabled: ${settings['auto_screenshot_enabled']}');
-        }
-        if (settings.containsKey('shortcut_prefer_camera')) {
-          buffer.writeln('  shortcut_prefer_camera: ${settings['shortcut_prefer_camera']}');
         }
       }
     }
@@ -2227,145 +1500,6 @@ class ConfigExportService {
     final config = AppConfig.fromYaml(doc);
     final prefs = await SharedPreferences.getInstance();
 
-    // 导入Supabase配置
-    if (options.appSettings && config.supabase != null) {
-      final supabaseCfg = CloudServiceConfig(
-        type: CloudBackendType.supabase,
-        name: 'Supabase',
-        supabaseUrl: config.supabase!.url,
-        supabaseAnonKey: config.supabase!.anonKey,
-        supabaseBucket: config.supabase!.bucket ?? 'beecount-backups',  // 导入时也提供默认值
-        supabaseEmail: config.supabase!.email,
-        supabasePassword: config.supabase!.password,
-      );
-      await prefs.setString(
-          'cloud_supabase_cfg', encodeCloudConfig(supabaseCfg));
-      logger.info('ConfigImport', 'Supabase配置已导入');
-    }
-
-    // 导入WebDAV配置
-    if (options.appSettings && config.webdav != null) {
-      final webdavCfg = CloudServiceConfig(
-        type: CloudBackendType.webdav,
-        name: 'WebDAV',
-        webdavUrl: config.webdav!.url,
-        webdavUsername: config.webdav!.username,
-        webdavPassword: config.webdav!.password,
-        webdavRemotePath: config.webdav!.remotePath,
-      );
-      await prefs.setString('cloud_webdav_cfg', encodeCloudConfig(webdavCfg));
-      logger.info('ConfigImport', 'WebDAV配置已导入');
-    }
-
-    // 导入S3配置
-    if (options.appSettings && config.s3 != null) {
-      final s3Cfg = CloudServiceConfig(
-        type: CloudBackendType.s3,
-        name: 'S3',
-        s3Endpoint: config.s3!.endpoint,
-        s3Region: config.s3!.region,
-        s3AccessKey: config.s3!.accessKey,
-        s3SecretKey: config.s3!.secretKey,
-        s3Bucket: config.s3!.bucket,
-        s3UseSSL: config.s3!.useSSL,
-        s3Port: config.s3!.port,
-      );
-      await prefs.setString('cloud_s3_cfg', encodeCloudConfig(s3Cfg));
-      logger.info('ConfigImport', 'S3配置已导入');
-    }
-
-    // 导入 BeeCount Cloud 配置（base_url + 可选 email/password）。
-    // 有 email+password 时跟 Supabase 一样，导入后 app 启动可自动登录；
-    // 只有 email 时登录页预填邮箱，等用户输密码。
-    if (options.appSettings && config.beecountCloud != null) {
-      final bcCfg = CloudServiceConfig(
-        type: CloudBackendType.beecountCloud,
-        name: 'BeeCount Cloud',
-        beecountCloudBaseUrl: config.beecountCloud!.baseUrl,
-        beecountCloudEmail: config.beecountCloud!.email,
-        beecountCloudPassword: config.beecountCloud!.password,
-      );
-      await prefs.setString(
-          'cloud_beecount_cloud_cfg', encodeCloudConfig(bcCfg));
-      logger.info(
-          'ConfigImport',
-          'BeeCount Cloud 配置已导入 url=${config.beecountCloud!.baseUrl} '
-              'hasEmail=${config.beecountCloud!.email != null} '
-              'hasPassword=${config.beecountCloud!.password != null}');
-    }
-
-    // 导入AI配置
-    if (options.ai && config.ai != null) {
-      // 基础设置（向后兼容）
-      if (config.ai!.glmApiKey != null) {
-        await prefs.setString(AIConstants.keyGlmApiKey, config.ai!.glmApiKey!);
-      }
-      if (config.ai!.glmModel != null) {
-        await prefs.setString(AIConstants.keyGlmModel, config.ai!.glmModel!);
-      }
-      if (config.ai!.glmVisionModel != null) {
-        await prefs.setString(AIConstants.keyGlmVisionModel, config.ai!.glmVisionModel!);
-      }
-      if (config.ai!.strategy != null) {
-        await prefs.setString(AIConstants.keyAiStrategy, config.ai!.strategy!);
-      }
-      if (config.ai!.enabled != null) {
-        await prefs.setBool(AIConstants.keyAiBillExtractionEnabled, config.ai!.enabled!);
-      }
-      if (config.ai!.useVision != null) {
-        await prefs.setBool(AIConstants.keyAiUseVision, config.ai!.useVision!);
-      }
-
-      // 导入服务商列表
-      if (config.ai!.providers != null && config.ai!.providers!.isNotEmpty) {
-        // 获取现有服务商
-        final existingProviders = await AIProviderManager.getProviders();
-        final existingIds = existingProviders.map((p) => p.id).toSet();
-        final existingNames = existingProviders.map((p) => p.name).toSet();
-
-        for (final provider in config.ai!.providers!) {
-          if (provider.isBuiltIn) {
-            // 内置服务商：更新配置（如API Key）
-            final existingIndex = existingProviders.indexWhere((p) => p.id == provider.id);
-            if (existingIndex >= 0) {
-              final updated = existingProviders[existingIndex].copyWith(
-                apiKey: provider.apiKey.isNotEmpty ? provider.apiKey : null,
-                textModel: provider.textModel.isNotEmpty ? provider.textModel : null,
-                visionModel: provider.visionModel.isNotEmpty ? provider.visionModel : null,
-                audioModel: provider.audioModel.isNotEmpty ? provider.audioModel : null,
-              );
-              await AIProviderManager.updateProvider(updated);
-            }
-          } else {
-            // 自定义服务商：保留原始 ID 导入
-            if (existingIds.contains(provider.id)) {
-              // ID 已存在，更新配置
-              await AIProviderManager.updateProvider(provider);
-            } else if (existingNames.contains(provider.name)) {
-              // 名称已存在但 ID 不同，跳过避免重复
-              logger.info('ConfigImport', '跳过已存在的服务商: ${provider.name}');
-            } else {
-              // 直接添加，保留原始 ID（用于能力绑定匹配）
-              await AIProviderManager.addProviderWithConfig(provider);
-            }
-          }
-        }
-        logger.info('ConfigImport', 'AI服务商配置已导入 (${config.ai!.providers!.length}个)');
-      }
-
-      // 导入能力绑定
-      if (config.ai!.capabilityBinding != null) {
-        final binding = config.ai!.capabilityBinding!;
-        logger.info('ConfigImport', '准备导入AI能力绑定: text=${binding.textProviderId}, vision=${binding.visionProviderId}, speech=${binding.speechProviderId}');
-        await AIProviderManager.saveCapabilityBinding(binding);
-        logger.info('ConfigImport', 'AI能力绑定已导入');
-      } else {
-        logger.warning('ConfigImport', 'AI配置中没有能力绑定');
-      }
-
-      logger.info('ConfigImport', 'AI配置已导入');
-    }
-
     // 导入应用设置（除了默认账户，稍后处理）
     String? pendingDefaultIncomeAccountName;
     String? pendingDefaultExpenseAccountName;
@@ -2415,12 +1549,6 @@ class ConfigExportService {
       if (settings.themeMode != null) {
         await prefs.setString('themeMode', settings.themeMode!);
       }
-      if (settings.darkModePatternStyle != null) {
-        await prefs.setString('darkModePatternStyle', settings.darkModePatternStyle!);
-      }
-      if (settings.headerSkin != null) {
-        await prefs.setString('headerSkin', settings.headerSkin!);
-      }
       if (settings.compactAmount != null) {
         await prefs.setBool('compactAmount', settings.compactAmount!);
       }
@@ -2448,20 +1576,8 @@ class ConfigExportService {
       }
 
       // 云服务
-      if (settings.cloudServiceType != null) {
-        await prefs.setString('cloud_active_type', settings.cloudServiceType!);
-      }
-      if (settings.autoSync != null) {
-        await prefs.setBool('auto_sync', settings.autoSync!);
-      }
 
       // 自动记账
-      if (settings.autoScreenshotEnabled != null) {
-        await prefs.setBool('auto_screenshot_billing_enabled', settings.autoScreenshotEnabled!);
-      }
-      if (settings.shortcutPreferCamera != null) {
-        await prefs.setBool('shortcut_prefer_camera', settings.shortcutPreferCamera!);
-      }
 
       logger.info('ConfigImport', '应用设置已导入（默认账户待处理）');
     }

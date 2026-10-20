@@ -5,7 +5,7 @@ import '../../data/db.dart';
 import '../../data/repositories/local/local_repository.dart';
 import '../../providers.dart';
 import '../../l10n/app_localizations.dart';
-import '../../providers/shared_ledger_providers.dart';
+import '../../providers/local_data_providers.dart';
 import '../../utils/category_utils.dart';
 import '../../utils/shared_ledger_picker_filter.dart';
 import '../../styles/tokens.dart';
@@ -111,7 +111,7 @@ class _CategorySelectorState extends ConsumerState<CategorySelector> {
     // §7 共享账本:WS shared_resource_change 推送后 tick bump,触发 rebuild
     // → FutureBuilder 拿到新 Future → 重查 SharedLedgerCategories。否则 A
     // 在 web/mobile 改分类名,B 这边 picker 永远显示旧名,要重启 app。
-    ref.watch(sharedResourceRefreshProvider);
+    ref.watch(localDataRevisionProvider);
     return FutureBuilder<List<Category>>(
       future: _loadFilteredTopLevel(),
       builder: (context, snapshot) {

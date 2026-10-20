@@ -77,33 +77,20 @@ jobs:
             "platforms;android-36" "build-tools;36.0.0" "ndk;27.0.12077973"
 
       - name: Resolve dependencies
-        run: |
-          flutter pub get
-          (cd packages/flutter_cloud_sync && flutter pub get)
+        run: flutter pub get
 
       - name: Save resolved dependency locks
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: dependency-locks-${{ github.run_number }}
-          path: |
-            pubspec.lock
-            packages/flutter_cloud_sync/pubspec.lock
+          path: pubspec.lock
           retention-days: 14
 
       - name: Analyze source
         run: flutter analyze --no-pub --no-fatal-infos --no-fatal-warnings
 
-      - name: Test offline boundaries
-        run: |
-          flutter test --no-pub test/offline \
-            test/pages/ai/ai_chat_page_lifecycle_test.dart \
-            test/services/exchange_rate_service_test.dart \
-            test/services/attachment_service_test.dart \
-            test/data/repositories/local test/repositories
-
-      - name: Test disabled cloud authentication
-        working-directory: packages/flutter_cloud_sync
-        run: flutter test --no-pub test/auth_privacy_test.dart
+      - name: Test local features and offline boundaries
+        run: flutter test --no-pub
 
       - name: Configure stable signing key
         if: inputs.sign_apk

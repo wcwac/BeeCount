@@ -455,10 +455,7 @@ class LocalTransactionRepository implements TransactionRepository {
 
   @override
   Future<int> insertTransactionsBatch(
-    List<TransactionsCompanion> items, {
-    bool recordChanges = true,
-  }) async {
-    // 子仓库不挂 changeTracker,recordChanges 参数对它无作用 — 真正的 record
+    List<TransactionsCompanion> items) async {
     // 在 LocalRepository wrapper 那一层。这里保留参数只是为了接口一致。
     if (items.isEmpty) return 0;
     final effectiveItems = items.map((item) {
@@ -478,7 +475,6 @@ class LocalTransactionRepository implements TransactionRepository {
     required List<TransactionsCompanion> transactions,
     Map<int, List<int>> tagIdsByIndex = const {},
     Map<int, List<BatchAttachmentData>> attachmentsByIndex = const {},
-    bool recordChanges = true,
   }) async {
     if (transactions.isEmpty) return const [];
     // 预填充 syncId — batch insertAll 不返回 row id,必须靠 syncId 反查。
@@ -616,18 +612,7 @@ class LocalTransactionRepository implements TransactionRepository {
   ///   - isCreate=true:同时写 createdByUserId + lastEditedByUserId(新建场景)
   ///   - isCreate=false:只写 lastEditedByUserId(编辑场景,createdByUserId
   ///     维持 first-write-wins)
-  Future<void> markTxAuthor({
-    required int txId,
-    required String userId,
-    required bool isCreate,
-  }) async {
-    await (db.update(db.transactions)..where((t) => t.id.equals(txId))).write(
-      TransactionsCompanion(
-        createdByUserId: isCreate ? d.Value(userId) : const d.Value.absent(),
-        lastEditedByUserId: d.Value(userId),
-      ),
-    );
-  }
+
 
   @override
   Future<void> deleteTransaction(int id) async {
@@ -702,10 +687,7 @@ class LocalTransactionRepository implements TransactionRepository {
 
   @override
   Future<int> insertTransactionCompanion(
-    TransactionsCompanion item, {
-    bool recordChanges = true,
-  }) async {
-    // 子仓库不挂 changeTracker,recordChanges 仅为接口一致保留。
+    TransactionsCompanion item) async {
     final effective =
         item.syncId == const d.Value.absent() || item.syncId.value == null
             ? item.copyWith(syncId: d.Value(_uuid.v4()))
@@ -1545,9 +1527,7 @@ class LocalTransactionRepository implements TransactionRepository {
 
   @override
   Future<Map<String, int>> updateTransactionsBatchBySyncId(
-    List<TransactionUpdateBySyncIdData> updates, {
-    bool recordChanges = true,
-  }) async {
+    List<TransactionUpdateBySyncIdData> updates) async {
     if (updates.isEmpty) return const {};
     return db.transaction(() async {
       await db.batch((b) {
@@ -1581,10 +1561,7 @@ class LocalTransactionRepository implements TransactionRepository {
 
   @override
   Future<int> deleteTransactionsBatchBySyncIds(
-    List<String> syncIds, {
-    bool recordChanges = true,
-  }) async {
-    // recordChanges 由 LocalRepository wrapper 处理(子仓库无 changeTracker)。
+    List<String> syncIds) async {
     if (syncIds.isEmpty) return 0;
     return db.transaction(() async {
       // 先 SELECT 拿到 tx id 列表(用来删 transactionTags / attachments 关联)

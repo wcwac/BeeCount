@@ -245,7 +245,7 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage> with Ti
 
       final activeLedgerId = ref.read(currentLedgerIdProvider);
       if (activeLedgerId > 0) {
-        unawaited(PostProcessor.sync(ref, ledgerId: activeLedgerId));
+        unawaited(PostProcessor.refreshLocal(ref, ledgerId: activeLedgerId));
       }
       ref.invalidate(categoriesWithCountProvider);
       showToast(context, l10n.categoryGenerateDefaultSuccess(createdCount));
@@ -520,7 +520,7 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage> with Ti
       // 把批量删除推到服务端（分类是 user-scoped ledgerId=0 变更）。
       final activeLedgerId = ref.read(currentLedgerIdProvider);
       if (activeLedgerId > 0) {
-        unawaited(PostProcessor.sync(ref, ledgerId: activeLedgerId));
+        unawaited(PostProcessor.refreshLocal(ref, ledgerId: activeLedgerId));
       }
 
       if (!mounted) return;
@@ -551,7 +551,7 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage> with Ti
     // 重复 trigger 也无害(SyncEngine 单飞 + 2s debounce 自动合并)。
     final activeLedgerId = ref.read(currentLedgerIdProvider);
     if (activeLedgerId > 0) {
-      unawaited(PostProcessor.sync(ref, ledgerId: activeLedgerId));
+      unawaited(PostProcessor.refreshLocal(ref, ledgerId: activeLedgerId));
     }
   }
 
@@ -786,7 +786,7 @@ class _CategoryGridViewState extends ConsumerState<_CategoryGridView> {
     // 拖拽排序也记了 ChangeTracker 变更，推到云端让 web 的 sortOrder 一致。
     final activeLedgerId = ref.read(currentLedgerIdProvider);
     if (activeLedgerId > 0) {
-      unawaited(PostProcessor.sync(ref, ledgerId: activeLedgerId));
+      unawaited(PostProcessor.refreshLocal(ref, ledgerId: activeLedgerId));
     }
 
     // 3. 刷新 provider 以同步其他地方的数据

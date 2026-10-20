@@ -1,20 +1,17 @@
 import 'services/security/offline_network_policy.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_cloud_sync/flutter_cloud_sync.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app.dart';
-import 'widgets/biz/login_2fa_challenge_view.dart';
 import 'widgets/ui/toast.dart';
 import 'theme.dart';
 import 'providers.dart';
 import 'providers/currency_providers.dart';
 import 'providers/font_scale_provider.dart';
 import 'utils/app_localizations_resolver.dart';
-import 'providers/cloud_mode_providers.dart';
 import 'providers/ui_state_providers.dart';
 import 'utils/notification_factory.dart';
 import 'pages/auth/splash_page.dart';
@@ -23,8 +20,6 @@ import 'pages/auth/app_lock_screen.dart';
 import 'providers/security_providers.dart';
 import 'services/system/reminder_monitor_service.dart';
 import 'providers/credit_card_reminder_providers.dart';
-import 'services/platform/screenshot_monitor_service.dart';
-import 'services/platform/image_share_handler_service.dart';
 import 'services/platform/app_link_service.dart';
 import 'services/system/logger_service.dart';
 import 'l10n/app_localizations.dart';
@@ -40,7 +35,7 @@ import 'package:path_provider/path_provider.dart';
 
 
 /// 全局 navigator key — 给 service 层(没有 BuildContext)push 路由使用。
-/// 当前用途:BeeCount Cloud 登录拿到 requires_2fa 时弹出 [Login2FAChallengeView]。
+/// 用于本地深链处理的导航和提示。
 final GlobalKey<NavigatorState> globalNavigatorKey = GlobalKey<NavigatorState>();
 
 Future<void> main() async {
@@ -100,10 +95,6 @@ Future<void> main() async {
     observers: const [_WidgetUpdateObserver()],
   );
 
-  // 初始化应用模式（需要在生成重复交易之前，确保模式正确）
-  // 直接从 SharedPreferences 读取并设置到 appModeProvider
-  await _initializeAppMode(container);
-
   // 注意：不再在启动时生成重复交易
   // 周期交易生成已移至 appSplashInitProvider 中（等待数据库完全初始化后执行）
   // await _generatePendingRecurringTransactions(container);
@@ -129,28 +120,8 @@ Future<void> main() async {
     logger.warning('App', '小组件回调注册失败（可能在不支持的平台上运行）: $e');
   }
 
-  // 恢复截图自动识别设置（Android专属），传入container
-  await _restoreScreenshotMonitor(container);
-
-  // 初始化图片分享处理服务（Android专属）
-  if (Platform.isAndroid) {
-    _setupImageShareHandler(container);
-  }
-
   // 启动 URL 监听（用于快捷指令/AppLink 自动记账）
   _setupUrlListener(container);
-
-  // 注册 BeeCount Cloud 2FA challenge handler。当 server 返回 requires_2fa=true,
-  // service 层会调这个 handler 弹出 Login2FAChallengeDialog 让用户输码。
-  // 验证失败留在对话框就地展示错误,验证通过 / 用户取消才关闭。详见 .docs/2fa-design.md
-  BeeCountCloudProvider.globalTwoFactorHandler = (request) async {
-    final ctx = globalNavigatorKey.currentContext;
-    if (ctx == null) {
-      // 极端场景:cloud auth 在 navigator 还没 attach 之前触发,只能视为取消
-      return false;
-    }
-    return await Login2FAChallengeDialog.show(ctx, request);
-  };
 
   // 启动一次性磁盘孤立文件 GC(attachments / attachment_thumbs / custom_icons),
   // 清理历史版本遗留的文件。标志位 SharedPreferences 保证只跑一次。后台异步
@@ -268,78 +239,7 @@ Future<void> _restoreUserReminder() async {
   }
 }
 
-/// 恢复截图自动识别设置（仅Android）
-///
-/// 问题场景：
-/// - 应用重启后，截图监听服务会丢失
-/// - 需要自动恢复用户之前的设置
-///
-/// 解决方案：
-/// - 在应用启动时检查用户是否开启了截图监听
-/// - 如果开启了，重新启动监听服务
-Future<void> _restoreScreenshotMonitor(ProviderContainer container) async {
-  try {
-    await ScreenshotMonitorService(container).disable();
-  } catch (error) {
-    logger.warning('Offline', 'Unable to stop an old screenshot observer: $error');
-  }
-  }
-
-/// 初始化应用模式
-///
-/// 在应用启动时从 SharedPreferences 读取模式并设置到 appModeProvider
-/// 这样可以确保后续使用 repositoryProvider 时能获取到正确的模式
-/// [container] Provider容器
-Future<void> _initializeAppMode(ProviderContainer container) async {
-  try {
-    print('⏳ 初始化应用模式...');
-
-    // 从 SharedPreferences 直接读取模式
-    final prefs = await SharedPreferences.getInstance();
-    final modeStr = prefs.getString('app_mode');
-    final mode = modeStr != null ? AppMode.fromString(modeStr) : AppMode.local;
-
-    // 使用 switchMode 方法设置模式，确保 repositoryProvider 能立即获取到正确的模式
-    // switchMode 不会重复写入 SharedPreferences，因为值已经存在
-    await container.read(appModeProvider.notifier).switchMode(mode);
-
-    print('✅ 应用模式已初始化: ${mode.label}');
-  } catch (e, stackTrace) {
-    print('⚠️  应用模式初始化失败: $e');
-    logger.error('Main', '应用模式初始化失败', e, stackTrace);
-  }
-}
-
-
-/// 设置图片分享处理（Android专属）
-///
-/// 初始化 ImageShareHandlerService 以接收从相册或其他应用分享的图片
-/// 分享的图片会自动触发记账流程
-void _setupImageShareHandler(ProviderContainer container) {
-  try {
-    logger.info('App', '🖼️  [Android] 初始化图片分享处理服务...');
-
-    // 初始化服务（会自动设置MethodChannel监听器）
-    ImageShareHandlerService(container);
-
-    logger.info('App', '✅ [Android] 图片分享处理服务已启动');
-  } catch (e) {
-    logger.error('App', '❌ [Android] 图片分享处理服务初始化失败', e);
-    // 不抛出异常，避免影响应用启动
-  }
-}
-
-/// 设置 URL 监听（用于 AppLink）
-///
-/// 监听 beecount:// URL Scheme 调用
-/// 支持的URL格式:
-/// - beecount://voice - 语音记账
-/// - beecount://image - 图片记账（从相册）
-/// - beecount://camera - 拍照记账
-/// - beecount://ai-chat - AI 小助手
-/// - beecount://add?amount=100&type=expense - 自动记账
-/// - beecount://auto-billing?text=... - 文本自动记账（兼容旧版）
-/// - beecount://quick-billing - 快速记账（兼容旧版）
+/// 处理本地记账与页面导航深链。
 void _setupUrlListener(ProviderContainer container) {
   try {
     logger.info('AppLink', '初始化URL监听...');
@@ -490,6 +390,10 @@ class MainApp extends ConsumerWidget {
     // 周期交易生成已统一在 appSplashInitProvider 中处理
 
     final primary = ref.watch(primaryColorProvider);
+    final onPrimary = ThemeData.estimateBrightnessForColor(primary) ==
+            Brightness.light
+        ? Colors.black
+        : Colors.white;
     final platform = Theme.of(context).platform; // 当前平台
     final base = BeeTheme.lightTheme(platform: platform);
     final baseTextTheme = base.textTheme;
@@ -497,7 +401,10 @@ class MainApp extends ConsumerWidget {
     // ⭐ 亮色主题
     final theme = base.copyWith(
       textTheme: baseTextTheme,
-      colorScheme: base.colorScheme.copyWith(primary: primary),
+      colorScheme: base.colorScheme.copyWith(
+        primary: primary,
+        onPrimary: onPrimary,
+      ),
       primaryColor: primary,
       scaffoldBackgroundColor: Colors.white,
       dividerColor: Colors.black.withOpacity(0.06),
@@ -523,14 +430,14 @@ class MainApp extends ConsumerWidget {
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           backgroundColor: primary,
-          foregroundColor: Colors.white,
+          foregroundColor: onPrimary,
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
       ),
       floatingActionButtonTheme: base.floatingActionButtonTheme.copyWith(
         backgroundColor: primary,
-        foregroundColor: Colors.white,
+        foregroundColor: onPrimary,
       ),
       bottomNavigationBarTheme: base.bottomNavigationBarTheme.copyWith(
         selectedItemColor: primary,
@@ -543,17 +450,12 @@ class MainApp extends ConsumerWidget {
         margin: EdgeInsets.zero,
       ),
     );
-    // Clamp 系统字体缩放，避免部分设备设置 1.5+ 造成 UI 溢出
+    // 尊重系统辅助功能字号，并叠加用户在应用内选择的缩放。
     final media = MediaQuery.of(context);
     // init font scale persistence
     ref.watch(fontScaleInitProvider);
     final customScale = ref.watch(effectiveFontScaleProvider);
-    final clamped = media.textScaler.clamp(
-      minScaleFactor: 0.85,
-      maxScaleFactor: 1.15,
-    );
-    final combinedScale = clamped.scale(customScale); // returns double
-    final newScaler = TextScaler.linear(combinedScale);
+    final newScaler = _AppTextScaler(media.textScaler, customScale);
     return MediaQuery(
       data: media.copyWith(textScaler: newScaler),
       child: MaterialApp(
@@ -563,8 +465,15 @@ class MainApp extends ConsumerWidget {
         debugShowCheckedModeBanner: false,
         theme: theme,
         darkTheme: BeeTheme.darkTheme(platform: platform).copyWith(
-          colorScheme: BeeTheme.darkTheme(platform: platform).colorScheme.copyWith(primary: primary),
+          colorScheme: BeeTheme.darkTheme(platform: platform).colorScheme.copyWith(
+            primary: primary,
+            onPrimary: onPrimary,
+          ),
           primaryColor: primary,
+          floatingActionButtonTheme: FloatingActionButtonThemeData(
+            backgroundColor: primary,
+            foregroundColor: onPrimary,
+          ),
         ),                                                // ⭐ 暗黑主题（使用动态主题色）
         themeMode: ref.watch(themeModeProvider),         // ⭐ 使用 provider 支持手动切换
         localizationsDelegates: const [
@@ -617,6 +526,19 @@ class MainApp extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// Preserve the platform's nonlinear text scaling when applying an app setting.
+class _AppTextScaler extends TextScaler {
+  const _AppTextScaler(this.system, this.factor);
+  final TextScaler system;
+  final double factor;
+
+  @override
+  double scale(double fontSize) => system.scale(fontSize) * factor;
+
+  @override
+  double get textScaleFactor => system.textScaleFactor * factor;
 }
 
 /// 一次性磁盘孤立文件清理 —— 清历史版本遗留的:

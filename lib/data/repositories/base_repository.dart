@@ -5,7 +5,6 @@ import 'account_repository.dart'
     show AccountBalanceUpdateResult, AccountRepository;
 import 'statistics_repository.dart';
 import 'recurring_transaction_repository.dart';
-import 'ai_repository.dart';
 import 'tag_repository.dart';
 import 'budget_repository.dart';
 import 'attachment_repository.dart';
@@ -27,7 +26,6 @@ abstract class BaseRepository
         AccountRepository,
         StatisticsRepository,
         RecurringTransactionRepository,
-        AIRepository,
         TagRepository,
         BudgetRepository,
         AttachmentRepository,

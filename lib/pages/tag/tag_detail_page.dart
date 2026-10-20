@@ -446,7 +446,7 @@ class _TagDetailPageState extends ConsumerState<TagDetailPage> {
     try {
       await repo.deleteTransaction(transaction.id);
 
-      await PostProcessor.sync(ref, ledgerId: ledgerId);
+      await PostProcessor.refreshLocal(ref, ledgerId: ledgerId);
 
       ref.invalidate(countsForLedgerProvider(ledgerId));
       ref.read(statsRefreshProvider.notifier).state++;

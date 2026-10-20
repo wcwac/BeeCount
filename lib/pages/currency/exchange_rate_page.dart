@@ -16,8 +16,8 @@ import '../../widgets/currency/currency_picker_sheet.dart';
 import '../../widgets/ui/ui.dart';
 
 /// 汇率管理页(多币种 MVP Task 8)。
-/// - 自动拉取(24h 节流,单币种内部 no-op)+ 手动编辑覆盖
-/// - 主币种切换:set provider → 已有手动汇率提示 → force 重拉
+/// - 读取本地缓存，支持手动编辑覆盖。
+/// - 切换主币种后使用对应的本地汇率。
 /// 方向约定全链统一:rate 字符串 = 「1 quote = rate base」。
 class ExchangeRatePage extends ConsumerStatefulWidget {
   const ExchangeRatePage({super.key});
@@ -27,32 +27,11 @@ class ExchangeRatePage extends ConsumerStatefulWidget {
 }
 
 class _ExchangeRatePageState extends ConsumerState<ExchangeRatePage> {
-  bool _refreshing = false;
-
-  @override
-  void initState() {
-    super.initState();
-    // 进页静默拉取:24h 节流 + 单币种 no-op,内部自判,不阻塞 UI。
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      refreshExchangeRatesFromUi(ref);
-    });
-  }
-
   /// 6 位有效数字展示(方向已是「1 quote = rate base」)。
   String _fmt6(String rate) {
     final v = double.tryParse(rate);
     if (v == null) return rate;
     return v.toStringAsPrecision(6);
-  }
-
-  Future<void> _onRefresh() async {
-    if (_refreshing) return;
-    setState(() => _refreshing = true);
-    final l10n = AppLocalizations.of(context);
-    final ok = await refreshExchangeRatesFromUi(ref, force: true);
-    if (!mounted) return;
-    setState(() => _refreshing = false);
-    showToast(context, ok ? l10n.rateRefreshSuccess : l10n.rateRefreshFailed);
   }
 
   @override
@@ -79,27 +58,6 @@ class _ExchangeRatePageState extends ConsumerState<ExchangeRatePage> {
             title: l10n.exchangeRatePageTitle,
             showBack: true,
             compact: true,
-            actions: [
-              if (_refreshing)
-                Padding(
-                  padding: EdgeInsets.symmetric(
-                      horizontal: 12.0.scaled(context, ref)),
-                  child: SizedBox(
-                    width: 18.0.scaled(context, ref),
-                    height: 18.0.scaled(context, ref),
-                    child: const CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                    ),
-                  ),
-                )
-              else
-                IconButton(
-                  onPressed: _onRefresh,
-                  icon: const Icon(Icons.refresh),
-                  tooltip: l10n.exchangeRatePageTitle,
-                ),
-            ],
           ),
           Expanded(
             child: ListView(
@@ -251,7 +209,7 @@ class _ExchangeRatePageState extends ConsumerState<ExchangeRatePage> {
         quote: quote,
         base: base,
         hadManual: eff?.manual ?? false,
-        // 预填:手动值回填原始字符串(保留用户精度);自动值用 _fmt6 展示(6 位有效,
+        // 预填:手动值回填原始字符串(保留用户精度);缓存值用 _fmt6 展示(6 位有效,
         // 编辑后会被新输入覆盖,截断无妨);无汇率则留空。
         initialText: eff == null
             ? ''
@@ -270,13 +228,13 @@ class _ExchangeRatePageState extends ConsumerState<ExchangeRatePage> {
     ref.read(rateRefreshTickProvider.notifier).state++;
     final activeLedgerId = ref.read(currentLedgerIdProvider);
     if (activeLedgerId > 0) {
-      unawaited(PostProcessor.sync(ref, ledgerId: activeLedgerId));
+      unawaited(PostProcessor.refreshLocal(ref, ledgerId: activeLedgerId));
     }
   }
 }
 
 /// 汇率编辑弹窗:自持 controller,关闭时通过返回值告知动作
-/// (reset=true 恢复自动;reset=false 保存 rate;null=取消)。
+/// (reset=true 删除手动覆盖;reset=false 保存 rate;null=取消)。
 class _RateEditDialog extends ConsumerStatefulWidget {
   final String quote;
   final String base;

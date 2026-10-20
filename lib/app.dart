@@ -1,8 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
-import 'dart:math' as math;
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -18,18 +15,11 @@ import 'providers.dart';
 import 'l10n/app_localizations.dart';
 import 'widget/widget_manager.dart';
 import 'widgets/ui/ui.dart';
-import 'widgets/ui/speed_dial_fab.dart';
-import 'cloud/sync/sync_engine.dart';
-import 'utils/voice_billing_helper.dart';
-import 'utils/image_billing_helper.dart';
-import 'pages/ai/ai_chat_page.dart';
+import 'widgets/ui/main_navigation_scaffold.dart';
 import 'services/platform/app_link_service.dart';
 import 'services/system/logger_service.dart';
 import 'services/security/app_lock_service.dart';
 import 'providers/security_providers.dart';
-import 'styles/tokens.dart';
-import 'styles/header_skins.dart';
-import 'providers/avatar_providers.dart';
 
 class BeeApp extends ConsumerStatefulWidget {
   const BeeApp({super.key});
@@ -39,7 +29,7 @@ class BeeApp extends ConsumerStatefulWidget {
 }
 
 class _BeeAppState extends ConsumerState<BeeApp>
-    with WidgetsBindingObserver, SingleTickerProviderStateMixin {
+    with WidgetsBindingObserver {
   final _pages = const [
     HomePage(),
     AnalyticsPage(),
@@ -58,46 +48,14 @@ class _BeeAppState extends ConsumerState<BeeApp>
   ProviderSubscription<AppLinkAction?>? _appLinkSubscription;
 
 
-  // 防止 AppLink 动作重复执行（使用静态变量，跨实例共享）
-  static bool _isHandlingAppLink = false;
-  static DateTime? _lastAppLinkHandleTime;
-
-  // _triggerInitialCloudSync 节流戳。app 启动期 microtask + listenManual
-  // 两路都会触发,曾导致 fullPush 2-3 路并发把 sync_changes 表撑膨胀 2-2.5x
-  // (详见 .docs/concurrent-fullpush-bloat.md)。5 秒内只跑第一次。
-  //
-  // 注意:fullPush / push 内部已经有 in-flight 单飞兜底,这里是防御性的第二
-  // 层 —— 避免 trigger 内的 phase 1(syncMyProfile / storage.list / pull)
-  // 重复跑浪费 HTTP。
-  DateTime? _lastInitialCloudSyncTriggeredAt;
-
-  // 记账按钮相关状态
-  late AnimationController _expandController;
-  late Animation<double> _expandAnimation;
-  int? _hoveredIndex;
-  OverlayEntry? _overlayEntry;
-  final GlobalKey _centerButtonKey = GlobalKey();
-
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
 
-    // 初始化记账按钮动画控制器
-    _expandController = AnimationController(
-      duration: const Duration(milliseconds: 200),
-      vsync: this,
-    );
-    _expandAnimation = CurvedAnimation(
-      parent: _expandController,
-      curve: Curves.easeOut,
-    );
-
-    // 后台刷新账本同步状态
-    _refreshLedgersStatusInBackground();
     // 延迟监听 AppLink，确保 context 可用
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _setupAppLinkListener();
+      if (mounted) _setupAppLinkListener();
     });
   }
 
@@ -126,220 +84,6 @@ class _BeeAppState extends ConsumerState<BeeApp>
       fireImmediately: true,
     );
     logger.info('AppLink', 'BeeApp: AppLink 监听已设置');
-  }
-
-  /// 后台刷新账本同步状态 / 触发首次同步
-  ///
-  /// 坑点：syncServiceProvider 只在 cloud_sync_page 里被 watch。重启 app 后
-  /// 这里是一次 ref.read，等 beecountCloudProviderInstance 异步就绪再重建时没有
-  /// 监听者，provider 内部的 auto-sync 块永远跑不到 —— 用户看到"app 启动没同步本地
-  /// 数据到 BeeCount Cloud"。这里 listenManual 保持 provider 活跃，并在它从占位
-  /// 对象变成真正的 SyncEngine 时主动触发一次 sync。
-  void _refreshLedgersStatusInBackground() {
-    // Offline build never starts sync or subscribes to cloud providers.
-  }
-
-  void _triggerInitialCloudSync(SyncEngine engine) {
-    // 5 秒幂等节流:microtask + listenManual 在启动期可能两路都触发,这里挡掉
-    // 第二次,phase 1 / phase 2 都只跑一次。详见 [_lastInitialCloudSyncTriggeredAt]。
-    final now = DateTime.now();
-    final last = _lastInitialCloudSyncTriggeredAt;
-    if (last != null && now.difference(last).inSeconds < 5) {
-      logger.info('AppStart',
-          '_triggerInitialCloudSync 5 秒内已触发过(${now.difference(last).inMilliseconds}ms 前),跳过');
-      return;
-    }
-    _lastInitialCloudSyncTriggeredAt = now;
-
-    Future(() async {
-      try {
-        // 启动同步分层策略(2026-05-24 改造):
-        //
-        // 旧实现 `for (ledger in ledgers) { engine.sync(ledger) }` 串行 5
-        // 次完整 sync,每次内部都跑 `syncMyProfile` / `storage.list` / `pull`
-        // 等**用户级**操作(跟 ledgerId 无关),5 次重复浪费;且串行 HTTP 任
-        // 一慢就累积卡 UI。
-        //
-        // 改造:
-        //   Phase 1 — 用户级数据(只跑一次,跨 ledger 共享)
-        //     a. syncMyProfile         HTTP profile/me
-        //     b. storage.list          HTTP /sync/ledgers 拿远端账本列表
-        //     c. pull                  HTTP /sync/pull 用户级 sync_changes 流
-        //   Phase 2 — 每个 ledger 并行(push + 附件上下行)
-        //     a. fast skip:无 unpushed change + 已在远端 → 跳
-        //     b. 否则:uploadAttachments + push + downloadAttachments
-        //   并发限制由 SQLite mutex 自然控制(Drift 内部排队,不会真并发写)
-        final ledgers = await ref.read(repositoryProvider).getAllLedgers();
-        if (ledgers.isEmpty) {
-          logger.info('AppStart', '本地无账本,跳过首次同步');
-          return;
-        }
-        logger.info('AppStart',
-            'BeeCount Cloud 首次同步: 本地账本数=${ledgers.length}');
-        final overallStart = DateTime.now();
-
-        // ========== Phase 1: 用户级一次性 ==========
-        // a) profile + appearance + AI config + avatar
-        unawaited(() async {
-          try {
-            await engine.syncMyProfile();
-          } catch (e, st) {
-            logger.warning('AppStart', 'syncMyProfile 失败', st);
-            logger.warning('AppStart', 'error: $e');
-          }
-        }());
-
-        // b) 远端账本列表(单次拉,所有 ledger 用同一份决定 fullPush)
-        List<dynamic>? remoteLedgers;
-        try {
-          remoteLedgers = await engine.provider.storage.list(path: '');
-          logger.info(
-              'AppStart', 'Phase1: 远端账本=${remoteLedgers.length}');
-        } catch (e, st) {
-          logger.warning('AppStart', 'Phase1: 拉 remote_ledgers 失败,fallback', st);
-          logger.warning('AppStart', 'error: $e');
-        }
-
-        // c) 用户级 sync_changes 流(只拉一次,所有 ledger 共享 cursor)
-        try {
-          final pulled = await engine.pull('');
-          logger.info('AppStart', 'Phase1: pull(用户级) applied=$pulled');
-        } catch (e, st) {
-          logger.error('AppStart', 'Phase1: pull 失败', e, st);
-        }
-
-        // d) 推 user-global change(account / category / tag)。
-        //    放在 Phase 2(每个 ledger 并行)之前显式跑一次,确保:
-        //    1) Phase 2 并发 push 时,各 ledger 的 _push/fullPush 调
-        //       pushUserGlobalEntities 都会复用这次的 in-flight,不会重复推
-        //    2) 即使 Phase 2 全部 fast-skip(无 ledger-scope 待推 + 已在远端),
-        //       user-global 的新增/重命名也能推上去(原来 Phase 2 skip 时会漏)
-        try {
-          final pushed = await engine.pushUserGlobalEntities();
-          logger.info('AppStart', 'Phase1: pushUserGlobalEntities pushed=$pushed');
-        } catch (e, st) {
-          logger.error('AppStart', 'Phase1: pushUserGlobalEntities 失败', e, st);
-        }
-
-        // ========== Phase 2: 每个 ledger 并行 push + 附件 ==========
-        final remoteSyncIds = <String>{
-          if (remoteLedgers != null)
-            for (final r in remoteLedgers)
-              if (r.path is String) r.path as String,
-        };
-
-        final futures = ledgers.map((ledger) async {
-          final tag = '${ledger.name}(${ledger.id})';
-          try {
-            final unpushed = await engine.changeTracker
-                .getUnpushedChangesForLedger(ledger.id);
-            final mySyncId = ledger.syncId;
-            final hasSyncId = mySyncId != null && mySyncId.isNotEmpty;
-            final inRemote = hasSyncId && remoteSyncIds.contains(mySyncId);
-
-            // fast skip:无待推送 + 已在远端 + 非共享 Editor 或 Owner
-            if (unpushed.isEmpty && inRemote) {
-              logger.info('AppStart', 'Phase2 skip $tag (无待推送 + 已绑定)');
-              return _LedgerSyncResult.skip();
-            }
-
-            // 共享账本 Editor:只 push 自己的 unpushed change,不 fullPush
-            // (会覆盖 Owner 数据)
-            final isSharedAsEditor =
-                ledger.isShared && ledger.myRole != 'owner';
-
-            // 需要 fullPush:非 Editor 且账本不在远端
-            if (!inRemote && !isSharedAsEditor) {
-              logger.info('AppStart', 'Phase2 $tag → fullPush');
-              try {
-                await engine.uploadAttachments(ledgerId: ledger.id);
-              } catch (e, st) {
-                logger.warning('AppStart', '$tag uploadAttachments 失败', st);
-                logger.warning('AppStart', 'error: $e');
-              }
-              await engine.fullPush(ledgerId: ledger.id);
-              // 推剩余 delete change
-              final extra = await engine.push(ledger.id.toString());
-              try {
-                await engine.downloadAttachments(ledgerId: ledger.id);
-              } catch (e, st) {
-                logger.warning('AppStart', '$tag downloadAttachments 失败', st);
-                logger.warning('AppStart', 'error: $e');
-              }
-              return _LedgerSyncResult(pushed: extra + 1, pulled: 0);
-            }
-
-            // 普通 push 路径:有 unpushed 才走附件 + push
-            try {
-              await engine.uploadAttachments(ledgerId: ledger.id);
-            } catch (e, st) {
-              logger.warning('AppStart', '$tag uploadAttachments 失败', st);
-              logger.warning('AppStart', 'error: $e');
-            }
-            final pushed = await engine.push(ledger.id.toString());
-            try {
-              await engine.downloadAttachments(ledgerId: ledger.id);
-            } catch (e, st) {
-              logger.warning('AppStart', '$tag downloadAttachments 失败', st);
-              logger.warning('AppStart', 'error: $e');
-            }
-            logger.info('AppStart', 'Phase2 $tag done: pushed=$pushed');
-            return _LedgerSyncResult(pushed: pushed, pulled: 0);
-          } catch (e, st) {
-            logger.error('AppStart', 'Phase2 $tag 异常', e, st);
-            return _LedgerSyncResult(pushed: 0, pulled: 0);
-          }
-        });
-        final results = await Future.wait(futures);
-
-        final totalPushed = results.fold<int>(0, (a, b) => a + b.pushed);
-        final skipped = results.where((r) => r.skipped).length;
-        final totalMs =
-            DateTime.now().difference(overallStart).inMilliseconds;
-        logger.info('AppStart',
-            'BeeCount Cloud 首次同步完成: synced=${ledgers.length - skipped} skipped=$skipped pushed=$totalPushed 总耗时 ${totalMs}ms');
-        ref.read(syncStatusRefreshProvider.notifier).state++;
-        ref.read(ledgerListRefreshProvider.notifier).state++;
-      } catch (e, st) {
-        logger.error('AppStart', 'BeeCount Cloud 首次同步异常', e, st);
-      }
-    });
-  }
-
-  /// 处理「桌面长按图标快捷项」的动作:立即执行,带 1s 防抖去重。
-  /// (URL deep-link / 桌面小组件走 _persistPendingDeepLink → _drainPendingDeepLink
-  ///  的「重建可恢复」路径;两条路径最终都汇到 [_openDeepLink] 统一派发。)
-  void _handleAppLinkAction(AppLinkAction action) {
-    // 防止重复执行（使用时间戳和标志双重检查）
-    final now = DateTime.now();
-    if (_isHandlingAppLink ||
-        (_lastAppLinkHandleTime != null &&
-            now.difference(_lastAppLinkHandleTime!) <
-                const Duration(seconds: 1))) {
-      logger.info('AppLink', 'BeeApp: 忽略重复的动作 $action');
-      return;
-    }
-    _isHandlingAppLink = true;
-    _lastAppLinkHandleTime = now;
-
-    // 延迟重置标志，允许下一次动作
-    Future.delayed(const Duration(seconds: 1), () {
-      _isHandlingAppLink = false;
-    });
-
-    String? type;
-    int? categoryId;
-    String? page;
-    if (action == AppLinkAction.newTransaction) {
-      type = ref.read(pendingNewTransactionTypeProvider) ?? 'expense';
-      categoryId = ref.read(pendingNewTransactionCategoryIdProvider);
-      ref.read(pendingNewTransactionTypeProvider.notifier).state = null;
-      ref.read(pendingNewTransactionCategoryIdProvider.notifier).state = null;
-    } else if (action == AppLinkAction.open) {
-      page = ref.read(pendingOpenPageProvider);
-      ref.read(pendingOpenPageProvider.notifier).state = null;
-    }
-    _openDeepLink(action, type, categoryId: categoryId, page: page);
   }
 
   // ——— 深链「重建可恢复」打开 ———
@@ -439,8 +183,7 @@ class _BeeAppState extends ConsumerState<BeeApp>
     _openDeepLink(action, type, categoryId: categoryId, page: page);
   }
 
-  /// AppLink 动作的唯一派发出口:快捷项([_handleAppLinkAction])与
-  /// URL deep-link / 小组件([_executeDrain])两条路径共用,避免分叉。
+  /// 本地深链和桌面小组件的导航入口。
   ///
   /// [categoryId] 仅 [AppLinkAction.newTransaction] 使用(小组件「快速记账」
   /// 预填分类);[page] 仅 [AppLinkAction.open] 使用(小组件「净资产/预算/
@@ -453,18 +196,6 @@ class _BeeAppState extends ConsumerState<BeeApp>
   }) {
     final nav = Navigator.of(context, rootNavigator: true);
     switch (action) {
-      case AppLinkAction.voice:
-        VoiceBillingHelper.startVoiceBilling(context, ref);
-        break;
-      case AppLinkAction.image:
-        ImageBillingHelper.pickImageForBilling(context, ref);
-        break;
-      case AppLinkAction.camera:
-        ImageBillingHelper.openCameraForBilling(context, ref);
-        break;
-      case AppLinkAction.aiChat:
-        nav.push(MaterialPageRoute(builder: (_) => const AIChatPage()));
-        break;
       case AppLinkAction.newTransaction:
         // 小组件「快速记账」点分类格携带 categoryId 时,预填该分类(见
         // TransactionEditorPage.initialCategoryId);普通「记一笔」categoryId 为 null。
@@ -511,116 +242,8 @@ class _BeeAppState extends ConsumerState<BeeApp>
   void dispose() {
     _drainTimer?.cancel();
     _appLinkSubscription?.close();
-    _removeOverlay();
-    _expandController.dispose();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
-  }
-
-  void _removeOverlay() {
-    _overlayEntry?.remove();
-    _overlayEntry = null;
-  }
-
-  void _onLongPressStart(LongPressStartDetails details) {
-    // Offline build has no AI capture shortcuts.
-  }
-
-  void _onLongPressMoveUpdate(LongPressMoveUpdateDetails details) {
-    // Offline build has no AI capture shortcuts.
-  }
-
-  void _onLongPressEnd(LongPressEndDetails details) {
-    // Offline build has no AI capture shortcuts.
-  }
-
-  void _dismissOverlay() {
-    _hoveredIndex = null;
-    _expandController.reverse();
-    _removeOverlay();
-  }
-
-  void _showOverlay() {
-    final RenderBox? renderBox =
-        _centerButtonKey.currentContext?.findRenderObject() as RenderBox?;
-    if (renderBox == null) return;
-
-    final position = renderBox.localToGlobal(Offset.zero);
-    final size = renderBox.size;
-
-    _overlayEntry = OverlayEntry(
-      builder: (context) => _SpeedDialOverlay(
-        buttonPosition: position,
-        buttonSize: size,
-        actions: [
-          SpeedDialAction(
-            icon: Icons.camera_alt_rounded,
-            label: AppLocalizations.of(context).fabActionCamera,
-            onTap: () => ImageBillingHelper.openCameraForBilling(context, ref),
-          ),
-          SpeedDialAction(
-            icon: Icons.photo_library_rounded,
-            label: AppLocalizations.of(context).fabActionGallery,
-            onTap: () => ImageBillingHelper.pickImageForBilling(context, ref),
-          ),
-          SpeedDialAction(
-            icon: Icons.mic_rounded,
-            label: AppLocalizations.of(context).fabActionVoice,
-            onTap: () => VoiceBillingHelper.startVoiceBilling(context, ref),
-          ),
-        ],
-        animation: _expandAnimation,
-        hoveredIndex: _hoveredIndex,
-        backgroundColor: ref.read(primaryColorProvider),
-        onDismiss: _dismissOverlay,
-      ),
-    );
-
-    Overlay.of(context).insert(_overlayEntry!);
-  }
-
-  void _updateHoveredIndex(Offset globalPosition) {
-    final RenderBox? renderBox =
-        _centerButtonKey.currentContext?.findRenderObject() as RenderBox?;
-    if (renderBox == null) return;
-
-    final buttonPosition = renderBox.localToGlobal(Offset.zero);
-    final buttonSize = renderBox.size;
-    final buttonCenter = Offset(
-      buttonPosition.dx + buttonSize.width / 2,
-      buttonPosition.dy + buttonSize.height / 2,
-    );
-
-    final angles = [210.0, 270.0, 330.0];
-    const distance = 85.0;
-    const buttonRadius = 26.0;
-
-    int? newHoveredIndex;
-    for (int i = 0; i < 3 && i < angles.length; i++) {
-      final angle = angles[i];
-      final radians = angle * math.pi / 180;
-      final offsetX = distance * math.cos(radians);
-      final offsetY = distance * math.sin(radians);
-
-      final actionCenter = Offset(
-        buttonCenter.dx + offsetX,
-        buttonCenter.dy + offsetY,
-      );
-
-      final distanceToButton = (globalPosition - actionCenter).distance;
-
-      if (distanceToButton <= buttonRadius) {
-        newHoveredIndex = i;
-        break;
-      }
-    }
-
-    if (newHoveredIndex != _hoveredIndex) {
-      setState(() {
-        _hoveredIndex = newHoveredIndex;
-      });
-      _overlayEntry?.markNeedsBuild();
-    }
   }
 
   @override
@@ -632,8 +255,6 @@ class _BeeAppState extends ConsumerState<BeeApp>
         ref.read(showPrivacyScreenProvider.notifier).state = true;
       }
     } else if (state == AppLifecycleState.paused) {
-      // 系统拖拽/侧边栏弹出时，强制关闭扇形菜单
-      _dismissOverlay();
       // 记录进入后台时间
       AppLockService.recordBackgroundTime();
     } else if (state == AppLifecycleState.resumed) {
@@ -697,13 +318,6 @@ class _BeeAppState extends ConsumerState<BeeApp>
   Widget build(BuildContext context) {
     final idx = ref.watch(bottomTabIndexProvider);
     final l10n = AppLocalizations.of(context);
-    final primaryColor = ref.watch(primaryColorProvider);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bottomPadding = MediaQuery.of(context).padding.bottom;
-    final avatarPath = ref.watch(avatarPathProvider).asData?.value;
-    // 头部皮肤可附带悬浮 tab 装饰层(如一周年皮肤),随皮肤选择联动。
-    final headerSkin = headerSkinById(ref.watch(headerSkinProvider));
-
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (bool didPop, Object? result) {
@@ -719,178 +333,15 @@ class _BeeAppState extends ConsumerState<BeeApp>
           SystemNavigator.pop();
         }
       },
-      child: Stack(
-        children: [
-          Scaffold(
-            extendBody: true, // 让页面内容延伸到底部栏后面
-            // IndexedStack 靠 Offstage 藏起非当前页,而 **Offstage 不会停
-            // Ticker** —— 五个页面的 header 皮肤会同时满帧跑,在 ProMotion
-            // 机型上就是 5×120fps 的持续重绘,机器明显发烫。
-            //
-            // TickerMode 关掉后,非当前页的 AnimationController 被 mute(仍
-            // isAnimating,只是不再 tick),切回来自动恢复。动态皮肤是最先
-            // 暴露这个问题的,但收益覆盖所有页内动画。
-            body: IndexedStack(
-              index: idx,
-              children: [
-                for (var i = 0; i < _pages.length; i++)
-                  TickerMode(enabled: i == idx, child: _pages[i]),
-              ],
-            ),
-            bottomNavigationBar: _BeeBottomBar(
-              currentIndex: idx,
-              primaryColor: primaryColor,
-              isDark: isDark,
-              bottomPadding: bottomPadding,
-              l10n: l10n,
-              avatarPath: avatarPath,
-              skin: headerSkin,
-              centerButtonKey: _centerButtonKey,
-              onTabTap: (index) {
-                final now = DateTime.now();
-                if (_lastTappedIndex == index &&
-                    _lastTapTime != null &&
-                    now.difference(_lastTapTime!) <
-                        const Duration(milliseconds: 300)) {
-                  if (index == 0) {
-                    ref.read(homeScrollToTopProvider.notifier).state++;
-                  }
-                  _lastTapTime = null;
-                  _lastTappedIndex = null;
-                } else {
-                  _lastTapTime = now;
-                  _lastTappedIndex = index;
-                  ref.read(bottomTabIndexProvider.notifier).state = index;
-                }
-              },
-              onCenterTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const TransactionEditorPage(
-                      initialKind: 'expense',
-                      quickAdd: true,
-                    ),
-                  ),
-                );
-              },
-              onCenterLongPressStart: _onLongPressStart,
-              onCenterLongPressMoveUpdate: _onLongPressMoveUpdate,
-              onCenterLongPressEnd: _onLongPressEnd,
-            ),
-          ),
-          // 开发模式下的主题切换按钮
-          if (kDebugMode)
-            Positioned(
-              right: 16,
-              bottom: 100,
-              child: FloatingActionButton.small(
-                heroTag: 'themeSwitcher',
-                backgroundColor: Theme.of(context).brightness == Brightness.dark
-                    ? Colors.white
-                    : Colors.black,
-                onPressed: () {
-                  final current = ref.read(themeModeProvider);
-                  final next = current == ThemeMode.dark
-                      ? ThemeMode.light
-                      : ThemeMode.dark;
-                  ref.read(themeModeProvider.notifier).state = next;
-                },
-                child: Icon(
-                  Theme.of(context).brightness == Brightness.dark
-                      ? Icons.light_mode
-                      : Icons.dark_mode,
-                  color: Theme.of(context).brightness == Brightness.dark
-                      ? Colors.black
-                      : Colors.white,
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Telegram 风格悬浮胶囊底部导航栏
-class _BeeBottomBar extends StatelessWidget {
-  final int currentIndex;
-  final Color primaryColor;
-  final bool isDark;
-  final double bottomPadding;
-  final AppLocalizations l10n;
-  final String? avatarPath;
-  final HeaderSkin? skin;
-  final GlobalKey centerButtonKey;
-  final ValueChanged<int> onTabTap;
-  final VoidCallback onCenterTap;
-  final GestureLongPressStartCallback onCenterLongPressStart;
-  final GestureLongPressMoveUpdateCallback onCenterLongPressMoveUpdate;
-  final GestureLongPressEndCallback onCenterLongPressEnd;
-
-  const _BeeBottomBar({
-    required this.currentIndex,
-    required this.primaryColor,
-    required this.isDark,
-    required this.bottomPadding,
-    required this.l10n,
-    this.avatarPath,
-    this.skin,
-    required this.centerButtonKey,
-    required this.onTabTap,
-    required this.onCenterTap,
-    required this.onCenterLongPressStart,
-    required this.onCenterLongPressMoveUpdate,
-    required this.onCenterLongPressEnd,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final bgColor = BeeTokens.tabBarBackground(context);
-    final inactiveColor = isDark ? Colors.white70 : Colors.black54;
-
-    const barHeight = 56.0;
-
-    return SizedBox(
-      height: barHeight + bottomPadding + 12, // 12dp 浮动间距
-      child: Padding(
-        padding: EdgeInsets.only(
-          left: 16,
-          right: 16,
-          bottom: bottomPadding + 12,
-        ),
-        child: Container(
-          decoration: BoxDecoration(
-            color: bgColor,
-            borderRadius: BorderRadius.circular(28),
-            boxShadow: BeeTokens.tabBarShadow,
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(28),
-            child: Stack(
-              children: [
-                // 皮肤的悬浮 tab 装饰层(垫在图标之下,不影响点按)
-                if (skin?.tabBarBuilder != null)
-                  Positioned.fill(
-                      child: IgnorePointer(
-                          child: SkinAnimationScope(
-                              child: skin!.tabBarBuilder!(
-                                  primaryColor, isDark)))),
-                Row(
-                  children: [
-                    _buildTabItem(0, Icons.receipt_long_outlined,
-                        Icons.receipt_long, l10n.tabHome, inactiveColor),
-                    _buildTabItem(1, Icons.pie_chart_outline_rounded,
-                        Icons.pie_chart_rounded, l10n.tabInsights, inactiveColor),
-                    // 中间记账按钮（作为 Tab 样式）
-                    _buildCenterTabItem(inactiveColor),
-                    _buildTabItem(2, Icons.account_balance_wallet_outlined,
-                        Icons.account_balance_wallet, l10n.tabAssets,
-                        inactiveColor),
-                    _buildAvatarTabItem(3, l10n.tabMine, inactiveColor),
-                  ],
-                ),
-              ],
+      child: MainNavigationScaffold(
+        pages: _pages,
+        selectedIndex: idx,
+        onDestinationSelected: _selectTab,
+        onRecord: () => Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => const TransactionEditorPage(
+              initialKind: 'expense',
+              quickAdd: true,
             ),
           ),
         ),
@@ -898,282 +349,18 @@ class _BeeBottomBar extends StatelessWidget {
     );
   }
 
-  Widget _buildTabItem(
-      int index, IconData icon, IconData activeIcon, String label, Color inactiveColor,
-      {String? dotAnchor}) {
-    final isActive = index == currentIndex;
-    final iconColor = isActive ? primaryColor : inactiveColor;
-
-    return Expanded(
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () => onTabTap(index),
-        child: Center(
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 6),
-            decoration: BoxDecoration(
-              color: isActive
-                  ? primaryColor.withValues(alpha: 0.12)
-                  : Colors.transparent,
-              borderRadius: BorderRadius.circular(22),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // 新功能红点挂在图标上(不是整个 tab),这样位置跟着图标走、
-                // 不会因为 label 长短漂移
-                dotAnchor == null
-                    ? Icon(isActive ? activeIcon : icon,
-                        color: iconColor, size: 22)
-                    : FeatureDot(
-                        anchor: dotAnchor,
-                        offset: const Offset(-2, 0),
-                        child: Icon(isActive ? activeIcon : icon,
-                            color: iconColor, size: 22),
-                      ),
-                const SizedBox(height: 1),
-                Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  softWrap: false,
-                  textScaler: TextScaler.noScaling,
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: isActive ? primaryColor : inactiveColor,
-                    fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCenterTabItem(Color inactiveColor) {
-    return Expanded(
-      child: GestureDetector(
-        key: centerButtonKey,
-        behavior: HitTestBehavior.opaque,
-        onTap: onCenterTap,
-        onLongPressStart: onCenterLongPressStart,
-        onLongPressMoveUpdate: onCenterLongPressMoveUpdate,
-        onLongPressEnd: onCenterLongPressEnd,
-        child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.add_circle_outline, color: inactiveColor, size: 22),
-              const SizedBox(height: 1),
-              Text(
-                l10n.tabRecord,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                softWrap: false,
-                textScaler: TextScaler.noScaling,
-                style: TextStyle(
-                  fontSize: 10,
-                  color: inactiveColor,
-                  fontWeight: FontWeight.w400,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAvatarTabItem(int index, String label, Color inactiveColor) {
-    final isActive = index == currentIndex;
-    final hasAvatar = avatarPath != null;
-
-    Widget iconWidget;
-    if (hasAvatar) {
-      iconWidget = Container(
-        width: 24,
-        height: 24,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          border: isActive ? Border.all(color: primaryColor, width: 1.5) : null,
-          image: DecorationImage(
-            image: FileImage(File(avatarPath!)),
-            fit: BoxFit.cover,
-          ),
-        ),
-      );
+  void _selectTab(int index) {
+    final now = DateTime.now();
+    if (_lastTappedIndex == index &&
+        _lastTapTime != null &&
+        now.difference(_lastTapTime!) < const Duration(milliseconds: 300)) {
+      if (index == 0) ref.read(homeScrollToTopProvider.notifier).state++;
+      _lastTapTime = null;
+      _lastTappedIndex = null;
     } else {
-      iconWidget = Icon(isActive ? Icons.person_rounded : Icons.person_outline_rounded,
-          color: isActive ? primaryColor : inactiveColor, size: 24);
+      _lastTapTime = now;
+      _lastTappedIndex = index;
+      ref.read(bottomTabIndexProvider.notifier).state = index;
     }
-
-    return Expanded(
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () => onTabTap(index),
-        child: Center(
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 6),
-            decoration: BoxDecoration(
-              color: isActive
-                  ? primaryColor.withValues(alpha: 0.12)
-                  : Colors.transparent,
-              borderRadius: BorderRadius.circular(22),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // 新功能红点的第一级 —— 新功能大多在「我的」这条线下面,
-                // 用户第一眼能看到的就是这里。
-                FeatureDot(
-                  anchor: 'tab_mine',
-                  offset: const Offset(-2, 0),
-                  child: iconWidget,
-                ),
-                const SizedBox(height: 1),
-                Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  softWrap: false,
-                  textScaler: TextScaler.noScaling,
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: isActive ? primaryColor : inactiveColor,
-                    fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
   }
-}
-
-/// 扇形菜单覆盖层
-class _SpeedDialOverlay extends StatelessWidget {
-  final Offset buttonPosition;
-  final Size buttonSize;
-  final List<SpeedDialAction> actions;
-  final Animation<double> animation;
-  final int? hoveredIndex;
-  final Color backgroundColor;
-  final VoidCallback? onDismiss;
-
-  const _SpeedDialOverlay({
-    required this.buttonPosition,
-    required this.buttonSize,
-    required this.actions,
-    required this.animation,
-    required this.hoveredIndex,
-    required this.backgroundColor,
-    this.onDismiss,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final buttonCenter = Offset(
-      buttonPosition.dx + buttonSize.width / 2,
-      buttonPosition.dy + buttonSize.height / 2,
-    );
-
-    final angles = [210.0, 270.0, 330.0];
-    const distance = 85.0;
-
-    return AnimatedBuilder(
-      animation: animation,
-      builder: (context, child) {
-        if (animation.value == 0) {
-          return const SizedBox.shrink();
-        }
-
-        return Stack(
-          children: [
-            Positioned.fill(
-              child: GestureDetector(
-                onTap: onDismiss,
-                child: Container(
-                  color: Colors.black.withValues(alpha: 0.3 * animation.value),
-                ),
-              ),
-            ),
-            for (int i = 0; i < actions.length && i < angles.length; i++)
-              Builder(builder: (context) {
-                final angle = angles[i];
-                final radians = angle * math.pi / 180;
-                final progress = animation.value;
-                final offsetX = progress * distance * math.cos(radians);
-                final offsetY = progress * distance * math.sin(radians);
-
-                const btnSize = 48.0;
-                final left = buttonCenter.dx + offsetX - btnSize / 2;
-                final top = buttonCenter.dy + offsetY - btnSize / 2;
-
-                final isEnabled = actions[i].enabled;
-                final bgColor =
-                    isEnabled ? backgroundColor : Colors.grey.shade400;
-                final isHovered = i == hoveredIndex;
-
-                return Positioned(
-                  left: left,
-                  top: top,
-                  child: Transform.scale(
-                    scale: progress,
-                    child: Opacity(
-                      opacity: progress,
-                      child: AnimatedScale(
-                        scale: isHovered ? 1.2 : 1.0,
-                        duration: const Duration(milliseconds: 150),
-                        child: Material(
-                          color: bgColor,
-                          shape: const CircleBorder(),
-                          elevation: isHovered ? 8 : 4,
-                          child: Container(
-                            width: btnSize,
-                            height: btnSize,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: isHovered
-                                  ? Border.all(color: Colors.white, width: 3)
-                                  : null,
-                            ),
-                            child: Icon(
-                              actions[i].icon,
-                              color: Colors.white,
-                              size: 24,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              }),
-          ],
-        );
-      },
-    );
-  }
-}
-
-/// `_triggerInitialCloudSync` Phase2 单 ledger 处理结果。
-class _LedgerSyncResult {
-  const _LedgerSyncResult({required this.pushed, required this.pulled})
-      : skipped = false;
-  const _LedgerSyncResult.skip()
-      : pushed = 0,
-        pulled = 0,
-        skipped = true;
-  final int pushed;
-  final int pulled;
-  final bool skipped;
 }

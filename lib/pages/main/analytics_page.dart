@@ -141,11 +141,7 @@ class _AnalyticsPageState extends ConsumerState<AnalyticsPage> {
     if (confirmed != true || !mounted) return;
     final repo = ref.read(repositoryProvider);
     final ledgerId = ref.read(currentLedgerIdProvider);
-    // 补折算前先确保本位币汇率组是新鲜的(反馈17 同款根因:缺组则整体跳过);
-    // extraQuotes 带上账本交易实际涉及的外币 —— 无对应账户的币种(CSV 导入/
-    // 手选)不在 usedCurrencies 里,不带的话这些币种永远补不上(审查发现)。
-    final foreign = await repo.getLedgerForeignCurrencies(ledgerId);
-    await refreshExchangeRatesFromUi(ref, force: true, extraQuotes: foreign);
+    // 使用已有本地缓存和手动汇率补折算，缺失汇率仍保持未折算。
     final n = await repo.recomputeForeignTxForLedger(ledgerId);
     if (!mounted) return;
     showToast(context, l10n.recalcForeignTxDone(n));

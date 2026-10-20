@@ -490,7 +490,7 @@ class _BudgetEditPageState extends ConsumerState<BudgetEditPage> {
       // PostProcessor.sync 只在 tx 写入时才调。如果用户只改预算不加交易,
       // 那条 change 会压在本地没 push 出去 → B 端 / web 看不到。这里手动
       // 推一下,不阻塞 UI。
-      unawaited(PostProcessor.sync(ref, ledgerId: ledgerId));
+      unawaited(PostProcessor.refreshLocal(ref, ledgerId: ledgerId));
 
       if (mounted) {
         showToast(context, l10n.budgetSaveSuccess);
@@ -541,7 +541,7 @@ class _BudgetEditPageState extends ConsumerState<BudgetEditPage> {
 
       // 跟保存路径一样:删预算也要 flush 一次 sync,否则 B 端 / web 永远
       // 看到幽灵预算。
-      unawaited(PostProcessor.sync(ref, ledgerId: ledgerId));
+      unawaited(PostProcessor.refreshLocal(ref, ledgerId: ledgerId));
 
       if (mounted) {
         showToast(context, l10n.budgetDeleteSuccess);

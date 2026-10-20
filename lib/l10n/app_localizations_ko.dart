@@ -7518,7 +7518,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get baseCurrencyLabel => '기준 통화';
 
   @override
-  String get rateSourceAuto => '자동';
+  String get rateSourceAuto => '로컬 캐시';
 
   @override
   String get rateSourceManual => '수동';
@@ -7529,7 +7529,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get rateNotFetched => '가져오지 않음';
+  String get rateNotFetched => '설정되지 않음';
 
   @override
   String get rateTapToSet => '눌러서 직접 설정';
@@ -7543,7 +7543,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get rateResetToAuto => '자동으로 재설정';
+  String get rateResetToAuto => '수동 환율 삭제';
 
   @override
   String get rateRefreshSuccess => '환율이 업데이트되었습니다';
@@ -7555,7 +7555,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get ratesEmptyHint => '계정에서 서로 다른 통화를 사용하면 여기에 환율이 표시됩니다';
 
   @override
-  String get rateDisclaimer => '출처: 공개 환율 데이터, 매일 업데이트됩니다. 환산은 참고용이며 은행 환율과 다를 수 있습니다.';
+  String get rateDisclaimer => '로컬 캐시 또는 직접 입력한 환율만 사용하며 자동으로 업데이트하지 않습니다. 환산 결과는 참고용이며 은행 환율과 다를 수 있습니다.';
 
   @override
   String convertedNetWorth(String currency) {

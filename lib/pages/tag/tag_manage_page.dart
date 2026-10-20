@@ -186,7 +186,7 @@ class _TagManagePageState extends ConsumerState<TagManagePage> {
       // 当前账本即可,sync engine 会把所有 unpushed changes(包括 ledger=0 的)
       // 一起带上。
       final currentLedgerId = ref.read(currentLedgerIdProvider);
-      await PostProcessor.sync(ref, ledgerId: currentLedgerId);
+      await PostProcessor.refreshLocal(ref, ledgerId: currentLedgerId);
       ref.read(tagListRefreshProvider.notifier).state++;
 
       if (mounted) {
@@ -466,7 +466,7 @@ class _TagManagePageState extends ConsumerState<TagManagePage> {
       // 启动 / debounce 时序。跟 _clearUnusedCategories 对齐。
       final activeLedgerId = ref.read(currentLedgerIdProvider);
       if (activeLedgerId > 0) {
-        unawaited(PostProcessor.sync(ref, ledgerId: activeLedgerId));
+        unawaited(PostProcessor.refreshLocal(ref, ledgerId: activeLedgerId));
       }
 
       if (!mounted) return;

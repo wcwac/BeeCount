@@ -7512,7 +7512,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get baseCurrencyLabel => '主币种';
 
   @override
-  String get rateSourceAuto => '自动';
+  String get rateSourceAuto => '本地缓存';
 
   @override
   String get rateSourceManual => '手动';
@@ -7523,7 +7523,7 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get rateNotFetched => '未获取';
+  String get rateNotFetched => '未设置';
 
   @override
   String get rateTapToSet => '点击手动设置';
@@ -7537,7 +7537,7 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get rateResetToAuto => '恢复自动';
+  String get rateResetToAuto => '删除手动汇率';
 
   @override
   String get rateRefreshSuccess => '汇率已更新';
@@ -7549,7 +7549,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get ratesEmptyHint => '给账户设置不同币种后,这里会出现可管理的汇率';
 
   @override
-  String get rateDisclaimer => '数据来源:开源汇率数据,每日更新;折算仅供参考,可能与银行实际牌价有差异。';
+  String get rateDisclaimer => '仅使用本地缓存和手动设置的汇率，不会自动更新。折算仅供参考，可能与银行实际牌价不同。';
 
   @override
   String convertedNetWorth(String currency) {
@@ -16183,7 +16183,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get baseCurrencyLabel => '主幣種';
 
   @override
-  String get rateSourceAuto => '自動';
+  String get rateSourceAuto => '本機快取';
 
   @override
   String get rateSourceManual => '手動';
@@ -16194,7 +16194,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   }
 
   @override
-  String get rateNotFetched => '未取得';
+  String get rateNotFetched => '未設定';
 
   @override
   String get rateTapToSet => '點擊手動設定';
@@ -16208,7 +16208,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   }
 
   @override
-  String get rateResetToAuto => '恢復自動';
+  String get rateResetToAuto => '刪除手動匯率';
 
   @override
   String get rateRefreshSuccess => '匯率已更新';
@@ -16220,7 +16220,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get ratesEmptyHint => '給帳戶設定不同幣種後,這裡會出現可管理的匯率';
 
   @override
-  String get rateDisclaimer => '資料來源:開源匯率資料,每日更新;折算僅供參考,可能與銀行實際牌價有差異。';
+  String get rateDisclaimer => '僅使用本機快取和手動設定的匯率，不會自動更新。換算僅供參考，可能與銀行實際牌價不同。';
 
   @override
   String convertedNetWorth(String currency) {
