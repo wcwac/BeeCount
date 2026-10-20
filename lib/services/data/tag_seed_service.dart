@@ -59,11 +59,6 @@ class TagSeedService {
       (name: l10n.tagDefaultRefundable, color: '#CDDC39'),
       (name: l10n.tagDefaultRefunded, color: '#4CAF50'),
 
-      // 记账方式
-      (name: l10n.tagDefaultVoiceBilling, color: '#FF9800'),
-      (name: l10n.tagDefaultImageBilling, color: '#4CAF50'),
-      (name: l10n.tagDefaultCameraBilling, color: '#2196F3'),
-      (name: l10n.tagDefaultAiBilling, color: '#9C27B0'),
     ];
   }
 
@@ -71,9 +66,6 @@ class TagSeedService {
   /// 如果标签已存在（同名），则跳过
   /// 返回新创建的标签数量
   ///
-  /// 走 `repo.createTag` 而不是直接 `db.into(db.tags).insert` —— 确保每个新
-  /// 建标签都被 ChangeTracker 记进 sync_changes 日志。否则这批种子标签永远
-  /// 不会被 push 到云端,web / 其他设备看不到(之前就是这个 bug)。
   static Future<int> seedDefaultTags(
     BaseRepository repo,
     AppLocalizations l10n,

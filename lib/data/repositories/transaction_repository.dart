@@ -224,7 +224,6 @@ abstract class TransactionRepository {
 
   /// 批量新增交易，单事务内插入，返回插入条数。
   ///
-  /// FullPull 路径需要传 false 避免"从云端拉下来的数据又被反向 push 回去"。
   Future<int> insertTransactionsBatch(
     List<TransactionsCompanion> items);
 
@@ -238,7 +237,7 @@ abstract class TransactionRepository {
   /// 用于带标签 / 带附件的 import 路径 — 原本的"单条 insert + 单条
   /// updateTransactionTags + 单条 createAttachment"会引发 N+1 + 嵌套事务,
   /// 1 万条带标签数据耗时数十分钟;本方法把 N 次单条事务折叠成 1 次,
-  /// 并用 `db.batch` 合并 tag / attachment / local_changes 的 INSERT。
+  /// 并用 `db.batch` 合并 tag / attachment 的 INSERT。
   ///
   /// [tagIdsByIndex] - 批次内 index → tagId 列表。调用方需保证 tagIds 去重
   ///   (TransactionTags 表无 UNIQUE 约束,本方法不做 select 防重)。

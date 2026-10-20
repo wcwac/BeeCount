@@ -11,7 +11,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:beecount/data/db.dart';
 import 'package:beecount/data/repositories/local/local_repository.dart';
 import 'package:beecount/l10n/app_localizations.dart';
-import 'package:beecount/providers/currency_providers.dart';
 import 'package:beecount/providers/database_providers.dart';
 import 'package:beecount/widgets/biz/amount_editor_sheet.dart';
 

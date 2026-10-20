@@ -92,7 +92,7 @@ void main() {
     expect(series.first.net, 1700.0);
   });
 
-  test('getEarliestTransactionDate 排除以成员身份加入的共享账本', () async {
+  test('getEarliestTransactionDate includes historical shared ledgers offline', () async {
     // 自己账本(id=1,owner、非共享)
     await db.into(db.ledgers).insert(LedgersCompanion.insert(name: '个人'));
     // 以成员加入的共享账本(id=2,is_shared 且 my_role!=owner)
@@ -102,14 +102,14 @@ void main() {
         myRole: const d.Value('viewer')));
     final acc = await db.into(db.accounts).insert(AccountsCompanion.insert(
         ledgerId: 1, name: '现金', type: const d.Value('cash')));
-    // 共享账本(id=2)更早的交易 2026-01 —— 应被排除
+    // 旧共享账本已是本地数据，关联本地账户的历史流水仍计入。
     await db.into(db.transactions).insert(TransactionsCompanion.insert(
         ledgerId: 2,
         type: 'expense',
         amount: 100,
         accountId: d.Value(acc),
         happenedAt: d.Value(DateTime(2026, 1, 5))));
-    // 自己账本(id=1)的交易 2026-03 —— 趋势起点应取这个
+    // 较晚的个人账本流水。
     await db.into(db.transactions).insert(TransactionsCompanion.insert(
         ledgerId: 1,
         type: 'expense',
@@ -118,7 +118,7 @@ void main() {
         happenedAt: d.Value(DateTime(2026, 3, 10))));
 
     final earliest = await repo.getEarliestTransactionDate();
-    // 排除共享账本 2026-01,起点 = 自己账本最早 2026-03
-    expect(earliest, DateTime(2026, 3, 10));
+    // 起点按全部本地流水取最早日期。
+    expect(earliest, DateTime(2026, 1, 5));
   });
 }

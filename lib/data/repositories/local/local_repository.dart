@@ -311,7 +311,7 @@ class LocalRepository extends BaseRepository {
     double? nativeAmount,
   }) async {
     final old = await _transactionRepo.getTransactionById(id);
-    // v30 联动兜底(与 Cloud merge/mutator 的 L14 同规则):调用方不传两字段时——
+    // 调用方不传币种和折算金额时保持账户与金额联动：
     //   a) 账户变了(如转账换账户对,transfer_form 不传币种)→ 币种应跟随新
     //      账户,按新币种重新解析+折算(审查发现:原只联动 amount,换账户后
     //      currencyCode 残留旧币种);
@@ -435,14 +435,12 @@ class LocalRepository extends BaseRepository {
   /// 重算核心:遍历该账本交易按 [base] 重算 nativeAmount。
   /// [onlyUnconverted]=true → 只补「currencyCode≠base 且 native==amount」的
   /// 存量外币交易(L11);false → 全量(改本位币,§八)。
-  /// 不产 change → 云端投影永远旧值、full_pull 会把重算成果冲回)。
   Future<int> _recalcNativeAmounts(
     int ledgerId,
     String base, {
     required bool onlyUnconverted,
   }) =>
-      // 单事务包裹:逐笔 UPDATE + change INSERT 不再各自 commit/fsync
-      // (万笔账本从 ~2 万次独立 commit 降到 1 次)
+      // 使用单个事务批量更新，避免逐笔提交。
       db.transaction(() => _recalcNativeAmountsInner(ledgerId, base,
           onlyUnconverted: onlyUnconverted));
 
@@ -798,10 +796,6 @@ class LocalRepository extends BaseRepository {
         ? acc!.currency.toUpperCase()
         : null;
   }
-
-  /// 共享账本:本地 tx 写完后回填 createdByUserId / lastEditedByUserId。
-  /// 详见 [LocalTransactionRepository.markTxAuthor]。
-
 
   // ==================== 日历功能相关 ====================
 
@@ -1370,10 +1364,7 @@ class LocalRepository extends BaseRepository {
     );
   }
 
-  /// 隐藏 / 恢复账户(账户隐藏 #240)。**必须**走 [updateAccount](本类上面这个
-  /// 已带 change 追踪的版本),不能直接委托 `_accountRepo.setAccountHidden` ——
-  /// 让隐藏状态不同步到云端(同 `updateAccountSortOrders` / `updateAccountValuation`
-  /// 的教训)。
+  /// 隐藏或恢复本地账户。
   @override
   Future<void> setAccountHidden(int id, bool hidden) =>
       updateAccount(id, hidden: hidden);
@@ -1805,7 +1796,6 @@ class LocalRepository extends BaseRepository {
     required String name,
     String? color,
   }) async {
-    // 委托底层 upsert;新建分支走 createTag 自动记 sync change。
     final existing = await _tagRepo.getTagByName(name);
     if (existing != null) return existing.id;
     return createTag(name: name, color: color);
@@ -2056,9 +2046,6 @@ class LocalRepository extends BaseRepository {
       cloudFileId: cloudFileId,
       cloudSha256: cloudSha256,
     );
-    // 附件本身不走 sync_change 表（server 通过 tx payload 里的 attachments
-    // 数组下发），但必须给父 tx 登记一条 update change，否则另一台设备永远
-    // 收不到"这条 tx 多了附件"的通知。
     return id;
   }
 
@@ -2081,10 +2068,6 @@ class LocalRepository extends BaseRepository {
     await _attachmentRepo.deleteAttachmentsByTransaction(transactionId);
   }
 
-  /// 附件增删触发父 tx 的 update change，让 push 侧重序列化 tx payload
-  /// （带上新 attachments 数组）推到 server，B 端 pull 后同步到视图。
-
-
   @override
   Future<void> updateAttachmentSortOrder(int id, int sortOrder) =>
       _attachmentRepo.updateAttachmentSortOrder(id, sortOrder);
@@ -2094,11 +2077,7 @@ class LocalRepository extends BaseRepository {
           List<({int id, int sortOrder})> updates) =>
       _attachmentRepo.updateAttachmentSortOrders(updates);
 
-  @override
-  Future<void> updateAttachmentCloudRef(int id,
-          {String? cloudFileId, String? cloudSha256}) =>
-      _attachmentRepo.updateAttachmentCloudRef(id,
-          cloudFileId: cloudFileId, cloudSha256: cloudSha256);
+
 
   @override
   Future<bool> attachmentExistsByFileName(String fileName) =>

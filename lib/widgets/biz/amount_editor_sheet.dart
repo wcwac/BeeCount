@@ -7,7 +7,6 @@ import 'package:decimal/decimal.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:beecount/widgets/ui/wheel_date_picker.dart';
 import '../../data/db.dart';
-import '../../providers/local_data_providers.dart';
 import '../../styles/tokens.dart';
 import '../../l10n/app_localizations.dart';
 import '../../services/data/note_history_service.dart';

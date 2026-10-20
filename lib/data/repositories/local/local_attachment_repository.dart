@@ -74,16 +74,7 @@ class LocalAttachmentRepository implements AttachmentRepository {
     );
   }
 
-  @override
-  Future<void> updateAttachmentCloudRef(int id, {String? cloudFileId, String? cloudSha256}) async {
-    await (db.update(db.transactionAttachments)
-      ..where((t) => t.id.equals(id))).write(
-      TransactionAttachmentsCompanion(
-        cloudFileId: d.Value(cloudFileId),
-        cloudSha256: d.Value(cloudSha256),
-      ),
-    );
-  }
+
 
   @override
   Future<void> updateAttachmentSortOrders(List<({int id, int sortOrder})> updates) async {

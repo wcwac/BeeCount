@@ -9,10 +9,6 @@ const _uuid = Uuid();
 
 /// 本地预算Repository实现
 /// 基于 Drift 数据库实现
-///
-/// 这里 NOT 直接调 changeTracker;changeTracker 的注入是通过 LocalRepository
-/// 包装层(lib/data/repositories/local/local_repository.dart)在 CRUD 前后
-/// 统一 recordChange,保持跟 transaction / account 的代码结构一致。
 class LocalBudgetRepository implements BudgetRepository {
   final BeeDatabase db;
 

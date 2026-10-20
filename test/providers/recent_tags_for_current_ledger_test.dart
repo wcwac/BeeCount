@@ -7,6 +7,7 @@ import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:beecount/data/db.dart';
 import 'package:beecount/data/repositories/local/local_repository.dart';
@@ -20,6 +21,7 @@ void main() {
   late LocalRepository repo;
 
   setUp(() {
+    SharedPreferences.setMockInitialValues({});
     db = BeeDatabase.forTesting(NativeDatabase.memory());
     repo = LocalRepository(db);
   });
@@ -36,7 +38,7 @@ void main() {
     return c;
   }
 
-  test('共享账本 Editor:最近使用是真子集,不等于全部标签', () async {
+  test('历史共享账本合并本地与旧镜像标签，最近使用仍为真子集', () async {
     const ledgerSyncId = 'ledger-ext-1';
     final ledgerId = await db.into(db.ledgers).insert(LedgersCompanion.insert(
           name: '共享账本',
@@ -56,8 +58,9 @@ void main() {
             ),
           );
     }
-    // Editor 只用过其中 1 个(关联落在 override 表,不在主表 transaction_tags)
-    await db.into(db.transactions).insert(TransactionsCompanion.insert(
+    // 旧镜像标签和新建本地标签均可用于同一笔本地交易。
+    final localTagId = await repo.createTag(name: '本地新建标签');
+    final txId = await db.into(db.transactions).insert(TransactionsCompanion.insert(
           ledgerId: ledgerId,
           type: 'expense',
           amount: 12.0,
@@ -72,17 +75,23 @@ void main() {
           createdAt: DateTime.utc(2026, 8, 1),
         ));
 
+    await repo.addTagToTransaction(transactionId: txId, tagId: localTagId);
+
     final c = containerFor(ledgerId);
     final recent = await c.read(recentTagsForCurrentLedgerProvider.future);
     final all = await c.read(tagsForCurrentLedgerProvider.future);
 
-    expect(all.map((t) => t.name).toList(), ['标签1', '标签2', '标签3', '标签4']);
-    expect(recent.map((t) => t.name).toList(), ['标签3']);
+    expect(all.map((t) => t.name), containsAll(['本地新建标签', '标签1', '标签2', '标签3', '标签4']));
+    expect(all, hasLength(5));
+    expect(recent.map((t) => t.name), containsAll(['本地新建标签', '标签3']));
+    expect(recent, hasLength(2));
+    expect(all.firstWhere((t) => t.name == '本地新建标签').id, localTagId);
     // 修复前这两行是相等的 —— 「最近使用」被放大成了全量 mirror
     expect(recent.map((t) => t.id).toList(),
         isNot(equals(all.map((t) => t.id).toList())));
     // synthetic id 口径与「全部标签」一致,picker 选中态才对得上
-    expect(recent.single.id, all.firstWhere((t) => t.syncId == 'tag-3').id);
+    expect(recent.firstWhere((t) => t.syncId == 'tag-3').id,
+        all.firstWhere((t) => t.syncId == 'tag-3').id);
   });
 
   test('单人账本:仍走主表 transaction_tags 的最近使用', () async {

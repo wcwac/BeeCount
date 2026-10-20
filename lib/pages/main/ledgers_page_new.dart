@@ -12,7 +12,6 @@ import '../../styles/tokens.dart';
 import '../../utils/currencies.dart';
 import '../../services/attachment_service.dart';
 import '../../services/system/logger_service.dart';
-import '../../utils/ui_scale_extensions.dart';
 import '../../utils/format_utils.dart';
 import '../../services/billing/post_processor.dart';
 import '../../l10n/app_localizations.dart';

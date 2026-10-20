@@ -86,6 +86,21 @@ void main() {
     await db.close();
   });
 
+  test('historical mirror selection retains locally created tags', () async {
+    final localId = await db.into(db.tags).insert(
+      TagsCompanion.insert(name: 'Local tag'),
+    );
+    final local = await db.select(db.tags).get();
+    final ctx = await db.loadLedgerPickerContext(ledgerId);
+    final selectable = await db.filterTagsForLedger(local, ctx);
+    expect(selectable, hasLength(6));
+    expect(selectable.any((tag) => tag.id == localId && tag.name == 'Local tag'),
+        isTrue);
+    expect(selectable.where((tag) => tag.id < 0), hasLength(5));
+    expect(selectable.firstWhere((tag) => tag.syncId == 'tag-3').id,
+        syntheticIdForSyncId('tag-3'));
+  });
+
   test('Editor 的最近使用只含真正用过的标签,不等于全量 mirror', () async {
     await insertTx(
       inLedgerId: ledgerId,

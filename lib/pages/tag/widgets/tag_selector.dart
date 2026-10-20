@@ -55,14 +55,12 @@ class _TagSelectorState extends ConsumerState<TagSelector> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    // §7 共享账本:Editor + 共享账本 picker 只显示 Owner mirror tags
+    // 本地标签及旧备份中保留的标签引用。
     final allTagsAsync =
         ref.watch(tagsForCurrentLedgerProvider).unwrapPrevious();
     final recentTagsAsync =
         ref.watch(recentTagsForCurrentLedgerProvider).unwrapPrevious();
     final canCreateTag = ref.watch(canCreateTagForCurrentLedgerProvider);
-    final visibleTagIds =
-        allTagsAsync.valueOrNull?.map((tag) => tag.id).toSet();
 
     return Container(
       constraints: BoxConstraints(
@@ -116,20 +114,7 @@ class _TagSelectorState extends ConsumerState<TagSelector> {
                   ],
                 ),
                 TextButton(
-                  // Editor 必须等当前账本标签加载完成后才能确认。正数 ID 是升级前
-                  // 残留的个人标签，必须清掉；负数是 Owner mirror 的 synthetic ID，
-                  // 即使本轮资源拉取失败暂不可见也要保留，避免静默删除有效关联。
-                  onPressed: !canCreateTag && visibleTagIds == null
-                      ? null
-                      : () {
-                          final selected = canCreateTag
-                              ? _selectedIds.toList()
-                              : _selectedIds
-                                  .where((id) =>
-                                      id < 0 || visibleTagIds!.contains(id))
-                                  .toList();
-                          Navigator.of(context).pop(selected);
-                        },
+                  onPressed: () => Navigator.of(context).pop(_selectedIds.toList()),
                   child: Text(l10n.commonConfirm),
                 ),
               ],
@@ -205,13 +190,10 @@ class _TagSelectorState extends ConsumerState<TagSelector> {
                         filteredTags,
                       ),
 
-                    // 新建标签入口；Editor 在同一位置显示权限说明。
+                    // 本地账本加载完成后可新建标签。
                     if (canCreateTag) ...[
                       const SizedBox(height: 8),
                       _buildCreateNew(l10n),
-                    ] else ...[
-                      const SizedBox(height: 8),
-                      _buildOwnerManagedHint(l10n),
                     ],
                     const SizedBox(height: 16),
                   ],
@@ -251,25 +233,8 @@ class _TagSelectorState extends ConsumerState<TagSelector> {
               icon: const Icon(Icons.add, size: 18),
               label: Text(l10n.tagSelectCreateNew),
             ),
-          ] else ...[
-            const SizedBox(height: 8),
-            _buildOwnerManagedHint(l10n),
           ],
         ],
-      ),
-    );
-  }
-
-  Widget _buildOwnerManagedHint(AppLocalizations l10n) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Text(
-        l10n.tagSelectOwnerManaged,
-        textAlign: TextAlign.center,
-        style: TextStyle(
-          fontSize: 13,
-          color: BeeTokens.textTertiary(context),
-        ),
       ),
     );
   }

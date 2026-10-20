@@ -98,275 +98,50 @@ abstract class AppLocalizations {
     Locale('zh', 'TW')
   ];
 
-  /// No description provided for @agentActivityPreparing.
-  ///
-  /// In en, this message translates to:
-  /// **'Preparing your answer…'**
-  String get agentActivityPreparing;
 
-  /// No description provided for @agentActivityAwaitingModel.
-  ///
-  /// In en, this message translates to:
-  /// **'Waiting for the model…'**
-  String get agentActivityAwaitingModel;
 
-  /// No description provided for @agentActivityThinking.
-  ///
-  /// In en, this message translates to:
-  /// **'Model is thinking…'**
-  String get agentActivityThinking;
 
-  /// No description provided for @agentActivityGenerating.
-  ///
-  /// In en, this message translates to:
-  /// **'Composing the answer…'**
-  String get agentActivityGenerating;
 
-  /// No description provided for @agentExecutionCompletedSummary.
-  ///
-  /// In en, this message translates to:
-  /// **'Completed {count} operations'**
-  String agentExecutionCompletedSummary(int count);
 
-  /// No description provided for @agentExecutionFailedSummary.
-  ///
-  /// In en, this message translates to:
-  /// **'Some operations did not complete'**
-  String get agentExecutionFailedSummary;
 
-  /// No description provided for @agentActivityUnknownTool.
-  ///
-  /// In en, this message translates to:
-  /// **'Local operation'**
-  String get agentActivityUnknownTool;
 
-  /// No description provided for @agentActivityOverview.
-  ///
-  /// In en, this message translates to:
-  /// **'Income and expense overview'**
-  String get agentActivityOverview;
 
-  /// No description provided for @agentActivityTrend.
-  ///
-  /// In en, this message translates to:
-  /// **'Spending trend'**
-  String get agentActivityTrend;
 
-  /// No description provided for @agentActivityCategories.
-  ///
-  /// In en, this message translates to:
-  /// **'Spending categories'**
-  String get agentActivityCategories;
 
-  /// No description provided for @agentActivityLeafCategories.
-  ///
-  /// In en, this message translates to:
-  /// **'Detailed categories'**
-  String get agentActivityLeafCategories;
 
-  /// No description provided for @agentActivityCategoryScope.
-  ///
-  /// In en, this message translates to:
-  /// **'Categories: {categories}'**
-  String agentActivityCategoryScope(String categories);
 
-  /// No description provided for @agentActivityReturnedRows.
-  ///
-  /// In en, this message translates to:
-  /// **'Returned {count} transactions'**
-  String agentActivityReturnedRows(int count);
 
-  /// No description provided for @agentActivityReturnedGroups.
-  ///
-  /// In en, this message translates to:
-  /// **'Returned {count} groups'**
-  String agentActivityReturnedGroups(int count);
 
-  /// No description provided for @agentActivityTruncated.
-  ///
-  /// In en, this message translates to:
-  /// **'Only part of the results was returned'**
-  String get agentActivityTruncated;
 
-  /// No description provided for @agentFollowUpRotate.
-  ///
-  /// In en, this message translates to:
-  /// **'Another set'**
-  String get agentFollowUpRotate;
 
-  /// No description provided for @agentScrollToLatest.
-  ///
-  /// In en, this message translates to:
-  /// **'Back to the latest message'**
-  String get agentScrollToLatest;
 
-  /// No description provided for @agentSuggestionHealthTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Financial health'**
-  String get agentSuggestionHealthTitle;
 
-  /// No description provided for @agentSuggestionHealthPrompt.
-  ///
-  /// In en, this message translates to:
-  /// **'Analyze this month\'s income, expenses, balance and savings rate, and list monthly spending for the last six months. Give financial health observations and suggestions based on tool results; explain any data limitations.'**
-  String get agentSuggestionHealthPrompt;
 
-  /// No description provided for @agentSuggestionSummaryTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Monthly spending summary'**
-  String get agentSuggestionSummaryTitle;
 
-  /// No description provided for @agentSuggestionSummaryPrompt.
-  ///
-  /// In en, this message translates to:
-  /// **'Summarize this month\'s spending, analyze the main top-level categories and their shares, and suggest ways to save. Use actual tool results and explain any data limitations.'**
-  String get agentSuggestionSummaryPrompt;
 
-  /// No description provided for @agentSuggestionAnalysisTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Category analysis'**
-  String get agentSuggestionAnalysisTitle;
 
-  /// No description provided for @agentSuggestionAnalysisPrompt.
-  ///
-  /// In en, this message translates to:
-  /// **'Analyze this month\'s top-level spending categories and shares, and suggest improvements. Do not judge spending as unreasonable from its share alone; explain any data limitations.'**
-  String get agentSuggestionAnalysisPrompt;
 
-  /// No description provided for @agentSuggestionBudgetTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Budget planning'**
-  String get agentSuggestionBudgetTitle;
 
-  /// No description provided for @agentSuggestionBudgetPrompt.
-  ///
-  /// In en, this message translates to:
-  /// **'Use this month\'s income, expenses and balance, top-level category spending shares, and monthly spending trend for the last six months to suggest next month\'s category budgets. Give advice only; do not create or modify budgets. Explain any data limitations.'**
-  String get agentSuggestionBudgetPrompt;
 
-  /// No description provided for @agentSuggestionAnomalyTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Spending check'**
-  String get agentSuggestionAnomalyTitle;
 
-  /// No description provided for @agentSuggestionAnomalyPrompt.
-  ///
-  /// In en, this message translates to:
-  /// **'Review transaction details and the income and expense overview for the last thirty days. Flag large or repeated transactions worth reviewing and explain the evidence. This is only a preliminary check of returned details, not a scan of all transactions; do not label normal purchases as abnormal.'**
-  String get agentSuggestionAnomalyPrompt;
 
-  /// No description provided for @agentSuggestionSavingTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Saving tips'**
-  String get agentSuggestionSavingTitle;
 
-  /// No description provided for @agentSuggestionSavingPrompt.
-  ///
-  /// In en, this message translates to:
-  /// **'Analyze this month\'s top-level spending categories and shares and the monthly spending trend for the last six months. Offer three to five practical saving tips based on tool results, without inferring personal circumstances. Explain any data limitations.'**
-  String get agentSuggestionSavingPrompt;
 
-  /// No description provided for @agentFollowUpTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Explore further'**
-  String get agentFollowUpTitle;
 
-  /// No description provided for @agentFollowUpRange.
-  ///
-  /// In en, this message translates to:
-  /// **'{start} to {end} (end exclusive)'**
-  String agentFollowUpRange(String start, String end);
 
-  /// No description provided for @agentFollowUpAllCategories.
-  ///
-  /// In en, this message translates to:
-  /// **'all spending categories'**
-  String get agentFollowUpAllCategories;
 
-  /// No description provided for @agentFollowUpCategoryTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'View category shares'**
-  String get agentFollowUpCategoryTitle;
 
-  /// No description provided for @agentFollowUpCategoryPrompt.
-  ///
-  /// In en, this message translates to:
-  /// **'Show top-level spending category shares for {range}.'**
-  String agentFollowUpCategoryPrompt(String range);
 
-  /// No description provided for @agentFollowUpTrendTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'View spending trend'**
-  String get agentFollowUpTrendTitle;
 
-  /// No description provided for @agentFollowUpTrendPrompt.
-  ///
-  /// In en, this message translates to:
-  /// **'List monthly spending for {category} during {range}, without month-over-month or year-over-year comparison.'**
-  String agentFollowUpTrendPrompt(String category, String range);
 
-  /// No description provided for @agentFollowUpCompareTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Compare adjacent months'**
-  String get agentFollowUpCompareTitle;
 
-  /// No description provided for @agentFollowUpComparePrompt.
-  ///
-  /// In en, this message translates to:
-  /// **'List monthly spending for {category} during {range}, with month-over-month changes between adjacent months.'**
-  String agentFollowUpComparePrompt(String category, String range);
 
-  /// No description provided for @agentFollowUpLeafTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Explore {category}'**
-  String agentFollowUpLeafTitle(String category);
 
-  /// No description provided for @agentFollowUpLeafPrompt.
-  ///
-  /// In en, this message translates to:
-  /// **'Show subcategory spending shares within the category “{category}” for {range}.'**
-  String agentFollowUpLeafPrompt(String category, String range);
 
-  /// No description provided for @agentFollowUpOverviewTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'View income and expenses'**
-  String get agentFollowUpOverviewTitle;
 
-  /// No description provided for @agentFollowUpOverviewPrompt.
-  ///
-  /// In en, this message translates to:
-  /// **'Show total income, expenses and balance for {range}.'**
-  String agentFollowUpOverviewPrompt(String range);
 
-  /// No description provided for @aiConsentTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Before enabling AI features'**
-  String get aiConsentTitle;
 
-  /// No description provided for @aiConsentBody.
-  ///
-  /// In en, this message translates to:
-  /// **'AI features need to send related data to the third-party AI provider you configure:\n\n• Who it goes to: by default Zhipu GLM (open.bigmodel.cn, operated by Zhipu); if you configure another third-party AI service, it goes to the provider you entered.\n• What is sent: the content you actively use for recognition/chat — receipt images, voice recordings, text you type, plus the category names, account names and relevant transaction records needed to complete recognition/analysis.\n• Purpose: only for bill recognition, bookkeeping and chats you initiate; BeeCount itself does not collect or store this data.\n\nThe data is processed by that third-party provider under its own privacy policy. Enabling means you consent to the data sharing above.'**
-  String get aiConsentBody;
 
-  /// No description provided for @aiConsentAgree.
-  ///
-  /// In en, this message translates to:
-  /// **'Agree & enable'**
-  String get aiConsentAgree;
 
   /// No description provided for @aboutPrivacyPolicy.
   ///
@@ -524,197 +299,37 @@ abstract class AppLocalizations {
   /// **'Gallery'**
   String get fabActionGallery;
 
-  /// No description provided for @fabActionVoice.
-  ///
-  /// In en, this message translates to:
-  /// **'Voice'**
-  String get fabActionVoice;
 
-  /// No description provided for @fabActionVoiceDisabled.
-  ///
-  /// In en, this message translates to:
-  /// **'AI enabled & API Key required'**
-  String get fabActionVoiceDisabled;
 
-  /// No description provided for @voiceRecordingTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Voice Billing'**
-  String get voiceRecordingTitle;
 
-  /// No description provided for @voiceRecordingPreparing.
-  ///
-  /// In en, this message translates to:
-  /// **'Preparing...'**
-  String get voiceRecordingPreparing;
 
-  /// No description provided for @voiceRecordingInProgress.
-  ///
-  /// In en, this message translates to:
-  /// **'Recording...'**
-  String get voiceRecordingInProgress;
 
-  /// No description provided for @voiceRecordingProcessing.
-  ///
-  /// In en, this message translates to:
-  /// **'Recognizing...'**
-  String get voiceRecordingProcessing;
 
-  /// No description provided for @voiceRecordingDuration.
-  ///
-  /// In en, this message translates to:
-  /// **'Duration: {duration}s'**
-  String voiceRecordingDuration(int duration);
 
-  /// No description provided for @voiceRecordingSuccess.
-  ///
-  /// In en, this message translates to:
-  /// **'Voice billing successful'**
-  String get voiceRecordingSuccess;
 
-  /// No description provided for @voiceMicPermissionRestricted.
-  ///
-  /// In en, this message translates to:
-  /// **'Microphone access is restricted by device management policy'**
-  String get voiceMicPermissionRestricted;
 
-  /// No description provided for @voiceRecordingNoLedger.
-  ///
-  /// In en, this message translates to:
-  /// **'No ledger found'**
-  String get voiceRecordingNoLedger;
 
-  /// No description provided for @voiceRecordingNoInfo.
-  ///
-  /// In en, this message translates to:
-  /// **'No billing information recognized'**
-  String get voiceRecordingNoInfo;
 
-  /// No description provided for @voiceRecordingPermissionDenied.
-  ///
-  /// In en, this message translates to:
-  /// **'Microphone permission required'**
-  String get voiceRecordingPermissionDenied;
 
-  /// No description provided for @voiceRecordingPermissionDeniedTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Microphone Permission Required'**
-  String get voiceRecordingPermissionDeniedTitle;
 
-  /// No description provided for @voiceRecordingPermissionDeniedMessage.
-  ///
-  /// In en, this message translates to:
-  /// **'Voice billing requires microphone permission. Please allow BeeCount to access the microphone in System Settings.'**
-  String get voiceRecordingPermissionDeniedMessage;
 
-  /// No description provided for @voiceRecordingStartFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Failed to start recording: {error}'**
-  String voiceRecordingStartFailed(String error);
 
-  /// No description provided for @voiceRecordingFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Recording failed: {error}'**
-  String voiceRecordingFailed(String error);
 
-  /// No description provided for @voiceRecordingRecognizeFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Recognition failed: {error}'**
-  String voiceRecordingRecognizeFailed(String error);
 
-  /// No description provided for @voiceRecordingNoInfoDetected.
-  ///
-  /// In en, this message translates to:
-  /// **'Unable to extract bill info: {text}'**
-  String voiceRecordingNoInfoDetected(String text);
 
-  /// No description provided for @voiceRecordingNoSpeech.
-  ///
-  /// In en, this message translates to:
-  /// **'No speech detected'**
-  String get voiceRecordingNoSpeech;
 
-  /// No description provided for @voiceRecordingHoldToTalk.
-  ///
-  /// In en, this message translates to:
-  /// **'Hold to talk'**
-  String get voiceRecordingHoldToTalk;
 
-  /// No description provided for @voiceRecordingReleaseToFinish.
-  ///
-  /// In en, this message translates to:
-  /// **'Release to finish'**
-  String get voiceRecordingReleaseToFinish;
 
-  /// No description provided for @voiceRecordingTooShort.
-  ///
-  /// In en, this message translates to:
-  /// **'Recording too short'**
-  String get voiceRecordingTooShort;
 
-  /// No description provided for @voiceRecordingResultLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Recognition result:'**
-  String get voiceRecordingResultLabel;
 
-  /// No description provided for @voiceRecordingAutoHintSpoken.
-  ///
-  /// In en, this message translates to:
-  /// **'Pause when done to auto-recognize'**
-  String get voiceRecordingAutoHintSpoken;
 
-  /// No description provided for @voiceRecordingAutoHintWaiting.
-  ///
-  /// In en, this message translates to:
-  /// **'Please start speaking...'**
-  String get voiceRecordingAutoHintWaiting;
 
-  /// No description provided for @smartBillingVoiceTrigger.
-  ///
-  /// In en, this message translates to:
-  /// **'Voice trigger mode'**
-  String get smartBillingVoiceTrigger;
 
-  /// No description provided for @voiceTriggerModeAuto.
-  ///
-  /// In en, this message translates to:
-  /// **'Auto-detect pause'**
-  String get voiceTriggerModeAuto;
 
-  /// No description provided for @voiceTriggerModeAutoDesc.
-  ///
-  /// In en, this message translates to:
-  /// **'Stops automatically after a pause; best for short entries'**
-  String get voiceTriggerModeAutoDesc;
 
-  /// No description provided for @voiceTriggerModeHold.
-  ///
-  /// In en, this message translates to:
-  /// **'Hold to talk'**
-  String get voiceTriggerModeHold;
 
-  /// No description provided for @voiceTriggerModeHoldDesc.
-  ///
-  /// In en, this message translates to:
-  /// **'Hold to record, release to stop; best for longer input'**
-  String get voiceTriggerModeHoldDesc;
 
-  /// No description provided for @smartBillingVoiceSilenceTimeout.
-  ///
-  /// In en, this message translates to:
-  /// **'Pause to finish'**
-  String get smartBillingVoiceSilenceTimeout;
 
-  /// No description provided for @smartBillingVoiceSilenceTimeoutValue.
-  ///
-  /// In en, this message translates to:
-  /// **'Auto-finish after a {seconds}s pause'**
-  String smartBillingVoiceSilenceTimeoutValue(String seconds);
 
   /// No description provided for @commonPrevious.
   ///
@@ -2270,17 +1885,7 @@ abstract class AppLocalizations {
   /// **'Export Data'**
   String get mineExport;
 
-  /// No description provided for @mineCloud.
-  ///
-  /// In en, this message translates to:
-  /// **'Cloud Service'**
-  String get mineCloud;
 
-  /// No description provided for @mineUpdate.
-  ///
-  /// In en, this message translates to:
-  /// **'Check for Updates'**
-  String get mineUpdate;
 
   /// No description provided for @mineLanguageSettings.
   ///
@@ -2390,233 +1995,43 @@ abstract class AppLocalizations {
   /// **'Edit profile'**
   String get mineProfileEditTitle;
 
-  /// No description provided for @headerSkinTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Skin'**
-  String get headerSkinTitle;
 
-  /// No description provided for @headerSkinSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Follows your theme color, layered over the header'**
-  String get headerSkinSubtitle;
 
-  /// No description provided for @headerSkinGroupBasic.
-  ///
-  /// In en, this message translates to:
-  /// **'Basic'**
-  String get headerSkinGroupBasic;
 
-  /// No description provided for @headerSkinGroupAnniversary.
-  ///
-  /// In en, this message translates to:
-  /// **'Anniversary'**
-  String get headerSkinGroupAnniversary;
 
-  /// No description provided for @headerSkinGroupGradient.
-  ///
-  /// In en, this message translates to:
-  /// **'Gradient'**
-  String get headerSkinGroupGradient;
 
-  /// No description provided for @headerSkinGroupScene.
-  ///
-  /// In en, this message translates to:
-  /// **'Scenery'**
-  String get headerSkinGroupScene;
 
-  /// No description provided for @headerSkinGroupPattern.
-  ///
-  /// In en, this message translates to:
-  /// **'Patterns'**
-  String get headerSkinGroupPattern;
 
-  /// No description provided for @headerSkinGroupGeometric.
-  ///
-  /// In en, this message translates to:
-  /// **'Geometric'**
-  String get headerSkinGroupGeometric;
 
-  /// No description provided for @headerSkinNone.
-  ///
-  /// In en, this message translates to:
-  /// **'Solid'**
-  String get headerSkinNone;
 
-  /// No description provided for @headerSkinAnniversary.
-  ///
-  /// In en, this message translates to:
-  /// **'Constellation No.1'**
-  String get headerSkinAnniversary;
 
-  /// No description provided for @headerSkinAnnivCake.
-  ///
-  /// In en, this message translates to:
-  /// **'Birthday Cake'**
-  String get headerSkinAnnivCake;
 
-  /// No description provided for @headerSkinTabAll.
-  ///
-  /// In en, this message translates to:
-  /// **'All'**
-  String get headerSkinTabAll;
 
-  /// No description provided for @headerSkinTabAnimated.
-  ///
-  /// In en, this message translates to:
-  /// **'Animated'**
-  String get headerSkinTabAnimated;
 
-  /// No description provided for @headerSkinTabStatic.
-  ///
-  /// In en, this message translates to:
-  /// **'Static'**
-  String get headerSkinTabStatic;
 
-  /// No description provided for @headerSkinAnimatedBadge.
-  ///
-  /// In en, this message translates to:
-  /// **'LIVE'**
-  String get headerSkinAnimatedBadge;
 
-  /// No description provided for @headerSkinFixedPalette.
-  ///
-  /// In en, this message translates to:
-  /// **'Own palette'**
-  String get headerSkinFixedPalette;
 
-  /// No description provided for @personalizeLockedBySkin.
-  ///
-  /// In en, this message translates to:
-  /// **'The skin \"{skin}\" comes with its own palette, so the theme color is set by the skin and can\'t be changed. Switch to another skin to get your color back.'**
-  String personalizeLockedBySkin(String skin);
 
-  /// No description provided for @personalizeFixedSkinAction.
-  ///
-  /// In en, this message translates to:
-  /// **'Change skin'**
-  String get personalizeFixedSkinAction;
 
-  /// No description provided for @headerSkinAurora.
-  ///
-  /// In en, this message translates to:
-  /// **'Aurora'**
-  String get headerSkinAurora;
 
-  /// No description provided for @headerSkinMountains.
-  ///
-  /// In en, this message translates to:
-  /// **'Mountains'**
-  String get headerSkinMountains;
 
-  /// No description provided for @headerSkinBokeh.
-  ///
-  /// In en, this message translates to:
-  /// **'Bokeh'**
-  String get headerSkinBokeh;
 
-  /// No description provided for @headerSkinWaves.
-  ///
-  /// In en, this message translates to:
-  /// **'Waves'**
-  String get headerSkinWaves;
 
-  /// No description provided for @headerSkinSunset.
-  ///
-  /// In en, this message translates to:
-  /// **'Sunset'**
-  String get headerSkinSunset;
 
-  /// No description provided for @headerSkinClouds.
-  ///
-  /// In en, this message translates to:
-  /// **'Clouds'**
-  String get headerSkinClouds;
 
-  /// No description provided for @headerSkinExample.
-  ///
-  /// In en, this message translates to:
-  /// **'Example'**
-  String get headerSkinExample;
 
-  /// No description provided for @headerSkinHoneycomb.
-  ///
-  /// In en, this message translates to:
-  /// **'Honeycomb'**
-  String get headerSkinHoneycomb;
 
-  /// No description provided for @headerSkinStarry.
-  ///
-  /// In en, this message translates to:
-  /// **'Starry'**
-  String get headerSkinStarry;
 
-  /// No description provided for @headerSkinStripes.
-  ///
-  /// In en, this message translates to:
-  /// **'Stripes'**
-  String get headerSkinStripes;
 
-  /// No description provided for @headerSkinSkyline.
-  ///
-  /// In en, this message translates to:
-  /// **'Skyline'**
-  String get headerSkinSkyline;
 
-  /// No description provided for @headerSkinSakura.
-  ///
-  /// In en, this message translates to:
-  /// **'Sakura'**
-  String get headerSkinSakura;
 
-  /// No description provided for @headerSkinMeteor.
-  ///
-  /// In en, this message translates to:
-  /// **'Meteor'**
-  String get headerSkinMeteor;
 
-  /// No description provided for @headerSkinMemphis.
-  ///
-  /// In en, this message translates to:
-  /// **'Memphis'**
-  String get headerSkinMemphis;
 
-  /// No description provided for @headerSkinSilk.
-  ///
-  /// In en, this message translates to:
-  /// **'Silk'**
-  String get headerSkinSilk;
 
-  /// No description provided for @headerSkinBubbles.
-  ///
-  /// In en, this message translates to:
-  /// **'Bubbles'**
-  String get headerSkinBubbles;
 
-  /// No description provided for @headerSkinGalaxy.
-  ///
-  /// In en, this message translates to:
-  /// **'Galaxy'**
-  String get headerSkinGalaxy;
 
-  /// No description provided for @headerSkinLowPoly.
-  ///
-  /// In en, this message translates to:
-  /// **'Low-poly'**
-  String get headerSkinLowPoly;
 
-  /// No description provided for @headerSkinPrism.
-  ///
-  /// In en, this message translates to:
-  /// **'Prism'**
-  String get headerSkinPrism;
 
-  /// No description provided for @headerSkinTerrazzo.
-  ///
-  /// In en, this message translates to:
-  /// **'Terrazzo'**
-  String get headerSkinTerrazzo;
 
   /// No description provided for @mineAvatarTitle.
   ///
@@ -3278,251 +2693,46 @@ abstract class AppLocalizations {
   /// **'Ledger balance'**
   String get mineCurrentBalance;
 
-  /// No description provided for @mineCloudService.
-  ///
-  /// In en, this message translates to:
-  /// **'Cloud Service'**
-  String get mineCloudService;
 
-  /// No description provided for @mineCloudServiceLoading.
-  ///
-  /// In en, this message translates to:
-  /// **'Loading...'**
-  String get mineCloudServiceLoading;
 
-  /// No description provided for @mineCloudServiceOffline.
-  ///
-  /// In en, this message translates to:
-  /// **'Default Mode (Offline)'**
-  String get mineCloudServiceOffline;
 
-  /// No description provided for @mineCloudServiceCustom.
-  ///
-  /// In en, this message translates to:
-  /// **'Custom Supabase'**
-  String get mineCloudServiceCustom;
 
-  /// No description provided for @mineCloudServiceWebDAV.
-  ///
-  /// In en, this message translates to:
-  /// **'Custom Cloud Service (WebDAV)'**
-  String get mineCloudServiceWebDAV;
 
-  /// No description provided for @mineSyncTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Sync'**
-  String get mineSyncTitle;
 
-  /// No description provided for @mineSyncNotLoggedIn.
-  ///
-  /// In en, this message translates to:
-  /// **'Not logged in'**
-  String get mineSyncNotLoggedIn;
 
-  /// No description provided for @mineSyncNotConfigured.
-  ///
-  /// In en, this message translates to:
-  /// **'Cloud not configured'**
-  String get mineSyncNotConfigured;
 
-  /// No description provided for @mineSyncNoRemote.
-  ///
-  /// In en, this message translates to:
-  /// **'No cloud data'**
-  String get mineSyncNoRemote;
 
-  /// No description provided for @mineSyncInSync.
-  ///
-  /// In en, this message translates to:
-  /// **'Synced (local {count} records)'**
-  String mineSyncInSync(Object count);
 
-  /// No description provided for @mineSyncInSyncSimple.
-  ///
-  /// In en, this message translates to:
-  /// **'Synced'**
-  String get mineSyncInSyncSimple;
 
-  /// No description provided for @mineSyncLocalNewer.
-  ///
-  /// In en, this message translates to:
-  /// **'Local updated ({count} records, upload recommended)'**
-  String mineSyncLocalNewer(Object count);
 
-  /// No description provided for @mineSyncLocalNewerSimple.
-  ///
-  /// In en, this message translates to:
-  /// **'Local updated'**
-  String get mineSyncLocalNewerSimple;
 
-  /// No description provided for @mineSyncCloudNewer.
-  ///
-  /// In en, this message translates to:
-  /// **'Cloud updated (download to sync)'**
-  String get mineSyncCloudNewer;
 
-  /// No description provided for @mineSyncCloudNewerSimple.
-  ///
-  /// In en, this message translates to:
-  /// **'Cloud updated'**
-  String get mineSyncCloudNewerSimple;
 
-  /// No description provided for @mineSyncDifferent.
-  ///
-  /// In en, this message translates to:
-  /// **'Local and cloud differ, download to compare'**
-  String get mineSyncDifferent;
 
-  /// No description provided for @mineSyncError.
-  ///
-  /// In en, this message translates to:
-  /// **'Failed to get status'**
-  String get mineSyncError;
 
-  /// No description provided for @mineSyncDetailTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Sync Status Details'**
-  String get mineSyncDetailTitle;
 
-  /// No description provided for @mineSyncLocalRecords.
-  ///
-  /// In en, this message translates to:
-  /// **'Local records: {count}'**
-  String mineSyncLocalRecords(Object count);
 
-  /// No description provided for @mineSyncCloudRecords.
-  ///
-  /// In en, this message translates to:
-  /// **'Cloud records: {count}'**
-  String mineSyncCloudRecords(Object count);
 
-  /// No description provided for @mineSyncCloudLatest.
-  ///
-  /// In en, this message translates to:
-  /// **'Cloud latest record time: {time}'**
-  String mineSyncCloudLatest(Object time);
 
-  /// No description provided for @mineSyncLocalFingerprint.
-  ///
-  /// In en, this message translates to:
-  /// **'Local fingerprint: {fingerprint}'**
-  String mineSyncLocalFingerprint(Object fingerprint);
 
-  /// No description provided for @mineSyncCloudFingerprint.
-  ///
-  /// In en, this message translates to:
-  /// **'Cloud fingerprint: {fingerprint}'**
-  String mineSyncCloudFingerprint(Object fingerprint);
 
-  /// No description provided for @mineSyncMessage.
-  ///
-  /// In en, this message translates to:
-  /// **'Message: {message}'**
-  String mineSyncMessage(Object message);
 
-  /// No description provided for @mineUploadTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Upload'**
-  String get mineUploadTitle;
 
-  /// No description provided for @mineUploadNeedLogin.
-  ///
-  /// In en, this message translates to:
-  /// **'Login required'**
-  String get mineUploadNeedLogin;
 
-  /// No description provided for @mineUploadNeedCloudService.
-  ///
-  /// In en, this message translates to:
-  /// **'Available in cloud service mode only'**
-  String get mineUploadNeedCloudService;
 
-  /// No description provided for @mineUploadInProgress.
-  ///
-  /// In en, this message translates to:
-  /// **'Uploading...'**
-  String get mineUploadInProgress;
 
-  /// No description provided for @mineUploadRefreshing.
-  ///
-  /// In en, this message translates to:
-  /// **'Refreshing...'**
-  String get mineUploadRefreshing;
 
-  /// No description provided for @mineUploadSynced.
-  ///
-  /// In en, this message translates to:
-  /// **'Synced'**
-  String get mineUploadSynced;
 
-  /// No description provided for @mineUploadSuccess.
-  ///
-  /// In en, this message translates to:
-  /// **'Uploaded'**
-  String get mineUploadSuccess;
 
-  /// No description provided for @mineUploadSuccessMessage.
-  ///
-  /// In en, this message translates to:
-  /// **'Current ledger synced to cloud'**
-  String get mineUploadSuccessMessage;
 
-  /// No description provided for @mineDownloadTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Download & Sync'**
-  String get mineDownloadTitle;
 
-  /// No description provided for @mineDownloadNeedCloudService.
-  ///
-  /// In en, this message translates to:
-  /// **'Available in cloud service mode only'**
-  String get mineDownloadNeedCloudService;
 
-  /// No description provided for @mineDownloadComplete.
-  ///
-  /// In en, this message translates to:
-  /// **'Sync Complete'**
-  String get mineDownloadComplete;
 
-  /// No description provided for @mineDownloadResult.
-  ///
-  /// In en, this message translates to:
-  /// **'Imported: {inserted} records'**
-  String mineDownloadResult(Object inserted);
 
-  /// No description provided for @mineLoginTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Login'**
-  String get mineLoginTitle;
 
-  /// No description provided for @mineLoginSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Only needed for sync'**
-  String get mineLoginSubtitle;
 
-  /// No description provided for @cloudReloginTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Re-login'**
-  String get cloudReloginTitle;
 
-  /// No description provided for @cloudReloginSuccess.
-  ///
-  /// In en, this message translates to:
-  /// **'Re-logged in'**
-  String get cloudReloginSuccess;
 
-  /// No description provided for @cloudReloginFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Re-login failed'**
-  String get cloudReloginFailed;
 
   /// No description provided for @mineLoggedInEmail.
   ///
@@ -3554,23 +2764,8 @@ abstract class AppLocalizations {
   /// **'Logout'**
   String get mineLogoutButton;
 
-  /// No description provided for @mineAutoSyncTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Auto sync ledger'**
-  String get mineAutoSyncTitle;
 
-  /// No description provided for @mineAutoSyncSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Auto upload to cloud after recording'**
-  String get mineAutoSyncSubtitle;
 
-  /// No description provided for @mineAutoSyncNeedLogin.
-  ///
-  /// In en, this message translates to:
-  /// **'Login required to enable'**
-  String get mineAutoSyncNeedLogin;
 
   /// No description provided for @mineImportProgressTitle.
   ///
@@ -3656,23 +2851,8 @@ abstract class AppLocalizations {
   /// **'Adjust text and UI element sizes'**
   String get mineDisplayScaleSubtitle;
 
-  /// No description provided for @mineCheckUpdate.
-  ///
-  /// In en, this message translates to:
-  /// **'Check Update'**
-  String get mineCheckUpdate;
 
-  /// No description provided for @mineCheckUpdateSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Checking for latest version'**
-  String get mineCheckUpdateSubtitle;
 
-  /// No description provided for @mineUpdateDownload.
-  ///
-  /// In en, this message translates to:
-  /// **'Download Update'**
-  String get mineUpdateDownload;
 
   /// No description provided for @mineFeedback.
   ///
@@ -3728,23 +2908,8 @@ abstract class AppLocalizations {
   /// **'Open source, {count} stars'**
   String mineSupportAuthorSubtitle(String count);
 
-  /// No description provided for @githubStarGuideTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'How to Star the Project'**
-  String get githubStarGuideTitle;
 
-  /// No description provided for @githubStarGuideContent.
-  ///
-  /// In en, this message translates to:
-  /// **'After tapping the button below to open GitHub, tap the area marked in the image to complete the Star'**
-  String get githubStarGuideContent;
 
-  /// No description provided for @githubStarGuideButton.
-  ///
-  /// In en, this message translates to:
-  /// **'Go to GitHub'**
-  String get githubStarGuideButton;
 
   /// No description provided for @categoryEditTitle.
   ///
@@ -4568,17 +3733,7 @@ abstract class AppLocalizations {
   /// **'Abbreviate large amounts, e.g. 12.3K (only affects account balance)'**
   String get appearanceAmountFormatCompactDesc;
 
-  /// No description provided for @appearanceSkinAnimation.
-  ///
-  /// In en, this message translates to:
-  /// **'Skin Animation'**
-  String get appearanceSkinAnimation;
 
-  /// No description provided for @appearanceSkinAnimationDesc.
-  ///
-  /// In en, this message translates to:
-  /// **'Turn off to freeze animated skins on a still frame and save power'**
-  String get appearanceSkinAnimationDesc;
 
   /// No description provided for @appearanceShowTransactionTime.
   ///
@@ -5312,311 +4467,56 @@ abstract class AppLocalizations {
   /// **'All Success'**
   String get mineImportCompleteAllSuccess;
 
-  /// No description provided for @mineCheckUpdateDetecting.
-  ///
-  /// In en, this message translates to:
-  /// **'Checking update...'**
-  String get mineCheckUpdateDetecting;
 
-  /// No description provided for @mineCheckUpdateSubtitleDetecting.
-  ///
-  /// In en, this message translates to:
-  /// **'Checking for latest version'**
-  String get mineCheckUpdateSubtitleDetecting;
 
-  /// No description provided for @mineUpdateDownloadTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Download Update'**
-  String get mineUpdateDownloadTitle;
 
-  /// No description provided for @cloudTest.
-  ///
-  /// In en, this message translates to:
-  /// **'Test'**
-  String get cloudTest;
 
-  /// No description provided for @cloudSwitched.
-  ///
-  /// In en, this message translates to:
-  /// **'Switched'**
-  String get cloudSwitched;
 
-  /// No description provided for @cloudSwitchFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Switch failed'**
-  String get cloudSwitchFailed;
 
-  /// No description provided for @cloudSupabaseUrlLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Supabase URL'**
-  String get cloudSupabaseUrlLabel;
 
-  /// No description provided for @cloudSupabaseUrlHint.
-  ///
-  /// In en, this message translates to:
-  /// **'https://xxx.supabase.co'**
-  String get cloudSupabaseUrlHint;
 
-  /// No description provided for @cloudAnonKeyLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Anon Key'**
-  String get cloudAnonKeyLabel;
 
-  /// No description provided for @cloudSelectServiceType.
-  ///
-  /// In en, this message translates to:
-  /// **'Select Cloud Service Type'**
-  String get cloudSelectServiceType;
 
-  /// No description provided for @cloudMultiDeviceWarningTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Multi-Device Tips'**
-  String get cloudMultiDeviceWarningTitle;
 
-  /// No description provided for @cloudMultiDeviceWarningMessage.
-  ///
-  /// In en, this message translates to:
-  /// **'Upload before switching devices, download on the new device before editing. Don\'t edit the same ledger on two devices at once. Tap for details →'**
-  String get cloudMultiDeviceWarningMessage;
 
-  /// No description provided for @cloudWebdavUrlLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'WebDAV Server URL'**
-  String get cloudWebdavUrlLabel;
 
-  /// No description provided for @cloudWebdavUrlHint.
-  ///
-  /// In en, this message translates to:
-  /// **'https://dav.jianguoyun.com/dav/'**
-  String get cloudWebdavUrlHint;
 
-  /// No description provided for @cloudWebdavUsernameLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Username'**
-  String get cloudWebdavUsernameLabel;
 
-  /// No description provided for @cloudWebdavPasswordLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Password'**
-  String get cloudWebdavPasswordLabel;
 
-  /// No description provided for @cloudWebdavPathHint.
-  ///
-  /// In en, this message translates to:
-  /// **'/BeeCount'**
-  String get cloudWebdavPathHint;
 
-  /// No description provided for @cloudS3EndpointLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Endpoint'**
-  String get cloudS3EndpointLabel;
 
-  /// No description provided for @cloudS3EndpointHint.
-  ///
-  /// In en, this message translates to:
-  /// **'s3.amazonaws.com or custom endpoint'**
-  String get cloudS3EndpointHint;
 
-  /// No description provided for @cloudS3RegionLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Region'**
-  String get cloudS3RegionLabel;
 
-  /// No description provided for @cloudS3RegionHint.
-  ///
-  /// In en, this message translates to:
-  /// **'us-east-1 (leave blank for auto)'**
-  String get cloudS3RegionHint;
 
-  /// No description provided for @cloudS3AccessKeyLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Access Key'**
-  String get cloudS3AccessKeyLabel;
 
-  /// No description provided for @cloudS3AccessKeyHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Your Access Key ID'**
-  String get cloudS3AccessKeyHint;
 
-  /// No description provided for @cloudS3SecretKeyLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Secret Key'**
-  String get cloudS3SecretKeyLabel;
 
-  /// No description provided for @cloudS3SecretKeyHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Your Secret Access Key'**
-  String get cloudS3SecretKeyHint;
 
-  /// No description provided for @cloudS3BucketLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Bucket Name'**
-  String get cloudS3BucketLabel;
 
-  /// No description provided for @cloudS3BucketHint.
-  ///
-  /// In en, this message translates to:
-  /// **'beecount-data'**
-  String get cloudS3BucketHint;
 
-  /// No description provided for @cloudS3UseSSLLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Use HTTPS'**
-  String get cloudS3UseSSLLabel;
 
-  /// No description provided for @cloudS3PortLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Port (optional)'**
-  String get cloudS3PortLabel;
 
-  /// No description provided for @cloudS3PortHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Leave blank for default'**
-  String get cloudS3PortHint;
 
-  /// No description provided for @cloudSupabaseBucketLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Storage Bucket Name'**
-  String get cloudSupabaseBucketLabel;
 
-  /// No description provided for @cloudSupabaseBucketHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Leave blank for default: beecount-backups'**
-  String get cloudSupabaseBucketHint;
 
-  /// No description provided for @authRememberAccount.
-  ///
-  /// In en, this message translates to:
-  /// **'Remember account'**
-  String get authRememberAccount;
 
-  /// No description provided for @authRememberAccountHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Auto-fill on next login (Supabase only)'**
-  String get authRememberAccountHint;
 
-  /// No description provided for @cloudConfigSaved.
-  ///
-  /// In en, this message translates to:
-  /// **'Configuration saved'**
-  String get cloudConfigSaved;
 
-  /// No description provided for @cloudTestSuccess.
-  ///
-  /// In en, this message translates to:
-  /// **'Connection test successful!'**
-  String get cloudTestSuccess;
 
-  /// No description provided for @cloudTestFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Connection test failed, please check if the configuration is correct.'**
-  String get cloudTestFailed;
 
-  /// No description provided for @cloudTestError.
-  ///
-  /// In en, this message translates to:
-  /// **'Test failed'**
-  String get cloudTestError;
 
-  /// No description provided for @authLogin.
-  ///
-  /// In en, this message translates to:
-  /// **'Login'**
-  String get authLogin;
 
-  /// No description provided for @authEmail.
-  ///
-  /// In en, this message translates to:
-  /// **'Email'**
-  String get authEmail;
 
-  /// No description provided for @authPassword.
-  ///
-  /// In en, this message translates to:
-  /// **'Password'**
-  String get authPassword;
 
-  /// No description provided for @authInvalidEmail.
-  ///
-  /// In en, this message translates to:
-  /// **'Please enter a valid email address'**
-  String get authInvalidEmail;
 
-  /// No description provided for @authNoAccountYet.
-  ///
-  /// In en, this message translates to:
-  /// **'No account yet? '**
-  String get authNoAccountYet;
 
-  /// No description provided for @authViewRegisterGuide.
-  ///
-  /// In en, this message translates to:
-  /// **'See how to register'**
-  String get authViewRegisterGuide;
 
-  /// No description provided for @authErrorInvalidCredentials.
-  ///
-  /// In en, this message translates to:
-  /// **'Email or password is incorrect.'**
-  String get authErrorInvalidCredentials;
 
-  /// No description provided for @authErrorEmailNotConfirmed.
-  ///
-  /// In en, this message translates to:
-  /// **'Email not verified, please complete verification in your email before logging in.'**
-  String get authErrorEmailNotConfirmed;
 
-  /// No description provided for @authErrorRateLimit.
-  ///
-  /// In en, this message translates to:
-  /// **'Too many attempts, please try again later.'**
-  String get authErrorRateLimit;
 
-  /// No description provided for @authErrorNetworkIssue.
-  ///
-  /// In en, this message translates to:
-  /// **'Network error, please check your connection and try again.'**
-  String get authErrorNetworkIssue;
 
-  /// No description provided for @authErrorLoginFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Login failed, please try again later.'**
-  String get authErrorLoginFailed;
 
-  /// No description provided for @authErrorEmailInvalid.
-  ///
-  /// In en, this message translates to:
-  /// **'Email address is invalid, please check for spelling errors.'**
-  String get authErrorEmailInvalid;
 
-  /// No description provided for @authErrorWeakPassword.
-  ///
-  /// In en, this message translates to:
-  /// **'Password is too simple, please include letters and numbers, at least 6 characters.'**
-  String get authErrorWeakPassword;
 
   /// No description provided for @importSelectCsvFile.
   ///
@@ -6002,467 +4902,82 @@ abstract class AppLocalizations {
   /// **'{avgLabel}: '**
   String analyticsAverage(String avgLabel);
 
-  /// No description provided for @updateCheckTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Check Update'**
-  String get updateCheckTitle;
-
-  /// No description provided for @updateNewVersionTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'New Version {version} Found'**
-  String updateNewVersionTitle(String version);
-
-  /// No description provided for @updateNoApkFound.
-  ///
-  /// In en, this message translates to:
-  /// **'APK download link not found'**
-  String get updateNoApkFound;
-
-  /// No description provided for @updateAlreadyLatest.
-  ///
-  /// In en, this message translates to:
-  /// **'Already latest version'**
-  String get updateAlreadyLatest;
-
-  /// No description provided for @updateCheckFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Update check failed'**
-  String get updateCheckFailed;
-
-  /// No description provided for @updatePermissionDenied.
-  ///
-  /// In en, this message translates to:
-  /// **'Permission denied'**
-  String get updatePermissionDenied;
-
-  /// No description provided for @updateUserCancelled.
-  ///
-  /// In en, this message translates to:
-  /// **'User cancelled'**
-  String get updateUserCancelled;
-
-  /// No description provided for @updateDownloadTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Download Update'**
-  String get updateDownloadTitle;
-
-  /// No description provided for @updateDownloading.
-  ///
-  /// In en, this message translates to:
-  /// **'Downloading: {percent}%'**
-  String updateDownloading(String percent);
-
-  /// No description provided for @updateDownloadBackgroundHint.
-  ///
-  /// In en, this message translates to:
-  /// **'You can switch the app to background, download will continue'**
-  String get updateDownloadBackgroundHint;
-
-  /// No description provided for @updateCancelButton.
-  ///
-  /// In en, this message translates to:
-  /// **'Cancel'**
-  String get updateCancelButton;
-
-  /// No description provided for @updateBackgroundDownload.
-  ///
-  /// In en, this message translates to:
-  /// **'Background Download'**
-  String get updateBackgroundDownload;
-
-  /// No description provided for @updateLaterButton.
-  ///
-  /// In en, this message translates to:
-  /// **'Later'**
-  String get updateLaterButton;
-
-  /// No description provided for @updateDownloadButton.
-  ///
-  /// In en, this message translates to:
-  /// **'Download'**
-  String get updateDownloadButton;
-
-  /// No description provided for @updateInstallingCachedApk.
-  ///
-  /// In en, this message translates to:
-  /// **'Installing cached APK'**
-  String get updateInstallingCachedApk;
-
-  /// No description provided for @updateDownloadComplete.
-  ///
-  /// In en, this message translates to:
-  /// **'Download complete'**
-  String get updateDownloadComplete;
-
-  /// No description provided for @updateInstallStarted.
-  ///
-  /// In en, this message translates to:
-  /// **'Download complete, installer started'**
-  String get updateInstallStarted;
-
-  /// No description provided for @updateInstallFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Installation failed'**
-  String get updateInstallFailed;
-
-  /// No description provided for @updateDownloadFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Download failed'**
-  String get updateDownloadFailed;
-
-  /// No description provided for @updateInstallNow.
-  ///
-  /// In en, this message translates to:
-  /// **'Install Now'**
-  String get updateInstallNow;
-
-  /// No description provided for @updateNotificationPermissionTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Notification Permission Denied'**
-  String get updateNotificationPermissionTitle;
-
-  /// No description provided for @updateCheckFailedTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Update Check Failed'**
-  String get updateCheckFailedTitle;
-
-  /// No description provided for @updateDownloadFailedTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Download Failed'**
-  String get updateDownloadFailedTitle;
-
-  /// No description provided for @updateGoToGitHub.
-  ///
-  /// In en, this message translates to:
-  /// **'Go to GitHub'**
-  String get updateGoToGitHub;
-
-  /// No description provided for @updateCannotOpenLink.
-  ///
-  /// In en, this message translates to:
-  /// **'Cannot open link'**
-  String get updateCannotOpenLink;
-
-  /// No description provided for @updateManualVisit.
-  ///
-  /// In en, this message translates to:
-  /// **'Please manually visit in browser:\\nhttps://github.com/TNT-Likely/BeeCount/releases'**
-  String get updateManualVisit;
-
-  /// No description provided for @updateNoLocalApkTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'No Update Package Found'**
-  String get updateNoLocalApkTitle;
-
-  /// No description provided for @updateInstallPackageTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Install Update Package'**
-  String get updateInstallPackageTitle;
-
-  /// No description provided for @updateMultiplePackagesTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Found Multiple Update Packages'**
-  String get updateMultiplePackagesTitle;
-
-  /// No description provided for @updateSearchFailedTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Search Failed'**
-  String get updateSearchFailedTitle;
-
-  /// No description provided for @updateFoundCachedPackageTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Found Downloaded Update Package'**
-  String get updateFoundCachedPackageTitle;
-
-  /// No description provided for @updateIgnoreButton.
-  ///
-  /// In en, this message translates to:
-  /// **'Ignore'**
-  String get updateIgnoreButton;
-
-  /// No description provided for @updateInstallFailedTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Installation Failed'**
-  String get updateInstallFailedTitle;
-
-  /// No description provided for @updateInstallFailedMessage.
-  ///
-  /// In en, this message translates to:
-  /// **'Cannot start APK installer, please check file permissions.'**
-  String get updateInstallFailedMessage;
-
-  /// No description provided for @updateErrorTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Error'**
-  String get updateErrorTitle;
-
-  /// No description provided for @updateCheckingPermissions.
-  ///
-  /// In en, this message translates to:
-  /// **'Checking permissions...'**
-  String get updateCheckingPermissions;
-
-  /// No description provided for @updateCheckingCache.
-  ///
-  /// In en, this message translates to:
-  /// **'Checking local cache...'**
-  String get updateCheckingCache;
-
-  /// No description provided for @updatePreparingDownload.
-  ///
-  /// In en, this message translates to:
-  /// **'Preparing download...'**
-  String get updatePreparingDownload;
-
-  /// No description provided for @updateUserCancelledDownload.
-  ///
-  /// In en, this message translates to:
-  /// **'User cancelled download'**
-  String get updateUserCancelledDownload;
-
-  /// No description provided for @updateStartingInstaller.
-  ///
-  /// In en, this message translates to:
-  /// **'Starting installer...'**
-  String get updateStartingInstaller;
-
-  /// No description provided for @updateInstallerStarted.
-  ///
-  /// In en, this message translates to:
-  /// **'Installer started'**
-  String get updateInstallerStarted;
-
-  /// No description provided for @updateInstallationFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Installation failed'**
-  String get updateInstallationFailed;
-
-  /// No description provided for @updateDownloadCompleted.
-  ///
-  /// In en, this message translates to:
-  /// **'Download completed'**
-  String get updateDownloadCompleted;
-
-  /// No description provided for @updateDownloadCompletedManual.
-  ///
-  /// In en, this message translates to:
-  /// **'Download completed, can install manually'**
-  String get updateDownloadCompletedManual;
-
-  /// No description provided for @updateDownloadCompletedDialog.
-  ///
-  /// In en, this message translates to:
-  /// **'Download completed, please install manually (dialog exception)'**
-  String get updateDownloadCompletedDialog;
-
-  /// No description provided for @updateDownloadCompletedContext.
-  ///
-  /// In en, this message translates to:
-  /// **'Download completed, please install manually'**
-  String get updateDownloadCompletedContext;
-
-  /// No description provided for @updateDownloadFailedGeneric.
-  ///
-  /// In en, this message translates to:
-  /// **'Download failed'**
-  String get updateDownloadFailedGeneric;
-
-  /// No description provided for @updateCheckingUpdate.
-  ///
-  /// In en, this message translates to:
-  /// **'Checking for updates...'**
-  String get updateCheckingUpdate;
-
-  /// No description provided for @updateCurrentLatestVersion.
-  ///
-  /// In en, this message translates to:
-  /// **'Already latest version'**
-  String get updateCurrentLatestVersion;
-
-  /// No description provided for @updateCheckFailedGeneric.
-  ///
-  /// In en, this message translates to:
-  /// **'Update check failed'**
-  String get updateCheckFailedGeneric;
-
-  /// No description provided for @updateDownloadProgress.
-  ///
-  /// In en, this message translates to:
-  /// **'Downloading: {percent}%'**
-  String updateDownloadProgress(String percent);
-
-  /// No description provided for @updateCheckingUpdateError.
-  ///
-  /// In en, this message translates to:
-  /// **'Update check failed: {error}'**
-  String updateCheckingUpdateError(String error);
-
-  /// No description provided for @updateNoLocalApkFoundMessage.
-  ///
-  /// In en, this message translates to:
-  /// **'No downloaded update package file found.\\n\\nPlease first download new version through \"Check Update\".'**
-  String get updateNoLocalApkFoundMessage;
-
-  /// No description provided for @updateInstallPackageFoundMessage.
-  ///
-  /// In en, this message translates to:
-  /// **'Found update package:\\n\\nFile name: {fileName}\\nSize: {fileSize}MB\\nDownload time: {time}\\n\\nInstall immediately?'**
-  String updateInstallPackageFoundMessage(String fileName, String fileSize, String time);
-
-  /// No description provided for @updateMultiplePackagesFoundMessage.
-  ///
-  /// In en, this message translates to:
-  /// **'Found {count} update package files.\\n\\nRecommend using the latest downloaded version, or manually install in file manager.\\n\\nFile location: {path}'**
-  String updateMultiplePackagesFoundMessage(int count, String path);
-
-  /// No description provided for @updateSearchLocalApkError.
-  ///
-  /// In en, this message translates to:
-  /// **'Error occurred while searching for local update packages: {error}'**
-  String updateSearchLocalApkError(String error);
-
-  /// No description provided for @updateCachedPackageFoundMessage.
-  ///
-  /// In en, this message translates to:
-  /// **'Detected previously downloaded update package:\\n\\nFile name: {fileName}\\nSize: {fileSize}MB\\n\\nInstall immediately?'**
-  String updateCachedPackageFoundMessage(String fileName, String fileSize);
-
-  /// No description provided for @updateReadCachedPackageError.
-  ///
-  /// In en, this message translates to:
-  /// **'Failed to read cached update package: {error}'**
-  String updateReadCachedPackageError(String error);
-
-  /// No description provided for @updateOk.
-  ///
-  /// In en, this message translates to:
-  /// **'OK'**
-  String get updateOk;
-
-  /// No description provided for @updateCannotOpenLinkTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Cannot Open Link'**
-  String get updateCannotOpenLinkTitle;
-
-  /// No description provided for @updateCachedVersionTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Found Downloaded Version'**
-  String get updateCachedVersionTitle;
-
-  /// No description provided for @updateCachedVersionMessage.
-  ///
-  /// In en, this message translates to:
-  /// **'Found previously downloaded installation package... Click \\\"OK\\\" to install immediately, click \\\"Cancel\\\" to close...'**
-  String get updateCachedVersionMessage;
-
-  /// No description provided for @updateConfirmDownload.
-  ///
-  /// In en, this message translates to:
-  /// **'Download and Install Now'**
-  String get updateConfirmDownload;
-
-  /// No description provided for @updateDownloadCompleteTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Download Complete'**
-  String get updateDownloadCompleteTitle;
-
-  /// No description provided for @updateInstallConfirmMessage.
-  ///
-  /// In en, this message translates to:
-  /// **'New version has been downloaded. Install now?'**
-  String get updateInstallConfirmMessage;
-
-  /// No description provided for @updateMirrorSelectTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Select Download Accelerator'**
-  String get updateMirrorSelectTitle;
-
-  /// No description provided for @updateMirrorSelectHint.
-  ///
-  /// In en, this message translates to:
-  /// **'If download is slow, select an accelerated mirror. Click \"Test\" to check latency.'**
-  String get updateMirrorSelectHint;
-
-  /// No description provided for @updateMirrorTestButton.
-  ///
-  /// In en, this message translates to:
-  /// **'Test'**
-  String get updateMirrorTestButton;
-
-  /// No description provided for @updateMirrorTesting.
-  ///
-  /// In en, this message translates to:
-  /// **'Testing {completed}/{total}...'**
-  String updateMirrorTesting(int completed, int total);
-
-  /// No description provided for @updateMirrorDirectHint.
-  ///
-  /// In en, this message translates to:
-  /// **'For users with good network'**
-  String get updateMirrorDirectHint;
-
-  /// No description provided for @updateDownloadMirror.
-  ///
-  /// In en, this message translates to:
-  /// **'Source: {mirror}'**
-  String updateDownloadMirror(String mirror);
-
-  /// No description provided for @updateMirrorSettingTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Download Accelerator'**
-  String get updateMirrorSettingTitle;
-
-  /// No description provided for @updateNotificationPermissionGuideText.
-  ///
-  /// In en, this message translates to:
-  /// **'Download progress notifications are disabled, but this doesn\'t affect download functionality. To view progress:'**
-  String get updateNotificationPermissionGuideText;
-
-  /// No description provided for @updateNotificationGuideStep1.
-  ///
-  /// In en, this message translates to:
-  /// **'Go to System Settings > App Management'**
-  String get updateNotificationGuideStep1;
-
-  /// No description provided for @updateNotificationGuideStep2.
-  ///
-  /// In en, this message translates to:
-  /// **'Find \\\"BeeCount\\\" app'**
-  String get updateNotificationGuideStep2;
-
-  /// No description provided for @updateNotificationGuideStep3.
-  ///
-  /// In en, this message translates to:
-  /// **'Enable notification permissions'**
-  String get updateNotificationGuideStep3;
-
-  /// No description provided for @updateNotificationGuideInfo.
-  ///
-  /// In en, this message translates to:
-  /// **'Downloads will continue normally in the background even without notifications'**
-  String get updateNotificationGuideInfo;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   /// No description provided for @currencyCNY.
   ///
@@ -6740,17 +5255,7 @@ abstract class AppLocalizations {
   /// **'Myanmar Kyat'**
   String get currencyMMK;
 
-  /// No description provided for @webdavConfiguredTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'WebDAV Cloud Service Configured'**
-  String get webdavConfiguredTitle;
 
-  /// No description provided for @webdavConfiguredMessage.
-  ///
-  /// In en, this message translates to:
-  /// **'WebDAV cloud service uses the credentials provided during configuration, no additional login required.'**
-  String get webdavConfiguredMessage;
 
   /// No description provided for @recurringTransactionTitle.
   ///
@@ -6896,869 +5401,149 @@ abstract class AppLocalizations {
   /// **'Select Ledger'**
   String get ledgerSelect;
 
-  /// No description provided for @syncNotConfiguredMessage.
-  ///
-  /// In en, this message translates to:
-  /// **'Cloud not configured'**
-  String get syncNotConfiguredMessage;
-
-  /// No description provided for @syncNotLoggedInMessage.
-  ///
-  /// In en, this message translates to:
-  /// **'Not logged in'**
-  String get syncNotLoggedInMessage;
-
-  /// No description provided for @syncCloudBackupCorruptedMessage.
-  ///
-  /// In en, this message translates to:
-  /// **'Cloud backup content is corrupted, possibly due to encoding issues from earlier versions. Please click \'Upload Current Ledger to Cloud\' to overwrite and fix.'**
-  String get syncCloudBackupCorruptedMessage;
-
-  /// No description provided for @syncNoCloudBackupMessage.
-  ///
-  /// In en, this message translates to:
-  /// **'No cloud backup'**
-  String get syncNoCloudBackupMessage;
-
-  /// No description provided for @syncAccessDeniedMessage.
-  ///
-  /// In en, this message translates to:
-  /// **'403 Access denied (check storage RLS policy and path)'**
-  String get syncAccessDeniedMessage;
-
-  /// No description provided for @cloudTestConnection.
-  ///
-  /// In en, this message translates to:
-  /// **'Test Connection'**
-  String get cloudTestConnection;
-
-  /// No description provided for @cloudLocalStorageTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Local Storage'**
-  String get cloudLocalStorageTitle;
-
-  /// No description provided for @cloudLocalStorageSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Data is only saved on local device'**
-  String get cloudLocalStorageSubtitle;
-
-  /// No description provided for @cloudCustomSupabaseTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Custom Supabase'**
-  String get cloudCustomSupabaseTitle;
-
-  /// No description provided for @cloudCustomSupabaseSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Click to configure self-hosted Supabase'**
-  String get cloudCustomSupabaseSubtitle;
-
-  /// No description provided for @cloudCustomWebdavTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Custom WebDAV'**
-  String get cloudCustomWebdavTitle;
-
-  /// No description provided for @cloudCustomWebdavSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Click to configure Nutstore/Nextcloud etc.'**
-  String get cloudCustomWebdavSubtitle;
-
-  /// No description provided for @cloudCustomS3Title.
-  ///
-  /// In en, this message translates to:
-  /// **'S3 Protocol Storage'**
-  String get cloudCustomS3Title;
-
-  /// No description provided for @cloudCustomS3Subtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'AWS S3 / Cloudflare R2 / MinIO'**
-  String get cloudCustomS3Subtitle;
-
-  /// No description provided for @cloudBeeCountCloudTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'BeeCount Cloud'**
-  String get cloudBeeCountCloudTitle;
-
-  /// No description provided for @cloudBeeCountCloudSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Self-hosted · Incremental sync · Multi-device'**
-  String get cloudBeeCountCloudSubtitle;
-
-  /// No description provided for @cloudConfigureBeeCountCloudTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Configure BeeCount Cloud'**
-  String get cloudConfigureBeeCountCloudTitle;
-
-  /// No description provided for @cloudBeeCountCloudUrlLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Server URL'**
-  String get cloudBeeCountCloudUrlLabel;
-
-  /// No description provided for @cloudBeeCountCloudUrlHint.
-  ///
-  /// In en, this message translates to:
-  /// **'https://your-server.com'**
-  String get cloudBeeCountCloudUrlHint;
-
-  /// No description provided for @cloudBeeCountCloudApiPrefixLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'API Prefix'**
-  String get cloudBeeCountCloudApiPrefixLabel;
-
-  /// No description provided for @cloudBeeCountCloudApiPrefixHint.
-  ///
-  /// In en, this message translates to:
-  /// **'/api/v1'**
-  String get cloudBeeCountCloudApiPrefixHint;
-
-  /// No description provided for @cloudBeeCountCloudEmailLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Email'**
-  String get cloudBeeCountCloudEmailLabel;
-
-  /// No description provided for @cloudBeeCountCloudEmailHint.
-  ///
-  /// In en, this message translates to:
-  /// **'your@email.com'**
-  String get cloudBeeCountCloudEmailHint;
-
-  /// No description provided for @cloudBeeCountCloudPasswordLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Password'**
-  String get cloudBeeCountCloudPasswordLabel;
-
-  /// No description provided for @cloudBeeCountCloudPasswordHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Enter password'**
-  String get cloudBeeCountCloudPasswordHint;
-
-  /// No description provided for @cloudBeeCountCloudLoginSuccess.
-  ///
-  /// In en, this message translates to:
-  /// **'Login successful'**
-  String get cloudBeeCountCloudLoginSuccess;
-
-  /// No description provided for @cloudBeeCountCloudLoginFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Login failed'**
-  String get cloudBeeCountCloudLoginFailed;
-
-  /// No description provided for @cloudBeeCountCloudSyncSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Incremental sync · Multi-device'**
-  String get cloudBeeCountCloudSyncSubtitle;
-
-  /// No description provided for @cloudBeeCountCloudConnected.
-  ///
-  /// In en, this message translates to:
-  /// **'Connected'**
-  String get cloudBeeCountCloudConnected;
-
-  /// No description provided for @cloudBeeCountCloudNotConnected.
-  ///
-  /// In en, this message translates to:
-  /// **'Not connected'**
-  String get cloudBeeCountCloudNotConnected;
-
-  /// No description provided for @cloudBeeCountCloudNotConnectedHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Configure and login in cloud service settings'**
-  String get cloudBeeCountCloudNotConnectedHint;
-
-  /// No description provided for @cloudBeeCountCloudAutoSync.
-  ///
-  /// In en, this message translates to:
-  /// **'Incremental Sync'**
-  String get cloudBeeCountCloudAutoSync;
-
-  /// No description provided for @cloudBeeCountCloudAutoSyncHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Changes sync to cloud automatically'**
-  String get cloudBeeCountCloudAutoSyncHint;
-
-  /// No description provided for @cloudBeeCountCloudMultiDevice.
-  ///
-  /// In en, this message translates to:
-  /// **'Multi-device Sync'**
-  String get cloudBeeCountCloudMultiDevice;
-
-  /// No description provided for @cloudBeeCountCloudMultiDeviceHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Keep data consistent across devices'**
-  String get cloudBeeCountCloudMultiDeviceHint;
-
-  /// No description provided for @cloudBeeCountCloudAttachment.
-  ///
-  /// In en, this message translates to:
-  /// **'Attachment Sync'**
-  String get cloudBeeCountCloudAttachment;
-
-  /// No description provided for @cloudBeeCountCloudAttachmentHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Receipt images backed up to cloud automatically'**
-  String get cloudBeeCountCloudAttachmentHint;
-
-  /// No description provided for @cloudTabOffline.
-  ///
-  /// In en, this message translates to:
-  /// **'Offline'**
-  String get cloudTabOffline;
-
-  /// No description provided for @cloudTabBackup.
-  ///
-  /// In en, this message translates to:
-  /// **'Backup'**
-  String get cloudTabBackup;
-
-  /// No description provided for @cloudTabCloudSync.
-  ///
-  /// In en, this message translates to:
-  /// **'Cloud Sync'**
-  String get cloudTabCloudSync;
-
-  /// No description provided for @cloudIcloudSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Auto sync with Apple ID'**
-  String get cloudIcloudSubtitle;
-
-  /// No description provided for @cloudIcloudNotAvailableTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'iCloud Not Available'**
-  String get cloudIcloudNotAvailableTitle;
-
-  /// No description provided for @cloudIcloudNotAvailableMessage.
-  ///
-  /// In en, this message translates to:
-  /// **'Please sign in to iCloud in Settings and try again'**
-  String get cloudIcloudNotAvailableMessage;
-
-  /// No description provided for @cloudIcloudHelpTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'iCloud Instructions'**
-  String get cloudIcloudHelpTitle;
-
-  /// No description provided for @cloudIcloudHelpPrerequisites.
-  ///
-  /// In en, this message translates to:
-  /// **'Prerequisites'**
-  String get cloudIcloudHelpPrerequisites;
-
-  /// No description provided for @cloudIcloudHelpPrereq1.
-  ///
-  /// In en, this message translates to:
-  /// **'1. Device is signed in with Apple ID'**
-  String get cloudIcloudHelpPrereq1;
-
-  /// No description provided for @cloudIcloudHelpPrereq2.
-  ///
-  /// In en, this message translates to:
-  /// **'2. iCloud Drive is enabled'**
-  String get cloudIcloudHelpPrereq2;
-
-  /// No description provided for @cloudIcloudHelpPrereq3.
-  ///
-  /// In en, this message translates to:
-  /// **'3. Device is connected to internet'**
-  String get cloudIcloudHelpPrereq3;
-
-  /// No description provided for @cloudIcloudHelpCheckTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'How to Check iCloud Drive'**
-  String get cloudIcloudHelpCheckTitle;
-
-  /// No description provided for @cloudIcloudHelpCheck1.
-  ///
-  /// In en, this message translates to:
-  /// **'1. Open Settings'**
-  String get cloudIcloudHelpCheck1;
-
-  /// No description provided for @cloudIcloudHelpCheck2.
-  ///
-  /// In en, this message translates to:
-  /// **'2. Tap your Apple ID at the top'**
-  String get cloudIcloudHelpCheck2;
-
-  /// No description provided for @cloudIcloudHelpCheck3.
-  ///
-  /// In en, this message translates to:
-  /// **'3. Tap iCloud'**
-  String get cloudIcloudHelpCheck3;
-
-  /// No description provided for @cloudIcloudHelpCheck4.
-  ///
-  /// In en, this message translates to:
-  /// **'4. Make sure iCloud Drive is enabled'**
-  String get cloudIcloudHelpCheck4;
-
-  /// No description provided for @cloudIcloudHelpFaqTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'FAQ'**
-  String get cloudIcloudHelpFaqTitle;
-
-  /// No description provided for @cloudIcloudHelpFaq1.
-  ///
-  /// In en, this message translates to:
-  /// **'If not available, check if iCloud Drive is enabled'**
-  String get cloudIcloudHelpFaq1;
-
-  /// No description provided for @cloudIcloudHelpFaq2.
-  ///
-  /// In en, this message translates to:
-  /// **'First time use may take a few seconds to initialize'**
-  String get cloudIcloudHelpFaq2;
-
-  /// No description provided for @cloudIcloudHelpFaq3.
-  ///
-  /// In en, this message translates to:
-  /// **'Data is stored in your private iCloud space'**
-  String get cloudIcloudHelpFaq3;
-
-  /// No description provided for @cloudIcloudHelpFaq4.
-  ///
-  /// In en, this message translates to:
-  /// **'Devices with same Apple ID sync automatically'**
-  String get cloudIcloudHelpFaq4;
-
-  /// No description provided for @cloudIcloudHelpNote.
-  ///
-  /// In en, this message translates to:
-  /// **'iCloud sync uses your Apple ID, no extra configuration needed'**
-  String get cloudIcloudHelpNote;
-
-  /// No description provided for @cloudSupabaseHelpTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Supabase Setup Guide'**
-  String get cloudSupabaseHelpTitle;
-
-  /// No description provided for @cloudSupabaseHelpIntro.
-  ///
-  /// In en, this message translates to:
-  /// **'What is Supabase'**
-  String get cloudSupabaseHelpIntro;
-
-  /// No description provided for @cloudSupabaseHelpIntro1.
-  ///
-  /// In en, this message translates to:
-  /// **'Supabase is an open-source backend-as-a-service platform'**
-  String get cloudSupabaseHelpIntro1;
-
-  /// No description provided for @cloudSupabaseHelpIntro2.
-  ///
-  /// In en, this message translates to:
-  /// **'Offers a free tier, sufficient for personal use'**
-  String get cloudSupabaseHelpIntro2;
-
-  /// No description provided for @cloudSupabaseHelpIntro3.
-  ///
-  /// In en, this message translates to:
-  /// **'You have full control over your data'**
-  String get cloudSupabaseHelpIntro3;
-
-  /// No description provided for @cloudSupabaseHelpSteps.
-  ///
-  /// In en, this message translates to:
-  /// **'Setup Steps'**
-  String get cloudSupabaseHelpSteps;
-
-  /// No description provided for @cloudSupabaseHelpStep1.
-  ///
-  /// In en, this message translates to:
-  /// **'1. Visit supabase.com to create an account'**
-  String get cloudSupabaseHelpStep1;
-
-  /// No description provided for @cloudSupabaseHelpStep2.
-  ///
-  /// In en, this message translates to:
-  /// **'2. Create a new project (select free tier)'**
-  String get cloudSupabaseHelpStep2;
-
-  /// No description provided for @cloudSupabaseHelpStep3.
-  ///
-  /// In en, this message translates to:
-  /// **'3. Go to Project Settings > API'**
-  String get cloudSupabaseHelpStep3;
-
-  /// No description provided for @cloudSupabaseHelpStep4.
-  ///
-  /// In en, this message translates to:
-  /// **'4. Copy Project URL and anon key'**
-  String get cloudSupabaseHelpStep4;
-
-  /// No description provided for @cloudSupabaseHelpStep5.
-  ///
-  /// In en, this message translates to:
-  /// **'5. Paste them into the app configuration'**
-  String get cloudSupabaseHelpStep5;
-
-  /// No description provided for @cloudSupabaseHelpFaq.
-  ///
-  /// In en, this message translates to:
-  /// **'FAQ'**
-  String get cloudSupabaseHelpFaq;
-
-  /// No description provided for @cloudSupabaseHelpFaq1.
-  ///
-  /// In en, this message translates to:
-  /// **'Free tier includes 500MB storage'**
-  String get cloudSupabaseHelpFaq1;
-
-  /// No description provided for @cloudSupabaseHelpFaq2.
-  ///
-  /// In en, this message translates to:
-  /// **'Data is encrypted and secure'**
-  String get cloudSupabaseHelpFaq2;
-
-  /// No description provided for @cloudSupabaseHelpFaq3.
-  ///
-  /// In en, this message translates to:
-  /// **'Supports multi-device sync'**
-  String get cloudSupabaseHelpFaq3;
-
-  /// No description provided for @cloudSupabaseHelpNote.
-  ///
-  /// In en, this message translates to:
-  /// **'After configuration, you need to register/login to use sync'**
-  String get cloudSupabaseHelpNote;
-
-  /// No description provided for @cloudDetailedTutorial.
-  ///
-  /// In en, this message translates to:
-  /// **'Detailed Tutorial'**
-  String get cloudDetailedTutorial;
-
-  /// No description provided for @cloudWebdavHelpTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'WebDAV Setup Guide'**
-  String get cloudWebdavHelpTitle;
-
-  /// No description provided for @cloudWebdavHelpIntro.
-  ///
-  /// In en, this message translates to:
-  /// **'What is WebDAV'**
-  String get cloudWebdavHelpIntro;
-
-  /// No description provided for @cloudWebdavHelpIntro1.
-  ///
-  /// In en, this message translates to:
-  /// **'WebDAV is a network file protocol'**
-  String get cloudWebdavHelpIntro1;
-
-  /// No description provided for @cloudWebdavHelpIntro2.
-  ///
-  /// In en, this message translates to:
-  /// **'Supported by many cloud storage and NAS devices'**
-  String get cloudWebdavHelpIntro2;
-
-  /// No description provided for @cloudWebdavHelpIntro3.
-  ///
-  /// In en, this message translates to:
-  /// **'Data is stored on your own server'**
-  String get cloudWebdavHelpIntro3;
-
-  /// No description provided for @cloudWebdavHelpProviders.
-  ///
-  /// In en, this message translates to:
-  /// **'Supported Providers'**
-  String get cloudWebdavHelpProviders;
-
-  /// No description provided for @cloudWebdavHelpProvider1.
-  ///
-  /// In en, this message translates to:
-  /// **'- Nutstore (recommended for China users)'**
-  String get cloudWebdavHelpProvider1;
-
-  /// No description provided for @cloudWebdavHelpProvider2.
-  ///
-  /// In en, this message translates to:
-  /// **'- Nextcloud / ownCloud'**
-  String get cloudWebdavHelpProvider2;
-
-  /// No description provided for @cloudWebdavHelpProvider3.
-  ///
-  /// In en, this message translates to:
-  /// **'- Synology / QNAP NAS'**
-  String get cloudWebdavHelpProvider3;
-
-  /// No description provided for @cloudWebdavHelpProvider4.
-  ///
-  /// In en, this message translates to:
-  /// **'- Other WebDAV-compatible services'**
-  String get cloudWebdavHelpProvider4;
-
-  /// No description provided for @cloudWebdavHelpSteps.
-  ///
-  /// In en, this message translates to:
-  /// **'Setup Steps (Nutstore example)'**
-  String get cloudWebdavHelpSteps;
-
-  /// No description provided for @cloudWebdavHelpStep1.
-  ///
-  /// In en, this message translates to:
-  /// **'1. Login to Nutstore web version'**
-  String get cloudWebdavHelpStep1;
-
-  /// No description provided for @cloudWebdavHelpStep2.
-  ///
-  /// In en, this message translates to:
-  /// **'2. Click account name > Account Info'**
-  String get cloudWebdavHelpStep2;
-
-  /// No description provided for @cloudWebdavHelpStep3.
-  ///
-  /// In en, this message translates to:
-  /// **'3. Select Security Options tab'**
-  String get cloudWebdavHelpStep3;
-
-  /// No description provided for @cloudWebdavHelpStep4.
-  ///
-  /// In en, this message translates to:
-  /// **'4. Add application password (for third-party apps)'**
-  String get cloudWebdavHelpStep4;
-
-  /// No description provided for @cloudWebdavHelpStep5.
-  ///
-  /// In en, this message translates to:
-  /// **'5. Copy server address, account, and app password'**
-  String get cloudWebdavHelpStep5;
-
-  /// No description provided for @cloudWebdavHelpNote.
-  ///
-  /// In en, this message translates to:
-  /// **'Use an app-specific password instead of your account password'**
-  String get cloudWebdavHelpNote;
-
-  /// No description provided for @cloudS3HelpTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'S3 Storage Setup Guide'**
-  String get cloudS3HelpTitle;
-
-  /// No description provided for @cloudS3HelpIntro.
-  ///
-  /// In en, this message translates to:
-  /// **'What is S3'**
-  String get cloudS3HelpIntro;
-
-  /// No description provided for @cloudS3HelpIntro1.
-  ///
-  /// In en, this message translates to:
-  /// **'S3 is a standard object storage protocol'**
-  String get cloudS3HelpIntro1;
-
-  /// No description provided for @cloudS3HelpIntro2.
-  ///
-  /// In en, this message translates to:
-  /// **'Supported by many cloud providers'**
-  String get cloudS3HelpIntro2;
-
-  /// No description provided for @cloudS3HelpIntro3.
-  ///
-  /// In en, this message translates to:
-  /// **'Data is stored on your chosen cloud service'**
-  String get cloudS3HelpIntro3;
-
-  /// No description provided for @cloudS3HelpProviders.
-  ///
-  /// In en, this message translates to:
-  /// **'Supported Providers'**
-  String get cloudS3HelpProviders;
-
-  /// No description provided for @cloudS3HelpProvider1.
-  ///
-  /// In en, this message translates to:
-  /// **'- AWS S3 (Amazon Web Services)'**
-  String get cloudS3HelpProvider1;
-
-  /// No description provided for @cloudS3HelpProvider2.
-  ///
-  /// In en, this message translates to:
-  /// **'- Cloudflare R2 (free 10GB/month)'**
-  String get cloudS3HelpProvider2;
-
-  /// No description provided for @cloudS3HelpProvider3.
-  ///
-  /// In en, this message translates to:
-  /// **'- Backblaze B2 (free 10GB)'**
-  String get cloudS3HelpProvider3;
-
-  /// No description provided for @cloudS3HelpProvider4.
-  ///
-  /// In en, this message translates to:
-  /// **'- MinIO (self-hosted)'**
-  String get cloudS3HelpProvider4;
-
-  /// No description provided for @cloudS3HelpProvider5.
-  ///
-  /// In en, this message translates to:
-  /// **'- Alibaba Cloud OSS'**
-  String get cloudS3HelpProvider5;
-
-  /// No description provided for @cloudS3HelpProvider6.
-  ///
-  /// In en, this message translates to:
-  /// **'- Tencent Cloud COS'**
-  String get cloudS3HelpProvider6;
-
-  /// No description provided for @cloudS3HelpProvider7.
-  ///
-  /// In en, this message translates to:
-  /// **'- Qiniu Kodo'**
-  String get cloudS3HelpProvider7;
-
-  /// No description provided for @cloudS3HelpSteps.
-  ///
-  /// In en, this message translates to:
-  /// **'Setup Steps (Cloudflare R2 example)'**
-  String get cloudS3HelpSteps;
-
-  /// No description provided for @cloudS3HelpStep1.
-  ///
-  /// In en, this message translates to:
-  /// **'1. Login to Cloudflare Dashboard'**
-  String get cloudS3HelpStep1;
-
-  /// No description provided for @cloudS3HelpStep2.
-  ///
-  /// In en, this message translates to:
-  /// **'2. Go to R2 > Create Bucket'**
-  String get cloudS3HelpStep2;
-
-  /// No description provided for @cloudS3HelpStep3.
-  ///
-  /// In en, this message translates to:
-  /// **'3. Go to R2 > Manage R2 API Tokens'**
-  String get cloudS3HelpStep3;
-
-  /// No description provided for @cloudS3HelpStep4.
-  ///
-  /// In en, this message translates to:
-  /// **'4. Create API Token and copy credentials'**
-  String get cloudS3HelpStep4;
-
-  /// No description provided for @cloudS3HelpStep5.
-  ///
-  /// In en, this message translates to:
-  /// **'5. Paste endpoint, access key, secret key, and bucket name'**
-  String get cloudS3HelpStep5;
-
-  /// No description provided for @cloudS3HelpNote.
-  ///
-  /// In en, this message translates to:
-  /// **'Recommended: Cloudflare R2 offers 10GB free storage without egress fees'**
-  String get cloudS3HelpNote;
-
-  /// No description provided for @cloudStatusNotTested.
-  ///
-  /// In en, this message translates to:
-  /// **'Not tested'**
-  String get cloudStatusNotTested;
-
-  /// No description provided for @cloudStatusNormal.
-  ///
-  /// In en, this message translates to:
-  /// **'Connection normal'**
-  String get cloudStatusNormal;
-
-  /// No description provided for @cloudStatusFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Connection failed'**
-  String get cloudStatusFailed;
-
-  /// No description provided for @cloudCannotOpenLink.
-  ///
-  /// In en, this message translates to:
-  /// **'Cannot open link'**
-  String get cloudCannotOpenLink;
-
-  /// No description provided for @cloudErrorAuthFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Authentication failed: Invalid API Key'**
-  String get cloudErrorAuthFailed;
-
-  /// No description provided for @cloudErrorServerStatus.
-  ///
-  /// In en, this message translates to:
-  /// **'Server returned status code {code}'**
-  String cloudErrorServerStatus(String code);
-
-  /// No description provided for @cloudErrorWebdavNotSupported.
-  ///
-  /// In en, this message translates to:
-  /// **'Server does not support WebDAV protocol'**
-  String get cloudErrorWebdavNotSupported;
-
-  /// No description provided for @cloudErrorAuthFailedCredentials.
-  ///
-  /// In en, this message translates to:
-  /// **'Authentication failed: Incorrect username or password'**
-  String get cloudErrorAuthFailedCredentials;
-
-  /// No description provided for @cloudErrorAccessDenied.
-  ///
-  /// In en, this message translates to:
-  /// **'Access denied: Please check permissions'**
-  String get cloudErrorAccessDenied;
-
-  /// No description provided for @cloudErrorPathNotFound.
-  ///
-  /// In en, this message translates to:
-  /// **'Server path not found: {path}'**
-  String cloudErrorPathNotFound(String path);
-
-  /// No description provided for @cloudErrorNetwork.
-  ///
-  /// In en, this message translates to:
-  /// **'Network error: {message}'**
-  String cloudErrorNetwork(String message);
-
-  /// No description provided for @cloudTestSuccessTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Test Successful'**
-  String get cloudTestSuccessTitle;
-
-  /// No description provided for @cloudTestSuccessMessage.
-  ///
-  /// In en, this message translates to:
-  /// **'Connection normal, configuration valid'**
-  String get cloudTestSuccessMessage;
-
-  /// No description provided for @cloudTestFailedTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Test Failed'**
-  String get cloudTestFailedTitle;
-
-  /// No description provided for @cloudTestFailedMessage.
-  ///
-  /// In en, this message translates to:
-  /// **'Connection failed'**
-  String get cloudTestFailedMessage;
-
-  /// No description provided for @cloudTestErrorTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Test Error'**
-  String get cloudTestErrorTitle;
-
-  /// No description provided for @cloudSwitchConfirmTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Switch Cloud Service'**
-  String get cloudSwitchConfirmTitle;
-
-  /// No description provided for @cloudSwitchConfirmMessage.
-  ///
-  /// In en, this message translates to:
-  /// **'Switching cloud service will log out current account. Confirm switch?'**
-  String get cloudSwitchConfirmMessage;
-
-  /// No description provided for @cloudSwitchFailedTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Switch Failed'**
-  String get cloudSwitchFailedTitle;
-
-  /// No description provided for @cloudSwitchFailedConfigMissing.
-  ///
-  /// In en, this message translates to:
-  /// **'Please configure this cloud service first'**
-  String get cloudSwitchFailedConfigMissing;
-
-  /// No description provided for @cloudConfigInvalidTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Invalid Configuration'**
-  String get cloudConfigInvalidTitle;
-
-  /// No description provided for @cloudConfigInvalidMessage.
-  ///
-  /// In en, this message translates to:
-  /// **'Please fill in complete information'**
-  String get cloudConfigInvalidMessage;
-
-  /// No description provided for @cloudSaveFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Save Failed'**
-  String get cloudSaveFailed;
-
-  /// No description provided for @cloudSwitchedTo.
-  ///
-  /// In en, this message translates to:
-  /// **'Switched to {type}'**
-  String cloudSwitchedTo(String type);
-
-  /// No description provided for @cloudConfigureSupabaseTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Configure Supabase'**
-  String get cloudConfigureSupabaseTitle;
-
-  /// No description provided for @cloudConfigureWebdavTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Configure WebDAV'**
-  String get cloudConfigureWebdavTitle;
-
-  /// No description provided for @cloudConfigureS3Title.
-  ///
-  /// In en, this message translates to:
-  /// **'Configure S3'**
-  String get cloudConfigureS3Title;
-
-  /// No description provided for @cloudSupabaseAnonKeyHintLong.
-  ///
-  /// In en, this message translates to:
-  /// **'Paste complete anon key'**
-  String get cloudSupabaseAnonKeyHintLong;
-
-  /// No description provided for @cloudWebdavRemotePathHelp.
-  ///
-  /// In en, this message translates to:
-  /// **'Remote directory path for data storage'**
-  String get cloudWebdavRemotePathHelp;
-
-  /// No description provided for @cloudWebdavRemotePathLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Remote Path'**
-  String get cloudWebdavRemotePathLabel;
-
-  /// No description provided for @cloudWebdavRemotePathHelperText.
-  ///
-  /// In en, this message translates to:
-  /// **'Remote directory path for data storage'**
-  String get cloudWebdavRemotePathHelperText;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   /// No description provided for @accountsTitle.
   ///
@@ -8072,17 +5857,7 @@ abstract class AppLocalizations {
   /// **'Cannot open link'**
   String get privacyOpenSourceUrlError;
 
-  /// No description provided for @updateCorruptedFileTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Corrupted Installation Package'**
-  String get updateCorruptedFileTitle;
 
-  /// No description provided for @updateCorruptedFileMessage.
-  ///
-  /// In en, this message translates to:
-  /// **'The previously downloaded installation package is incomplete or corrupted. Delete and re-download?'**
-  String get updateCorruptedFileMessage;
 
   /// No description provided for @welcomeTitle.
   ///
@@ -8138,35 +5913,10 @@ abstract class AppLocalizations {
   /// **'Visit GitHub Repository'**
   String get welcomeViewGitHub;
 
-  /// No description provided for @welcomeCloudSyncTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Optional Cloud Sync'**
-  String get welcomeCloudSyncTitle;
 
-  /// No description provided for @welcomeCloudSyncDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'BeeCount supports multiple sync methods - your data, your control'**
-  String get welcomeCloudSyncDescription;
 
-  /// No description provided for @welcomeCloudSyncFeature1.
-  ///
-  /// In en, this message translates to:
-  /// **'Completely offline usage, no cloud needed'**
-  String get welcomeCloudSyncFeature1;
 
-  /// No description provided for @welcomeCloudSyncFeature2.
-  ///
-  /// In en, this message translates to:
-  /// **'BeeCount Cloud self-hosted (real-time multi-device + Web UI)'**
-  String get welcomeCloudSyncFeature2;
 
-  /// No description provided for @welcomeCloudSyncFeature3.
-  ///
-  /// In en, this message translates to:
-  /// **'Or pick iCloud / WebDAV / Supabase / S3'**
-  String get welcomeCloudSyncFeature3;
 
   /// No description provided for @widgetManagement.
   ///
@@ -8408,23 +6158,8 @@ abstract class AppLocalizations {
   /// **'Month\'s Income'**
   String get monthIncome;
 
-  /// No description provided for @autoScreenshotBilling.
-  ///
-  /// In en, this message translates to:
-  /// **'Auto Screenshot Billing'**
-  String get autoScreenshotBilling;
 
-  /// No description provided for @autoScreenshotBillingDesc.
-  ///
-  /// In en, this message translates to:
-  /// **'Auto-recognize payment info from screenshots'**
-  String get autoScreenshotBillingDesc;
 
-  /// No description provided for @autoScreenshotBillingTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Auto Screenshot Billing'**
-  String get autoScreenshotBillingTitle;
 
   /// No description provided for @featureDescription.
   ///
@@ -8438,11 +6173,6 @@ abstract class AppLocalizations {
   /// **'After taking a screenshot of payment page, the system will automatically recognize amount and merchant info, and create expense record.\n\n⚡ Recognition speed: 2-3 seconds (may be longer on some devices)\n🤖 Smart category matching\n📝 Auto-fill notes\n\n⚠️ Note:\n• Different devices have different screenshot save speeds, delay may be 5-10 seconds\n• May not work on some devices, depending on system implementation\n• Recognized screenshots will be skipped automatically\n• Due to Android Scoped Storage restrictions (Android 10+), apps cannot delete system screenshots. Manual cleanup required'**
   String get featureDescriptionContent;
 
-  /// No description provided for @autoBilling.
-  ///
-  /// In en, this message translates to:
-  /// **'Auto Billing'**
-  String get autoBilling;
 
   /// No description provided for @enabled.
   ///
@@ -8474,35 +6204,10 @@ abstract class AppLocalizations {
   /// **'Auto billing disabled'**
   String get disableSuccess;
 
-  /// No description provided for @autoBillingBatteryTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Keep Running in Background'**
-  String get autoBillingBatteryTitle;
 
-  /// No description provided for @autoBillingBatteryGuideTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Battery Optimization Settings'**
-  String get autoBillingBatteryGuideTitle;
 
-  /// No description provided for @autoBillingBatteryDesc.
-  ///
-  /// In en, this message translates to:
-  /// **'Auto billing requires the app to keep running in the background. Some phones automatically clean background apps when locked, which may cause auto billing to fail. It is recommended to disable battery optimization to ensure proper functionality.'**
-  String get autoBillingBatteryDesc;
 
-  /// No description provided for @autoBillingCheckBattery.
-  ///
-  /// In en, this message translates to:
-  /// **'Check Battery Optimization'**
-  String get autoBillingCheckBattery;
 
-  /// No description provided for @autoBillingBatteryWarning.
-  ///
-  /// In en, this message translates to:
-  /// **'⚠️ Battery optimization is not disabled. The app may be automatically cleaned by the system, causing auto billing to fail. Please tap the \"Settings\" button above to disable battery optimization.'**
-  String get autoBillingBatteryWarning;
 
   /// No description provided for @enableFailed.
   ///
@@ -8630,557 +6335,97 @@ abstract class AppLocalizations {
   /// **'If one-tap import isn\'t available, follow these steps to create the shortcut manually.'**
   String get iosAutoManualConfigDesc;
 
-  /// No description provided for @aiSettingsTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'AI Assistant'**
-  String get aiSettingsTitle;
-
-  /// No description provided for @aiSettingsSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Configure AI models and recognition strategy'**
-  String get aiSettingsSubtitle;
-
-  /// No description provided for @aiEnableTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Enable AI Assistant'**
-  String get aiEnableTitle;
-
-  /// No description provided for @aiEnableSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Use AI vision to recognize bill screenshots, extract amount, merchant, time, and support natural language conversation'**
-  String get aiEnableSubtitle;
-
-  /// No description provided for @aiEnableToastOn.
-  ///
-  /// In en, this message translates to:
-  /// **'AI Assistant enabled'**
-  String get aiEnableToastOn;
-
-  /// No description provided for @aiEnableToastOff.
-  ///
-  /// In en, this message translates to:
-  /// **'AI Assistant disabled'**
-  String get aiEnableToastOff;
-
-  /// No description provided for @aiStrategyTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Execution Strategy'**
-  String get aiStrategyTitle;
-
-  /// No description provided for @aiStrategyLocalFirst.
-  ///
-  /// In en, this message translates to:
-  /// **'Local First (Recommended)'**
-  String get aiStrategyLocalFirst;
-
-  /// No description provided for @aiStrategyCloudFirst.
-  ///
-  /// In en, this message translates to:
-  /// **'Cloud First'**
-  String get aiStrategyCloudFirst;
-
-  /// No description provided for @aiStrategyCloudFirstDesc.
-  ///
-  /// In en, this message translates to:
-  /// **'Use cloud API first, downgrade to local if failed'**
-  String get aiStrategyCloudFirstDesc;
-
-  /// No description provided for @aiStrategyLocalOnly.
-  ///
-  /// In en, this message translates to:
-  /// **'Local Only'**
-  String get aiStrategyLocalOnly;
-
-  /// No description provided for @aiStrategyCloudOnly.
-  ///
-  /// In en, this message translates to:
-  /// **'Cloud Only'**
-  String get aiStrategyCloudOnly;
-
-  /// No description provided for @aiStrategyCloudOnlyDesc.
-  ///
-  /// In en, this message translates to:
-  /// **'Use cloud API only, no model download'**
-  String get aiStrategyCloudOnlyDesc;
-
-  /// No description provided for @aiStrategyUnavailable.
-  ///
-  /// In en, this message translates to:
-  /// **'Local model in training, coming soon'**
-  String get aiStrategyUnavailable;
-
-  /// No description provided for @aiStrategySwitched.
-  ///
-  /// In en, this message translates to:
-  /// **'Switched to: {strategy}'**
-  String aiStrategySwitched(String strategy);
-
-  /// No description provided for @aiCloudApiKeyHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Enter your Zhipu AI API Key'**
-  String get aiCloudApiKeyHint;
-
-  /// No description provided for @aiCloudApiKeyHintCustom.
-  ///
-  /// In en, this message translates to:
-  /// **'Enter API Key'**
-  String get aiCloudApiKeyHintCustom;
-
-  /// No description provided for @aiCloudApiKeyHelper.
-  ///
-  /// In en, this message translates to:
-  /// **'GLM-*-Flash model is completely free'**
-  String get aiCloudApiKeyHelper;
-
-  /// No description provided for @aiCloudApiGetKey.
-  ///
-  /// In en, this message translates to:
-  /// **'Get API Key'**
-  String get aiCloudApiGetKey;
-
-  /// No description provided for @aiCloudApiTutorial.
-  ///
-  /// In en, this message translates to:
-  /// **'Tutorial'**
-  String get aiCloudApiTutorial;
-
-  /// No description provided for @aiCloudApiTestKey.
-  ///
-  /// In en, this message translates to:
-  /// **'Test Connection'**
-  String get aiCloudApiTestKey;
-
-  /// No description provided for @aiChatConfigWarning.
-  ///
-  /// In en, this message translates to:
-  /// **'AI provider not configured. Please add and bind one in Settings'**
-  String get aiChatConfigWarning;
-
-  /// No description provided for @aiChatGoToSettings.
-  ///
-  /// In en, this message translates to:
-  /// **'Go to Settings'**
-  String get aiChatGoToSettings;
-
-  /// No description provided for @aiOcrRecognizing.
-  ///
-  /// In en, this message translates to:
-  /// **'Recognizing bill...'**
-  String get aiOcrRecognizing;
-
-  /// No description provided for @aiOcrNoAmount.
-  ///
-  /// In en, this message translates to:
-  /// **'No valid amount recognized, please add manually'**
-  String get aiOcrNoAmount;
-
-  /// No description provided for @aiNotConfiguredHint.
-  ///
-  /// In en, this message translates to:
-  /// **'AI service not configured. Go to \"Me → AI Settings\" to set up.'**
-  String get aiNotConfiguredHint;
-
-  /// No description provided for @aiOcrCheckLog.
-  ///
-  /// In en, this message translates to:
-  /// **'Recognition failed. Check logs for details.'**
-  String get aiOcrCheckLog;
-
-  /// No description provided for @aiOcrNoBill.
-  ///
-  /// In en, this message translates to:
-  /// **'No bill recognized. Make sure the image is a bill, then try again.'**
-  String get aiOcrNoBill;
-
-  /// No description provided for @aiNotConfiguredNotificationTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'❌ Cannot recognize screenshot'**
-  String get aiNotConfiguredNotificationTitle;
-
-  /// No description provided for @aiNotConfiguredNotificationBody.
-  ///
-  /// In en, this message translates to:
-  /// **'AI service not configured. Tap to set up.'**
-  String get aiNotConfiguredNotificationBody;
-
-  /// No description provided for @autoBillingNotifyDetectedTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'✅ Screenshot detected'**
-  String get autoBillingNotifyDetectedTitle;
-
-  /// No description provided for @autoBillingNotifyWaitingFileBody.
-  ///
-  /// In en, this message translates to:
-  /// **'Waiting for file to be written...'**
-  String get autoBillingNotifyWaitingFileBody;
-
-  /// No description provided for @autoBillingNotifyRecognizingScreenshotTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Recognizing screenshot...'**
-  String get autoBillingNotifyRecognizingScreenshotTitle;
-
-  /// No description provided for @autoBillingNotifyVisionAnalyzingBody.
-  ///
-  /// In en, this message translates to:
-  /// **'Calling AI vision to analyze payment info, please wait'**
-  String get autoBillingNotifyVisionAnalyzingBody;
-
-  /// No description provided for @autoBillingNotifyRecognizingTextTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'⏳ Recognizing'**
-  String get autoBillingNotifyRecognizingTextTitle;
-
-  /// No description provided for @autoBillingNotifyTextAnalyzingBody.
-  ///
-  /// In en, this message translates to:
-  /// **'Calling AI to parse payment info...'**
-  String get autoBillingNotifyTextAnalyzingBody;
-
-  /// No description provided for @autoBillingNotifyRecognizeFailedTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'❌ Recognition failed'**
-  String get autoBillingNotifyRecognizeFailedTitle;
-
-  /// No description provided for @autoBillingNotifyRecognizeFailedBody.
-  ///
-  /// In en, this message translates to:
-  /// **'Could not extract billing info from screenshot. Check AI config or the image.'**
-  String get autoBillingNotifyRecognizeFailedBody;
-
-  /// No description provided for @autoBillingNotifyNoBillTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'No bill found'**
-  String get autoBillingNotifyNoBillTitle;
-
-  /// No description provided for @autoBillingNotifyNoBillBody.
-  ///
-  /// In en, this message translates to:
-  /// **'No billing info found in this screenshot — it may not be a bill.'**
-  String get autoBillingNotifyNoBillBody;
-
-  /// No description provided for @autoBillingNotifyFileUnavailableTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Recognition failed'**
-  String get autoBillingNotifyFileUnavailableTitle;
-
-  /// No description provided for @autoBillingNotifyFileUnavailableBody.
-  ///
-  /// In en, this message translates to:
-  /// **'Screenshot file is not available'**
-  String get autoBillingNotifyFileUnavailableBody;
-
-  /// No description provided for @autoBillingNotifyNoLedgerTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'❌ Auto billing failed'**
-  String get autoBillingNotifyNoLedgerTitle;
-
-  /// No description provided for @autoBillingNotifyNoLedgerBody.
-  ///
-  /// In en, this message translates to:
-  /// **'No ledger available. Please create one first.'**
-  String get autoBillingNotifyNoLedgerBody;
-
-  /// No description provided for @autoBillingNotifyNoAmountBody.
-  ///
-  /// In en, this message translates to:
-  /// **'Could not recognize the amount'**
-  String get autoBillingNotifyNoAmountBody;
-
-  /// No description provided for @autoBillingNotifyCreateFailedTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'❌ Failed to create'**
-  String get autoBillingNotifyCreateFailedTitle;
-
-  /// No description provided for @autoBillingNotifyCreateFailedBody.
-  ///
-  /// In en, this message translates to:
-  /// **'Could not create transaction record'**
-  String get autoBillingNotifyCreateFailedBody;
-
-  /// No description provided for @autoBillingNotifyProcessFailedTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'❌ Processing failed'**
-  String get autoBillingNotifyProcessFailedTitle;
-
-  /// No description provided for @autoBillingNotifyProcessFailedBody.
-  ///
-  /// In en, this message translates to:
-  /// **'Error: {error}'**
-  String autoBillingNotifyProcessFailedBody(String error);
-
-  /// No description provided for @autoBillingNotifySuccessSingleTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'✅ Auto billing succeeded ¥{amount}'**
-  String autoBillingNotifySuccessSingleTitle(String amount);
-
-  /// No description provided for @autoBillingNotifySuccessMultiTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'✅ Auto billing succeeded ({count} entries)'**
-  String autoBillingNotifySuccessMultiTitle(int count);
-
-  /// No description provided for @autoBillingNotifySuccessMultiBody.
-  ///
-  /// In en, this message translates to:
-  /// **'Total ¥{amount}'**
-  String autoBillingNotifySuccessMultiBody(String amount);
-
-  /// No description provided for @autoBillingNotifySuccessSingleBodyNote.
-  ///
-  /// In en, this message translates to:
-  /// **'Note: {note}'**
-  String autoBillingNotifySuccessSingleBodyNote(String note);
-
-  /// No description provided for @autoBillingNotifySuccessSingleBodyDefault.
-  ///
-  /// In en, this message translates to:
-  /// **'Record created automatically'**
-  String get autoBillingNotifySuccessSingleBodyDefault;
-
-  /// No description provided for @aiOcrNoLedger.
-  ///
-  /// In en, this message translates to:
-  /// **'Ledger not found'**
-  String get aiOcrNoLedger;
-
-  /// No description provided for @aiBillingRateMissingHint.
-  ///
-  /// In en, this message translates to:
-  /// **'⚠️ No {currency} rate available — recorded 1:1 for now; use “Reconvert” on the stats page to fix.'**
-  String aiBillingRateMissingHint(String currency);
-
-  /// No description provided for @aiPromptVarCurrencies.
-  ///
-  /// In en, this message translates to:
-  /// **'Ledger base currency + foreign-currency accounts in use'**
-  String get aiPromptVarCurrencies;
-
-  /// No description provided for @aiPromptVarBillGuard.
-  ///
-  /// In en, this message translates to:
-  /// **'Non-bill filter (injected for screenshot / auto bookkeeping only)'**
-  String get aiPromptVarBillGuard;
-
-  /// No description provided for @aiPromptMissingVarsHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Your custom template is missing these variables, so the matching features stop working: {vars}'**
-  String aiPromptMissingVarsHint(String vars);
-
-  /// No description provided for @aiPromptInsertVarSection.
-  ///
-  /// In en, this message translates to:
-  /// **'Insert {name} section'**
-  String aiPromptInsertVarSection(String name);
-
-  /// No description provided for @aiPromptVarSectionInserted.
-  ///
-  /// In en, this message translates to:
-  /// **'{name} section appended — review, then save'**
-  String aiPromptVarSectionInserted(String name);
-
-  /// No description provided for @aiOcrSuccess.
-  ///
-  /// In en, this message translates to:
-  /// **'✅ {type} bill created ¥{amount}'**
-  String aiOcrSuccess(String type, String amount);
-
-  /// No description provided for @aiOcrFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Recognition failed: {error}'**
-  String aiOcrFailed(String error);
-
-  /// No description provided for @aiOcrCreateFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Failed to create bill'**
-  String get aiOcrCreateFailed;
-
-  /// No description provided for @aiTypeIncome.
-  ///
-  /// In en, this message translates to:
-  /// **'Income'**
-  String get aiTypeIncome;
-
-  /// No description provided for @aiTypeExpense.
-  ///
-  /// In en, this message translates to:
-  /// **'Expense'**
-  String get aiTypeExpense;
-
-  /// No description provided for @cloudSyncPageTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Cloud Sync'**
-  String get cloudSyncPageTitle;
-
-  /// No description provided for @cloudSyncPageSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Manual upload and download ledger data'**
-  String get cloudSyncPageSubtitle;
-
-  /// No description provided for @cloudTutorialTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Getting Started'**
-  String get cloudTutorialTitle;
-
-  /// No description provided for @cloudTutorialIntro.
-  ///
-  /// In en, this message translates to:
-  /// **'BeeCount Cloud is a self-hosted sync server that supports real-time multi-device collaboration. The flow is simple:'**
-  String get cloudTutorialIntro;
-
-  /// No description provided for @cloudTutorialStep1Title.
-  ///
-  /// In en, this message translates to:
-  /// **'Step 1: Deploy or join a server'**
-  String get cloudTutorialStep1Title;
-
-  /// No description provided for @cloudTutorialStep1Desc.
-  ///
-  /// In en, this message translates to:
-  /// **'Self-host with one Docker command (see the Docker guide in GitHub README). Or join an existing BeeCount Cloud server run by a friend / team.'**
-  String get cloudTutorialStep1Desc;
-
-  /// No description provided for @cloudTutorialStep2Title.
-  ///
-  /// In en, this message translates to:
-  /// **'Step 2: Get an account'**
-  String get cloudTutorialStep2Title;
-
-  /// No description provided for @cloudTutorialStep2Desc.
-  ///
-  /// In en, this message translates to:
-  /// **'BeeCount Cloud does NOT offer self-registration (to prevent abuse on public servers). If you self-host: the first Docker boot prints a random admin email + password to the logs — use that. Joining someone else\'s server: ask the admin to create an account for you in Web → Users.'**
-  String get cloudTutorialStep2Desc;
-
-  /// No description provided for @cloudTutorialStep3Title.
-  ///
-  /// In en, this message translates to:
-  /// **'Step 3: Login + enable sync'**
-  String get cloudTutorialStep3Title;
-
-  /// No description provided for @cloudTutorialStep3Desc.
-  ///
-  /// In en, this message translates to:
-  /// **'In the app, pick BeeCount Cloud, enter the server URL and the account you got in step 2. First login uploads your entire local ledger; every subsequent edit is pushed in real time.'**
-  String get cloudTutorialStep3Desc;
-
-  /// No description provided for @cloudTutorialStep4Title.
-  ///
-  /// In en, this message translates to:
-  /// **'Step 4: Login from other devices'**
-  String get cloudTutorialStep4Title;
-
-  /// No description provided for @cloudTutorialStep4Desc.
-  ///
-  /// In en, this message translates to:
-  /// **'Phone / tablet / Web — same account, instant shared state. Edits propagate within seconds.'**
-  String get cloudTutorialStep4Desc;
-
-  /// No description provided for @cloudTutorialTipTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Tip'**
-  String get cloudTutorialTipTitle;
-
-  /// No description provided for @cloudTutorialTipDesc.
-  ///
-  /// In en, this message translates to:
-  /// **'The Web UI lives at the server URL. Open it in a browser to manage ledgers, members, and view logs.'**
-  String get cloudTutorialTipDesc;
-
-  /// No description provided for @cloudTutorialFeaturesTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Features'**
-  String get cloudTutorialFeaturesTitle;
-
-  /// No description provided for @cloudTutorialFeature1.
-  ///
-  /// In en, this message translates to:
-  /// **'📱 Real-time multi-device: phone A + phone B + Web on one account, sub-second sync'**
-  String get cloudTutorialFeature1;
-
-  /// No description provided for @cloudTutorialFeature2.
-  ///
-  /// In en, this message translates to:
-  /// **'🌐 Web UI included: one Docker image ships server + Web, browser ready'**
-  String get cloudTutorialFeature2;
-
-  /// No description provided for @cloudTutorialFeature3.
-  ///
-  /// In en, this message translates to:
-  /// **'👥 Multi-user isolation: multiple users on one server, data fully separated'**
-  String get cloudTutorialFeature3;
-
-  /// No description provided for @cloudTutorialFeature4.
-  ///
-  /// In en, this message translates to:
-  /// **'🤝 Shared ledgers: invite family / team into one book with seconds-level sync'**
-  String get cloudTutorialFeature4;
-
-  /// No description provided for @cloudTutorialGotIt.
-  ///
-  /// In en, this message translates to:
-  /// **'Got it'**
-  String get cloudTutorialGotIt;
-
-  /// No description provided for @cloudSyncHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Downloads automatically compare differences for selective preview. Not real-time — avoid editing the same ledger on multiple devices simultaneously. Sync scope covers ledger data (including associated accounts, categories, and tags), excluding attachments.'**
-  String get cloudSyncHint;
-
-  /// No description provided for @cloudSyncNow.
-  ///
-  /// In en, this message translates to:
-  /// **'Sync Now'**
-  String get cloudSyncNow;
-
-  /// No description provided for @cloudSyncNowHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Push local changes and pull remote updates'**
-  String get cloudSyncNowHint;
-
-  /// No description provided for @cloudSyncInProgress.
-  ///
-  /// In en, this message translates to:
-  /// **'Syncing...'**
-  String get cloudSyncInProgress;
-
-  /// No description provided for @cloudSyncComplete.
-  ///
-  /// In en, this message translates to:
-  /// **'Sync complete: pushed {pushed}, pulled {pulled}'**
-  String cloudSyncComplete(int pushed, int pulled);
-
-  /// No description provided for @cloudAutoSyncHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Auto-sync to cloud after data changes'**
-  String get cloudAutoSyncHint;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   /// No description provided for @dataManagement.
   ///
@@ -9212,137 +6457,27 @@ abstract class AppLocalizations {
   /// **'When restoring data, please import the attachment package first, then import ledger data (CSV or cloud sync) to ensure attachments are correctly associated.'**
   String get dataManagementAttachmentHint;
 
-  /// No description provided for @smartBilling.
-  ///
-  /// In en, this message translates to:
-  /// **'Smart Billing'**
-  String get smartBilling;
 
-  /// No description provided for @smartBillingDesc.
-  ///
-  /// In en, this message translates to:
-  /// **'AI Assistant, smart recognition, auto billing'**
-  String get smartBillingDesc;
 
-  /// No description provided for @smartBillingPageTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Smart Billing'**
-  String get smartBillingPageTitle;
 
-  /// No description provided for @smartBillingPageSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'AI and automation billing features'**
-  String get smartBillingPageSubtitle;
 
-  /// No description provided for @smartBillingGuideHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Long press the + button at the bottom center of the home page to quickly access these features'**
-  String get smartBillingGuideHint;
 
-  /// No description provided for @smartBillingImageBilling.
-  ///
-  /// In en, this message translates to:
-  /// **'Image Billing'**
-  String get smartBillingImageBilling;
 
-  /// No description provided for @smartBillingImageBillingDesc.
-  ///
-  /// In en, this message translates to:
-  /// **'Select payment screenshots from gallery for recognition'**
-  String get smartBillingImageBillingDesc;
 
-  /// No description provided for @smartBillingImageBillingGuide.
-  ///
-  /// In en, this message translates to:
-  /// **'Long press the + button at the bottom center of the home page and select \'Gallery\' to use image billing. Requires AI service configured under \"Me → AI Settings\"; the vision model will extract amount, merchant, time, etc. from the screenshot.'**
-  String get smartBillingImageBillingGuide;
 
-  /// No description provided for @smartBillingVisionAIRequired.
-  ///
-  /// In en, this message translates to:
-  /// **'Image recognition requires an AI vision service. Set it up in \"Me → AI Settings\" first.'**
-  String get smartBillingVisionAIRequired;
 
-  /// No description provided for @smartBillingCameraBilling.
-  ///
-  /// In en, this message translates to:
-  /// **'Camera Billing'**
-  String get smartBillingCameraBilling;
 
-  /// No description provided for @smartBillingCameraBillingDesc.
-  ///
-  /// In en, this message translates to:
-  /// **'Capture payment screenshots for recognition'**
-  String get smartBillingCameraBillingDesc;
 
-  /// No description provided for @smartBillingCameraBillingGuide.
-  ///
-  /// In en, this message translates to:
-  /// **'Long press the + button at the bottom center of the home page and select \'Camera\' to use camera billing. Requires AI service configured under \"Me → AI Settings\"; the vision model will extract amount, merchant, time, etc. from the photo.'**
-  String get smartBillingCameraBillingGuide;
 
-  /// No description provided for @smartBillingVoiceBilling.
-  ///
-  /// In en, this message translates to:
-  /// **'Voice Billing'**
-  String get smartBillingVoiceBilling;
 
-  /// No description provided for @smartBillingVoiceBillingDesc.
-  ///
-  /// In en, this message translates to:
-  /// **'Quick billing through voice input'**
-  String get smartBillingVoiceBillingDesc;
 
-  /// No description provided for @smartBillingVoiceBillingGuide.
-  ///
-  /// In en, this message translates to:
-  /// **'Long press the + button at the bottom center of the home page and select \'Voice\' to use voice billing. Voice billing requires AI to convert speech to text and extract bill information.'**
-  String get smartBillingVoiceBillingGuide;
 
-  /// No description provided for @smartBillingAIRequired.
-  ///
-  /// In en, this message translates to:
-  /// **'Voice billing requires an AI speech service. Set it up in \"Me → AI Settings\" first.'**
-  String get smartBillingAIRequired;
 
-  /// No description provided for @smartBillingAutoTags.
-  ///
-  /// In en, this message translates to:
-  /// **'Auto-associate Tags'**
-  String get smartBillingAutoTags;
 
-  /// No description provided for @smartBillingAutoTagsDesc.
-  ///
-  /// In en, this message translates to:
-  /// **'Automatically associate frequently used tags based on category'**
-  String get smartBillingAutoTagsDesc;
 
-  /// No description provided for @smartBillingAutoAttachment.
-  ///
-  /// In en, this message translates to:
-  /// **'Auto-add Attachment'**
-  String get smartBillingAutoAttachment;
 
-  /// No description provided for @smartBillingAutoAttachmentDesc.
-  ///
-  /// In en, this message translates to:
-  /// **'Automatically add original image as attachment for photo billing'**
-  String get smartBillingAutoAttachmentDesc;
 
-  /// No description provided for @autoScreenshotBillingIosTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Auto Billing'**
-  String get autoScreenshotBillingIosTitle;
 
-  /// No description provided for @autoScreenshotBillingIosDesc.
-  ///
-  /// In en, this message translates to:
-  /// **'Auto-recognize payments via Shortcuts'**
-  String get autoScreenshotBillingIosDesc;
 
   /// No description provided for @shareBilling.
   ///
@@ -9518,113 +6653,23 @@ abstract class AppLocalizations {
   /// **'More Products'**
   String get aboutRelatedProducts;
 
-  /// No description provided for @aboutBeeAssets.
-  ///
-  /// In en, this message translates to:
-  /// **'BeeAssets'**
-  String get aboutBeeAssets;
 
-  /// No description provided for @aboutBeeAssetsSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Visualize your full asset portfolio'**
-  String get aboutBeeAssetsSubtitle;
 
-  /// No description provided for @aboutBeeAssetsIntro.
-  ///
-  /// In en, this message translates to:
-  /// **'BeeCount focuses on daily cash flow; BeeAssets is its sibling product, focused on asset portfolio visualization: net worth trends across accounts, property / investment / crypto classification, returns, holding period, and allocation breakdown.'**
-  String get aboutBeeAssetsIntro;
 
-  /// No description provided for @aboutBeeDNS.
-  ///
-  /// In en, this message translates to:
-  /// **'BeeDNS'**
-  String get aboutBeeDNS;
 
-  /// No description provided for @aboutBeeDNSSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Simple and efficient DNS management tool'**
-  String get aboutBeeDNSSubtitle;
 
-  /// No description provided for @aboutBeeDNSIntro.
-  ///
-  /// In en, this message translates to:
-  /// **'Got domains across Cloudflare and Aliyun? BeeDNS unifies them in one place: batch edit records, A/AAAA toggles, resolution migration, subdomain bulk management — no more switching between provider consoles.'**
-  String get aboutBeeDNSIntro;
 
-  /// No description provided for @productPromoAndroidTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Request Beta Access'**
-  String get productPromoAndroidTitle;
 
-  /// No description provided for @productPromoAndroidMessage.
-  ///
-  /// In en, this message translates to:
-  /// **'This app is still in closed testing on Google Play — invitation only.\n\nHow to apply: email us with your Google account address (required) and a brief use case (optional). We\'ll reply within 1-3 days and add you to the beta whitelist.'**
-  String get productPromoAndroidMessage;
 
-  /// No description provided for @productPromoOpenStore.
-  ///
-  /// In en, this message translates to:
-  /// **'Open in App Store'**
-  String get productPromoOpenStore;
 
-  /// No description provided for @productPromoTestFlight.
-  ///
-  /// In en, this message translates to:
-  /// **'TestFlight beta'**
-  String get productPromoTestFlight;
 
-  /// No description provided for @productPromoLearnMore.
-  ///
-  /// In en, this message translates to:
-  /// **'Pro'**
-  String get productPromoLearnMore;
 
-  /// No description provided for @productPromoEmailLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Application Email (tap to copy)'**
-  String get productPromoEmailLabel;
 
-  /// No description provided for @productPromoCopiedToast.
-  ///
-  /// In en, this message translates to:
-  /// **'Email copied to clipboard'**
-  String get productPromoCopiedToast;
 
-  /// No description provided for @productPromoMailUnavailable.
-  ///
-  /// In en, this message translates to:
-  /// **'No email app detected. The address has been copied — paste it into any mail app to send.'**
-  String get productPromoMailUnavailable;
 
-  /// No description provided for @productPromoEmailButton.
-  ///
-  /// In en, this message translates to:
-  /// **'Send Email'**
-  String get productPromoEmailButton;
 
-  /// No description provided for @productPromoWebsiteButton.
-  ///
-  /// In en, this message translates to:
-  /// **'Visit Website'**
-  String get productPromoWebsiteButton;
 
-  /// No description provided for @productPromoEmailSubject.
-  ///
-  /// In en, this message translates to:
-  /// **'Beta access request - {productName}'**
-  String productPromoEmailSubject(String productName);
 
-  /// No description provided for @productPromoEmailBody.
-  ///
-  /// In en, this message translates to:
-  /// **'Hi,\n\nI\'d like to join the closed beta for {productName} on Google Play. My Google account email is:\n\n(please fill in your Gmail / Google account email)\n\nThanks!'**
-  String productPromoEmailBody(String productName);
 
   /// No description provided for @logCenterTitle.
   ///
@@ -9860,35 +6905,10 @@ abstract class AppLocalizations {
   /// **'Ledgers'**
   String get configIncludeLedgers;
 
-  /// No description provided for @configIncludeSupabase.
-  ///
-  /// In en, this message translates to:
-  /// **'Supabase cloud service config'**
-  String get configIncludeSupabase;
 
-  /// No description provided for @configIncludeWebdav.
-  ///
-  /// In en, this message translates to:
-  /// **'WebDAV cloud service config'**
-  String get configIncludeWebdav;
 
-  /// No description provided for @configIncludeS3.
-  ///
-  /// In en, this message translates to:
-  /// **'S3 cloud service config'**
-  String get configIncludeS3;
 
-  /// No description provided for @configIncludeAI.
-  ///
-  /// In en, this message translates to:
-  /// **'AI smart recognition config'**
-  String get configIncludeAI;
 
-  /// No description provided for @configIncludeAISubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Providers, capability binding, model settings, etc.'**
-  String get configIncludeAISubtitle;
 
   /// No description provided for @configIncludeAppSettings.
   ///
@@ -10058,11 +7078,6 @@ abstract class AppLocalizations {
   /// **'Clear cache to free up space'**
   String get storageManagementSubtitle;
 
-  /// No description provided for @storageAIModels.
-  ///
-  /// In en, this message translates to:
-  /// **'AI Models'**
-  String get storageAIModels;
 
   /// No description provided for @storageAPKFiles.
   ///
@@ -10094,11 +7109,6 @@ abstract class AppLocalizations {
   /// **'Confirm Clear'**
   String get storageClearConfirmTitle;
 
-  /// No description provided for @storageClearAIModelsMessage.
-  ///
-  /// In en, this message translates to:
-  /// **'Are you sure you want to clear all AI models? Size: {size}'**
-  String storageClearAIModelsMessage(String size);
 
   /// No description provided for @storageClearAPKMessage.
   ///
@@ -10418,569 +7428,99 @@ abstract class AppLocalizations {
   /// **'Screenshot auto-billing feature uses the App Intents framework introduced in iOS 16. Your device is running an older version and does not support this feature.\n\nPlease upgrade to iOS 16 or later to use this feature.'**
   String get iosVersionWarningDesc;
 
-  /// No description provided for @aiChatTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'AI Assistant'**
-  String get aiChatTitle;
-
-  /// No description provided for @aiChatClearHistory.
-  ///
-  /// In en, this message translates to:
-  /// **'Clear History'**
-  String get aiChatClearHistory;
-
-  /// No description provided for @aiChatClearHistoryDialogTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Clear Conversation History'**
-  String get aiChatClearHistoryDialogTitle;
-
-  /// No description provided for @aiChatClearHistoryDialogContent.
-  ///
-  /// In en, this message translates to:
-  /// **'Are you sure you want to clear all conversation records? This action cannot be undone.'**
-  String get aiChatClearHistoryDialogContent;
-
-  /// No description provided for @aiChatInputHint.
-  ///
-  /// In en, this message translates to:
-  /// **'e.g.: Bought a coffee for \$35'**
-  String get aiChatInputHint;
-
-  /// No description provided for @aiQuickCommandsTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Try a task'**
-  String get aiQuickCommandsTitle;
-
-  /// No description provided for @agentSuggestionOverviewTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'This month\'s totals'**
-  String get agentSuggestionOverviewTitle;
-
-  /// No description provided for @agentSuggestionOverviewPrompt.
-  ///
-  /// In en, this message translates to:
-  /// **'Summarize this month\'s income, expenses and balance.'**
-  String get agentSuggestionOverviewPrompt;
-
-  /// No description provided for @agentSuggestionCategoryTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Category shares'**
-  String get agentSuggestionCategoryTitle;
-
-  /// No description provided for @agentSuggestionCategoryPrompt.
-  ///
-  /// In en, this message translates to:
-  /// **'What are this month\'s spending shares by top-level category?'**
-  String get agentSuggestionCategoryPrompt;
-
-  /// No description provided for @aiQuickCommandsOpen.
-  ///
-  /// In en, this message translates to:
-  /// **'Open suggestions'**
-  String get aiQuickCommandsOpen;
-
-  /// No description provided for @aiChatEmptyMessages.
-  ///
-  /// In en, this message translates to:
-  /// **'No messages yet'**
-  String get aiChatEmptyMessages;
-
-  /// No description provided for @aiChatEmptyCurrentLedger.
-  ///
-  /// In en, this message translates to:
-  /// **'Current ledger'**
-  String get aiChatEmptyCurrentLedger;
-
-  /// No description provided for @aiChatEmptyStartTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Start with a transaction or a question'**
-  String get aiChatEmptyStartTitle;
-
-  /// No description provided for @aiChatEmptyStartDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'I\'ll answer from this ledger and ask for permission when needed.'**
-  String get aiChatEmptyStartDescription;
-
-  /// No description provided for @aiChatEmptyMonthExpense.
-  ///
-  /// In en, this message translates to:
-  /// **'This month\'s spending'**
-  String get aiChatEmptyMonthExpense;
-
-  /// No description provided for @aiChatEmptyRecordedTransactions.
-  ///
-  /// In en, this message translates to:
-  /// **'Recorded transactions'**
-  String get aiChatEmptyRecordedTransactions;
-
-  /// No description provided for @aiChatEmptyTransactionCount.
-  ///
-  /// In en, this message translates to:
-  /// **'{count} recorded'**
-  String aiChatEmptyTransactionCount(int count);
-
-  /// No description provided for @aiChatEmptyQuestionExample.
-  ///
-  /// In en, this message translates to:
-  /// **'Try asking: What did I spend the most on this month?'**
-  String get aiChatEmptyQuestionExample;
-
-  /// No description provided for @aiChatEmptyFirstTransactionTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Start with today\'s first transaction'**
-  String get aiChatEmptyFirstTransactionTitle;
-
-  /// No description provided for @aiChatEmptyFirstTransactionDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'Tell me the amount and purpose, and I\'ll help record it.'**
-  String get aiChatEmptyFirstTransactionDescription;
-
-  /// No description provided for @aiChatEmptyFirstTransactionExample.
-  ///
-  /// In en, this message translates to:
-  /// **'For example: Lunch cost 28'**
-  String get aiChatEmptyFirstTransactionExample;
-
-  /// No description provided for @aiChatMessagesLoadFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Failed to load messages: {error}'**
-  String aiChatMessagesLoadFailed(String error);
-
-  /// No description provided for @aiChatThinking.
-  ///
-  /// In en, this message translates to:
-  /// **'Thinking...'**
-  String get aiChatThinking;
-
-  /// No description provided for @aiChatHistoryCleared.
-  ///
-  /// In en, this message translates to:
-  /// **'Conversation history cleared'**
-  String get aiChatHistoryCleared;
-
-  /// No description provided for @aiChatCopy.
-  ///
-  /// In en, this message translates to:
-  /// **'Copy'**
-  String get aiChatCopy;
-
-  /// No description provided for @aiChatCopied.
-  ///
-  /// In en, this message translates to:
-  /// **'Copied to clipboard'**
-  String get aiChatCopied;
-
-  /// No description provided for @aiChatDeleteMessageConfirm.
-  ///
-  /// In en, this message translates to:
-  /// **'Are you sure you want to delete this message?'**
-  String get aiChatDeleteMessageConfirm;
-
-  /// No description provided for @aiChatMessageDeleted.
-  ///
-  /// In en, this message translates to:
-  /// **'Message deleted'**
-  String get aiChatMessageDeleted;
-
-  /// No description provided for @aiChatUndone.
-  ///
-  /// In en, this message translates to:
-  /// **'Undone'**
-  String get aiChatUndone;
-
-  /// No description provided for @aiChatUndoFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Undo failed'**
-  String get aiChatUndoFailed;
-
-  /// No description provided for @aiChatTransactionNotFound.
-  ///
-  /// In en, this message translates to:
-  /// **'Transaction not found'**
-  String get aiChatTransactionNotFound;
-
-  /// No description provided for @aiChatOpenEditorFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Failed to open editor'**
-  String get aiChatOpenEditorFailed;
-
-  /// No description provided for @aiChatSendFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Failed to send'**
-  String get aiChatSendFailed;
-
-  /// No description provided for @agentRunFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'AI service is temporarily unavailable. Please try again later.'**
-  String get agentRunFailed;
-
-  /// No description provided for @agentNativeToolsUnsupported.
-  ///
-  /// In en, this message translates to:
-  /// **'This model can chat normally, but it does not support the native tool calls required to read or change ledger data. Open Settings > AI Settings > Provider Management to test or switch models.'**
-  String get agentNativeToolsUnsupported;
-
-  /// No description provided for @agentTurnTimedOut.
-  ///
-  /// In en, this message translates to:
-  /// **'The AI response timed out. Please try again shortly.'**
-  String get agentTurnTimedOut;
-
-  /// No description provided for @agentRecordIncomplete.
-  ///
-  /// In en, this message translates to:
-  /// **'The transaction details are incomplete. Please include an amount and purpose, then try again.'**
-  String get agentRecordIncomplete;
-
-  /// No description provided for @agentRecordCreated.
-  ///
-  /// In en, this message translates to:
-  /// **'Created {count, plural, =1{1 transaction} other{{count} transactions}}.'**
-  String agentRecordCreated(int count);
-
-  /// No description provided for @agentStepsExceeded.
-  ///
-  /// In en, this message translates to:
-  /// **'This request took too many steps. Please simplify it and try again.'**
-  String get agentStepsExceeded;
-
-  /// No description provided for @agentExecutingTool.
-  ///
-  /// In en, this message translates to:
-  /// **'Working: {tool}'**
-  String agentExecutingTool(Object tool);
-
-  /// No description provided for @agentToolCompleted.
-  ///
-  /// In en, this message translates to:
-  /// **'Done: {tool}'**
-  String agentToolCompleted(Object tool);
-
-  /// No description provided for @agentToolFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Could not complete: {tool}'**
-  String agentToolFailed(Object tool);
-
-  /// No description provided for @agentToolQueryTransactions.
-  ///
-  /// In en, this message translates to:
-  /// **'query transactions'**
-  String get agentToolQueryTransactions;
-
-  /// No description provided for @agentToolSpendingSummary.
-  ///
-  /// In en, this message translates to:
-  /// **'summarize spending'**
-  String get agentToolSpendingSummary;
-
-  /// No description provided for @agentToolTransactionSummary.
-  ///
-  /// In en, this message translates to:
-  /// **'summarize transactions'**
-  String get agentToolTransactionSummary;
-
-  /// No description provided for @agentToolBudgetStatus.
-  ///
-  /// In en, this message translates to:
-  /// **'check budget'**
-  String get agentToolBudgetStatus;
-
-  /// No description provided for @agentToolRecurringTransactions.
-  ///
-  /// In en, this message translates to:
-  /// **'view recurring transactions'**
-  String get agentToolRecurringTransactions;
-
-  /// No description provided for @agentToolRecordTransaction.
-  ///
-  /// In en, this message translates to:
-  /// **'record transaction'**
-  String get agentToolRecordTransaction;
-
-  /// No description provided for @agentToolSaveMemory.
-  ///
-  /// In en, this message translates to:
-  /// **'save memory'**
-  String get agentToolSaveMemory;
-
-  /// No description provided for @agentToolForgetMemory.
-  ///
-  /// In en, this message translates to:
-  /// **'forget memory'**
-  String get agentToolForgetMemory;
-
-  /// No description provided for @agentPermissionsTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'AI Assistant permissions'**
-  String get agentPermissionsTitle;
-
-  /// No description provided for @agentPermissionsIntro.
-  ///
-  /// In en, this message translates to:
-  /// **'Choose what AI Assistant can do here. Read-only tools only view data; tools that change data ask for authorization before running.'**
-  String get agentPermissionsIntro;
-
-  /// No description provided for @agentPermissionsReadOnlySection.
-  ///
-  /// In en, this message translates to:
-  /// **'Read-only tools'**
-  String get agentPermissionsReadOnlySection;
-
-  /// No description provided for @agentPermissionsReadOnlySectionDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'View ledger information without changing anything.'**
-  String get agentPermissionsReadOnlySectionDescription;
-
-  /// No description provided for @agentPermissionsWriteSection.
-  ///
-  /// In en, this message translates to:
-  /// **'Data-changing tools'**
-  String get agentPermissionsWriteSection;
-
-  /// No description provided for @agentPermissionsWriteSectionDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'These can change your ledger or local memories; asking every time is recommended.'**
-  String get agentPermissionsWriteSectionDescription;
-
-  /// No description provided for @agentPermissionsDefaultsActive.
-  ///
-  /// In en, this message translates to:
-  /// **'All tools are using their default policies'**
-  String get agentPermissionsDefaultsActive;
-
-  /// No description provided for @agentPermissionsModifiedCount.
-  ///
-  /// In en, this message translates to:
-  /// **'{count} custom settings'**
-  String agentPermissionsModifiedCount(int count);
-
-  /// No description provided for @agentPermissionsRestoreDefaults.
-  ///
-  /// In en, this message translates to:
-  /// **'Restore defaults'**
-  String get agentPermissionsRestoreDefaults;
-
-  /// No description provided for @agentPermissionsRestoreTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Restore default permissions?'**
-  String get agentPermissionsRestoreTitle;
-
-  /// No description provided for @agentPermissionsRestoreDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'This clears every Always allow setting and restores each tool\'s default permission.'**
-  String get agentPermissionsRestoreDescription;
-
-  /// No description provided for @agentPermissionsRestoreConfirm.
-  ///
-  /// In en, this message translates to:
-  /// **'Restore'**
-  String get agentPermissionsRestoreConfirm;
-
-  /// No description provided for @agentPermissionAsk.
-  ///
-  /// In en, this message translates to:
-  /// **'Ask every time'**
-  String get agentPermissionAsk;
-
-  /// No description provided for @agentPermissionAlwaysAllow.
-  ///
-  /// In en, this message translates to:
-  /// **'Always allow'**
-  String get agentPermissionAlwaysAllow;
-
-  /// No description provided for @agentPermissionWaiting.
-  ///
-  /// In en, this message translates to:
-  /// **'Waiting for your authorization'**
-  String get agentPermissionWaiting;
-
-  /// No description provided for @agentPermissionWriteFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Could not save permission settings. Please try again.'**
-  String get agentPermissionWriteFailed;
-
-  /// No description provided for @agentAuthorizationPersistenceFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Permission could not be saved; this operation still follows your choice.'**
-  String get agentAuthorizationPersistenceFailed;
-
-  /// No description provided for @agentToolQueryTransactionsDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'View transactions in the current ledger for a selected time range.'**
-  String get agentToolQueryTransactionsDescription;
-
-  /// No description provided for @agentToolSpendingSummaryDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'Summarize spending in the current ledger for a selected time range.'**
-  String get agentToolSpendingSummaryDescription;
-
-  /// No description provided for @agentToolTransactionSummaryDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'Aggregate transactions in the current ledger by type, category, tag, account, or time period.'**
-  String get agentToolTransactionSummaryDescription;
-
-  /// No description provided for @agentToolBudgetStatusDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'View the budget status for the current ledger.'**
-  String get agentToolBudgetStatusDescription;
-
-  /// No description provided for @agentToolRecurringTransactionsDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'View enabled recurring transactions in the current ledger.'**
-  String get agentToolRecurringTransactionsDescription;
-
-  /// No description provided for @agentToolRecordTransactionDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'Record a transaction from the original text you sent.'**
-  String get agentToolRecordTransactionDescription;
-
-  /// No description provided for @agentToolSaveMemoryDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'Save something you explicitly asked the assistant to remember.'**
-  String get agentToolSaveMemoryDescription;
-
-  /// No description provided for @agentToolForgetMemoryDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'Delete a saved local memory.'**
-  String get agentToolForgetMemoryDescription;
-
-  /// No description provided for @agentToolUnknownDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'Run a local Agent tool.'**
-  String get agentToolUnknownDescription;
-
-  /// No description provided for @agentAuthorizationTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Allow Agent action?'**
-  String get agentAuthorizationTitle;
-
-  /// No description provided for @agentAuthorizationCurrentLedger.
-  ///
-  /// In en, this message translates to:
-  /// **'Ledger: current ledger (ID {ledgerId})'**
-  String agentAuthorizationCurrentLedger(int ledgerId);
-
-  /// No description provided for @agentAuthorizationAllLedgers.
-  ///
-  /// In en, this message translates to:
-  /// **'Ledger: all accessible ledgers'**
-  String get agentAuthorizationAllLedgers;
-
-  /// No description provided for @agentAuthorizationParameters.
-  ///
-  /// In en, this message translates to:
-  /// **'Information used this time'**
-  String get agentAuthorizationParameters;
-
-  /// No description provided for @agentAuthorizationNoParameters.
-  ///
-  /// In en, this message translates to:
-  /// **'No parameters need to be shown.'**
-  String get agentAuthorizationNoParameters;
-
-  /// No description provided for @agentAuthorizationSourceText.
-  ///
-  /// In en, this message translates to:
-  /// **'Original transaction text'**
-  String get agentAuthorizationSourceText;
-
-  /// No description provided for @agentAuthorizationTimeRange.
-  ///
-  /// In en, this message translates to:
-  /// **'Query time range'**
-  String get agentAuthorizationTimeRange;
-
-  /// No description provided for @agentAuthorizationSummaryTypes.
-  ///
-  /// In en, this message translates to:
-  /// **'Transaction types'**
-  String get agentAuthorizationSummaryTypes;
-
-  /// No description provided for @agentAuthorizationSummaryGroupBy.
-  ///
-  /// In en, this message translates to:
-  /// **'Group by'**
-  String get agentAuthorizationSummaryGroupBy;
-
-  /// No description provided for @agentAuthorizationCategoryIds.
-  ///
-  /// In en, this message translates to:
-  /// **'Category IDs'**
-  String get agentAuthorizationCategoryIds;
-
-  /// No description provided for @agentAuthorizationTagIds.
-  ///
-  /// In en, this message translates to:
-  /// **'Tag IDs'**
-  String get agentAuthorizationTagIds;
-
-  /// No description provided for @agentAuthorizationAccountIds.
-  ///
-  /// In en, this message translates to:
-  /// **'Account IDs'**
-  String get agentAuthorizationAccountIds;
-
-  /// No description provided for @agentAuthorizationMemoryContent.
-  ///
-  /// In en, this message translates to:
-  /// **'Memory content'**
-  String get agentAuthorizationMemoryContent;
-
-  /// No description provided for @agentAuthorizationMemoryId.
-  ///
-  /// In en, this message translates to:
-  /// **'Memory ID'**
-  String get agentAuthorizationMemoryId;
-
-  /// No description provided for @agentAuthorizationDeny.
-  ///
-  /// In en, this message translates to:
-  /// **'Deny'**
-  String get agentAuthorizationDeny;
-
-  /// No description provided for @agentAuthorizationAllowOnce.
-  ///
-  /// In en, this message translates to:
-  /// **'Allow once'**
-  String get agentAuthorizationAllowOnce;
-
-  /// No description provided for @agentAuthorizationAlwaysAllow.
-  ///
-  /// In en, this message translates to:
-  /// **'Always allow'**
-  String get agentAuthorizationAlwaysAllow;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   /// No description provided for @billCardSuccess.
   ///
@@ -11078,167 +7618,32 @@ abstract class AppLocalizations {
   /// **'Edit'**
   String get billCardEdit;
 
-  /// No description provided for @donationTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Donate'**
-  String get donationTitle;
 
-  /// No description provided for @donationSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Buy me a coffee'**
-  String get donationSubtitle;
 
-  /// No description provided for @donationEntrySubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Support continued development'**
-  String get donationEntrySubtitle;
 
-  /// No description provided for @donationDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'Description'**
-  String get donationDescription;
 
-  /// No description provided for @donationDescriptionDetail.
-  ///
-  /// In en, this message translates to:
-  /// **'Thank you for using BeeCount! If this app helps you, feel free to buy the developer a coffee as encouragement. Your support is my motivation to keep improving.'**
-  String get donationDescriptionDetail;
 
-  /// No description provided for @donationNoFeatures.
-  ///
-  /// In en, this message translates to:
-  /// **'Note: Donations will not unlock any features. All features remain completely free.'**
-  String get donationNoFeatures;
 
-  /// No description provided for @donationNoProducts.
-  ///
-  /// In en, this message translates to:
-  /// **'No products available'**
-  String get donationNoProducts;
 
-  /// No description provided for @donationThankYouTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Thank You!'**
-  String get donationThankYouTitle;
 
-  /// No description provided for @donationThankYouMessage.
-  ///
-  /// In en, this message translates to:
-  /// **'Thank you for purchasing {productName}! Your support means a lot to me. I will continue to improve BeeCount to make it even better!'**
-  String donationThankYouMessage(String productName);
 
-  /// No description provided for @aiQuickCommandFinancialHealthTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Financial Health Analysis'**
-  String get aiQuickCommandFinancialHealthTitle;
 
-  /// No description provided for @aiQuickCommandFinancialHealthDesc.
-  ///
-  /// In en, this message translates to:
-  /// **'Analyze income-expense balance and savings rate'**
-  String get aiQuickCommandFinancialHealthDesc;
 
-  /// No description provided for @aiQuickCommandFinancialHealthPrompt.
-  ///
-  /// In en, this message translates to:
-  /// **'Please analyze my financial health based on the following data:\n\n[monthlyStats]\n\n[recentTrends]\n\nPlease provide professional analysis and suggestions from the perspectives of income-expense balance, savings rate, and spending trends. Please respond in English.'**
-  String get aiQuickCommandFinancialHealthPrompt;
 
-  /// No description provided for @aiQuickCommandMonthlyExpenseTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Monthly Expense Summary'**
-  String get aiQuickCommandMonthlyExpenseTitle;
 
-  /// No description provided for @aiQuickCommandMonthlyExpenseDesc.
-  ///
-  /// In en, this message translates to:
-  /// **'Monthly expense analysis and recommendations'**
-  String get aiQuickCommandMonthlyExpenseDesc;
 
-  /// No description provided for @aiQuickCommandMonthlyExpensePrompt.
-  ///
-  /// In en, this message translates to:
-  /// **'Please summarize my monthly expenses based on the following data:\n\n[monthlyStats]\n\n[categoryStats]\n\nPlease analyze which categories account for the highest proportion and provide optimization suggestions. Please respond in English.'**
-  String get aiQuickCommandMonthlyExpensePrompt;
 
-  /// No description provided for @aiQuickCommandCategoryAnalysisTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Category Analysis'**
-  String get aiQuickCommandCategoryAnalysisTitle;
 
-  /// No description provided for @aiQuickCommandCategoryAnalysisDesc.
-  ///
-  /// In en, this message translates to:
-  /// **'Analyze spending distribution by category'**
-  String get aiQuickCommandCategoryAnalysisDesc;
 
-  /// No description provided for @aiQuickCommandCategoryAnalysisPrompt.
-  ///
-  /// In en, this message translates to:
-  /// **'Please analyze my spending by category based on the following data:\n\n[categoryStats]\n\nPlease point out whether there are unreasonable spending ratios and provide optimization suggestions. Please respond in English.'**
-  String get aiQuickCommandCategoryAnalysisPrompt;
 
-  /// No description provided for @aiQuickCommandBudgetPlanningTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Budget Planning'**
-  String get aiQuickCommandBudgetPlanningTitle;
 
-  /// No description provided for @aiQuickCommandBudgetPlanningDesc.
-  ///
-  /// In en, this message translates to:
-  /// **'Smart budget recommendations'**
-  String get aiQuickCommandBudgetPlanningDesc;
 
-  /// No description provided for @aiQuickCommandBudgetPlanningPrompt.
-  ///
-  /// In en, this message translates to:
-  /// **'Please help me plan a reasonable budget based on the following data:\n\n[monthlyStats]\n\n[recentTrends]\n\nPlease provide specific budget amounts and execution suggestions for each category. Please respond in English.'**
-  String get aiQuickCommandBudgetPlanningPrompt;
 
-  /// No description provided for @aiQuickCommandAbnormalExpenseTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Abnormal Expense Alert'**
-  String get aiQuickCommandAbnormalExpenseTitle;
 
-  /// No description provided for @aiQuickCommandAbnormalExpenseDesc.
-  ///
-  /// In en, this message translates to:
-  /// **'Identify unusual spending'**
-  String get aiQuickCommandAbnormalExpenseDesc;
 
-  /// No description provided for @aiQuickCommandAbnormalExpensePrompt.
-  ///
-  /// In en, this message translates to:
-  /// **'Please check if there are any abnormal expenses based on the following data:\n\n[recentTransactions]\n\n[monthlyStats]\n\nPlease identify significantly higher expenses than usual and provide analysis. Please respond in English.'**
-  String get aiQuickCommandAbnormalExpensePrompt;
 
-  /// No description provided for @aiQuickCommandSavingTipsTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Saving Tips'**
-  String get aiQuickCommandSavingTipsTitle;
 
-  /// No description provided for @aiQuickCommandSavingTipsDesc.
-  ///
-  /// In en, this message translates to:
-  /// **'Personalized money-saving suggestions'**
-  String get aiQuickCommandSavingTipsDesc;
 
-  /// No description provided for @aiQuickCommandSavingTipsPrompt.
-  ///
-  /// In en, this message translates to:
-  /// **'Please provide practical money-saving suggestions based on the following data:\n\n[categoryStats]\n\n[recentTrends]\n\nPlease give 3-5 specific and actionable suggestions. Please respond in English.'**
-  String get aiQuickCommandSavingTipsPrompt;
 
   /// No description provided for @billCardUnknownLedger.
   ///
@@ -11246,209 +7651,39 @@ abstract class AppLocalizations {
   /// **'Unknown Ledger'**
   String get billCardUnknownLedger;
 
-  /// No description provided for @aiPromptEditTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Prompt Editor'**
-  String get aiPromptEditTitle;
 
-  /// No description provided for @aiPromptEditSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Customize AI bill recognition prompt'**
-  String get aiPromptEditSubtitle;
 
-  /// No description provided for @aiPromptAdvancedSettings.
-  ///
-  /// In en, this message translates to:
-  /// **'Advanced Settings'**
-  String get aiPromptAdvancedSettings;
 
-  /// No description provided for @aiAdvancedSettingsDesc.
-  ///
-  /// In en, this message translates to:
-  /// **'Model selection, strategy, local model, prompt'**
-  String get aiAdvancedSettingsDesc;
 
-  /// No description provided for @aiPromptEditEntry.
-  ///
-  /// In en, this message translates to:
-  /// **'Prompt Editor'**
-  String get aiPromptEditEntry;
 
-  /// No description provided for @aiPromptEditEntryDesc.
-  ///
-  /// In en, this message translates to:
-  /// **'Customize AI bill recognition prompt, shareable with others'**
-  String get aiPromptEditEntryDesc;
 
-  /// No description provided for @aiPromptVariables.
-  ///
-  /// In en, this message translates to:
-  /// **'Variables'**
-  String get aiPromptVariables;
 
-  /// No description provided for @aiPromptVariablesHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Tap to view available variables'**
-  String get aiPromptVariablesHint;
 
-  /// No description provided for @aiPromptContent.
-  ///
-  /// In en, this message translates to:
-  /// **'Prompt Content'**
-  String get aiPromptContent;
 
-  /// No description provided for @aiPromptUnsaved.
-  ///
-  /// In en, this message translates to:
-  /// **'Unsaved'**
-  String get aiPromptUnsaved;
 
-  /// No description provided for @aiPromptInputHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Enter prompt...'**
-  String get aiPromptInputHint;
 
-  /// No description provided for @aiPromptPreview.
-  ///
-  /// In en, this message translates to:
-  /// **'Preview'**
-  String get aiPromptPreview;
 
-  /// No description provided for @aiPromptSave.
-  ///
-  /// In en, this message translates to:
-  /// **'Save'**
-  String get aiPromptSave;
 
-  /// No description provided for @aiPromptSaved.
-  ///
-  /// In en, this message translates to:
-  /// **'Prompt saved'**
-  String get aiPromptSaved;
 
-  /// No description provided for @aiPromptResetDefault.
-  ///
-  /// In en, this message translates to:
-  /// **'Reset to Default'**
-  String get aiPromptResetDefault;
 
-  /// No description provided for @aiPromptResetConfirmTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Reset to Default'**
-  String get aiPromptResetConfirmTitle;
 
-  /// No description provided for @aiPromptResetConfirmMessage.
-  ///
-  /// In en, this message translates to:
-  /// **'Are you sure you want to reset to default prompt? Your custom content will be lost.'**
-  String get aiPromptResetConfirmMessage;
 
-  /// No description provided for @aiPromptPasted.
-  ///
-  /// In en, this message translates to:
-  /// **'Pasted'**
-  String get aiPromptPasted;
 
-  /// No description provided for @aiPromptPreviewTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Prompt Preview'**
-  String get aiPromptPreviewTitle;
 
-  /// No description provided for @aiPromptPreviewNote.
-  ///
-  /// In en, this message translates to:
-  /// **'Preview uses sample data for variables. Real data will be used at runtime.'**
-  String get aiPromptPreviewNote;
 
-  /// No description provided for @aiPromptVarInputSource.
-  ///
-  /// In en, this message translates to:
-  /// **'Input source description, e.g. \"From the following payment bill text\"'**
-  String get aiPromptVarInputSource;
 
-  /// No description provided for @aiPromptVarCurrentTime.
-  ///
-  /// In en, this message translates to:
-  /// **'Current date and time, e.g. \"2025-01-15 14:30\"'**
-  String get aiPromptVarCurrentTime;
 
-  /// No description provided for @aiPromptVarCurrentDate.
-  ///
-  /// In en, this message translates to:
-  /// **'Current date, e.g. \"2025-01-15\"'**
-  String get aiPromptVarCurrentDate;
 
-  /// No description provided for @aiPromptVarOcrText.
-  ///
-  /// In en, this message translates to:
-  /// **'User input text content'**
-  String get aiPromptVarOcrText;
 
-  /// No description provided for @aiPromptVarCategories.
-  ///
-  /// In en, this message translates to:
-  /// **'Expense and income category list'**
-  String get aiPromptVarCategories;
 
-  /// No description provided for @aiPromptVarAccounts.
-  ///
-  /// In en, this message translates to:
-  /// **'User\'s account list (may be empty)'**
-  String get aiPromptVarAccounts;
 
-  /// No description provided for @aiModelTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Text Reasoning Model'**
-  String get aiModelTitle;
 
-  /// No description provided for @aiVisionModelTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Vision Model'**
-  String get aiVisionModelTitle;
 
-  /// No description provided for @aiModelFast.
-  ///
-  /// In en, this message translates to:
-  /// **'Faster'**
-  String get aiModelFast;
 
-  /// No description provided for @aiModelAccurate.
-  ///
-  /// In en, this message translates to:
-  /// **'Accurate'**
-  String get aiModelAccurate;
 
-  /// No description provided for @aiModelSwitched.
-  ///
-  /// In en, this message translates to:
-  /// **'Switched to {modelName}'**
-  String aiModelSwitched(String modelName);
 
-  /// No description provided for @aiCustomBaseUrlHelper.
-  ///
-  /// In en, this message translates to:
-  /// **'Standard chat completion API URL, e.g. https://api.example.com/v1'**
-  String get aiCustomBaseUrlHelper;
 
-  /// No description provided for @aiTextModelTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Text Model'**
-  String get aiTextModelTitle;
 
-  /// No description provided for @aiAudioModelTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Audio Model'**
-  String get aiAudioModelTitle;
 
   /// No description provided for @tagManageTitle.
   ///
@@ -12272,17 +8507,7 @@ abstract class AppLocalizations {
   /// **'Available Shortcuts'**
   String get availableShortcuts;
 
-  /// No description provided for @shortcutVoice.
-  ///
-  /// In en, this message translates to:
-  /// **'Voice Billing'**
-  String get shortcutVoice;
 
-  /// No description provided for @shortcutVoiceDesc.
-  ///
-  /// In en, this message translates to:
-  /// **'Quickly record bills by voice'**
-  String get shortcutVoiceDesc;
 
   /// No description provided for @shortcutImage.
   ///
@@ -12506,11 +8731,6 @@ abstract class AppLocalizations {
   /// **'Camera Billing'**
   String get quickActionCamera;
 
-  /// No description provided for @quickActionVoice.
-  ///
-  /// In en, this message translates to:
-  /// **'Voice Billing'**
-  String get quickActionVoice;
 
   /// No description provided for @quickActionAiChat.
   ///
@@ -12560,443 +8780,78 @@ abstract class AppLocalizations {
   /// **'Saved'**
   String get commonSaved;
 
-  /// No description provided for @aiProviderManageTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Provider Management'**
-  String get aiProviderManageTitle;
-
-  /// No description provided for @aiProviderManageSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Manage AI service providers'**
-  String get aiProviderManageSubtitle;
-
-  /// No description provided for @aiProviderAdd.
-  ///
-  /// In en, this message translates to:
-  /// **'Add Provider'**
-  String get aiProviderAdd;
-
-  /// No description provided for @aiProviderBuiltIn.
-  ///
-  /// In en, this message translates to:
-  /// **'Built-in'**
-  String get aiProviderBuiltIn;
-
-  /// No description provided for @aiProviderEmpty.
-  ///
-  /// In en, this message translates to:
-  /// **'No providers configured'**
-  String get aiProviderEmpty;
-
-  /// No description provided for @aiProviderNoApiKey.
-  ///
-  /// In en, this message translates to:
-  /// **'API Key not configured'**
-  String get aiProviderNoApiKey;
-
-  /// No description provided for @aiProviderTapToEdit.
-  ///
-  /// In en, this message translates to:
-  /// **'Tap to edit'**
-  String get aiProviderTapToEdit;
-
-  /// No description provided for @aiProviderDeleteTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Delete Provider'**
-  String get aiProviderDeleteTitle;
-
-  /// No description provided for @aiProviderDeleteConfirm.
-  ///
-  /// In en, this message translates to:
-  /// **'Delete provider \"{name}\"? Capabilities using this provider will switch to default.'**
-  String aiProviderDeleteConfirm(String name);
-
-  /// No description provided for @aiProviderDeleted.
-  ///
-  /// In en, this message translates to:
-  /// **'Provider deleted'**
-  String get aiProviderDeleted;
-
-  /// No description provided for @aiProviderEditTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Edit Provider'**
-  String get aiProviderEditTitle;
-
-  /// No description provided for @aiProviderAddTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Add Provider'**
-  String get aiProviderAddTitle;
-
-  /// No description provided for @aiProviderBasicInfo.
-  ///
-  /// In en, this message translates to:
-  /// **'Basic Info'**
-  String get aiProviderBasicInfo;
-
-  /// No description provided for @aiProviderName.
-  ///
-  /// In en, this message translates to:
-  /// **'Provider Name'**
-  String get aiProviderName;
-
-  /// No description provided for @aiProviderNameHint.
-  ///
-  /// In en, this message translates to:
-  /// **'e.g., SiliconFlow, DeepSeek'**
-  String get aiProviderNameHint;
-
-  /// No description provided for @aiProviderNameRequired.
-  ///
-  /// In en, this message translates to:
-  /// **'Please enter provider name'**
-  String get aiProviderNameRequired;
-
-  /// No description provided for @aiProviderBaseUrlRequired.
-  ///
-  /// In en, this message translates to:
-  /// **'Please enter Base URL'**
-  String get aiProviderBaseUrlRequired;
-
-  /// No description provided for @aiProviderModels.
-  ///
-  /// In en, this message translates to:
-  /// **'Model Configuration'**
-  String get aiProviderModels;
-
-  /// No description provided for @aiProviderModelsHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Empty capabilities cannot use this provider'**
-  String get aiProviderModelsHint;
-
-  /// No description provided for @aiCapabilityText.
-  ///
-  /// In en, this message translates to:
-  /// **'Text'**
-  String get aiCapabilityText;
-
-  /// No description provided for @aiCapabilityVision.
-  ///
-  /// In en, this message translates to:
-  /// **'Vision'**
-  String get aiCapabilityVision;
-
-  /// No description provided for @aiCapabilitySpeech.
-  ///
-  /// In en, this message translates to:
-  /// **'Speech'**
-  String get aiCapabilitySpeech;
-
-  /// No description provided for @aiCapabilitySelectTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Capability Binding'**
-  String get aiCapabilitySelectTitle;
-
-  /// No description provided for @aiCapabilitySelectSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Select provider for each AI capability'**
-  String get aiCapabilitySelectSubtitle;
-
-  /// No description provided for @aiCapabilityTextChat.
-  ///
-  /// In en, this message translates to:
-  /// **'Text Chat'**
-  String get aiCapabilityTextChat;
-
-  /// No description provided for @aiCapabilityTextChatDesc.
-  ///
-  /// In en, this message translates to:
-  /// **'For AI chat and text bill extraction'**
-  String get aiCapabilityTextChatDesc;
-
-  /// No description provided for @aiCapabilityImageUnderstand.
-  ///
-  /// In en, this message translates to:
-  /// **'Image Understanding'**
-  String get aiCapabilityImageUnderstand;
-
-  /// No description provided for @aiCapabilityImageUnderstandDesc.
-  ///
-  /// In en, this message translates to:
-  /// **'For image bill recognition'**
-  String get aiCapabilityImageUnderstandDesc;
-
-  /// No description provided for @aiCapabilitySpeechToText.
-  ///
-  /// In en, this message translates to:
-  /// **'Speech to Text'**
-  String get aiCapabilitySpeechToText;
-
-  /// No description provided for @aiCapabilitySpeechToTextDesc.
-  ///
-  /// In en, this message translates to:
-  /// **'For voice billing'**
-  String get aiCapabilitySpeechToTextDesc;
-
-  /// No description provided for @aiProviderTestRun.
-  ///
-  /// In en, this message translates to:
-  /// **'Tap to test'**
-  String get aiProviderTestRun;
-
-  /// No description provided for @aiProviderTestRunning.
-  ///
-  /// In en, this message translates to:
-  /// **'Testing...'**
-  String get aiProviderTestRunning;
-
-  /// No description provided for @aiProviderTestSuccess.
-  ///
-  /// In en, this message translates to:
-  /// **'Test passed'**
-  String get aiProviderTestSuccess;
-
-  /// No description provided for @aiProviderTestFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Test failed'**
-  String get aiProviderTestFailed;
-
-  /// No description provided for @aiProviderTestAll.
-  ///
-  /// In en, this message translates to:
-  /// **'Test All'**
-  String get aiProviderTestAll;
-
-  /// No description provided for @aiProviderTestAllRetry.
-  ///
-  /// In en, this message translates to:
-  /// **'Retry Test'**
-  String get aiProviderTestAllRetry;
-
-  /// No description provided for @aiModelInputHelper.
-  ///
-  /// In en, this message translates to:
-  /// **'Leave empty to use default model'**
-  String get aiModelInputHelper;
-
-  /// No description provided for @syncPreviewTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Sync Preview'**
-  String get syncPreviewTitle;
-
-  /// No description provided for @syncPreviewSelectAll.
-  ///
-  /// In en, this message translates to:
-  /// **'Select All'**
-  String get syncPreviewSelectAll;
-
-  /// No description provided for @syncPreviewDeselectAll.
-  ///
-  /// In en, this message translates to:
-  /// **'Deselect All'**
-  String get syncPreviewDeselectAll;
-
-  /// No description provided for @syncPreviewAdded.
-  ///
-  /// In en, this message translates to:
-  /// **'Added'**
-  String get syncPreviewAdded;
-
-  /// No description provided for @syncPreviewModified.
-  ///
-  /// In en, this message translates to:
-  /// **'Modified'**
-  String get syncPreviewModified;
-
-  /// No description provided for @syncPreviewDeleted.
-  ///
-  /// In en, this message translates to:
-  /// **'Deleted'**
-  String get syncPreviewDeleted;
-
-  /// No description provided for @syncPreviewAddedCount.
-  ///
-  /// In en, this message translates to:
-  /// **'{count} added'**
-  String syncPreviewAddedCount(int count);
-
-  /// No description provided for @syncPreviewModifiedCount.
-  ///
-  /// In en, this message translates to:
-  /// **'{count} modified'**
-  String syncPreviewModifiedCount(int count);
-
-  /// No description provided for @syncPreviewDeletedCount.
-  ///
-  /// In en, this message translates to:
-  /// **'{count} deleted'**
-  String syncPreviewDeletedCount(int count);
-
-  /// No description provided for @syncPreviewApply.
-  ///
-  /// In en, this message translates to:
-  /// **'Apply {count} items'**
-  String syncPreviewApply(int count);
-
-  /// No description provided for @syncPreviewEmpty.
-  ///
-  /// In en, this message translates to:
-  /// **'Cloud data matches local, no sync needed'**
-  String get syncPreviewEmpty;
-
-  /// No description provided for @syncPreviewOldFormat.
-  ///
-  /// In en, this message translates to:
-  /// **'Old cloud format, full replace required'**
-  String get syncPreviewOldFormat;
-
-  /// No description provided for @syncPreviewOldFormatMessage.
-  ///
-  /// In en, this message translates to:
-  /// **'Cloud data does not contain sync IDs. Local data will be cleared and re-imported from cloud.'**
-  String get syncPreviewOldFormatMessage;
-
-  /// No description provided for @syncPreviewApplied.
-  ///
-  /// In en, this message translates to:
-  /// **'Applied {count} changes'**
-  String syncPreviewApplied(int count);
-
-  /// No description provided for @cloudSyncGuideTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Cloud Sync Guide'**
-  String get cloudSyncGuideTitle;
-
-  /// No description provided for @cloudSyncGuideGotIt.
-  ///
-  /// In en, this message translates to:
-  /// **'Got it'**
-  String get cloudSyncGuideGotIt;
-
-  /// No description provided for @cloudSyncGuideHowItWorks.
-  ///
-  /// In en, this message translates to:
-  /// **'How it works'**
-  String get cloudSyncGuideHowItWorks;
-
-  /// No description provided for @cloudSyncGuideHowItem1.
-  ///
-  /// In en, this message translates to:
-  /// **'Upload: packages all current ledger data and uploads to cloud, replacing old cloud data'**
-  String get cloudSyncGuideHowItem1;
-
-  /// No description provided for @cloudSyncGuideHowItem2.
-  ///
-  /// In en, this message translates to:
-  /// **'Download: fetches cloud data and compares with local records one by one — you choose which changes to apply'**
-  String get cloudSyncGuideHowItem2;
-
-  /// No description provided for @cloudSyncGuideHowItem3.
-  ///
-  /// In en, this message translates to:
-  /// **'The cloud always stores only the last uploaded snapshot, no version history'**
-  String get cloudSyncGuideHowItem3;
-
-  /// No description provided for @cloudSyncGuideCorrect.
-  ///
-  /// In en, this message translates to:
-  /// **'Correct usage'**
-  String get cloudSyncGuideCorrect;
-
-  /// No description provided for @cloudSyncGuideCorrectItem1.
-  ///
-  /// In en, this message translates to:
-  /// **'Edit on one device at a time, upload when done'**
-  String get cloudSyncGuideCorrectItem1;
-
-  /// No description provided for @cloudSyncGuideCorrectItem2.
-  ///
-  /// In en, this message translates to:
-  /// **'Download on the new device before starting to edit'**
-  String get cloudSyncGuideCorrectItem2;
-
-  /// No description provided for @cloudSyncGuideCorrectItem3.
-  ///
-  /// In en, this message translates to:
-  /// **'Review the preview carefully before applying changes'**
-  String get cloudSyncGuideCorrectItem3;
-
-  /// No description provided for @cloudSyncGuideCorrectItem4.
-  ///
-  /// In en, this message translates to:
-  /// **'Follow the pattern: edit → upload → switch device → download → edit'**
-  String get cloudSyncGuideCorrectItem4;
-
-  /// No description provided for @cloudSyncGuideWrong.
-  ///
-  /// In en, this message translates to:
-  /// **'What to avoid'**
-  String get cloudSyncGuideWrong;
-
-  /// No description provided for @cloudSyncGuideWrongItem1.
-  ///
-  /// In en, this message translates to:
-  /// **'Editing the same ledger on two devices simultaneously — the later upload overwrites the earlier one'**
-  String get cloudSyncGuideWrongItem1;
-
-  /// No description provided for @cloudSyncGuideWrongItem2.
-  ///
-  /// In en, this message translates to:
-  /// **'Downloading immediately after upload — cloud services may have seconds to minutes of sync delay, wait a moment'**
-  String get cloudSyncGuideWrongItem2;
-
-  /// No description provided for @cloudSyncGuideWrongItem3.
-  ///
-  /// In en, this message translates to:
-  /// **'Going long periods without syncing then downloading many changes at once — easy to miss important differences'**
-  String get cloudSyncGuideWrongItem3;
-
-  /// No description provided for @cloudSyncGuideLimitations.
-  ///
-  /// In en, this message translates to:
-  /// **'Known limitations'**
-  String get cloudSyncGuideLimitations;
-
-  /// No description provided for @cloudSyncGuideLimitItem1.
-  ///
-  /// In en, this message translates to:
-  /// **'Not real-time: requires manually tapping upload and download'**
-  String get cloudSyncGuideLimitItem1;
-
-  /// No description provided for @cloudSyncGuideLimitItem2.
-  ///
-  /// In en, this message translates to:
-  /// **'No conflict merging: does not auto-merge edits from both sides — last upload wins'**
-  String get cloudSyncGuideLimitItem2;
-
-  /// No description provided for @cloudSyncGuideLimitItem3.
-  ///
-  /// In en, this message translates to:
-  /// **'Cloud service delay: uploaded files may take seconds to minutes before other devices can read them, depending on your cloud provider'**
-  String get cloudSyncGuideLimitItem3;
-
-  /// No description provided for @cloudSyncGuideLimitItem4.
-  ///
-  /// In en, this message translates to:
-  /// **'Excludes attachments: transaction image attachments are not synced — export separately via Data Management'**
-  String get cloudSyncGuideLimitItem4;
-
-  /// No description provided for @mineMultiDeviceSyncTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Multi-device Sync'**
-  String get mineMultiDeviceSyncTitle;
-
-  /// No description provided for @mineMultiDeviceSyncSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Auto-check cloud changes when entering page'**
-  String get mineMultiDeviceSyncSubtitle;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   /// No description provided for @appLockTitle.
   ///
@@ -13466,161 +9321,31 @@ abstract class AppLocalizations {
   /// **'Set up'**
   String get budgetSetupAction;
 
-  /// No description provided for @syncHealthTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Sync status'**
-  String get syncHealthTitle;
 
-  /// No description provided for @cloudSyncHelpTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'How sync works · Why it sometimes stalls'**
-  String get cloudSyncHelpTitle;
 
-  /// No description provided for @cloudSyncHelpModesTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Three sync modes'**
-  String get cloudSyncHelpModesTitle;
 
-  /// No description provided for @cloudSyncHelpModesBody.
-  ///
-  /// In en, this message translates to:
-  /// **'• Incremental (automatic, everyday): after you add or edit an entry, only that change is uploaded/downloaded automatically — fast, no manual action. This is what runs all the time.\n• Full upload: the first time you enable cloud sync, or when the cloud has no data for this ledger yet, all local data is pushed to the cloud at once.\n• Full download: on a new device, after a reinstall, or when local is empty, all data is pulled down from the cloud.'**
-  String get cloudSyncHelpModesBody;
 
-  /// No description provided for @cloudSyncHelpWhenFullTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'When does a full sync happen?'**
-  String get cloudSyncHelpWhenFullTitle;
 
-  /// No description provided for @cloudSyncHelpWhenFullBody.
-  ///
-  /// In en, this message translates to:
-  /// **'A full sync only triggers automatically when one side is empty (first enabling cloud sync / new device / reinstall / after clearing local or cloud data). As long as both sides have data, sync stays incremental and never restarts on its own. To force a full re-sync, you must first clear the data on the corresponding side.'**
-  String get cloudSyncHelpWhenFullBody;
 
-  /// No description provided for @cloudSyncHelpStuckTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Why sync sometimes stalls'**
-  String get cloudSyncHelpStuckTitle;
 
-  /// No description provided for @cloudSyncHelpStuckBody.
-  ///
-  /// In en, this message translates to:
-  /// **'• Full upload/download does NOT support resume: if the network drops or the app is killed in the background, it starts over from scratch instead of continuing. For large data, use a stable network (Wi-Fi recommended) and let it finish without switching away.\n• Incremental sync is resume-safe and unaffected in everyday use.'**
-  String get cloudSyncHelpStuckBody;
 
-  /// No description provided for @cloudSyncHelpTroubleshootTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Troubleshooting'**
-  String get cloudSyncHelpTroubleshootTitle;
 
-  /// No description provided for @cloudSyncHelpTroubleshootBody.
-  ///
-  /// In en, this message translates to:
-  /// **'• First, pull down on this page to run a Deep Check and compare local vs cloud.\n• Still stuck? Open the Log Center to view sync logs (including failure reasons) for reporting.'**
-  String get cloudSyncHelpTroubleshootBody;
 
-  /// No description provided for @cloudSyncHelpOpenLogCenter.
-  ///
-  /// In en, this message translates to:
-  /// **'Open Log Center'**
-  String get cloudSyncHelpOpenLogCenter;
 
-  /// No description provided for @syncHealthCheckFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Check failed: {msg}'**
-  String syncHealthCheckFailed(String msg);
 
-  /// No description provided for @syncHealthHasDiff.
-  ///
-  /// In en, this message translates to:
-  /// **'Diff detected; auto-synced'**
-  String get syncHealthHasDiff;
 
-  /// No description provided for @syncHealthInSync.
-  ///
-  /// In en, this message translates to:
-  /// **'Local matches cloud'**
-  String get syncHealthInSync;
 
-  /// No description provided for @syncHealthGroupCurrentLedger.
-  ///
-  /// In en, this message translates to:
-  /// **'Current ledger'**
-  String get syncHealthGroupCurrentLedger;
 
-  /// No description provided for @syncHealthGroupAll.
-  ///
-  /// In en, this message translates to:
-  /// **'All ledgers'**
-  String get syncHealthGroupAll;
 
-  /// No description provided for @syncHealthRowTx.
-  ///
-  /// In en, this message translates to:
-  /// **'Transactions'**
-  String get syncHealthRowTx;
 
-  /// No description provided for @syncHealthRowAttachment.
-  ///
-  /// In en, this message translates to:
-  /// **'Attachments'**
-  String get syncHealthRowAttachment;
 
-  /// No description provided for @syncHealthRowCategoryIcon.
-  ///
-  /// In en, this message translates to:
-  /// **'Category icons'**
-  String get syncHealthRowCategoryIcon;
 
-  /// No description provided for @syncHealthRowBudget.
-  ///
-  /// In en, this message translates to:
-  /// **'Budgets'**
-  String get syncHealthRowBudget;
 
-  /// No description provided for @syncHealthRowAccount.
-  ///
-  /// In en, this message translates to:
-  /// **'Accounts'**
-  String get syncHealthRowAccount;
 
-  /// No description provided for @syncHealthRowCategory.
-  ///
-  /// In en, this message translates to:
-  /// **'Categories'**
-  String get syncHealthRowCategory;
 
-  /// No description provided for @syncHealthRowTag.
-  ///
-  /// In en, this message translates to:
-  /// **'Tags'**
-  String get syncHealthRowTag;
 
-  /// No description provided for @syncHealthRowUnpushed.
-  ///
-  /// In en, this message translates to:
-  /// **'Pending pushes'**
-  String get syncHealthRowUnpushed;
 
-  /// No description provided for @syncHealthValue.
-  ///
-  /// In en, this message translates to:
-  /// **'Local {local} · Cloud {remote}'**
-  String syncHealthValue(int local, int remote);
 
-  /// No description provided for @syncHealthValueRemoteMissing.
-  ///
-  /// In en, this message translates to:
-  /// **'Local {local} · Cloud —'**
-  String syncHealthValueRemoteMissing(int local);
 
   /// No description provided for @twofaChallengeTitle.
   ///
@@ -13712,23 +9437,8 @@ abstract class AppLocalizations {
   /// **'Enable on the Web app →'**
   String get twofaStatusOpenWeb;
 
-  /// No description provided for @sharedRoleOwner.
-  ///
-  /// In en, this message translates to:
-  /// **'Owner'**
-  String get sharedRoleOwner;
 
-  /// No description provided for @sharedRoleEditor.
-  ///
-  /// In en, this message translates to:
-  /// **'Editor'**
-  String get sharedRoleEditor;
 
-  /// No description provided for @sharedRoleViewer.
-  ///
-  /// In en, this message translates to:
-  /// **'Viewer'**
-  String get sharedRoleViewer;
 
   /// No description provided for @commonCopied.
   ///
@@ -13742,347 +9452,62 @@ abstract class AppLocalizations {
   /// **'Remove'**
   String get commonRemove;
 
-  /// No description provided for @sharedJoinPageTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Join shared ledger'**
-  String get sharedJoinPageTitle;
 
-  /// No description provided for @sharedJoinPageSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Enter an invite code or tap a shared link'**
-  String get sharedJoinPageSubtitle;
 
-  /// No description provided for @sharedJoinEnterCode.
-  ///
-  /// In en, this message translates to:
-  /// **'Enter invite code'**
-  String get sharedJoinEnterCode;
 
-  /// No description provided for @sharedJoinEnterCodeHint.
-  ///
-  /// In en, this message translates to:
-  /// **'6 uppercase letters / digits. You can also tap a share link to skip this step.'**
-  String get sharedJoinEnterCodeHint;
 
-  /// No description provided for @sharedJoinPreviewButton.
-  ///
-  /// In en, this message translates to:
-  /// **'Verify code'**
-  String get sharedJoinPreviewButton;
 
-  /// No description provided for @sharedJoinAcceptButton.
-  ///
-  /// In en, this message translates to:
-  /// **'Join'**
-  String get sharedJoinAcceptButton;
 
-  /// No description provided for @sharedJoinInvitedBy.
-  ///
-  /// In en, this message translates to:
-  /// **'{name} invited you to join'**
-  String sharedJoinInvitedBy(String name);
 
-  /// No description provided for @sharedJoinRoleLine.
-  ///
-  /// In en, this message translates to:
-  /// **'Role: {role}'**
-  String sharedJoinRoleLine(String role);
 
-  /// No description provided for @sharedJoinExpiresInMinutes.
-  ///
-  /// In en, this message translates to:
-  /// **'Expires in {n} min'**
-  String sharedJoinExpiresInMinutes(int n);
 
-  /// No description provided for @sharedJoinExpiresInHours.
-  ///
-  /// In en, this message translates to:
-  /// **'Expires in {n}h'**
-  String sharedJoinExpiresInHours(int n);
 
-  /// No description provided for @sharedJoinExpiresInDays.
-  ///
-  /// In en, this message translates to:
-  /// **'Expires in {n}d'**
-  String sharedJoinExpiresInDays(int n);
 
-  /// No description provided for @sharedJoinSuccess.
-  ///
-  /// In en, this message translates to:
-  /// **'Joined \"{name}\"'**
-  String sharedJoinSuccess(String name);
 
-  /// No description provided for @sharedJoinCodeFormatError.
-  ///
-  /// In en, this message translates to:
-  /// **'Invite code must be 6 letters/digits.'**
-  String get sharedJoinCodeFormatError;
 
-  /// No description provided for @sharedJoinInvalidOrExpired.
-  ///
-  /// In en, this message translates to:
-  /// **'Invite code is invalid or expired. Ask the inviter for a new one.'**
-  String get sharedJoinInvalidOrExpired;
 
-  /// No description provided for @sharedJoinAlreadyMember.
-  ///
-  /// In en, this message translates to:
-  /// **'You are already a member of this ledger.'**
-  String get sharedJoinAlreadyMember;
 
-  /// No description provided for @sharedJoinMemberLimit.
-  ///
-  /// In en, this message translates to:
-  /// **'This ledger has reached its member limit. Ask the owner.'**
-  String get sharedJoinMemberLimit;
 
-  /// No description provided for @sharedInvitePageTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Invite new member'**
-  String get sharedInvitePageTitle;
 
-  /// No description provided for @sharedInviteFormRole.
-  ///
-  /// In en, this message translates to:
-  /// **'Role'**
-  String get sharedInviteFormRole;
 
-  /// No description provided for @sharedInviteFormExpiry.
-  ///
-  /// In en, this message translates to:
-  /// **'Valid for'**
-  String get sharedInviteFormExpiry;
 
-  /// No description provided for @sharedInviteExpiryHours.
-  ///
-  /// In en, this message translates to:
-  /// **'{n} h'**
-  String sharedInviteExpiryHours(int n);
 
-  /// No description provided for @sharedInviteExpiryDays.
-  ///
-  /// In en, this message translates to:
-  /// **'{n} day'**
-  String sharedInviteExpiryDays(int n);
 
-  /// No description provided for @sharedInviteGenerate.
-  ///
-  /// In en, this message translates to:
-  /// **'Generate invite code'**
-  String get sharedInviteGenerate;
 
-  /// No description provided for @sharedInviteGenerateAnother.
-  ///
-  /// In en, this message translates to:
-  /// **'Generate another code'**
-  String get sharedInviteGenerateAnother;
 
-  /// No description provided for @sharedInviteCopyCode.
-  ///
-  /// In en, this message translates to:
-  /// **'Copy code'**
-  String get sharedInviteCopyCode;
 
-  /// No description provided for @sharedInviteCopyLink.
-  ///
-  /// In en, this message translates to:
-  /// **'Copy link'**
-  String get sharedInviteCopyLink;
 
-  /// No description provided for @sharedInviteShareLink.
-  ///
-  /// In en, this message translates to:
-  /// **'Share link'**
-  String get sharedInviteShareLink;
 
-  /// No description provided for @sharedInviteExpiresAt.
-  ///
-  /// In en, this message translates to:
-  /// **'Expires at {dt}'**
-  String sharedInviteExpiresAt(String dt);
 
-  /// No description provided for @sharedInviteWarning.
-  ///
-  /// In en, this message translates to:
-  /// **'⚠️ Don\'t post invite codes to public groups / social. Anyone with the code can join. Revoke and regenerate from Members if leaked.'**
-  String get sharedInviteWarning;
 
-  /// No description provided for @sharedInviteInstruction.
-  ///
-  /// In en, this message translates to:
-  /// **'Send the code or short link to the other person. After they install BeeCount, they can tap the link or enter the code from \"Me → Join shared ledger\".'**
-  String get sharedInviteInstruction;
 
-  /// No description provided for @sharedInviteShareText.
-  ///
-  /// In en, this message translates to:
-  /// **'I\'m inviting you to BeeCount shared ledger \"{ledger}\".\n\nCode: {code}\nLink: {url}\n\nTap the link, or open BeeCount → Me → Join shared ledger and enter this code.'**
-  String sharedInviteShareText(String ledger, String code, String url);
 
-  /// No description provided for @sharedMembersPageTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Members'**
-  String get sharedMembersPageTitle;
 
-  /// No description provided for @sharedMembersYou.
-  ///
-  /// In en, this message translates to:
-  /// **'you'**
-  String get sharedMembersYou;
 
-  /// No description provided for @sharedMembersInviteCta.
-  ///
-  /// In en, this message translates to:
-  /// **'Invite new member'**
-  String get sharedMembersInviteCta;
 
-  /// No description provided for @sharedMembersLeaveCta.
-  ///
-  /// In en, this message translates to:
-  /// **'Leave ledger'**
-  String get sharedMembersLeaveCta;
 
-  /// No description provided for @sharedMembersLeaveTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Leave ledger'**
-  String get sharedMembersLeaveTitle;
 
-  /// No description provided for @sharedMembersLeaveConfirm.
-  ///
-  /// In en, this message translates to:
-  /// **'After leaving \"{name}\" you won\'t be able to access its transactions. Continue?'**
-  String sharedMembersLeaveConfirm(String name);
 
-  /// No description provided for @sharedMembersLeaveDone.
-  ///
-  /// In en, this message translates to:
-  /// **'Left the ledger'**
-  String get sharedMembersLeaveDone;
 
-  /// No description provided for @sharedMembersRemoveTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Remove member'**
-  String get sharedMembersRemoveTitle;
 
-  /// No description provided for @sharedMembersRemoveCta.
-  ///
-  /// In en, this message translates to:
-  /// **'Remove this member'**
-  String get sharedMembersRemoveCta;
 
-  /// No description provided for @sharedMembersRemoveConfirm.
-  ///
-  /// In en, this message translates to:
-  /// **'Remove {name}? They will immediately lose access to this ledger.'**
-  String sharedMembersRemoveConfirm(String name);
 
-  /// No description provided for @sharedMembersRemoved.
-  ///
-  /// In en, this message translates to:
-  /// **'Member removed'**
-  String get sharedMembersRemoved;
 
-  /// No description provided for @sharedMembersTransferTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Transfer ownership'**
-  String get sharedMembersTransferTitle;
 
-  /// No description provided for @sharedMembersTransferTo.
-  ///
-  /// In en, this message translates to:
-  /// **'Transfer to this member'**
-  String get sharedMembersTransferTo;
 
-  /// No description provided for @sharedMembersTransferConfirm.
-  ///
-  /// In en, this message translates to:
-  /// **'Transfer ownership to {name}? You will become an editor and can no longer invite, rename, or delete the ledger.'**
-  String sharedMembersTransferConfirm(String name);
 
-  /// No description provided for @sharedMembersTransferConfirmCta.
-  ///
-  /// In en, this message translates to:
-  /// **'Transfer'**
-  String get sharedMembersTransferConfirmCta;
 
-  /// No description provided for @sharedMembersTransferDone.
-  ///
-  /// In en, this message translates to:
-  /// **'Ownership transferred'**
-  String get sharedMembersTransferDone;
 
-  /// No description provided for @sharedTxRecordedBy.
-  ///
-  /// In en, this message translates to:
-  /// **'recorded by {name}'**
-  String sharedTxRecordedBy(String name);
 
-  /// No description provided for @sharedTxCreatedBy.
-  ///
-  /// In en, this message translates to:
-  /// **'Created by {name}'**
-  String sharedTxCreatedBy(String name);
 
-  /// No description provided for @sharedTxEditedBy.
-  ///
-  /// In en, this message translates to:
-  /// **'Last edited by {name}'**
-  String sharedTxEditedBy(String name);
 
-  /// No description provided for @sharedTxCreatedAndEditedBy.
-  ///
-  /// In en, this message translates to:
-  /// **'Created and edited by {name}'**
-  String sharedTxCreatedAndEditedBy(String name);
 
-  /// No description provided for @sharedRequiresCloudSync.
-  ///
-  /// In en, this message translates to:
-  /// **'Please enable cloud sync first'**
-  String get sharedRequiresCloudSync;
 
-  /// No description provided for @sharedMembersStatsTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Member balances'**
-  String get sharedMembersStatsTitle;
 
-  /// No description provided for @sharedMembersStatsEmpty.
-  ///
-  /// In en, this message translates to:
-  /// **'No transactions yet'**
-  String get sharedMembersStatsEmpty;
 
-  /// No description provided for @sharedMembersStatsLoading.
-  ///
-  /// In en, this message translates to:
-  /// **'Loading…'**
-  String get sharedMembersStatsLoading;
 
-  /// No description provided for @sharedMembersStatsIncome.
-  ///
-  /// In en, this message translates to:
-  /// **'Income'**
-  String get sharedMembersStatsIncome;
 
-  /// No description provided for @sharedMembersStatsExpense.
-  ///
-  /// In en, this message translates to:
-  /// **'Expense'**
-  String get sharedMembersStatsExpense;
 
-  /// No description provided for @sharedMembersStatsTxCount.
-  ///
-  /// In en, this message translates to:
-  /// **'{count} tx'**
-  String sharedMembersStatsTxCount(int count);
 
   /// No description provided for @maintenanceOrphanCleanupTitle.
   ///
@@ -14198,17 +9623,7 @@ abstract class AppLocalizations {
   /// **'Cleaned {ok} item(s), {fail} failed'**
   String maintenanceOrphanCleanPartial(int ok, int fail);
 
-  /// No description provided for @syncProgressTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Syncing'**
-  String get syncProgressTitle;
 
-  /// No description provided for @syncProgressCount.
-  ///
-  /// In en, this message translates to:
-  /// **'{applied} / {total}'**
-  String syncProgressCount(int applied, int total);
 
   /// No description provided for @exchangeRatePageTitle.
   ///
@@ -15182,233 +10597,43 @@ abstract class AppLocalizations {
   /// **'Mauritanian Ouguiya'**
   String get currencyMRU;
 
-  /// No description provided for @agentAssistantSettingsTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'AI Assistant'**
-  String get agentAssistantSettingsTitle;
 
-  /// No description provided for @agentAssistantSettingsSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Manage how the assistant uses local data and tools.'**
-  String get agentAssistantSettingsSubtitle;
 
-  /// No description provided for @agentAssistantPermissionsEntry.
-  ///
-  /// In en, this message translates to:
-  /// **'Permissions'**
-  String get agentAssistantPermissionsEntry;
 
-  /// No description provided for @agentAssistantPermissionsEntryDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'Choose when data-changing tools need your approval.'**
-  String get agentAssistantPermissionsEntryDescription;
 
-  /// No description provided for @agentAssistantMemoryEntry.
-  ///
-  /// In en, this message translates to:
-  /// **'Local memory'**
-  String get agentAssistantMemoryEntry;
 
-  /// No description provided for @agentAssistantMemoryEntryDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'View and remove memories kept only on this device.'**
-  String get agentAssistantMemoryEntryDescription;
 
-  /// No description provided for @agentAssistantActivityEntry.
-  ///
-  /// In en, this message translates to:
-  /// **'Recent activity'**
-  String get agentAssistantActivityEntry;
 
-  /// No description provided for @agentAssistantActivityEntryDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'Review local tool calls and their outcomes.'**
-  String get agentAssistantActivityEntryDescription;
 
-  /// No description provided for @agentExecutionDepthEntry.
-  ///
-  /// In en, this message translates to:
-  /// **'Execution depth'**
-  String get agentExecutionDepthEntry;
 
-  /// No description provided for @agentExecutionDepthEntryDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'Higher limits can handle more steps but may take longer.'**
-  String get agentExecutionDepthEntryDescription;
 
-  /// No description provided for @agentExecutionDepthSelected.
-  ///
-  /// In en, this message translates to:
-  /// **'Up to {turns} model turns'**
-  String agentExecutionDepthSelected(int turns);
 
-  /// No description provided for @agentExecutionDepthChooseTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Execution depth'**
-  String get agentExecutionDepthChooseTitle;
 
-  /// No description provided for @agentExecutionDepthQuick.
-  ///
-  /// In en, this message translates to:
-  /// **'Quick'**
-  String get agentExecutionDepthQuick;
 
-  /// No description provided for @agentExecutionDepthStandard.
-  ///
-  /// In en, this message translates to:
-  /// **'Standard'**
-  String get agentExecutionDepthStandard;
 
-  /// No description provided for @agentExecutionDepthDeep.
-  ///
-  /// In en, this message translates to:
-  /// **'Deep'**
-  String get agentExecutionDepthDeep;
 
-  /// No description provided for @agentExecutionDepthCustom.
-  ///
-  /// In en, this message translates to:
-  /// **'Custom'**
-  String get agentExecutionDepthCustom;
 
-  /// No description provided for @agentMemoryTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Local memory'**
-  String get agentMemoryTitle;
 
-  /// No description provided for @agentMemoryIntro.
-  ///
-  /// In en, this message translates to:
-  /// **'These memories stay on this device and apply only to the current ledger.'**
-  String get agentMemoryIntro;
 
-  /// No description provided for @agentMemoryEmpty.
-  ///
-  /// In en, this message translates to:
-  /// **'No local memories yet.'**
-  String get agentMemoryEmpty;
 
-  /// No description provided for @agentMemoryDeleteTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Delete this memory?'**
-  String get agentMemoryDeleteTitle;
 
-  /// No description provided for @agentMemoryDeleteDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'The assistant will no longer use this memory.'**
-  String get agentMemoryDeleteDescription;
 
-  /// No description provided for @agentMemoryClear.
-  ///
-  /// In en, this message translates to:
-  /// **'Clear current ledger memories'**
-  String get agentMemoryClear;
 
-  /// No description provided for @agentMemoryClearTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Clear all current ledger memories?'**
-  String get agentMemoryClearTitle;
 
-  /// No description provided for @agentMemoryClearDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'This removes every local memory for this ledger and cannot be undone.'**
-  String get agentMemoryClearDescription;
 
-  /// No description provided for @agentActivityTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Recent activity'**
-  String get agentActivityTitle;
 
-  /// No description provided for @agentActivityIntro.
-  ///
-  /// In en, this message translates to:
-  /// **'This activity history is stored locally and is never synced.'**
-  String get agentActivityIntro;
 
-  /// No description provided for @agentActivityEmpty.
-  ///
-  /// In en, this message translates to:
-  /// **'No assistant activity yet.'**
-  String get agentActivityEmpty;
 
-  /// No description provided for @agentActivityCompleted.
-  ///
-  /// In en, this message translates to:
-  /// **'Completed'**
-  String get agentActivityCompleted;
 
-  /// No description provided for @agentActivityFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Failed'**
-  String get agentActivityFailed;
 
-  /// No description provided for @agentActivityRunning.
-  ///
-  /// In en, this message translates to:
-  /// **'Running'**
-  String get agentActivityRunning;
 
-  /// No description provided for @agentActivityCancelled.
-  ///
-  /// In en, this message translates to:
-  /// **'Cancelled'**
-  String get agentActivityCancelled;
 
-  /// No description provided for @agentActivityTools.
-  ///
-  /// In en, this message translates to:
-  /// **'Tools'**
-  String get agentActivityTools;
 
-  /// No description provided for @agentActivityToolCompleted.
-  ///
-  /// In en, this message translates to:
-  /// **'Completed'**
-  String get agentActivityToolCompleted;
 
-  /// No description provided for @agentActivityToolDenied.
-  ///
-  /// In en, this message translates to:
-  /// **'Denied'**
-  String get agentActivityToolDenied;
 
-  /// No description provided for @agentActivityToolFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Failed'**
-  String get agentActivityToolFailed;
 
-  /// No description provided for @agentRunCancelled.
-  ///
-  /// In en, this message translates to:
-  /// **'This run was stopped.'**
-  String get agentRunCancelled;
 
-  /// No description provided for @agentRunStop.
-  ///
-  /// In en, this message translates to:
-  /// **'Stop'**
-  String get agentRunStop;
 
-  /// No description provided for @agentQueryValidationFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'The query parameters could not be corrected, so a reliable result is unavailable. Please try again.'**
-  String get agentQueryValidationFailed;
 
   /// No description provided for @annualReportInsightsTitle.
   ///
@@ -15602,29 +10827,9 @@ abstract class AppLocalizations {
   /// **'This transaction cannot be copied. Check the ledger and your access.'**
   String get transactionCopyUnavailable;
 
-  /// No description provided for @aiChatGenericFailure.
-  ///
-  /// In en, this message translates to:
-  /// **'Sorry, something went wrong. Please try again.'**
-  String get aiChatGenericFailure;
 
-  /// No description provided for @aiChatRecordSuccessOne.
-  ///
-  /// In en, this message translates to:
-  /// **'✅ Transaction recorded'**
-  String get aiChatRecordSuccessOne;
 
-  /// No description provided for @aiChatRecordSuccessMany.
-  ///
-  /// In en, this message translates to:
-  /// **'✅ Recorded {count} transactions'**
-  String aiChatRecordSuccessMany(int count);
 
-  /// No description provided for @agentEmptyFinalReply.
-  ///
-  /// In en, this message translates to:
-  /// **'Done.'**
-  String get agentEmptyFinalReply;
 
   /// No description provided for @creditCardReminderDueSoonTitle.
   ///
@@ -15650,23 +10855,8 @@ abstract class AppLocalizations {
   /// **'Backup channel for recording reminders'**
   String get reminderBackupChannelDescription;
 
-  /// No description provided for @autoBillingChannelName.
-  ///
-  /// In en, this message translates to:
-  /// **'Screenshot recognition'**
-  String get autoBillingChannelName;
 
-  /// No description provided for @autoBillingChannelDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'Notifications for automatic screenshot recognition'**
-  String get autoBillingChannelDescription;
 
-  /// No description provided for @appLinkOpenVoiceBilling.
-  ///
-  /// In en, this message translates to:
-  /// **'Open voice billing'**
-  String get appLinkOpenVoiceBilling;
 
   /// No description provided for @appLinkOpenImageBilling.
   ///
@@ -15968,53 +11158,13 @@ abstract class AppLocalizations {
   /// **'Default Ledger'**
   String get sharePosterDefaultLedgerName;
 
-  /// No description provided for @aiProviderNotConfiguredText.
-  ///
-  /// In en, this message translates to:
-  /// **'No text chat provider configured'**
-  String get aiProviderNotConfiguredText;
 
-  /// No description provided for @aiProviderMissingTextModelFor.
-  ///
-  /// In en, this message translates to:
-  /// **'Provider {name} has no text model configured'**
-  String aiProviderMissingTextModelFor(String name);
 
-  /// No description provided for @aiProviderNotConfiguredTextUsable.
-  ///
-  /// In en, this message translates to:
-  /// **'No usable text chat provider configured'**
-  String get aiProviderNotConfiguredTextUsable;
 
-  /// No description provided for @aiProviderNotConfiguredVision.
-  ///
-  /// In en, this message translates to:
-  /// **'No vision provider configured'**
-  String get aiProviderNotConfiguredVision;
 
-  /// No description provided for @aiProviderNotConfiguredSpeech.
-  ///
-  /// In en, this message translates to:
-  /// **'No speech-to-text provider configured'**
-  String get aiProviderNotConfiguredSpeech;
 
-  /// No description provided for @aiProviderNoVisionModel.
-  ///
-  /// In en, this message translates to:
-  /// **'No vision model configured'**
-  String get aiProviderNoVisionModel;
 
-  /// No description provided for @aiProviderNoSpeechModel.
-  ///
-  /// In en, this message translates to:
-  /// **'No speech model configured'**
-  String get aiProviderNoSpeechModel;
 
-  /// No description provided for @aiProviderEmptyResponse.
-  ///
-  /// In en, this message translates to:
-  /// **'API returned an empty response'**
-  String get aiProviderEmptyResponse;
 
   /// No description provided for @xlsxEmptyFile.
   ///
@@ -16046,41 +11196,11 @@ abstract class AppLocalizations {
   /// **'Unexpected payload from exchange rate source {source}'**
   String rateFetchSourcePayloadInvalid(String source);
 
-  /// No description provided for @donationPurchaseFailedWith.
-  ///
-  /// In en, this message translates to:
-  /// **'Purchase failed: {error}'**
-  String donationPurchaseFailedWith(String error);
 
-  /// No description provided for @donationPurchaseRequestFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Purchase request failed'**
-  String get donationPurchaseRequestFailed;
 
-  /// No description provided for @donationUnknownError.
-  ///
-  /// In en, this message translates to:
-  /// **'Unknown error'**
-  String get donationUnknownError;
 
-  /// No description provided for @donationVerificationFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Purchase verification failed'**
-  String get donationVerificationFailed;
 
-  /// No description provided for @donationRestoreFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Restore purchases failed: {error}'**
-  String donationRestoreFailed(String error);
 
-  /// No description provided for @updateDownloadDone.
-  ///
-  /// In en, this message translates to:
-  /// **'Done'**
-  String get updateDownloadDone;
 
   /// No description provided for @attachmentArchiveMissing.
   ///
@@ -16148,11 +11268,6 @@ abstract class AppLocalizations {
   /// **'The ledger does not exist'**
   String get ledgerMissing;
 
-  /// No description provided for @sharedLedgerBalanceRestricted.
-  ///
-  /// In en, this message translates to:
-  /// **'Shared-ledger members cannot update account balances'**
-  String get sharedLedgerBalanceRestricted;
 
   /// No description provided for @accountMissing.
   ///
@@ -16160,17 +11275,7 @@ abstract class AppLocalizations {
   /// **'The account does not exist'**
   String get accountMissing;
 
-  /// No description provided for @syncCloudUnavailable.
-  ///
-  /// In en, this message translates to:
-  /// **'Cloud service unavailable. Check your configuration or sign-in'**
-  String get syncCloudUnavailable;
 
-  /// No description provided for @syncHealthLedgerMissing.
-  ///
-  /// In en, this message translates to:
-  /// **'Ledger {id} not found locally'**
-  String syncHealthLedgerMissing(String id);
 
   /// No description provided for @logExportTitle.
   ///

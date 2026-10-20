@@ -905,8 +905,7 @@ class LocalCategoryRepository implements CategoryRepository {
     // 多次跑 / 云同步重复 pull / 用户手动改了 kind)。原来用
     // .getSingleOrNull() 直接抛 "Bad state: Too many elements" 让上层 future
     // 永不完成 → UI 卡死(编辑转账时复现)。这里改成取 id 最小的那条,
-    // 不再因多条而崩。脏数据合并自愈在上层 LocalRepository 里做(那层
-    // 持有 ChangeTracker,能把合并产生的变更同步到云端)。
+    // 不再因多条而崩。脏数据合并自愈在上层 LocalRepository 中完成。
     final all = await getAllTransferCategories();
 
     if (all.isNotEmpty) {
