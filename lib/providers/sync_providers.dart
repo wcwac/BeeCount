@@ -5,7 +5,6 @@ import 'dart:ui' show Color;
 
 import 'package:flutter/foundation.dart' show visibleForTesting;
 
-import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:crypto/crypto.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -19,8 +18,6 @@ import '../cloud/sync/sync_providers.dart' as sync_p;
 import '../cloud/transactions_sync_manager.dart';
 import '../models/ledger_display_item.dart';
 import '../ai/providers/ai_provider_manager.dart';
-import '../pages/ai/ai_provider_manage_page.dart'
-    show aiProviderListRefreshProvider;
 import 'ai_config_providers.dart';
 import 'voice_billing_providers.dart';
 import '../services/attachment_service.dart' show attachmentListRefreshProvider;
@@ -585,7 +582,6 @@ final syncServiceProvider = Provider<SyncService>((ref) {
                   ref
                       .read(aiProviderListForCapabilityRefreshProvider.notifier)
                       .state++;
-                  ref.read(aiProviderListRefreshProvider.notifier).state++;
                   ref.invalidate(aiConfigProvider);
                   // 用 reload() 重读本地 prefs 而非 invalidate：后者会重建 notifier,
                   // 期间设置页会短暂闪回默认值；reload 原地刷新更平滑。
@@ -640,36 +636,15 @@ final syncServiceProvider = Provider<SyncService>((ref) {
     final coordinator = SyncCoordinator(db: db, engine: engine);
     coordinator.start();
 
-    // 监听网络连接状态：从"无网"恢复时触发一次 sync 把离线累积的
-    // local_changes 推出去。SyncEngine 内部有 2 秒防抖，WS 重连和 connectivity
-    // 恢复几乎同时命中时最终只会触发 1 次 sync。
-    Timer? connectivityDebounce;
-    final connectivitySubscription =
-        Connectivity().onConnectivityChanged.listen((results) {
-      final online = results.any((r) => r != ConnectivityResult.none);
-      if (!online) {
-        logger.info('SyncProvider', 'connectivity 变为离线, 不触发 sync');
-        return;
-      }
-      // 这里也加一层防抖：WiFi ↔ 移动网络快速切换时 OS 会连打多条事件。
-      connectivityDebounce?.cancel();
-      connectivityDebounce = Timer(const Duration(milliseconds: 500), () {
-        logger.info('SyncProvider', 'connectivity 恢复, 触发 auto sync');
-        engine.triggerAutoSync(reason: 'connectivity_restored');
-      });
-    });
-
     // Runtime 关闭时先停止触发源，再关闭 engine 和 provider。
     var closed = false;
     Future<void>? closeFuture;
     Future<void> closeBindings() => closeFuture ??= () async {
           if (closed) return;
           closed = true;
-          connectivityDebounce?.cancel();
           coordinator.dispose();
           await Future.wait<void>([
             eventSub.cancel(),
-            connectivitySubscription.cancel(),
           ]);
         }();
     runtime.installSyncBindings(closeBindings);

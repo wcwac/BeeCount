@@ -1,26 +1,12 @@
 import 'dart:io';
-import 'dart:typed_data';
 
-import 'package:beecount/ai/providers/ai_provider_config.dart';
-import 'package:beecount/ai/providers/ai_provider_factory.dart';
 import 'package:beecount/providers/ai_config_providers.dart';
 import 'package:beecount/services/security/offline_network_policy.dart';
 import 'package:beecount/services/security/offline_url_launcher.dart';
-import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-class CountingAdapter implements HttpClientAdapter {
-  int calls = 0;
-  @override
-  Future<ResponseBody> fetch(RequestOptions options,
-      Stream<Uint8List>? requestStream, Future<void>? cancelFuture) async {
-    calls++;
-    throw StateError('No transport may be reached');
-  }
-  @override
-  void close({bool force = false}) {}
-}
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:beecount/services/automation/auto_billing_service.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -52,29 +38,12 @@ void main() {
     expect(settings.state.strategy, AIStrategy.localOnly);
   });
 
-  test('AI requests and probes never reach an injected transport', () async {
-    final adapter = CountingAdapter();
-    final client = Dio()..httpClientAdapter = adapter;
-    addTearDown(client.close);
-    final config = AIServiceProviderConfig(
-      id: 'old', name: 'Old provider', apiKey: 'old-key',
-      baseUrl: 'https://example.com', textModel: 'model', createdAt: DateTime(2024),
-    );
-    final result = await AIProviderFactory.validateTextCapability(config, client: client);
-    expect(result.$1, isFalse);
-    final capabilities = await AIProviderFactory.probeAgentCapabilities(config, client: client);
-    expect(capabilities.canRunNativeToolAgent, isFalse);
-    await expectLater(
-      AIProviderFactory.chatWithToolsStreamForConfig(
-        config: config, messages: const [], tools: const [], client: client,
-      ).toList(),
-      throwsA(isA<AIException>()),
-    );
-    // Missing paths prove these APIs reject before reading any private file.
-    await expectLater(AIProviderFactory.vision(File('/missing/image'), 'read'),
-        throwsA(isA<AIException>()));
-    await expectLater(AIProviderFactory.speechToText(File('/missing/audio')),
-        throwsA(isA<AIException>()));
-    expect(adapter.calls, 0);
+  test('legacy automation rejects input without reading files or creating bills', () async {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    final service = AutoBillingService(container);
+    addTearDown(service.dispose);
+    expect(await service.processScreenshot('/missing/image'), isNull);
+    expect(await service.processText('买菜花了 100 元'), isNull);
   });
 }

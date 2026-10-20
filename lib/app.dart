@@ -19,15 +19,11 @@ import 'l10n/app_localizations.dart';
 import 'widget/widget_manager.dart';
 import 'widgets/ui/ui.dart';
 import 'widgets/ui/speed_dial_fab.dart';
-import 'cloud/sync_service.dart';
-import 'cloud/transactions_sync_manager.dart';
 import 'cloud/sync/sync_engine.dart';
-import 'providers/sync_providers.dart' as sp;
 import 'utils/voice_billing_helper.dart';
 import 'utils/image_billing_helper.dart';
 import 'pages/ai/ai_chat_page.dart';
 import 'services/platform/app_link_service.dart';
-import 'services/platform/quick_actions_service.dart';
 import 'services/system/logger_service.dart';
 import 'services/security/app_lock_service.dart';
 import 'providers/security_providers.dart';
@@ -61,8 +57,6 @@ class _BeeAppState extends ConsumerState<BeeApp>
   // AppLink 监听订阅
   ProviderSubscription<AppLinkAction?>? _appLinkSubscription;
 
-  // 快捷操作服务
-  final QuickActionsService _quickActionsService = QuickActionsService();
 
   // 防止 AppLink 动作重复执行（使用静态变量，跨实例共享）
   static bool _isHandlingAppLink = false;
@@ -104,23 +98,7 @@ class _BeeAppState extends ConsumerState<BeeApp>
     // 延迟监听 AppLink，确保 context 可用
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _setupAppLinkListener();
-      _setupQuickActions();
     });
-  }
-
-  /// 设置快捷操作
-  void _setupQuickActions() {
-    logger.info('QuickActions', 'BeeApp: 设置快捷操作服务...');
-    _quickActionsService.onNavigate = (action) {
-      if (mounted) {
-        logger.info('QuickActions', 'BeeApp: 执行快捷操作 $action');
-        _handleAppLinkAction(action);
-      }
-    };
-    _quickActionsService.initialize();
-    // 处理可能在初始化前就触发的快捷操作
-    _quickActionsService.processPendingAction();
-    logger.info('QuickActions', 'BeeApp: 快捷操作服务已设置');
   }
 
   /// 设置 AppLink 监听

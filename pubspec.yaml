@@ -21,7 +21,6 @@ dependencies:
   decimal: ^3.0.0
   fl_chart: ^0.68.0
   shared_preferences: ^2.3.2
-  connectivity_plus: ^6.1.0
   csv: ^5.0.2
   file_picker: ^8.1.2
   crypto: ^3.0.5
@@ -29,11 +28,7 @@ dependencies:
   flutter_svg: ^2.0.10+1
   flutter_markdown_plus: ^1.0.3
   package_info_plus: ^8.0.2
-  http: ^1.2.2
   share_plus: ^12.0.1
-  permission_handler: ^11.3.1
-  dio: ^5.4.3+1
-  open_filex: ^4.4.0
   flutter_local_notifications: ^17.2.2
   timezone: ^0.9.4
   flutter_list_view: ^1.1.29
@@ -51,24 +46,20 @@ dependencies:
   image_cropper: ^10.0.0
   gbk_codec: ^0.4.0
   app_links: ^6.4.1
-  record: ^5.1.2
   yaml: ^3.1.2
   qr_flutter: ^4.1.0
   gal: ^2.3.0
   archive: ^3.6.1
-  agentcore:
-    path: packages/agentcore
-  flutter_agent_ui:
-    path: packages/flutter_agent_ui
   flutter_cloud_sync:
     path: packages/flutter_cloud_sync
-  quick_actions: ^1.1.0
   table_calendar: ^3.1.0
   local_auth: ^2.3.0
   country_flags: ^3.2.0
   jovial_svg: ^1.1.29
 
 dev_dependencies:
+  # Only the optional upstream live integration tests import HTTP directly.
+  http: ^1.2.2
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
@@ -81,8 +72,6 @@ dev_dependencies:
     sdk: flutter
 
 dependency_overrides:
-  # Fix record_linux compatibility issue (we target iOS/Android only)
-  record_platform_interface: 1.2.0
   # Pin to 7.1.0 because 7.2.0 requires Flutter >= 3.27.6 (Color.toARGB32)
   image_cropper_platform_interface: 7.1.0
 

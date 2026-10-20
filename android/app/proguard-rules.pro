@@ -65,9 +65,6 @@
 -keep class android.content.Intent { *; }
 -keep class android.net.Uri { *; }
 
-# Keep OpenFilex plugin classes (用于APK安装)
--keep class com.crazecoder.openfile.** { *; }
-
 # Keep all FileProvider related classes and methods (防止混淆影响APK安装)
 -keep class androidx.core.content.FileProvider { *; }
 -keep class androidx.core.content.FileProvider$** { *; }
