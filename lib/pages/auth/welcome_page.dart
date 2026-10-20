@@ -585,6 +585,9 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
       ref.read(baseCurrencyProvider.notifier).state = currency.toUpperCase();
       await _persistCompletion(prefs);
     } catch (error, stack) {
+      // The failed operation is over; do not keep animating a progress spinner
+      // underneath the error dialog while the user reviews and dismisses it.
+      if (mounted) setState(() => _isInitializing = false);
       await _showFailure(error, stack);
     } finally {
       if (mounted) setState(() => _isInitializing = false);

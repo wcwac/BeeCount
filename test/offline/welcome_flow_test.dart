@@ -124,7 +124,9 @@ void main() {
     await _tap(tester, _next);
     expect(tester.takeException(), isNull);
     // Honour the opt-out; finishing may leave the database without any ledger.
-    await tester.ensureVisible(find.byType(CheckboxListTile));
+    await tester.scrollUntilVisible(find.byType(CheckboxListTile), 160,
+      scrollable: find.descendant(of: find.byType(ListView).hitTestable(),
+        matching: find.byType(Scrollable)).first);
     await tester.tap(find.byType(CheckboxListTile));
     await tester.pump();
     await _tap(tester, _next);
