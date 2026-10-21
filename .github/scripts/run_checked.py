@@ -17,7 +17,7 @@ def main():
         raise SystemExit("Expected a command")
     tail = deque(maxlen=180)
     diagnostics = deque(maxlen=200)
-    exception_head = []
+    exception_head = None
     # Commands and their arguments come from the checked-in workflow, not user text.
     process = subprocess.Popen(
         sys.argv[1:], stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
@@ -42,12 +42,15 @@ def main():
         tail.append(line.rstrip("\n"))
         if "EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK" in line:
             exception_head = []
-        if len(exception_head) < 30:
+        if exception_head is not None and len(exception_head) < 30:
             exception_head.append(line.rstrip("\n"))
+            if len(exception_head) == 25:
+                message = "\n".join(exception_head)
+                print(f"::notice title=Flutter exception diagnostic::{escape(message)}", flush=True)
         if re.search(r"error\s*•|Error:|^e: |\[E\]|FAILED|Exception:", line):
             diagnostics.append(line.rstrip("\n"))
         if "[E]" in line:
-            message = "\n".join(exception_head + list(tail)[-15:])
+            message = "\n".join((exception_head or []) + list(tail)[-15:])
             print(f"::notice title=Test diagnostic::{escape(message)}", flush=True)
     result = process.wait()
     if result:

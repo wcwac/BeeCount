@@ -123,6 +123,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Scope food'));
     await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
     // Regression: review must use quickAdd; otherwise choosing a category just
     // closes the page without ever presenting an amount or saving a transaction.
     expect(find.byType(AmountEditorSheet), findsOneWidget);
@@ -133,6 +134,7 @@ void main() {
     expect(scoped.read(currentLedgerCurrencyProvider), 'USD');
     unawaited(TagSelector.show(amountContext));
     await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
     final tagsContext = tester.element(find.byType(TagSelector));
     expect(ProviderScope.containerOf(tagsContext, listen: false).read(currentLedgerIdProvider), targetId);
     Navigator.of(tagsContext).pop();

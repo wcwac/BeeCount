@@ -75,11 +75,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" \
+          python3 .github/scripts/run_checked.py "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" \
             "platforms;android-36" "build-tools;36.0.0" "ndk;27.0.12077973"
 
       - name: Resolve dependencies
-        run: flutter pub get
+        run: python3 .github/scripts/run_checked.py flutter pub get
 
       - name: Save resolved dependency locks
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -116,12 +116,14 @@ jobs:
         run: python3 .github/scripts/run_checked.py flutter analyze --no-pub --no-fatal-infos --no-fatal-warnings
 
       - name: Test capture review and atomic commits
+        timeout-minutes: 5
         run: >-
           python3 .github/scripts/run_checked.py flutter test --no-pub
           test/capture test/widgets/amount_editor_currency_test.dart
           --reporter expanded --timeout 2m
 
       - name: Test local features and offline boundaries
+        timeout-minutes: 10
         run: python3 .github/scripts/run_checked.py flutter test --no-pub --reporter expanded --timeout 2m
 
       - name: Configure stable signing key
