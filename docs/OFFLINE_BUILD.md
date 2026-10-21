@@ -18,9 +18,10 @@
 - 早期离线重构通过源码分析（警告和提示暂不阻断）、437 项测试、签名 APK 编译
   及权限检查：[Actions #5](https://github.com/wcwac/BeeCount/actions/runs/39457643240)，
   对应源码提交 `1a5d71b`。1 项手动预览图片生成测试按原配置跳过。
-  真机验证和 iOS 构建尚未完成。
-- 相对上游，直接运行依赖从 64 项减至 40 项，本地子包从 10 个减至 0 个。
-  根锁文件包数从 254 减至 184，SQLite 原生库、图片附件和本地通知等依赖保留。
+  该轮未做真机验证或 iOS 构建；后续 SDK 迁移的 iOS 编译结果见下方 0.4.0 记录。
+- 早期离线重构相对上游将直接运行依赖从 64 项减至 40 项，本地子包从 10 个减至 0 个，
+  当时根锁文件包数从 254 减至 184。后续 SDK 迁移后直接运行依赖为 38 项（含 2 个 SDK 包）；
+  SQLite 原生库、图片附件和本地通知等依赖保留。
   已核对 CI 实际生成的锁定文件和本地化代码与提交内容一致。
 - `feat/local-transaction-capture` 分支新增默认关闭的 Android 无障碍交易采集、
   可选通知辅助和确认后记账，包含 22 个包名、15 组实验性规则。
@@ -32,25 +33,29 @@
 
 ## 手动触发
 
-唯一保留的 workflow 是 `.github/workflows/release.yml`，名称为
-**Offline Android**。用户已授权采集功能的 Actions 编译，因此
-`feat/local-transaction-capture` 的 push 会执行未签名的 `0.3.0` 检查构建；
-其他分支的 push、PR 和 tag 不触发。自动检查不签名、不创建 Release。
-原有在线 AI 评测、Pullfrog 代理和 Issue 评论机器人已移除。
+常规构建使用 `.github/workflows/release.yml`，分支内名称为
+**Offline Android**。用户已授权采集功能和 SDK 升级的 Actions 编译，因此
+`feat/local-transaction-capture` 与 `feat/flutter-stable-upgrade` 的 push 会执行
+未签名的 `0.4.0` 检查构建；其他分支的 push、PR 和 tag 不触发。
+自动检查不签名、不创建 Release。此分支已移除原有在线 AI 评测、
+Pullfrog 代理和 Issue 评论机器人。
 
-GitHub 的手动触发要求 workflow 文件存在于默认分支。首次设置可将
-`offline` 设为仓库默认分支，或将修改合并到自己的 `main`；不要误运行
-原版 `main` 上旧的 Release 流程。参见
-[GitHub workflow_dispatch 文档](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#workflow_dispatch)。
+另有默认关闭的 `.github/workflows/capture-device-tests.yml`，只允许显式手动
+选择设备测试；push 不会启动它。模拟器与 APK 的运行需另行获得执行授权。
 
-获得仓库代码和第三方工具的执行授权后，在 Actions → Offline Android →
-Run workflow 选择离线分支，并填写：
+仓库默认分支仍为 `main`，其中现有 Release 路径已注册。获得执行授权后，
+可打开 [Release 手动入口](https://github.com/wcwac/BeeCount/actions/workflows/release.yml)，
+在 Run workflow 选择 `feat/flutter-stable-upgrade`，确认分支和下列输入再启动。
+无需为准备设备验证而改默认分支或先合并源码。GitHub 手动触发规则参见
+[workflow_dispatch 文档](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#workflow_dispatch)。
 
 | 输入 | 默认值 | 含义 |
 | --- | --- | --- |
-| `version` | `0.1.0` | 三段数字版本号 |
+| `version` | `0.1.0` | 三段数字版本号；当前迁移验证使用 `0.4.0` |
+| `refresh_dependencies` | false | 关闭时使用已验证锁文件；开启才重新解析兼容依赖 |
 | `sign_apk` | false | 使用自己的固定签名密钥 |
 | `create_release` | false | 发布 GitHub 预发行版，要求启用签名 |
+| `run_device_tests` | false | 另行获得授权后，才在两端检查通过后运行临时模拟器与采集测试 APK |
 
 未签名运行用于首次编译验证，附件标有 `UNSIGNED-`，不能直接安装。
 签名运行输出可安装的 APK。发布运行会创建
@@ -125,14 +130,28 @@ REQUEST_INSTALL_PACKAGES 权限；确认独立包名、`allowBackup=false`，
 会话和有界队列；`flutter test` 不执行这些 Kotlin 用例。独立分析、测试、APK
 和 instrumentation 编译检查会尽可能在其他检查失败后继续，最终汇总读取各步骤的
 原始 `outcome`，任一必需检查未成功都会使 job 失败；发布仍要求整个构建 job 成功。
-instrumentation APK 当前仅编译，未运行其中的设备测试。真实支付应用页面、
-服务重连、Flutter 未启动时的候选保留和性能测量仍需独立验收，当前流程不连接设备。
+常规 push 流程仅编译 instrumentation APK。另行授权并手动开启 `run_device_tests` 后，
+会在 GitHub 托管的临时 API36 AOSP x86_64 模拟器上运行采集包测试，保存日志及 XML；
+其默认关闭，尚无执行结果。不会安装第三方支付应用，也不进行逐界面自动截图。
+真实支付应用页面、系统服务重连和性能测量仍需独立验收；编译不代表这些场景已通过。
 
 `feat/flutter-stable-upgrade` 的新版 SDK 与依赖已通过云端验证，过程及实际 CI 结果见
 `docs/SDK_UPGRADE_IMPLEMENTATION.txt`。其最低 Android 版本提升到 API 24；
 下方 0.3.0 记录只验证旧 Flutter 3.27.3 基线。
 
 ## 0.4.0 Flutter stable 与依赖迁移验证
+
+最新 [Actions #27](https://github.com/wcwac/BeeCount/actions/runs/39673797991) 已全部通过，
+对应源码 `5a4b10c`，耗时 16 分 03 秒：
+
+- 完整 Flutter 536 项通过、0 失败、1 项原有手动预览跳过；专项 50 项是子集。
+- 原生 JVM 56 项通过；release APK（45.9MB）、设备测试 APK 编译、权限与 SQLite ABI 检查通过。
+- iOS 与 WidgetExtension 无签名编译通过。设备测试和发布 job 均按默认配置跳过。
+- 分析有 597 条非阻断 info/warning；锁文件和生成物已与实际验证内容匹配。
+- 自动记账的异步退出后入账、停止与状态未知、账本稳定身份等回归已通过；
+  22 个真实客户端的兼容、系统服务生命周期和性能仍待设备验收。
+
+### 首次升级验证（历史）
 
 [Actions #24](https://github.com/wcwac/BeeCount/actions/runs/39660388266) 全部通过，对应源码 `18703aa`；CI 回写的锁文件和生成源码为 `b257481`。
 Flutter 3.47.7 / Dart 3.13.5、Riverpod 3.4.3、Drift 2.35.2 / SQLite 3.7.1

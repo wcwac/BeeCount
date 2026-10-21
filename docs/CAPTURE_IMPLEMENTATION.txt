@@ -136,7 +136,22 @@ Safety and correctness boundaries
   capture link is committed by preparation alone. Image bytes still require
   the normal attachment backup, separately from the database JSON backup.
 
-Latest SDK migration validation
+Latest current-source validation
+Actions 27 passed all required outcomes for source
+5a4b10cf0df1c39caedcca7520cb62b87b7706f7:
+https://github.com/wcwac/BeeCount/actions/runs/39673797991
+536 Flutter tests passed, zero failed, one original manual preview skipped;
+focused capture passed 50 (a subset). JVM: 56 passed, no failures/errors/skips.
+Android release and instrumentation APK compilation, permission/native SQLite
+ABI checks, and unsigned iOS/WidgetExtension compilation passed. The late-commit
+editor-disposal regression and all ten new settings regressions passed.
+Analysis had 597 nonfatal info/warning findings under the existing policy.
+Both platforms used the same Dart lock; generated sources already matched.
+The opt-in device job and release job were skipped; instrumentation is compiled
+only. No local build or project test ran, no emulator/APK was executed, and no
+signed release or real-client compatibility is claimed.
+
+Initial SDK migration validation (historical)
 Actions 24 passed every original required outcome for source 18703aa:
 https://github.com/wcwac/BeeCount/actions/runs/39660388266
 Flutter 3.47.7 / Dart 3.13.5: 513 Flutter tests passed, one existing manual
@@ -300,15 +315,15 @@ test attempted to leave its routes. Static inspection of the official 3.47.7
 framework found the Android MaterialPageRoute reverse transition is 450 ms,
 longer than this test's 400 ms pump. The next source batch waits for each actual
 route.completed with a bounded two-second pump and asserts State disposal
-before releasing SQLite. The failed case remains a required gate; no successful
-validation of this late-commit scenario is claimed yet.
+before releasing SQLite. The failed case stayed a required gate; Actions 27
+subsequently passed it in both the focused and full Flutter runs.
 Other command outcomes completed successfully: code generation, analysis
 (596 info/warning findings), Android release APK compilation (489.4 s, 45.9 MB),
 JVM tests, instrumentation APK compilation, permissions and SQLite ABI checks.
 iOS and WidgetExtension compiled unsigned (Xcode 241.5 s; Runner.app 39.6 MB).
 The Android final gate failed; generated persistence and release were skipped.
 
-Next source batch (not yet validated)
+Source batch validated in Actions 27 (instrumentation compiled only)
 - Accessibility feedback interruption preserves checkout observations. Actual
   unbind/destroy clears pending reads and session state only for the current
   service instance. Notification authorization and actual listener connection

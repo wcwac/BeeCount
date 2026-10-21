@@ -1,7 +1,7 @@
 Flutter / 依赖实际迁移记录（2026-10-22，北京时间）
 
 升级分支：feat/flutter-stable-upgrade；基于 feat/local-transaction-capture 的已验证源码89ecf81和文档提交de13c54。
-当前状态：第四轮Actions #24已全部通过，源码18703aab37b8d271886088e15c537f9b0cdd2fa9；已验证的锁文件和生成物由CI提交b257481回写。后面的前三轮记录为历史失败及对应修复。
+当前状态：Actions #27 已全部通过，源码5a4b10cf0df1c39caedcca7520cb62b87b7706f7；536项Flutter及56项JVM测试通过，两平台编译通过。锁文件和生成物与验证内容已一致，无需新增回写提交。#24及此前轮次保留为历史升级证据；#25/#26的采集回归失败已在#27解决。
 不在本机安装SDK、生成代码、编译或执行项目测试，所有这些步骤仅在已授权的GitHub Actions中运行。自动截图继续暂缓。
 
 目标和边界
@@ -75,3 +75,22 @@ https://github.com/wcwac/BeeCount/actions/runs/39660388266
 - 默认构建恢复flutter pub get，固定使用此次已验证的依赖锁；手动输入refresh_dependencies=true才重新pub upgrade。Android/iOS验证成功后才允许后续发布job，当前无发布。
 - 8个工件：upgrade-generated-24、dependency-locks-24、finance-sources-24、android-unit-tests-24、validation-logs-24、offline-android-24、ios-locks-24、ios-validation-logs-24。
 - 22个应用适配仍为实验性，真实应用页面、服务与权限重连、性能和设备生命周期验收未完成；自动截图继续按用户要求暂缓。
+
+
+最新自动记账回归验证（Actions #27，2026-10-22，北京时间）
+https://github.com/wcwac/BeeCount/actions/runs/39673797991
+源码5a4b10cf0df1c39caedcca7520cb62b87b7706f7；0.4.0 / build27；总耗时16分03秒。
+android、ios、persist-generated均success，默认关闭的capture-device-tests和release均skipped。
+- 完整Flutter536项通过、0失败、1项原有手动预览跳过；专项50项为其子集。
+- JVM56项通过、失败/错误/跳过均0。设备测试APK编译通过，尚未执行设备测试。
+- release APK45.9MB（Gradle437.7秒）；APK权限及SQLite 1/3/1/1 ABI检查全部通过。
+- iOS/WidgetExtension无签名编译通过，Xcode211.8秒，Runner.app39.6MB。
+- 分析597条非阻断info/warning；最终gate直接核验全部10个必需步骤原始outcome成功。
+- 真实SQLite阻塞期间退出两条编辑路由、之后完成保存的回归通过，保留原子入账、
+  缓存刷新与ACK断言。测试依路由完成信号确认销毁，适配Android450毫秒返回动画。
+- 新增停止采集不依赖Flutter旧状态或账本；状态回读失败/超时、停止重试、
+  旧启用请求迟到、账本恢复身份和服务授权/连接区分等10项Flutter回归均通过。
+- 无障碍feedback interrupt保留会话，实际unbind/destroy只清当前实例；相关原生
+  bridge/runtime/SQLite设备用例已编译，待显式授权后通过手动设备workflow执行。
+- 两平台解析的Dart锁文件相同，生成物已与源码匹配，persist-generated无需另写提交。
+  未签名、未发布、未在本地运行工具链；真实22个客户端仍为实验性适配。
