@@ -128,9 +128,23 @@ REQUEST_INSTALL_PACKAGES 权限；确认独立包名、`allowBackup=false`，
 instrumentation APK 当前仅编译，未运行其中的设备测试。真实支付应用页面、
 服务重连、Flutter 未启动时的候选保留和性能测量仍需独立验收，当前流程不连接设备。
 
-`feat/flutter-stable-upgrade` 正在迁移新版 SDK 与依赖，过程及实际 CI 结果见
+`feat/flutter-stable-upgrade` 的新版 SDK 与依赖已通过云端验证，过程及实际 CI 结果见
 `docs/SDK_UPGRADE_IMPLEMENTATION.txt`。其最低 Android 版本提升到 API 24；
 下方 0.3.0 记录只验证旧 Flutter 3.27.3 基线。
+
+## 0.4.0 Flutter stable 与依赖迁移验证
+
+[Actions #24](https://github.com/wcwac/BeeCount/actions/runs/39660388266) 全部通过，对应源码 `18703aa`；CI 回写的锁文件和生成源码为 `b257481`。
+Flutter 3.47.7 / Dart 3.13.5、Riverpod 3.4.3、Drift 2.35.2 / SQLite 3.7.1
+已实际升级；受上游约束保留 archive 3.6.1 与 build_runner 2.16.2，未使用强制覆盖。
+
+- 完整 Flutter 513 项通过、1 项原有手动预览测试跳过；采集专项 27 项是其中子集。
+- 原生 JVM 56 项通过；release APK、仪器测试 APK、权限和各 ABI SQLite 资产检查通过。
+- iOS 与 WidgetExtension 无签名编译通过；全部平台均未执行设备验收。
+- 最低 Android API 24。分析有 590 条非阻断 info/warning，未签名、未发布。
+- 默认按已验证锁文件执行 `flutter pub get`；手动输入 `refresh_dependencies=true`
+  才重新解析最新兼容依赖。两平台验证均成功才允许发布。
+- 所有构建和测试均在 Actions；本地未配置或运行构建环境，逐界面截图暂缓。
 
 ## 0.3.0 采集功能验证记录
 

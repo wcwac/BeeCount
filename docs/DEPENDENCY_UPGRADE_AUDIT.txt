@@ -238,3 +238,9 @@ https://github.com/wcwac/BeeCount/actions/runs/39648617497
 源码89ecf8124c94d6388a1429dc8f4b7dfb6fd32d36；完整Flutter499通过、1项原有手动预览测试跳过；采集专项25是其中子集；原生JVM54通过；生产APK、instrumentation测试APK编译和权限检查通过。此结果不是Flutter3.47.7或新依赖版本的验证。
 本次Gradle8.13日志明确提示使用了不兼容Gradle9的弃用特性，因此9.x迁移需要查清具体脚本/插件来源，不能只改wrapper版本。
 Actions还提示旧Node20入口被强制使用Node24，setup-java v4已弃用；后续CI维护应单独核对官方稳定版本及固定提交，不将本次告警误写为构建失败。
+
+十二、实际升级已落地（后续状态，2026-10-22）
+本报告前文保留最初静态审计时点；此后已经实际迁移Flutter3.47.7 / Dart3.13.5及兼容依赖，Actions #24全部通过：
+https://github.com/wcwac/BeeCount/actions/runs/39660388266
+完整Flutter513通过、1项原有手动预览测试跳过，原生JVM56通过，Android APK/仪器测试APK/权限/SQLite各ABI检查，以及iOS与WidgetExtension无签名编译通过。实际锁文件、Drift和本地化生成物由CI提交b257481回写。
+实际版本、依赖约束例外、SDK迁移修复、原始outcome证据和设备验收边界详见 docs/SDK_UPGRADE_IMPLEMENTATION.txt 。

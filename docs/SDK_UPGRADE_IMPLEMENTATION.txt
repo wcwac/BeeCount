@@ -1,7 +1,7 @@
 Flutter / 依赖实际迁移记录（2026-10-22，北京时间）
 
 升级分支：feat/flutter-stable-upgrade；基于 feat/local-transaction-capture 的已验证源码89ecf81和文档提交de13c54。
-本文件描述已修改源码及验证计划；首轮新版CI结果尚待取得，不等同于升级通过。
+当前状态：第四轮Actions #24已全部通过，源码18703aab37b8d271886088e15c537f9b0cdd2fa9；已验证的锁文件和生成物由CI提交b257481回写。后面的前三轮记录为历史失败及对应修复。
 不在本机安装SDK、生成代码、编译或执行项目测试，所有这些步骤仅在已授权的GitHub Actions中运行。自动截图继续暂缓。
 
 目标和边界
@@ -9,8 +9,8 @@ Flutter / 依赖实际迁移记录（2026-10-22，北京时间）
 - 清单stable hash=abaf9c523780a608bd46686fd5e53740a07077f8；Linux SDK SHA256=af7455f540df951184c7953fbe3cf884766e7541dacf8571f9f582db03dd6230。SDK实际仅由Actions下载执行。
 - 根生产依赖38项（含2个SDK包），移除sqlite3_flutter_libs及jovial_svg直接依赖；sqlite3 3.x由Drift依赖并通过native-assets hooks打包，country_flags内部自行依赖jovial_svg。
 - 其余直接依赖目标按2026-10-22的pub.dev官方API latest稳定版本更新约束。实际解析图以云端pubspec.lock和回归结果为准，不手工捏造锁文件。
-- 两项已确认约束：excel4.0.6仍依赖archive^3.6.1，所以保留archive3.6.1；build_runner2.17.1依赖build5，而drift_dev2.35.1要求build<5，所以2.17.0已被撤回（retracted=true）；因此固定未撤回的build_runner2.16.2（build^4.0.9，analyzer>=14.3<15，与drift_dev交集成立）。未用overrides强行绕过。
-- AGP9.2.1 / Gradle9.3.1 / Kotlin2.4.21，Java17，NDK28.2.13676358，compile/target36。选择Flutter工具已知AGP9.2系列及其默认Gradle9.3.1；未把AGP9.4/Gradle9.8的最新发布直接等同于该Flutter版经过验证的组合。
+- 两项已确认约束：excel4.0.6仍依赖archive^3.6.1，所以保留archive3.6.1；build_runner2.17.1依赖build5，而drift_dev2.35.1要求build<5，所以2.17.0已被撤回（retracted=true）；因此固定未撤回的build_runner2.16.2（build^4.0.9，analyzer>=14.3<15，与drift_dev交集成立）。未用overrides强行绕过。传递依赖jovial_svg1.1.31要求xml^7，与excel要求xml<7冲突，因此实际兼容图保留jovial_svg1.1.29和xml6.x。
+- AGP9.2.1 / Gradle9.4.1 / Kotlin2.4.21，Java17，NDK28.2.13676358，compile/target36。Gradle按AGP9.2的明确最低要求配套；Flutter模板的9.3.1不满足AGP9.2.1（见第三轮错误记录）。未把AGP9.4/Gradle9.8的最新发布直接等同于该Flutter版经过验证的组合。
 - 按Flutter3.47官方现有插件兼容路径显式android.builtInKotlin=false、android.newDsl=false，保留根Kotlin插件；Flutter会为未显式应用Kotlin的Android库模块注入传统Kotlin插件。新AppLinks等库依赖此路径。
 - 最低Android API24（Android7.0），来自Flutter新基线及新版通知/认证/AppLinks插件，旧API23不再作为支持目标。
 
@@ -24,8 +24,8 @@ Flutter / 依赖实际迁移记录（2026-10-22，北京时间）
 云端验证与生成物
 - 解析、Drift生成、本地化生成、分析、采集专项、全Flutter回归、Kotlin单元、release与仪器测试APK编译、APK权限/native SQLite ABI检查。
 - 独立检查尽可能继续执行，最终gate读取各步骤原始outcome；失败、跳过、未执行不能伪装通过。
-- 只在升级分支全部检查成功后，用单独contents:write后续job回写实际已验证的pubspec.lock、db.g.dart和本地化生成文件；仅这些路径，检测源SHA未被更新，提交[skip ci]。普通编译job仍contents:read。
-- 仪器测试当前只编译，不表示已在设备执行；22个真实应用规则仍为实验性。后台服务重连、权限撤销、实际客户端页面、性能与iOS仍需对应设备/平台验证。
+- 只在升级分支全部检查成功后，用单独contents:write后续job回写实际已验证的pubspec.lock、ios/Podfile.lock、db.g.dart和本地化生成文件；仅这些路径，检测源SHA未被更新，提交[skip ci]。普通编译job仍contents:read。
+- 仪器测试当前只编译，不表示已在设备执行；22个真实应用规则仍为实验性。后台服务重连、权限撤销、实际客户端页面、性能与iOS生命周期运行仍需设备验证；iOS和WidgetExtension编译现已通过。
 
 主要明确官方来源（只读直达，无搜索引擎）
 https://storage.googleapis.com/flutter_infra_release/releases/releases_linux.json
@@ -59,3 +59,19 @@ iOS与WidgetExtension无签名编译通过，Xcode构建201.9秒，Runner.app 39
 Android APK与两个原生任务都在配置阶段被AGP9.2.1要求Gradle>=9.4.1拦截，因此尚无本轮原生JVM通过声明。下一批将wrapper改9.4.1及官方checksum，并完整重跑。
 继续集中处理上述7项、同步Flutter官方analysis_options排除迁移（仅build/android/ios，lib/test仍分析）、升级Actions固定SHA到当前Node24稳定版，并执行pub upgrade重新选择整个兼容传递依赖图。
 日志采集补强：短Flutter异常在下个异常出现前立即输出，常规测试[E]后继续捕获Expected/Actual及堆栈，避免只保留末尾“Multiple exceptions”而丢首因。
+
+第四轮最终验证（全部通过，2026-10-22，北京时间）
+https://github.com/wcwac/BeeCount/actions/runs/39660388266
+源码18703aab37b8d271886088e15c537f9b0cdd2fa9；版本0.4.0、构建号24；总耗时18分43秒。android、ios、persist-generated均success，release按配置skipped，未签名/未发布。
+- Flutter完整回归513项通过、0失败，1项原有手动预览测试跳过。采集专项27项是其子集，不能相加。
+- 原生JVM56项，失败/错误/跳过全部0；包含新增的跨订单稀疏字段隔离序列。
+- 分析通过，590条info/warning按当前策略不阻断；不是零告警。lib/test未被排除。
+- release APK编译490.7秒，日志APK45.9MB；instrumentation APK编译通过，但未执行设备测试。
+- APK权限、独立应用ID、allowBackup=false检查通过；3个单ABI APK与1个universal共4个输出均包含对应ABI的非空libsqlite3.so，原始验证通知为1/3/1/1 ABI。
+- iOS与WidgetExtension无签名编译通过，Xcode198.6秒，Runner.app39.5MB，不代表设备运行验收。
+- 两平台Dart锁文件逐字节一致后，CI提交b257481回写pubspec.lock、ios/Podfile.lock、Drift和本地化生成源码。本地只获取并静态审查生成结果，没有执行工具链。
+- 实际锁定：flutter_riverpod3.4.3、drift2.35.2、drift_dev2.35.1、sqlite3 3.7.1、build_runner2.16.2、file_picker13.1.0、flutter_local_notifications22.3.2、local_auth3.0.2、share_plus13.3.1、archive3.6.1。
+- 额外自动记账改进：收件箱按需创建行；确认/丢ACK重试/删除tombstone经真实磁盘与后台isolate重开验证；父子账本币种和月起始日隔离、创建账本期间旧异步结果保护、17个scoped provider声明、通知平台注册回归均通过。
+- 默认构建恢复flutter pub get，固定使用此次已验证的依赖锁；手动输入refresh_dependencies=true才重新pub upgrade。Android/iOS验证成功后才允许后续发布job，当前无发布。
+- 8个工件：upgrade-generated-24、dependency-locks-24、finance-sources-24、android-unit-tests-24、validation-logs-24、offline-android-24、ios-locks-24、ios-validation-logs-24。
+- 22个应用适配仍为实验性，真实应用页面、服务与权限重连、性能和设备生命周期验收未完成；自动截图继续按用户要求暂缓。

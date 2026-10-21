@@ -11,6 +11,10 @@ on:
         type: string
         default: "0.1.0"
         required: true
+      refresh_dependencies:
+        description: "重新解析兼容范围内的依赖；关闭时按锁文件构建"
+        type: boolean
+        default: false
       sign_apk:
         description: "使用仓库 Secrets 中的固定密钥签名（安装需要签名）"
         type: boolean
@@ -29,6 +33,7 @@ concurrency:
 
 env:
   FLUTTER_VERSION: "3.47.7"
+  REFRESH_DEPENDENCIES: ${{ inputs.refresh_dependencies || false }}
 
 jobs:
   android:
@@ -82,7 +87,13 @@ jobs:
         run: python3 .github/scripts/run_checked.py flutter --version
 
       - name: Resolve dependencies
-        run: python3 .github/scripts/run_checked.py flutter pub upgrade
+        shell: bash
+        run: |
+          if [[ "$REFRESH_DEPENDENCIES" == true ]]; then
+            python3 .github/scripts/run_checked.py flutter pub upgrade
+          else
+            python3 .github/scripts/run_checked.py flutter pub get
+          fi
 
       - name: Regenerate database sources
         id: codegen
@@ -398,7 +409,13 @@ jobs:
           flutter --version
           pod --version
       - name: Resolve iOS dependencies
-        run: python3 .github/scripts/run_checked.py flutter pub upgrade
+        shell: bash
+        run: |
+          if [[ "$REFRESH_DEPENDENCIES" == true ]]; then
+            python3 .github/scripts/run_checked.py flutter pub upgrade
+          else
+            python3 .github/scripts/run_checked.py flutter pub get
+          fi
       - name: Regenerate iOS database sources
         id: codegen
         continue-on-error: true
@@ -485,7 +502,7 @@ jobs:
 
   release:
     if: inputs.create_release
-    needs: android
+    needs: [android, ios]
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:

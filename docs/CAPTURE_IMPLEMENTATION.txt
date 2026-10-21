@@ -121,7 +121,23 @@ Safety and correctness boundaries
   capture link is committed by preparation alone. Image bytes still require
   the normal attachment backup, separately from the database JSON backup.
 
-Validation status at this checkpoint
+Latest SDK migration validation
+Actions 24 passed every original required outcome for source 18703aa:
+https://github.com/wcwac/BeeCount/actions/runs/39660388266
+Flutter 3.47.7 / Dart 3.13.5: 513 Flutter tests passed, one existing manual
+preview test skipped; the focused 27 are a subset. Native JVM: 56 passed.
+Release/instrumentation APK compilation, APK permissions and SQLite native
+assets for all output ABIs passed. iOS and WidgetExtension compiled unsigned.
+CI persisted the validated locks and generated code at b257481. No local SDK
+installation, build or project tests ran; no release was published.
+The inbox now builds candidate rows on demand, disk-reopen tests exercise
+idempotent confirmation/deletion, and changed order references cannot borrow
+an unfinished order's fields. Riverpod 3 scoped dependencies and async lifecycle
+protections are covered. Real applications, Android service recovery, device
+performance and iOS lifecycle behavior remain device acceptance items.
+See docs/SDK_UPGRADE_IMPLEMENTATION.txt for exact versions and limitations.
+
+Previous capture baseline validation (before the SDK migration)
 GitHub Actions build 20 passed every required validation gate for source
 89ecf8124c94d6388a1429dc8f4b7dfb6fd32d36, version 0.3.0,
 with sign_apk=false and create_release=false (duration 11m23s):
