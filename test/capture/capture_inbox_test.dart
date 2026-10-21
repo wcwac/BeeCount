@@ -103,7 +103,11 @@ void main() {
     // Warm the homepage providers first: a child review must not inherit their
     // cached CNY value or switch the homepage's current ledger to the target.
     container.read(currentLedgerIdProvider.notifier).state = ledger.id;
-    await container.read(currentLedgerProvider.future);
+    // Drift's first watched value can need an event-loop turn. Waiting for it
+    // directly in testWidgets' fake clock can stall before the first pump.
+    await tester.runAsync(() async {
+      await container.read(currentLedgerProvider.future);
+    });
     expect(container.read(currentLedgerCurrencyProvider), 'CNY');
     final draft = {...payload('scoped-draft', 'USD payment'),
       'ledgerId': targetId, 'ledgerKey': CaptureCommitService.ledgerKey(target), 'currency': 'USD'};
@@ -148,5 +152,5 @@ void main() {
     expect(container.read(currentLedgerCurrencyProvider), 'CNY');
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());
-  });
+  }, timeout: const Timeout(Duration(minutes: 1)));
 }
