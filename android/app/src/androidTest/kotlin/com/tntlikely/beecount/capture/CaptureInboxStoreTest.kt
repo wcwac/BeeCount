@@ -70,6 +70,87 @@ class CaptureInboxStoreTest {
         assertEquals("fixture-one", store.pending().single()["id"])
     }
 
+    @Test fun aSparseDurableAliasPreservesKnownFieldsEvidenceAndWarningsAfterRecreation() {
+        val original = candidate().copy(
+            transactionIdentity = "trade-one", referenceHash = "reference-one",
+            remark = "Breakfast", paymentMethod = "Debit card", discountMinor = 100,
+            transactionTime = 1_792_598_300_000L,
+            evidence = mapOf("amount" to "label:支付金额", "direction" to "signed-result", "merchant" to "label"),
+            issues = setOf("SNAPSHOT_TRUNCATED", "CURRENCY_UNCERTAIN", "FEE_PRESENT"),
+        )
+        store.put(original)
+        store.close()
+        store = CaptureInboxStore(context)
+        assertFalse(store.put(candidate(null).copy(
+            id = "after-restart", sessionId = "new-session", transactionIdentity = "trade-one",
+            merchant = null, direction = null, evidence = mapOf("state" to "success-label"),
+        )))
+        val saved = store.pending().single()
+        assertEquals("fixture-one", saved["id"])
+        assertEquals(1250L, (saved["amountMinor"] as Number).toLong())
+        assertEquals(original.merchant, saved["merchant"])
+        assertEquals(original.remark, saved["remark"])
+        assertEquals(original.paymentMethod, saved["paymentMethod"])
+        assertEquals(100L, (saved["discountMinor"] as Number).toLong())
+        assertEquals(original.transactionTime, (saved["transactionTime"] as Number).toLong())
+        assertEquals(original.referenceHash, saved["referenceHash"])
+        assertEquals(original.direction, saved["direction"])
+        val evidence = saved["evidence"] as Map<*, *>
+        assertEquals("label:支付金额", evidence["amount"])
+        assertEquals("signed-result", evidence["direction"])
+        assertEquals("success-label", evidence["state"])
+        val issues = saved["issues"] as List<*>
+        assertTrue(issues.containsAll(original.issues))
+        assertFalse(issues.contains("AMOUNT_MISSING"))
+    }
+
+    @Test fun aDurableAliasCanSupplyMissingFieldsAndResolveTheirWarnings() {
+        store.put(candidate(null).copy(
+            transactionIdentity = "trade-one", merchant = null, direction = null,
+            issues = setOf("AMOUNT_MISSING", "AMOUNT_UNANCHORED", "MERCHANT_UNCERTAIN", "PAYMENT_UNCONFIRMED", "SNAPSHOT_TRUNCATED"),
+        ))
+        store.close()
+        store = CaptureInboxStore(context)
+        assertFalse(store.put(candidate().copy(
+            id = "after-restart", transactionIdentity = "trade-one", paymentMethod = "Debit card",
+            transactionTime = 1_792_598_300_000L,
+            evidence = mapOf("amount" to "label:支付金额", "direction" to "payment-state"),
+        )))
+        val saved = store.pending().single()
+        assertEquals(1250L, (saved["amountMinor"] as Number).toLong())
+        assertEquals("Test shop", saved["merchant"])
+        assertEquals("Debit card", saved["paymentMethod"])
+        assertEquals(1_792_598_300_000L, (saved["transactionTime"] as Number).toLong())
+        assertEquals("expense", saved["direction"])
+        assertEquals(listOf("SNAPSHOT_TRUNCATED"), saved["issues"])
+    }
+
+    @Test fun explicitAmountConflictInvalidatesTheAmountOfADurableAlias() {
+        store.put(candidate().copy(transactionIdentity = "trade-one"))
+        store.close()
+        store = CaptureInboxStore(context)
+        store.put(candidate(null).copy(
+            id = "after-restart", transactionIdentity = "trade-one",
+            issues = setOf("AMOUNT_MISSING", "AMOUNT_CONFLICT"),
+        ))
+        val saved = store.pending().single()
+        assertNull(saved["amountMinor"])
+        assertTrue((saved["issues"] as List<*>).containsAll(setOf("AMOUNT_MISSING", "AMOUNT_CONFLICT")))
+    }
+
+    @Test fun rejectedOriginalRefundAmountCannotBeRestoredFromADurableAlias() {
+        store.put(candidate().copy(transactionIdentity = "trade-one"))
+        store.close()
+        store = CaptureInboxStore(context)
+        store.put(candidate(null).copy(
+            id = "after-restart", transactionIdentity = "trade-one",
+            evidence = mapOf("amount" to "refund:original-amount-rejected"),
+        ))
+        val saved = store.pending().single()
+        assertNull(saved["amountMinor"])
+        assertTrue((saved["issues"] as List<*>).contains("AMOUNT_MISSING"))
+    }
+
     @Test fun durableReferenceCannotReopenACommittedPayment() {
         store.put(candidate().copy(transactionIdentity = "trade-one"))
         store.complete("fixture-one", 42)

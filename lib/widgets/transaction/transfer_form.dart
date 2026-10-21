@@ -162,13 +162,12 @@ class _TransferFormState extends ConsumerState<TransferForm> {
 
     if (!mounted) return;
 
-    final editorContainer = ProviderScope.containerOf(context, listen: false);
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: BeeTokens.surfaceSheet(context),
-      builder: (context) => UncontrolledProviderScope(
-        container: editorContainer,
+      builder: (context) => ProviderScope(
+        overrides: [currentLedgerIdProvider.overrideWith((ref) => ledgerId)],
         child: AmountEditorSheet(
         categoryName: l10n.transferTitle,
         initialDate: widget.initialDate ?? DateTime.now(),

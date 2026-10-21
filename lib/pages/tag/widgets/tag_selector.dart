@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../data/db.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../providers/tag_providers.dart';
+import '../../../providers/database_providers.dart';
 import '../../../styles/tokens.dart';
 import '../../../widgets/biz/tag_chip.dart';
 import '../tag_edit_page.dart';
@@ -28,13 +29,13 @@ class TagSelector extends ConsumerStatefulWidget {
     BuildContext context, {
     List<int> selectedTagIds = const [],
   }) async {
-    final editorContainer = ProviderScope.containerOf(context, listen: false);
+    final ledgerId = ProviderScope.containerOf(context, listen: false).read(currentLedgerIdProvider);
     return await showModalBottomSheet<List<int>>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => UncontrolledProviderScope(
-        container: editorContainer,
+      builder: (context) => ProviderScope(
+        overrides: [currentLedgerIdProvider.overrideWith((ref) => ledgerId)],
         child: TagSelector(selectedTagIds: selectedTagIds),
       ),
     );
@@ -318,11 +319,12 @@ class _TagSelectorState extends ConsumerState<TagSelector> {
   }
 
   void _createNewTag() async {
-    final editorContainer = ProviderScope.containerOf(context, listen: false);
+    final ledgerId = ref.read(currentLedgerIdProvider);
     final result = await Navigator.of(context).push<Tag?>(
       MaterialPageRoute(
-        builder: (_) => UncontrolledProviderScope(
-          container: editorContainer, child: const TagEditPage()),
+        builder: (_) => ProviderScope(
+          overrides: [currentLedgerIdProvider.overrideWith((ref) => ledgerId)],
+          child: const TagEditPage()),
       ),
     );
 

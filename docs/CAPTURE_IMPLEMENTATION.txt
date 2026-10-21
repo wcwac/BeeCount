@@ -170,6 +170,11 @@ Added regression sources (not executed)
   pending enrichment, terminal-state replay rejection, ledger identity, durable
   reference aliases/collisions and native v1→v2 migration. The context wrapper
   keeps applicationContext in the instrumentation APK's sandbox.
+  Recreated sessions with the same strong transaction reference merge sparse
+  observations into the existing durable draft. Known fields and unresolved
+  warnings survive; explicit amount conflicts and rejected original refund
+  amounts still invalidate the amount. Four additional instrumentation cases
+  cover preservation, enrichment and both invalidation paths.
 - Android instrumentation CaptureSettingsTest: disabled defaults, consent
   revocation generations and ledger changes. No target-app database is used.
 

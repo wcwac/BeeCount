@@ -130,7 +130,8 @@ void main() {
     final amountContext = tester.element(find.byType(AmountEditorSheet));
     final scoped = ProviderScope.containerOf(amountContext, listen: false);
     expect(scoped.read(currentLedgerIdProvider), targetId);
-    expect((await scoped.read(currentLedgerProvider.future))!.id, targetId);
+    final reviewedLedger = await tester.runAsync(() => scoped.read(currentLedgerProvider.future));
+    expect(reviewedLedger!.id, targetId);
     expect(scoped.read(currentLedgerCurrencyProvider), 'USD');
     unawaited(TagSelector.show(amountContext));
     await tester.pumpAndSettle();

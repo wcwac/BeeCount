@@ -150,6 +150,12 @@ class _TransactionEditorPageState extends ConsumerState<TransactionEditorPage>
   }
 
   @override
+  void dispose() {
+    _tab.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final editingId = widget.editingTransactionId;
     if (editingId != null) {
@@ -295,7 +301,6 @@ class _TransactionEditorPageState extends ConsumerState<TransactionEditorPage>
       initialAccountId = await _getDefaultAccountId(kind, ledgerId);
     }
 
-    final editorContainer = ProviderScope.containerOf(context, listen: false);
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -303,8 +308,8 @@ class _TransactionEditorPageState extends ConsumerState<TransactionEditorPage>
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (ctx) => UncontrolledProviderScope(
-        container: editorContainer,
+      builder: (ctx) => ProviderScope(
+        overrides: [currentLedgerIdProvider.overrideWith((ref) => ledgerId)],
         child: AmountEditorSheet(
         categoryName: c.name,
         categoryId: c.id,

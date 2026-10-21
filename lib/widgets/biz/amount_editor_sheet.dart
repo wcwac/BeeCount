@@ -174,6 +174,7 @@ class _AmountEditorSheetState extends ConsumerState<AmountEditorSheet> {
   void dispose() {
     _finishTapTimer?.cancel();
     _noteFocusNode.dispose();
+    _noteCtrl.dispose();
     super.dispose();
   }
 
@@ -221,7 +222,7 @@ class _AmountEditorSheetState extends ConsumerState<AmountEditorSheet> {
   /// 本笔汇率:手改/隐含 > 有效汇率(effectiveRatesForLedgerProvider)。
   double? _currentRate() {
     if (_rateManuallySet) return double.tryParse(_rateStr ?? '');
-    final rates = ref.read(effectiveRatesForLedgerProvider).valueOrNull;
+    final rates = ref.read(effectiveRatesForLedgerProvider).unwrapPrevious().valueOrNull;
     final er = rates?[_txCurrency()];
     return er == null ? null : double.tryParse(er.rate);
   }
@@ -403,12 +404,14 @@ class _AmountEditorSheetState extends ConsumerState<AmountEditorSheet> {
     final current = double.tryParse(_amountStr) ?? 0.0;
     final total = _op == null ? current : _compute(_acc, _op!, current);
     if (total.abs() <= 0) return;
+    final ledger = ref.read(currentLedgerProvider).unwrapPrevious().valueOrNull;
+    if (ledger == null || ledger.id != widget.ledgerId) return;
 
     setState(() => _isSubmitting = true);
 
     // v30:折本位币快照。外币且汇率无效 → 阻断(L8)。
     final txCurrency = _txCurrency();
-    final ledgerBase = ref.read(currentLedgerCurrencyProvider);
+    final ledgerBase = ledger.currency.isEmpty ? 'CNY' : ledger.currency.toUpperCase();
     double? nativeAmount;
     if (txCurrency == ledgerBase) {
       nativeAmount = total.abs();
@@ -924,7 +927,9 @@ class _AmountEditorSheetState extends ConsumerState<AmountEditorSheet> {
 
                 // 判断是否处于运算模式
                 final isInCalcMode = _op != null;
-                final isEnabled = (isInCalcMode ? true : total.abs() > 0) && !_isSubmitting;
+                final ledger = ref.watch(currentLedgerProvider).unwrapPrevious().valueOrNull;
+                final isEnabled = (isInCalcMode ? true : total.abs() > 0) && !_isSubmitting &&
+                    ledger != null && ledger.id == widget.ledgerId;
 
                 void handleTap() {
                   if (isInCalcMode) {

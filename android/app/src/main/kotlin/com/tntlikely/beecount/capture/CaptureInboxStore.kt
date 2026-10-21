@@ -29,7 +29,7 @@ class CaptureInboxStore(context: Context) : SQLiteOpenHelper(context.application
     }
 
     private data class Existing(val id: String, val state: String, val ledgerId: Long,
-        val ledgerKey: String, val amount: Long?, val identity: String?)
+        val ledgerKey: String, val amount: Long?, val identity: String?, val payload: JSONObject)
 
     private fun existing(db: SQLiteDatabase, column: String, value: String): Existing? {
         require(column == "id" || column == "transaction_identity")
@@ -39,9 +39,62 @@ class CaptureInboxStore(context: Context) : SQLiteOpenHelper(context.application
                 Existing(it.getString(0), it.getString(1), it.getLong(2),
                     if (payload.isNull("ledgerKey")) "" else payload.optString("ledgerKey"),
                     if (payload.isNull("amountMinor")) null else payload.getLong("amountMinor"),
-                    if (it.isNull(4)) null else it.getString(4))
+                    if (it.isNull(4)) null else it.getString(4), payload)
             }
         }
+    }
+
+    /** Recreating a session can rediscover only part of an already durable payment.
+     * Match the engine's sparse-observation semantics without retaining a rejected amount.
+     */
+    private fun mergeAlias(candidate: CaptureCandidate, previous: Existing): CaptureCandidate {
+        val payload = previous.payload
+        fun string(key: String) = if (payload.isNull(key)) null else payload.getString(key)
+        fun number(key: String) = if (payload.isNull(key)) null else payload.getLong(key)
+        val oldIssues = payload.optJSONArray("issues")?.let { values ->
+            (0 until values.length()).map { values.getString(it) }.toSet()
+        }.orEmpty()
+        val oldEvidence = payload.optJSONObject("evidence")?.let { value ->
+            value.keys().asSequence().associateWith { value.getString(it) }
+        }.orEmpty()
+        val inheritedIssues = oldIssues.filter { issue ->
+            when (issue) {
+                "AMOUNT_MISSING" -> false // Recalculate after filling an absent value.
+                "AMOUNT_UNANCHORED", "AMOUNT_CONFLICT" -> candidate.amountMinor == null
+                "MERCHANT_UNCERTAIN" -> candidate.merchant == null
+                "PAYMENT_UNCONFIRMED" -> "PAYMENT_UNCONFIRMED" in candidate.issues
+                else -> true
+            }
+        }
+        val amountRejected = "AMOUNT_CONFLICT" in candidate.issues ||
+            candidate.evidence["amount"] == "refund:original-amount-rejected"
+        val amount = candidate.amountMinor ?: previous.amount.takeUnless { amountRejected }
+        val oldDirection = string("direction")
+        val differentDirections = oldDirection != null && candidate.direction != null && oldDirection != candidate.direction
+        val explicitDirections = setOf("incoming-label", "signed-result", "signed-detail", "refund")
+        val oldDirectionIsExplicit = oldEvidence["direction"] in explicitDirections
+        val newDirectionIsExplicit = candidate.evidence["direction"] in explicitDirections
+        val directionConflict = differentDirections && oldDirectionIsExplicit && newDirectionIsExplicit
+        val keepOldDirection = (candidate.direction == null && "PAYMENT_UNCONFIRMED" !in candidate.issues) ||
+            (differentDirections && oldDirectionIsExplicit && !newDirectionIsExplicit)
+        val issues = (candidate.issues - "AMOUNT_MISSING") + inheritedIssues +
+            (if (amount == null) setOf("AMOUNT_MISSING") else emptySet()) +
+            (if (directionConflict) setOf("DIRECTION_UNCERTAIN") else emptySet())
+        val evidence = oldEvidence + candidate.evidence +
+            if (keepOldDirection && oldEvidence["direction"] != null)
+                mapOf("direction" to oldEvidence.getValue("direction")) else emptyMap()
+        return candidate.copy(
+            amountMinor = amount,
+            merchant = candidate.merchant ?: string("merchant"),
+            remark = candidate.remark ?: string("remark"),
+            paymentMethod = candidate.paymentMethod ?: string("paymentMethod"),
+            discountMinor = candidate.discountMinor ?: number("discountMinor"),
+            transactionTime = candidate.transactionTime ?: number("transactionTime"),
+            referenceHash = candidate.referenceHash ?: string("referenceHash"),
+            direction = if ("DIRECTION_UNCERTAIN" in issues) null else if (keepOldDirection) oldDirection else candidate.direction,
+            evidence = evidence,
+            issues = issues,
+        )
     }
 
     /** Enrich pending records; never reopen a committed or dismissed candidate. */
@@ -60,10 +113,11 @@ class CaptureInboxStore(context: Context) : SQLiteOpenHelper(context.application
             val canonicalId = if (byId == null && compatible) byIdentity!!.id else candidate.id
             val old = byId ?: byIdentity?.takeIf { it.id == canonicalId }
             val identityConflict = byIdentity != null && (!compatible || byIdentity.id != canonicalId)
-            val effective = candidate.copy(
+            val enriched = if (byId == null && compatible) mergeAlias(candidate, byIdentity!!) else candidate
+            val effective = enriched.copy(
                 id = canonicalId,
                 transactionIdentity = if (identityConflict) old?.identity else candidate.transactionIdentity ?: old?.identity,
-                issues = candidate.issues + if (identityConflict) setOf("REFERENCE_CONFLICT") else emptySet(),
+                issues = enriched.issues + if (identityConflict) setOf("REFERENCE_CONFLICT") else emptySet(),
             )
             if (old != null && (old.state in setOf("COMMITTED", "DISMISSED") || old.ledgerId != effective.ledgerId ||
                 old.ledgerKey != (effective.ledgerKey ?: ""))) {

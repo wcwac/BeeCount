@@ -46,6 +46,7 @@ void main() {
     String? initialCurrencyCode,
     double? initialAmount,
     double? initialNativeAmount,
+    Stream<Ledger?>? ledgerStream,
     FutureOr<void> Function(AmountEditorResult)? onSubmit,
     String? submitErrorMessage,
   }) {
@@ -53,7 +54,7 @@ void main() {
       overrides: [
         repositoryProvider.overrideWithValue(repo),
         currentLedgerProvider
-            .overrideWith((ref) => Stream<Ledger?>.value(cnyLedger())),
+            .overrideWith((ref) => ledgerStream ?? Stream<Ledger?>.value(cnyLedger())),
       ],
       child: MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -102,6 +103,45 @@ void main() {
     // 而非当前有效汇率 —— 只改备注折算基准不漂移)
     expect(find.textContaining('1 USD ='), findsNothing);
     expect(find.textContaining('≈ 86.40 CNY'), findsOneWidget);
+  });
+
+  testWidgets('账本首值未加载时不保存，加载 USD 账本后按真实本位币保存一次', (tester) async {
+    await db.customStatement(
+        "INSERT INTO ledgers (id, name, currency) VALUES (1, 'L', 'USD')");
+    final ledgerStream = StreamController<Ledger?>();
+    final submitted = <AmountEditorResult>[];
+    try {
+      await tester.pumpWidget(host(
+        ledgerStream: ledgerStream.stream,
+        initialCurrencyCode: 'USD',
+        initialAmount: 12.50,
+        // A valid implicit rate ensures the old CNY fallback would submit an
+        // incorrect native amount, instead of merely stopping for a missing rate.
+        initialNativeAmount: 87.50,
+        onSubmit: submitted.add,
+      ));
+      await tester.pumpAndSettle();
+      final finish = find.text('完成');
+      expect(finish, findsOneWidget);
+      await tester.tap(finish);
+      await tester.pumpAndSettle();
+      expect(submitted, isEmpty);
+      expect(tester.takeException(), isNull);
+
+      ledgerStream.add(cnyLedger().copyWith(currency: 'USD'));
+      await tester.pumpAndSettle();
+      await tester.tap(finish);
+      await tester.pumpAndSettle();
+      expect(submitted, hasLength(1));
+      expect(submitted.single.amount, 12.50);
+      expect(submitted.single.currencyCode, 'USD');
+      expect(submitted.single.nativeAmount, submitted.single.amount);
+      expect(tester.takeException(), isNull);
+    } finally {
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+      await ledgerStream.close();
+    }
   });
 
   testWidgets('异步保存失败后恢复输入，并且等待期间不重复提交', (tester) async {
