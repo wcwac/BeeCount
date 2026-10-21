@@ -63,7 +63,8 @@ import 'app_localizations_zh.dart';
 /// be consistent with the languages listed in the AppLocalizations.supportedLocales
 /// property.
 abstract class AppLocalizations {
-  AppLocalizations(String locale) : localeName = intl.Intl.canonicalizedLocale(locale.toString());
+  AppLocalizations(String locale)
+    : localeName = intl.Intl.canonicalizedLocale(locale.toString());
 
   final String localeName;
 
@@ -71,7 +72,8 @@ abstract class AppLocalizations {
     return Localizations.of<AppLocalizations>(context, AppLocalizations)!;
   }
 
-  static const LocalizationsDelegate<AppLocalizations> delegate = _AppLocalizationsDelegate();
+  static const LocalizationsDelegate<AppLocalizations> delegate =
+      _AppLocalizationsDelegate();
 
   /// A list of this localizations delegate along with the default localizations
   /// delegates.
@@ -83,65 +85,21 @@ abstract class AppLocalizations {
   /// Additional delegates can be added by appending to this list in
   /// MaterialApp. This list does not have to be used at all if a custom list
   /// of delegates is preferred or required.
-  static const List<LocalizationsDelegate<dynamic>> localizationsDelegates = <LocalizationsDelegate<dynamic>>[
-    delegate,
-    GlobalMaterialLocalizations.delegate,
-    GlobalCupertinoLocalizations.delegate,
-    GlobalWidgetsLocalizations.delegate,
-  ];
+  static const List<LocalizationsDelegate<dynamic>> localizationsDelegates =
+      <LocalizationsDelegate<dynamic>>[
+        delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+      ];
 
   /// A list of this localizations delegate's supported locales.
   static const List<Locale> supportedLocales = <Locale>[
     Locale('en'),
     Locale('ko'),
     Locale('zh'),
-    Locale('zh', 'TW')
+    Locale('zh', 'TW'),
   ];
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
   /// No description provided for @aboutPrivacyPolicy.
   ///
@@ -298,38 +256,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Gallery'**
   String get fabActionGallery;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
   /// No description provided for @commonPrevious.
   ///
@@ -1823,7 +1749,12 @@ abstract class AppLocalizations {
   ///
   /// In en, this message translates to:
   /// **'Imported {done} / {total} records, success {ok}, failed {fail}'**
-  String importProgressDetail(Object done, Object fail, Object ok, Object total);
+  String importProgressDetail(
+    Object done,
+    Object fail,
+    Object ok,
+    Object total,
+  );
 
   /// No description provided for @importBackgroundImport.
   ///
@@ -1884,8 +1815,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Export Data'**
   String get mineExport;
-
-
 
   /// No description provided for @mineLanguageSettings.
   ///
@@ -1994,44 +1923,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Edit profile'**
   String get mineProfileEditTitle;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
   /// No description provided for @mineAvatarTitle.
   ///
@@ -2693,47 +2584,6 @@ abstract class AppLocalizations {
   /// **'Ledger balance'**
   String get mineCurrentBalance;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
   /// No description provided for @mineLoggedInEmail.
   ///
   /// In en, this message translates to:
@@ -2764,9 +2614,6 @@ abstract class AppLocalizations {
   /// **'Logout'**
   String get mineLogoutButton;
 
-
-
-
   /// No description provided for @mineImportProgressTitle.
   ///
   /// In en, this message translates to:
@@ -2777,7 +2624,12 @@ abstract class AppLocalizations {
   ///
   /// In en, this message translates to:
   /// **'Progress: {done}/{total}, Success {ok}, Failed {fail}'**
-  String mineImportProgressSubtitle(Object done, Object fail, Object ok, Object total);
+  String mineImportProgressSubtitle(
+    Object done,
+    Object fail,
+    Object ok,
+    Object total,
+  );
 
   /// No description provided for @mineImportCompleteTitle.
   ///
@@ -2851,9 +2703,6 @@ abstract class AppLocalizations {
   /// **'Adjust text and UI element sizes'**
   String get mineDisplayScaleSubtitle;
 
-
-
-
   /// No description provided for @mineFeedback.
   ///
   /// In en, this message translates to:
@@ -2907,9 +2756,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Open source, {count} stars'**
   String mineSupportAuthorSubtitle(String count);
-
-
-
 
   /// No description provided for @categoryEditTitle.
   ///
@@ -3733,8 +3579,6 @@ abstract class AppLocalizations {
   /// **'Abbreviate large amounts, e.g. 12.3K (only affects account balance)'**
   String get appearanceAmountFormatCompactDesc;
 
-
-
   /// No description provided for @appearanceShowTransactionTime.
   ///
   /// In en, this message translates to:
@@ -4423,7 +4267,11 @@ abstract class AppLocalizations {
   ///
   /// In en, this message translates to:
   /// **'Migrate {count} transactions from \"{fromName}\" to \"{toName}\"?\n\nThis operation cannot be undone!'**
-  String categoryMigrationConfirmMessage(Object count, Object fromName, Object toName);
+  String categoryMigrationConfirmMessage(
+    Object count,
+    Object fromName,
+    Object toName,
+  );
 
   /// No description provided for @categoryMigrationConfirmOk.
   ///
@@ -4441,7 +4289,11 @@ abstract class AppLocalizations {
   ///
   /// In en, this message translates to:
   /// **'Successfully migrated {count} transactions from \"{fromName}\" to \"{toName}\".'**
-  String categoryMigrationCompleteMessage(Object count, Object fromName, Object toName);
+  String categoryMigrationCompleteMessage(
+    Object count,
+    Object fromName,
+    Object toName,
+  );
 
   /// No description provided for @categoryMigrationFailedTitle.
   ///
@@ -4466,57 +4318,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'All Success'**
   String get mineImportCompleteAllSuccess;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
   /// No description provided for @importSelectCsvFile.
   ///
@@ -4902,83 +4703,6 @@ abstract class AppLocalizations {
   /// **'{avgLabel}: '**
   String analyticsAverage(String avgLabel);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
   /// No description provided for @currencyCNY.
   ///
   /// In en, this message translates to:
@@ -5255,8 +4979,6 @@ abstract class AppLocalizations {
   /// **'Myanmar Kyat'**
   String get currencyMMK;
 
-
-
   /// No description provided for @recurringTransactionTitle.
   ///
   /// In en, this message translates to:
@@ -5400,150 +5122,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Select Ledger'**
   String get ledgerSelect;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
   /// No description provided for @accountsTitle.
   ///
@@ -5699,12 +5277,6 @@ abstract class AppLocalizations {
   ///
   /// In en, this message translates to:
   /// **'Cash'**
-  /// No description provided for @accountTypePrepaid.
-  ///
-  /// In en, this message translates to:
-  /// **'Prepaid card'**
-  String get accountTypePrepaid;
-
   String get accountTypeCash;
 
   /// No description provided for @accountTypeBankCard.
@@ -5863,8 +5435,6 @@ abstract class AppLocalizations {
   /// **'Cannot open link'**
   String get privacyOpenSourceUrlError;
 
-
-
   /// No description provided for @welcomeTitle.
   ///
   /// In en, this message translates to:
@@ -5918,11 +5488,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Visit GitHub Repository'**
   String get welcomeViewGitHub;
-
-
-
-
-
 
   /// No description provided for @widgetManagement.
   ///
@@ -6164,9 +5729,6 @@ abstract class AppLocalizations {
   /// **'Month\'s Income'**
   String get monthIncome;
 
-
-
-
   /// No description provided for @featureDescription.
   ///
   /// In en, this message translates to:
@@ -6178,7 +5740,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'After taking a screenshot of payment page, the system will automatically recognize amount and merchant info, and create expense record.\n\n⚡ Recognition speed: 2-3 seconds (may be longer on some devices)\n🤖 Smart category matching\n📝 Auto-fill notes\n\n⚠️ Note:\n• Different devices have different screenshot save speeds, delay may be 5-10 seconds\n• May not work on some devices, depending on system implementation\n• Recognized screenshots will be skipped automatically\n• Due to Android Scoped Storage restrictions (Android 10+), apps cannot delete system screenshots. Manual cleanup required'**
   String get featureDescriptionContent;
-
 
   /// No description provided for @enabled.
   ///
@@ -6209,11 +5770,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Auto billing disabled'**
   String get disableSuccess;
-
-
-
-
-
 
   /// No description provided for @enableFailed.
   ///
@@ -6341,98 +5897,6 @@ abstract class AppLocalizations {
   /// **'If one-tap import isn\'t available, follow these steps to create the shortcut manually.'**
   String get iosAutoManualConfigDesc;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
   /// No description provided for @dataManagement.
   ///
   /// In en, this message translates to:
@@ -6462,28 +5926,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'When restoring data, please import the attachment package first, then import ledger data (CSV or cloud sync) to ensure attachments are correctly associated.'**
   String get dataManagementAttachmentHint;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
   /// No description provided for @shareBilling.
   ///
@@ -6658,24 +6100,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'More Products'**
   String get aboutRelatedProducts;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
   /// No description provided for @logCenterTitle.
   ///
@@ -6911,11 +6335,6 @@ abstract class AppLocalizations {
   /// **'Ledgers'**
   String get configIncludeLedgers;
 
-
-
-
-
-
   /// No description provided for @configIncludeAppSettings.
   ///
   /// In en, this message translates to:
@@ -7084,7 +6503,6 @@ abstract class AppLocalizations {
   /// **'Clear cache to free up space'**
   String get storageManagementSubtitle;
 
-
   /// No description provided for @storageAPKFiles.
   ///
   /// In en, this message translates to:
@@ -7114,7 +6532,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Confirm Clear'**
   String get storageClearConfirmTitle;
-
 
   /// No description provided for @storageClearAPKMessage.
   ///
@@ -7434,100 +6851,6 @@ abstract class AppLocalizations {
   /// **'Screenshot auto-billing feature uses the App Intents framework introduced in iOS 16. Your device is running an older version and does not support this feature.\n\nPlease upgrade to iOS 16 or later to use this feature.'**
   String get iosVersionWarningDesc;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
   /// No description provided for @billCardSuccess.
   ///
   /// In en, this message translates to:
@@ -7624,72 +6947,11 @@ abstract class AppLocalizations {
   /// **'Edit'**
   String get billCardEdit;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
   /// No description provided for @billCardUnknownLedger.
   ///
   /// In en, this message translates to:
   /// **'Unknown Ledger'**
   String get billCardUnknownLedger;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
   /// No description provided for @tagManageTitle.
   ///
@@ -8391,7 +7653,12 @@ abstract class AppLocalizations {
   ///
   /// In en, this message translates to:
   /// **'Exporting {attachmentCount} attachment(s) + {iconCount} icon(s) ({current}/{total})'**
-  String attachmentExportProgressDetail(int attachmentCount, int iconCount, int current, int total);
+  String attachmentExportProgressDetail(
+    int attachmentCount,
+    int iconCount,
+    int current,
+    int total,
+  );
 
   /// No description provided for @attachmentExportSuccess.
   ///
@@ -8433,7 +7700,12 @@ abstract class AppLocalizations {
   ///
   /// In en, this message translates to:
   /// **'Imported {imported}, Skipped {skipped}, Overwritten {overwritten}, Failed {failed}'**
-  String attachmentImportResult(int imported, int skipped, int overwritten, int failed);
+  String attachmentImportResult(
+    int imported,
+    int skipped,
+    int overwritten,
+    int failed,
+  );
 
   /// No description provided for @attachmentImportFailed.
   ///
@@ -8512,8 +7784,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Available Shortcuts'**
   String get availableShortcuts;
-
-
 
   /// No description provided for @shortcutImage.
   ///
@@ -8737,7 +8007,6 @@ abstract class AppLocalizations {
   /// **'Camera Billing'**
   String get quickActionCamera;
 
-
   /// No description provided for @quickActionAiChat.
   ///
   /// In en, this message translates to:
@@ -8785,79 +8054,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Saved'**
   String get commonSaved;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
   /// No description provided for @appLockTitle.
   ///
@@ -9327,32 +8523,6 @@ abstract class AppLocalizations {
   /// **'Set up'**
   String get budgetSetupAction;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
   /// No description provided for @twofaChallengeTitle.
   ///
   /// In en, this message translates to:
@@ -9443,9 +8613,6 @@ abstract class AppLocalizations {
   /// **'Enable on the Web app →'**
   String get twofaStatusOpenWeb;
 
-
-
-
   /// No description provided for @commonCopied.
   ///
   /// In en, this message translates to:
@@ -9457,63 +8624,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Remove'**
   String get commonRemove;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
   /// No description provided for @maintenanceOrphanCleanupTitle.
   ///
@@ -9629,8 +8739,6 @@ abstract class AppLocalizations {
   /// **'Cleaned {ok} item(s), {fail} failed'**
   String maintenanceOrphanCleanPartial(int ok, int fail);
 
-
-
   /// No description provided for @exchangeRatePageTitle.
   ///
   /// In en, this message translates to:
@@ -9652,7 +8760,7 @@ abstract class AppLocalizations {
   /// No description provided for @rateSourceAuto.
   ///
   /// In en, this message translates to:
-  /// **'Auto'**
+  /// **'Local cache'**
   String get rateSourceAuto;
 
   /// No description provided for @rateSourceManual.
@@ -9670,7 +8778,7 @@ abstract class AppLocalizations {
   /// No description provided for @rateNotFetched.
   ///
   /// In en, this message translates to:
-  /// **'Not fetched'**
+  /// **'Not set'**
   String get rateNotFetched;
 
   /// No description provided for @rateTapToSet.
@@ -9694,7 +8802,7 @@ abstract class AppLocalizations {
   /// No description provided for @rateResetToAuto.
   ///
   /// In en, this message translates to:
-  /// **'Reset to auto'**
+  /// **'Remove manual rate'**
   String get rateResetToAuto;
 
   /// No description provided for @rateRefreshSuccess.
@@ -9718,7 +8826,7 @@ abstract class AppLocalizations {
   /// No description provided for @rateDisclaimer.
   ///
   /// In en, this message translates to:
-  /// **'Source: open exchange-rate data, updated daily. Conversion is for reference only and may differ from bank rates.'**
+  /// **'Rates come from local cache or manual entries and are not updated automatically. Conversion is for reference and may differ from bank rates.'**
   String get rateDisclaimer;
 
   /// No description provided for @convertedNetWorth.
@@ -10603,44 +9711,6 @@ abstract class AppLocalizations {
   /// **'Mauritanian Ouguiya'**
   String get currencyMRU;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
   /// No description provided for @annualReportInsightsTitle.
   ///
   /// In en, this message translates to:
@@ -10833,10 +9903,6 @@ abstract class AppLocalizations {
   /// **'This transaction cannot be copied. Check the ledger and your access.'**
   String get transactionCopyUnavailable;
 
-
-
-
-
   /// No description provided for @creditCardReminderDueSoonTitle.
   ///
   /// In en, this message translates to:
@@ -10860,9 +9926,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Backup channel for recording reminders'**
   String get reminderBackupChannelDescription;
-
-
-
 
   /// No description provided for @appLinkOpenImageBilling.
   ///
@@ -11164,14 +10227,6 @@ abstract class AppLocalizations {
   /// **'Default Ledger'**
   String get sharePosterDefaultLedgerName;
 
-
-
-
-
-
-
-
-
   /// No description provided for @xlsxEmptyFile.
   ///
   /// In en, this message translates to:
@@ -11201,12 +10256,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Unexpected payload from exchange rate source {source}'**
   String rateFetchSourcePayloadInvalid(String source);
-
-
-
-
-
-
 
   /// No description provided for @attachmentArchiveMissing.
   ///
@@ -11274,14 +10323,11 @@ abstract class AppLocalizations {
   /// **'The ledger does not exist'**
   String get ledgerMissing;
 
-
   /// No description provided for @accountMissing.
   ///
   /// In en, this message translates to:
   /// **'The account does not exist'**
   String get accountMissing;
-
-
 
   /// No description provided for @logExportTitle.
   ///
@@ -11432,9 +10478,16 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Unable to share. Please try again.'**
   String get transactionReceiptShareFailed;
+
+  /// No description provided for @accountTypePrepaid.
+  ///
+  /// In en, this message translates to:
+  /// **'Prepaid card'**
+  String get accountTypePrepaid;
 }
 
-class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
+class _AppLocalizationsDelegate
+    extends LocalizationsDelegate<AppLocalizations> {
   const _AppLocalizationsDelegate();
 
   @override
@@ -11443,35 +10496,40 @@ class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> 
   }
 
   @override
-  bool isSupported(Locale locale) => <String>['en', 'ko', 'zh'].contains(locale.languageCode);
+  bool isSupported(Locale locale) =>
+      <String>['en', 'ko', 'zh'].contains(locale.languageCode);
 
   @override
   bool shouldReload(_AppLocalizationsDelegate old) => false;
 }
 
 AppLocalizations lookupAppLocalizations(Locale locale) {
-
   // Lookup logic when language+country codes are specified.
   switch (locale.languageCode) {
-    case 'zh': {
-  switch (locale.countryCode) {
-    case 'TW': return AppLocalizationsZhTw();
-   }
-  break;
-   }
+    case 'zh':
+      {
+        switch (locale.countryCode) {
+          case 'TW':
+            return AppLocalizationsZhTw();
+        }
+        break;
+      }
   }
 
   // Lookup logic when only language code is specified.
   switch (locale.languageCode) {
-    case 'en': return AppLocalizationsEn();
-    case 'ko': return AppLocalizationsKo();
-    case 'zh': return AppLocalizationsZh();
+    case 'en':
+      return AppLocalizationsEn();
+    case 'ko':
+      return AppLocalizationsKo();
+    case 'zh':
+      return AppLocalizationsZh();
   }
 
   throw FlutterError(
     'AppLocalizations.delegate failed to load unsupported locale "$locale". This is likely '
     'an issue with the localizations generation tool. Please file an issue '
     'on GitHub with a reproducible sample app and the gen-l10n configuration '
-    'that was used.'
+    'that was used.',
   );
 }

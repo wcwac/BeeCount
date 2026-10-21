@@ -1,3 +1,4 @@
+// ignore: unused_import
 import 'package:intl/intl.dart' as intl;
 
 import 'app_localizations.dart';
@@ -497,7 +498,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get ledgersDeleteConfirm => '删除账本';
 
   @override
-  String get ledgersDeleteMessage => '确定要删除该账本及其全部记录吗？此操作不可恢复。\\n若云端存在备份，也会一并删除。';
+  String get ledgersDeleteMessage =>
+      '确定要删除该账本及其全部记录吗？此操作不可恢复。\\n若云端存在备份，也会一并删除。';
 
   @override
   String get ledgersDeleted => '已删除';
@@ -855,10 +857,12 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get importCategoryNotSelected => '未选择\"分类\"列，请点击\"上一步\"返回并设置\"分类\"的列，再继续。';
+  String get importCategoryNotSelected =>
+      '未选择\"分类\"列，请点击\"上一步\"返回并设置\"分类\"的列，再继续。';
 
   @override
-  String get importCategoryMappingDescription => '请将左侧\"源分类名\"映射到系统内已有分类（或保持原名自动创建/合并）';
+  String get importCategoryMappingDescription =>
+      '请将左侧\"源分类名\"映射到系统内已有分类（或保持原名自动创建/合并）';
 
   @override
   String get importKeepOriginalName => '保持原名（自动创建/合并）';
@@ -893,7 +897,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get importInProgress => '正在导入…';
 
   @override
-  String importProgressDetail(Object done, Object fail, Object ok, Object total) {
+  String importProgressDetail(
+    Object done,
+    Object fail,
+    Object ok,
+    Object total,
+  ) {
     return '已完成：$done/$total，成功 $ok，失败 $fail';
   }
 
@@ -1205,7 +1214,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get sharePosterSaveSuccess => '已保存到相册';
 
   @override
-  String get shareGuidanceCopyText => '用蜜蜂记账记录生活，开源免费无广告！🐝 下载地址：https://github.com/TNT-Likely/BeeCount';
+  String get shareGuidanceCopyText =>
+      '用蜜蜂记账记录生活，开源免费无广告！🐝 下载地址：https://github.com/TNT-Likely/BeeCount';
 
   @override
   String get shareGuidanceCopied => '文案已复制';
@@ -1354,7 +1364,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get mineImportProgressTitle => '后台导入中…';
 
   @override
-  String mineImportProgressSubtitle(Object done, Object fail, Object ok, Object total) {
+  String mineImportProgressSubtitle(
+    Object done,
+    Object fail,
+    Object ok,
+    Object total,
+  ) {
     return '进度：$done/$total，成功 $ok，失败 $fail';
   }
 
@@ -1442,7 +1457,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get categoryMigrationDescription => '分类迁移说明';
 
   @override
-  String get categoryMigrationDescriptionContent => '• 将指定分类的所有交易记录迁移到另一个分类\n• 迁移后，原分类的交易数据将全部转移到目标分类\n• 此操作不可撤销，请谨慎选择';
+  String get categoryMigrationDescriptionContent =>
+      '• 将指定分类的所有交易记录迁移到另一个分类\n• 迁移后，原分类的交易数据将全部转移到目标分类\n• 此操作不可撤销，请谨慎选择';
 
   @override
   String get categoryMigrationTypeLabel => '选择类型';
@@ -1675,10 +1691,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get categoryParentRequiredTitle => '错误';
 
   @override
-  String get categoryExpenseList => '餐饮-交通-购物-娱乐-居家-家庭-通讯-水电-住房-医疗-教育-宠物-运动-数码-旅行-烟酒-母婴-美容-维修-社交-学习-汽车-打车-地铁-外卖-物业-停车-捐赠-送礼-纳税-饮料-服装-零食-发红包-水果-游戏-书-爱人-装修-日用品-彩票-股票-社保-快递-工作';
+  String get categoryExpenseList =>
+      '餐饮-交通-购物-娱乐-居家-家庭-通讯-水电-住房-医疗-教育-宠物-运动-数码-旅行-烟酒-母婴-美容-维修-社交-学习-汽车-打车-地铁-外卖-物业-停车-捐赠-送礼-纳税-饮料-服装-零食-发红包-水果-游戏-书-爱人-装修-日用品-彩票-股票-社保-快递-工作';
 
   @override
-  String get categoryIncomeList => '工资-理财-收红包-奖金-报销-兼职-收礼-利息-退款-投资收益-二手转卖-社会保障-退税退费-公积金';
+  String get categoryIncomeList =>
+      '工资-理财-收红包-奖金-报销-兼职-收礼-利息-退款-投资收益-二手转卖-社会保障-退税退费-公积金';
 
   @override
   String get categoryExpenseDining => '餐饮-早餐-午餐-晚餐-美团外卖-饿了么外卖-京东外卖-餐厅-美食';
@@ -1935,7 +1953,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get fontSettingsPreview => '实时预览';
 
   @override
-  String get fontSettingsPreviewText => '今天吃饭花了 23.50 元，记一笔；\n本月已记账 45 天，共 320 条记录；\n坚持就是胜利！';
+  String get fontSettingsPreviewText =>
+      '今天吃饭花了 23.50 元，记一笔；\n本月已记账 45 天，共 320 条记录；\n坚持就是胜利！';
 
   @override
   String fontSettingsCurrentLevel(Object level, Object scale) {
@@ -1949,7 +1968,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get fontSettingsCustomAdjust => '自定义调整';
 
   @override
-  String get fontSettingsDescription => '说明：此设置确保所有设备在1.0倍时显示效果一致，设备差异已自动补偿；调整数值可在一致基础上进行个性化缩放。';
+  String get fontSettingsDescription =>
+      '说明：此设置确保所有设备在1.0倍时显示效果一致，设备差异已自动补偿；调整数值可在一致基础上进行个性化缩放。';
 
   @override
   String get fontSettingsExtraSmall => '极小';
@@ -2167,10 +2187,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get reminderDescription => '提示：开启记账提醒后，系统会在每天指定时间发送通知提醒您记录收支。';
 
   @override
-  String get reminderIOSInstructions => '🍎 iOS通知设置：\n• 设置 > 通知 > 蜜蜂记账\n• 开启\"允许通知\"\n• 设置通知样式：横幅或提醒\n• 开启声音和震动\n\n⚠️ 重要提示：\n• iOS本地通知依赖应用进程\n• 请勿在任务管理器中划掉应用\n• 应用在后台或前台时通知正常\n• 完全关闭应用会导致通知失效\n\n💡 使用建议：\n• 日常使用后直接按Home键退出\n• iOS会自动管理后台应用\n• 保持应用在后台即可收到提醒';
+  String get reminderIOSInstructions =>
+      '🍎 iOS通知设置：\n• 设置 > 通知 > 蜜蜂记账\n• 开启\"允许通知\"\n• 设置通知样式：横幅或提醒\n• 开启声音和震动\n\n⚠️ 重要提示：\n• iOS本地通知依赖应用进程\n• 请勿在任务管理器中划掉应用\n• 应用在后台或前台时通知正常\n• 完全关闭应用会导致通知失效\n\n💡 使用建议：\n• 日常使用后直接按Home键退出\n• iOS会自动管理后台应用\n• 保持应用在后台即可收到提醒';
 
   @override
-  String get reminderAndroidInstructions => '如果通知无法正常工作，请检查：\n• 已允许应用发送通知\n• 关闭应用的电池优化/省电模式\n• 允许应用在后台运行和自启动\n• Android 12+需要精确闹钟权限\n\n📱 小米手机特殊设置：\n• 设置 > 应用管理 > 蜜蜂记账 > 通知管理\n• 点击\"记账提醒\"渠道\n• 设置重要性为\"紧急\"或\"高\"\n• 开启\"横幅通知\"、\"声音\"、\"震动\"\n• 安全中心 > 应用管理 > 权限 > 自启动\n\n🔒 锁定后台方法：\n• 最近任务中找到蜜蜂记账\n• 向下拉动应用卡片显示锁定图标\n• 点击锁定图标防止被清理';
+  String get reminderAndroidInstructions =>
+      '如果通知无法正常工作，请检查：\n• 已允许应用发送通知\n• 关闭应用的电池优化/省电模式\n• 允许应用在后台运行和自启动\n• Android 12+需要精确闹钟权限\n\n📱 小米手机特殊设置：\n• 设置 > 应用管理 > 蜜蜂记账 > 通知管理\n• 点击\"记账提醒\"渠道\n• 设置重要性为\"紧急\"或\"高\"\n• 开启\"横幅通知\"、\"声音\"、\"震动\"\n• 安全中心 > 应用管理 > 权限 > 自启动\n\n🔒 锁定后台方法：\n• 最近任务中找到蜜蜂记账\n• 向下拉动应用卡片显示锁定图标\n• 点击锁定图标防止被清理';
 
   @override
   String get categoryDetailLoadFailed => '加载失败';
@@ -2215,7 +2237,11 @@ class AppLocalizationsZh extends AppLocalizations {
   String get categoryMigrationConfirmTitle => '确认迁移';
 
   @override
-  String categoryMigrationConfirmMessage(Object count, Object fromName, Object toName) {
+  String categoryMigrationConfirmMessage(
+    Object count,
+    Object fromName,
+    Object toName,
+  ) {
     return '确定要将「$fromName」的 $count 笔交易迁移到「$toName」吗？\n\n此操作不可撤销！';
   }
 
@@ -2226,7 +2252,11 @@ class AppLocalizationsZh extends AppLocalizations {
   String get categoryMigrationCompleteTitle => '迁移完成';
 
   @override
-  String categoryMigrationCompleteMessage(Object count, Object fromName, Object toName) {
+  String categoryMigrationCompleteMessage(
+    Object count,
+    Object fromName,
+    Object toName,
+  ) {
     return '成功将 $count 笔交易从「$fromName」迁移到「$toName」。';
   }
 
@@ -2253,7 +2283,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get exportTitle => '导出';
 
   @override
-  String get exportDescription => '支持导出的数据类型：\n• 交易记录（收入/支出/转账）\n• 分类信息\n• 账户信息\n\n点击下方按钮选择保存位置，开始导出当前账本为 CSV 文件。';
+  String get exportDescription =>
+      '支持导出的数据类型：\n• 交易记录（收入/支出/转账）\n• 分类信息\n• 账户信息\n\n点击下方按钮选择保存位置，开始导出当前账本为 CSV 文件。';
 
   @override
   String get exportButtonIOS => '导出并分享';
@@ -2662,7 +2693,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get recurringTransactionUsageTitle => '使用说明';
 
   @override
-  String get recurringTransactionUsageContent => '周期记账会在每次冷启动进入App时自动扫描并生成账单。设置日期后，系统会在该日期之后的冷启动时创建对应账单。例如：设置11月27日，则会在11月27日之后的首次启动时自动记账。';
+  String get recurringTransactionUsageContent =>
+      '周期记账会在每次冷启动进入App时自动扫描并生成账单。设置日期后，系统会在该日期之后的冷启动时创建对应账单。例如：设置11月27日，则会在11月27日之后的首次启动时自动记账。';
 
   @override
   String get ledgerSelectTitle => '选择账本';
@@ -2704,7 +2736,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get accountBalanceAdjustmentCreate => '生成平账交易';
 
   @override
-  String get accountBalanceAdjustmentCreateMessage => '同时新增一笔普通收入或支出，归入“平账”分类，并计入收支和预算统计。';
+  String get accountBalanceAdjustmentCreateMessage =>
+      '同时新增一笔普通收入或支出，归入“平账”分类，并计入收支和预算统计。';
 
   @override
   String get accountBalanceAdjustmentConfirmOnly => '确认仅修改余额';
@@ -2953,13 +2986,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get aboutWidget => '关于小组件';
 
   @override
-  String get widgetDescription => '小组件会自动同步显示今日和本月的收支数据，每30分钟自动刷新一次。打开应用后会立即更新数据。';
+  String get widgetDescription =>
+      '小组件会自动同步显示今日和本月的收支数据，每30分钟自动刷新一次。打开应用后会立即更新数据。';
 
   @override
   String get widgetQuickEntryTitle => '快捷记账';
 
   @override
-  String get widgetQuickEntryDesc => '点击小组件左侧区域可快速新建支出，点击右侧区域可快速新建收入。也可通过快捷指令使用 beecount://new?type=transfer 快速发起转账。';
+  String get widgetQuickEntryDesc =>
+      '点击小组件左侧区域可快速新建支出，点击右侧区域可快速新建收入。也可通过快捷指令使用 beecount://new?type=transfer 快速发起转账。';
 
   @override
   String get appName => '蜜蜂记账';
@@ -2983,7 +3018,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get featureDescription => '功能说明';
 
   @override
-  String get featureDescriptionContent => '截图支付页面后，系统会自动识别金额和商家信息，并创建支出记录。\n\n⚡ 识别速度约 2-3 秒（部分设备可能更长）\n🤖 智能匹配分类\n📝 自动填写备注\n\n⚠️ 注意：\n• 不同设备截图入库速度不同，识别延迟可能 5-10 秒\n• 部分设备可能无法正常工作，取决于系统实现\n• 识别成功后会自动跳过已处理的截图\n• 受Android分区存储限制（Android 10+），应用无法删除系统截图，需手动清理相册';
+  String get featureDescriptionContent =>
+      '截图支付页面后，系统会自动识别金额和商家信息，并创建支出记录。\n\n⚡ 识别速度约 2-3 秒（部分设备可能更长）\n🤖 智能匹配分类\n📝 自动填写备注\n\n⚠️ 注意：\n• 不同设备截图入库速度不同，识别延迟可能 5-10 秒\n• 部分设备可能无法正常工作，取决于系统实现\n• 识别成功后会自动跳过已处理的截图\n• 受Android分区存储限制（Android 10+），应用无法删除系统截图，需手动清理相册';
 
   @override
   String get enabled => '已启用';
@@ -3007,7 +3043,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get disableFailed => '禁用失败';
 
   @override
-  String get iosAutoFeatureDesc => '通过iOS\"快捷指令\"应用，实现截图后自动识别支付信息并记账。设置后，每次截图都会自动触发识别。';
+  String get iosAutoFeatureDesc =>
+      '通过iOS\"快捷指令\"应用，实现截图后自动识别支付信息并记账。设置后，每次截图都会自动触发识别。';
 
   @override
   String get iosAutoShortcutConfigTitle => '配置步骤：';
@@ -3031,13 +3068,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get iosAutoShortcutStep6 => '完成！支付时双击手机背部即可快速记账';
 
   @override
-  String get iosAutoShortcutRecommendedTip => '✅ 推荐：在\"轻点背面\"中绑定快捷指令后，支付时双击手机背部即可自动截图并识别记账，无需手动截图。';
+  String get iosAutoShortcutRecommendedTip =>
+      '✅ 推荐：在\"轻点背面\"中绑定快捷指令后，支付时双击手机背部即可自动截图并识别记账，无需手动截图。';
 
   @override
   String get iosAutoBackTapTitle => '💡 双击背部快速触发（推荐）';
 
   @override
-  String get iosAutoBackTapDesc => '设置 > 辅助功能 > 触控 > 轻点背面\n• 选择\"轻点两下\"或\"轻点三下\"\n• 选择刚创建的快捷指令\n• 完成后，支付时双击手机背面即可自动记账，无需截图';
+  String get iosAutoBackTapDesc =>
+      '设置 > 辅助功能 > 触控 > 轻点背面\n• 选择\"轻点两下\"或\"轻点三下\"\n• 选择刚创建的快捷指令\n• 完成后，支付时双击手机背面即可自动记账，无需截图';
 
   @override
   String get iosAutoTutorialTitle => '视频教程';
@@ -3049,7 +3088,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get iosAutoImportTitle => '一键获取快捷指令';
 
   @override
-  String get iosAutoImportDesc => '点击下方按钮，自动导入已配置好的「截屏 → 自动记账」快捷指令，无需手动添加“截屏”操作和连接参数。导入后建议在「轻点背面」中绑定它。';
+  String get iosAutoImportDesc =>
+      '点击下方按钮，自动导入已配置好的「截屏 → 自动记账」快捷指令，无需手动添加“截屏”操作和连接参数。导入后建议在「轻点背面」中绑定它。';
 
   @override
   String get iosAutoImportButton => '获取快捷指令';
@@ -3076,7 +3116,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get dataManagementPageSubtitle => '管理账单数据和分类';
 
   @override
-  String get dataManagementAttachmentHint => '还原数据时，请先导入附件包，再导入账本数据（CSV或云同步），以确保附件正确关联。';
+  String get dataManagementAttachmentHint =>
+      '还原数据时，请先导入附件包，再导入账本数据（CSV或云同步），以确保附件正确关联。';
 
   @override
   String get shareBilling => '分享记账';
@@ -3085,7 +3126,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get shareBillingDesc => '从支付宝/微信分享支付截图即可记账';
 
   @override
-  String get shareBillingGuide => '在支付宝、微信、相册等应用中看到支付截图时，点击「分享」并选择「蜜蜂记账」，即可自动识别金额、商家、时间等信息并记账，无需先保存截图。';
+  String get shareBillingGuide =>
+      '在支付宝、微信、相册等应用中看到支付截图时，点击「分享」并选择「蜜蜂记账」，即可自动识别金额、商家、时间等信息并记账，无需先保存截图。';
 
   @override
   String get shareBillingActionHint => '分享后会在后台自动识别记账，无需手动打开蜜蜂记账';
@@ -3160,7 +3202,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get aboutDeveloperStoryTitle => '开发者的话';
 
   @override
-  String get aboutDeveloperStory => '从 2015 年实习起，我坚持记账至今已超过十年。因为担心记账软件的广告、付费、隐私泄露和停运跑路，我决定自己做一个——最初只是给自己和家人用的小工具。\n\n2025 年 9 月，蜜蜂记账发布了第一个版本。说实话，那时候心里没什么底，不知道会不会有人用。但慢慢地，开始收到用户的反馈——有人说终于找到了一款干净的记账软件，有人提了很好的建议，也有人默默给了五星好评。每一条反馈都让我觉得，这件事值得继续做下去。\n\n蜜蜂记账没有广告、没有会员、完全免费开源。你的每一笔数据都只存在你自己的手机里，不会被上传到任何第三方服务器。但上架和维护一款 App 并非零成本——开发者账号、服务器等开支目前靠社区捐赠勉强支撑，每一次适配新系统、修复 Bug、开发新功能，也都是工作之余一点点完成的。\n\n如果你觉得蜜蜂记账对你有帮助，一个好评、一次分享或一笔捐赠，都能让这个小项目走得更远。谢谢你的信任。';
+  String get aboutDeveloperStory =>
+      '从 2015 年实习起，我坚持记账至今已超过十年。因为担心记账软件的广告、付费、隐私泄露和停运跑路，我决定自己做一个——最初只是给自己和家人用的小工具。\n\n2025 年 9 月，蜜蜂记账发布了第一个版本。说实话，那时候心里没什么底，不知道会不会有人用。但慢慢地，开始收到用户的反馈——有人说终于找到了一款干净的记账软件，有人提了很好的建议，也有人默默给了五星好评。每一条反馈都让我觉得，这件事值得继续做下去。\n\n蜜蜂记账没有广告、没有会员、完全免费开源。你的每一笔数据都只存在你自己的手机里，不会被上传到任何第三方服务器。但上架和维护一款 App 并非零成本——开发者账号、服务器等开支目前靠社区捐赠勉强支撑，每一次适配新系统、修复 Bug、开发新功能，也都是工作之余一点点完成的。\n\n如果你觉得蜜蜂记账对你有帮助，一个好评、一次分享或一笔捐赠，都能让这个小项目走得更远。谢谢你的信任。';
 
   @override
   String get aboutRelatedProducts => '更多产品';
@@ -3220,7 +3263,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get configImportExportInfoTitle => '功能说明';
 
   @override
-  String get configImportExportInfoMessage => '此功能用于导出和导入应用配置，包括云服务配置、AI配置等。配置文件采用YAML格式，方便查看和编辑。\n\n⚠️ 配置文件包含敏感信息（如API密钥、密码等），请妥善保管。';
+  String get configImportExportInfoMessage =>
+      '此功能用于导出和导入应用配置，包括云服务配置、AI配置等。配置文件采用YAML格式，方便查看和编辑。\n\n⚠️ 配置文件包含敏感信息（如API密钥、密码等），请妥善保管。';
 
   @override
   String get configExportTitle => '导出配置';
@@ -3560,7 +3604,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get iosVersionWarningTitle => '需要 iOS 16.0 或更高版本';
 
   @override
-  String get iosVersionWarningDesc => '截图自动记账功能使用了 iOS 16 引入的 App Intents 框架。您的设备系统版本较低，暂不支持此功能。\n\n请升级到 iOS 16 或更高版本以使用此功能。';
+  String get iosVersionWarningDesc =>
+      '截图自动记账功能使用了 iOS 16 引入的 App Intents 框架。您的设备系统版本较低，暂不支持此功能。\n\n请升级到 iOS 16 或更高版本以使用此功能。';
 
   @override
   String get billCardSuccess => '记账成功';
@@ -3980,7 +4025,12 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String attachmentExportProgressDetail(int attachmentCount, int iconCount, int current, int total) {
+  String attachmentExportProgressDetail(
+    int attachmentCount,
+    int iconCount,
+    int current,
+    int total,
+  ) {
     return '正在导出 $attachmentCount 个附件 + $iconCount 个图标 ($current/$total)';
   }
 
@@ -4007,7 +4057,12 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String attachmentImportResult(int imported, int skipped, int overwritten, int failed) {
+  String attachmentImportResult(
+    int imported,
+    int skipped,
+    int overwritten,
+    int failed,
+  ) {
     return '导入 $imported 张，跳过 $skipped 张，覆盖 $overwritten 张，失败 $failed 张';
   }
 
@@ -4443,7 +4498,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get twofaMethodRecovery => '恢复码';
 
   @override
-  String get twofaTotpHint => '请输入 authenticator app(Google Authenticator / 1Password / Authy 等)上的 6 位动态码。';
+  String get twofaTotpHint =>
+      '请输入 authenticator app(Google Authenticator / 1Password / Authy 等)上的 6 位动态码。';
 
   @override
   String get twofaRecoveryHint => '请输入启用 2FA 时保存的恢复码(如 abcd-efgh),每个码只能使用一次。';
@@ -5504,7 +5560,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get importAccountCurrencyPreview => '确认账户币种';
 
   @override
-  String get importAccountCurrencyPreviewHint => '根据账单币种建立或复用账户；同名多币种及已有账户冲突会按币种拆分，不修改旧账户。缺失币种继承已有账户，否则使用可确定的账户币种或账本币种。';
+  String get importAccountCurrencyPreviewHint =>
+      '根据账单币种建立或复用账户；同名多币种及已有账户冲突会按币种拆分，不修改旧账户。缺失币种继承已有账户，否则使用可确定的账户币种或账本币种。';
 
   @override
   String get importCurrencyInvalid => '币种无效，请修正对应行：';
@@ -5532,13 +5589,14 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get transactionReceiptShareFailed => '分享失败，请重试。';
+
   @override
   String get accountTypePrepaid => '充值账户';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
 class AppLocalizationsZhTw extends AppLocalizationsZh {
-  AppLocalizationsZhTw(): super('zh_TW');
+  AppLocalizationsZhTw() : super('zh_TW');
 
   @override
   String get aboutPrivacyPolicy => '隱私政策';
@@ -6029,7 +6087,8 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get ledgersDeleteConfirm => '刪除帳本';
 
   @override
-  String get ledgersDeleteMessage => '確定要刪除該帳本及其全部記錄嗎？此操作不可復原。\\n若雲端存在備份，也會一併刪除。';
+  String get ledgersDeleteMessage =>
+      '確定要刪除該帳本及其全部記錄嗎？此操作不可復原。\\n若雲端存在備份，也會一併刪除。';
 
   @override
   String get ledgersDeleted => '已刪除';
@@ -6387,10 +6446,12 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   }
 
   @override
-  String get importCategoryNotSelected => '未選擇\"分類\"列，請點擊\"上一步\"返回並設定\"分類\"的列，再繼續。';
+  String get importCategoryNotSelected =>
+      '未選擇\"分類\"列，請點擊\"上一步\"返回並設定\"分類\"的列，再繼續。';
 
   @override
-  String get importCategoryMappingDescription => '請將左側\"源分類名\"對應到系統內已有分類（或保持原名自動建立/合併）';
+  String get importCategoryMappingDescription =>
+      '請將左側\"源分類名\"對應到系統內已有分類（或保持原名自動建立/合併）';
 
   @override
   String get importKeepOriginalName => '保持原名（自動建立/合併）';
@@ -6425,7 +6486,12 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get importInProgress => '正在匯入…';
 
   @override
-  String importProgressDetail(Object done, Object fail, Object ok, Object total) {
+  String importProgressDetail(
+    Object done,
+    Object fail,
+    Object ok,
+    Object total,
+  ) {
     return '已完成：$done/$total，成功 $ok，失敗 $fail';
   }
 
@@ -6737,7 +6803,8 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get sharePosterSaveSuccess => '已儲存到相簿';
 
   @override
-  String get shareGuidanceCopyText => '用蜜蜂記帳記錄生活，開源免費無廣告！🐝 下載地址：https://github.com/TNT-Likely/BeeCount';
+  String get shareGuidanceCopyText =>
+      '用蜜蜂記帳記錄生活，開源免費無廣告！🐝 下載地址：https://github.com/TNT-Likely/BeeCount';
 
   @override
   String get shareGuidanceCopied => '文案已複製';
@@ -6886,7 +6953,12 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get mineImportProgressTitle => '後台匯入中…';
 
   @override
-  String mineImportProgressSubtitle(Object done, Object fail, Object ok, Object total) {
+  String mineImportProgressSubtitle(
+    Object done,
+    Object fail,
+    Object ok,
+    Object total,
+  ) {
     return '進度：$done/$total，成功 $ok，失敗 $fail';
   }
 
@@ -6974,7 +7046,8 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get categoryMigrationDescription => '分類遷移說明';
 
   @override
-  String get categoryMigrationDescriptionContent => '• 將指定分類的所有交易記錄遷移到另一個分類\n• 遷移後，原分類的交易資料將全部轉移到目標分類\n• 此操作不可撤銷，請謹慎選擇';
+  String get categoryMigrationDescriptionContent =>
+      '• 將指定分類的所有交易記錄遷移到另一個分類\n• 遷移後，原分類的交易資料將全部轉移到目標分類\n• 此操作不可撤銷，請謹慎選擇';
 
   @override
   String get categoryMigrationTypeLabel => '選擇類型';
@@ -7207,10 +7280,12 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get categoryParentRequiredTitle => '錯誤';
 
   @override
-  String get categoryExpenseList => '餐飲-交通-購物-娛樂-居家-家庭-通訊-水電-住房-醫療-教育-寵物-運動-數碼-旅行-煙酒-母嬰-美容-維修-社交-學習-汽車-打車-地鐵-外賣-物業-停車-捐贈-送禮-納稅-飲料-服裝-零食-發紅包-水果-遊戲-書-愛人-裝修-日用品-彩票-股票-社保-快遞-工作';
+  String get categoryExpenseList =>
+      '餐飲-交通-購物-娛樂-居家-家庭-通訊-水電-住房-醫療-教育-寵物-運動-數碼-旅行-煙酒-母嬰-美容-維修-社交-學習-汽車-打車-地鐵-外賣-物業-停車-捐贈-送禮-納稅-飲料-服裝-零食-發紅包-水果-遊戲-書-愛人-裝修-日用品-彩票-股票-社保-快遞-工作';
 
   @override
-  String get categoryIncomeList => '工資-理財-收紅包-獎金-報銷-兼職-收禮-利息-退款-投資收益-二手轉賣-社會保障-退稅退費-公積金';
+  String get categoryIncomeList =>
+      '工資-理財-收紅包-獎金-報銷-兼職-收禮-利息-退款-投資收益-二手轉賣-社會保障-退稅退費-公積金';
 
   @override
   String get categoryExpenseDining => '餐飲-早餐-午餐-晚餐-美團外賣-餓了麼外賣-京東外賣-餐廳-美食';
@@ -7467,7 +7542,8 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get fontSettingsPreview => '即時預覽';
 
   @override
-  String get fontSettingsPreviewText => '今天吃飯花了 23.50 元，記一筆；\n本月已記帳 45 天，共 320 條記錄；\n堅持就是勝利！';
+  String get fontSettingsPreviewText =>
+      '今天吃飯花了 23.50 元，記一筆；\n本月已記帳 45 天，共 320 條記錄；\n堅持就是勝利！';
 
   @override
   String fontSettingsCurrentLevel(Object level, Object scale) {
@@ -7481,7 +7557,8 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get fontSettingsCustomAdjust => '自訂調整';
 
   @override
-  String get fontSettingsDescription => '說明：此設定確保所有裝置在1.0倍時顯示效果一致，裝置差異已自動補償；調整數值可在一致基礎上進行個性化縮放。';
+  String get fontSettingsDescription =>
+      '說明：此設定確保所有裝置在1.0倍時顯示效果一致，裝置差異已自動補償；調整數值可在一致基礎上進行個性化縮放。';
 
   @override
   String get fontSettingsExtraSmall => '極小';
@@ -7699,10 +7776,12 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get reminderDescription => '提示：開啟記帳提醒後，系統會在每天指定時間發送通知提醒您記錄收支。';
 
   @override
-  String get reminderIOSInstructions => '🍎 iOS通知設定：\n• 設定 > 通知 > 蜜蜂記帳\n• 開啟\"允許通知\"\n• 設定通知樣式：橫幅或提醒\n• 開啟聲音和震動\n\n⚠️ 重要提示：\n• iOS本地通知依賴應用程序進程\n• 請勿在任務管理器中划掉應用\n• 應用在後台或前台時通知正常\n• 完全關閉應用會導致通知失效\n\n💡 使用建議：\n• 日常使用後直接按Home鍵退出\n• iOS會自動管理後台應用\n• 保持應用在後台即可收到提醒';
+  String get reminderIOSInstructions =>
+      '🍎 iOS通知設定：\n• 設定 > 通知 > 蜜蜂記帳\n• 開啟\"允許通知\"\n• 設定通知樣式：橫幅或提醒\n• 開啟聲音和震動\n\n⚠️ 重要提示：\n• iOS本地通知依賴應用程序進程\n• 請勿在任務管理器中划掉應用\n• 應用在後台或前台時通知正常\n• 完全關閉應用會導致通知失效\n\n💡 使用建議：\n• 日常使用後直接按Home鍵退出\n• iOS會自動管理後台應用\n• 保持應用在後台即可收到提醒';
 
   @override
-  String get reminderAndroidInstructions => '如果通知無法正常工作，請檢查：\n• 已允許應用程式發送通知\n• 關閉應用程式的電池最佳化/省電模式\n• 允許應用程式在背景執行和自啟動\n• Android 12+需要精確鬧鐘權限\n\n📱 小米手機特殊設定：\n• 設定 > 應用程式管理 > 蜜蜂記帳 > 通知管理\n• 點擊\"記帳提醒\"頻道\n• 設定重要性為\"緊急\"或\"高\"\n• 開啟\"橫幅通知\"、\"聲音\"、\"震動\"\n• 安全中心 > 應用程式管理 > 權限 > 自啟動\n\n🔒 鎖定背景方法：\n• 最近任務中找到蜜蜂記帳\n• 向下拉動應用程式卡片顯示鎖定圖示\n• 點擊鎖定圖示防止被清理';
+  String get reminderAndroidInstructions =>
+      '如果通知無法正常工作，請檢查：\n• 已允許應用程式發送通知\n• 關閉應用程式的電池最佳化/省電模式\n• 允許應用程式在背景執行和自啟動\n• Android 12+需要精確鬧鐘權限\n\n📱 小米手機特殊設定：\n• 設定 > 應用程式管理 > 蜜蜂記帳 > 通知管理\n• 點擊\"記帳提醒\"頻道\n• 設定重要性為\"緊急\"或\"高\"\n• 開啟\"橫幅通知\"、\"聲音\"、\"震動\"\n• 安全中心 > 應用程式管理 > 權限 > 自啟動\n\n🔒 鎖定背景方法：\n• 最近任務中找到蜜蜂記帳\n• 向下拉動應用程式卡片顯示鎖定圖示\n• 點擊鎖定圖示防止被清理';
 
   @override
   String get categoryDetailLoadFailed => '載入失敗';
@@ -7747,7 +7826,11 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get categoryMigrationConfirmTitle => '確認遷移';
 
   @override
-  String categoryMigrationConfirmMessage(Object count, Object fromName, Object toName) {
+  String categoryMigrationConfirmMessage(
+    Object count,
+    Object fromName,
+    Object toName,
+  ) {
     return '確定要將「$fromName」的 $count 筆交易遷移到「$toName」嗎？\n\n此操作不可撤銷！';
   }
 
@@ -7758,7 +7841,11 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get categoryMigrationCompleteTitle => '遷移完成';
 
   @override
-  String categoryMigrationCompleteMessage(Object count, Object fromName, Object toName) {
+  String categoryMigrationCompleteMessage(
+    Object count,
+    Object fromName,
+    Object toName,
+  ) {
     return '成功將 $count 筆交易從「$fromName」遷移到「$toName」。';
   }
 
@@ -7785,7 +7872,8 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get exportTitle => '匯出';
 
   @override
-  String get exportDescription => '支援匯出的資料類型：\n• 交易記錄（收入／支出／轉帳）\n• 分類資訊\n• 帳戶資訊\n\n點擊下方按鈕選擇儲存位置，開始匯出目前帳本為 CSV 檔案。';
+  String get exportDescription =>
+      '支援匯出的資料類型：\n• 交易記錄（收入／支出／轉帳）\n• 分類資訊\n• 帳戶資訊\n\n點擊下方按鈕選擇儲存位置，開始匯出目前帳本為 CSV 檔案。';
 
   @override
   String get exportButtonIOS => '匯出並分享';
@@ -8194,7 +8282,8 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get recurringTransactionUsageTitle => '使用說明';
 
   @override
-  String get recurringTransactionUsageContent => '週期記帳會在每次冷啟動進入 App 時自動掃描並產生帳單。設定日期後，系統會在該日期之後的冷啟動時建立對應帳單。例如：設定 11 月 27 日，則會在 11 月 27 日之後的首次啟動時自動記帳。';
+  String get recurringTransactionUsageContent =>
+      '週期記帳會在每次冷啟動進入 App 時自動掃描並產生帳單。設定日期後，系統會在該日期之後的冷啟動時建立對應帳單。例如：設定 11 月 27 日，則會在 11 月 27 日之後的首次啟動時自動記帳。';
 
   @override
   String get ledgerSelectTitle => '選擇帳本';
@@ -8230,13 +8319,15 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get accountBalanceAdjustmentOnly => '僅修改餘額';
 
   @override
-  String get accountBalanceAdjustmentOnlyMessage => '不會建立交易；歷史餘額趨勢會按新的餘額基準重新計算。';
+  String get accountBalanceAdjustmentOnlyMessage =>
+      '不會建立交易；歷史餘額趨勢會按新的餘額基準重新計算。';
 
   @override
   String get accountBalanceAdjustmentCreate => '產生平帳交易';
 
   @override
-  String get accountBalanceAdjustmentCreateMessage => '同時新增一筆普通收入或支出，歸入「平帳」分類，並計入收支和預算統計。';
+  String get accountBalanceAdjustmentCreateMessage =>
+      '同時新增一筆普通收入或支出，歸入「平帳」分類，並計入收支和預算統計。';
 
   @override
   String get accountBalanceAdjustmentConfirmOnly => '確認僅修改餘額';
@@ -8485,13 +8576,15 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get aboutWidget => '關于小組件';
 
   @override
-  String get widgetDescription => '小組件會自動同步顯示今日和本月的收支數據，每30分鐘自動刷新一次。打開應用後會立即更新數據。';
+  String get widgetDescription =>
+      '小組件會自動同步顯示今日和本月的收支數據，每30分鐘自動刷新一次。打開應用後會立即更新數據。';
 
   @override
   String get widgetQuickEntryTitle => '快捷記帳';
 
   @override
-  String get widgetQuickEntryDesc => '點擊小組件左側區域可快速新建支出，點擊右側區域可快速新建收入。也可透過捷徑使用 beecount://new?type=transfer 快速發起轉帳。';
+  String get widgetQuickEntryDesc =>
+      '點擊小組件左側區域可快速新建支出，點擊右側區域可快速新建收入。也可透過捷徑使用 beecount://new?type=transfer 快速發起轉帳。';
 
   @override
   String get appName => '蜜蜂記帳';
@@ -8515,7 +8608,8 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get featureDescription => '功能說明';
 
   @override
-  String get featureDescriptionContent => '截圖支付頁面後，系統會自動識別金額和商家資訊，並建立支出記錄。\n\n⚡ 識別速度約 2-3 秒\n🤖 智慧配對分類\n📝 自動填寫備註';
+  String get featureDescriptionContent =>
+      '截圖支付頁面後，系統會自動識別金額和商家資訊，並建立支出記錄。\n\n⚡ 識別速度約 2-3 秒\n🤖 智慧配對分類\n📝 自動填寫備註';
 
   @override
   String get enabled => '已啟用';
@@ -8539,7 +8633,8 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get disableFailed => '停用失敗';
 
   @override
-  String get iosAutoFeatureDesc => '透過 iOS「捷徑」應用程式，實現截圖後自動識別支付資訊並記帳。設定後，每次截圖都會自動觸發識別。';
+  String get iosAutoFeatureDesc =>
+      '透過 iOS「捷徑」應用程式，實現截圖後自動識別支付資訊並記帳。設定後，每次截圖都會自動觸發識別。';
 
   @override
   String get iosAutoShortcutConfigTitle => '設定步驟（推薦方式 - URL 參數傳遞）：';
@@ -8563,13 +8658,15 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get iosAutoShortcutStep6 => '完成！支付時雙擊手機背部即可快速記帳';
 
   @override
-  String get iosAutoShortcutRecommendedTip => '✅ 推薦：在「輕點背面」中綁定捷徑後，支付時雙擊手機背部即可自動截圖並識別記帳，無需手動截圖。';
+  String get iosAutoShortcutRecommendedTip =>
+      '✅ 推薦：在「輕點背面」中綁定捷徑後，支付時雙擊手機背部即可自動截圖並識別記帳，無需手動截圖。';
 
   @override
   String get iosAutoBackTapTitle => '💡 雙擊背面快速觸發（推薦）';
 
   @override
-  String get iosAutoBackTapDesc => '設定 > 輔助使用 > 觸控 > 背面輕點\n• 選擇「點兩下」或「點三下」\n• 選擇剛建立的捷徑\n• 完成後，支付時雙擊手機背面即可自動記帳，無需截圖';
+  String get iosAutoBackTapDesc =>
+      '設定 > 輔助使用 > 觸控 > 背面輕點\n• 選擇「點兩下」或「點三下」\n• 選擇剛建立的捷徑\n• 完成後，支付時雙擊手機背面即可自動記帳，無需截圖';
 
   @override
   String get iosAutoTutorialTitle => '影片教學';
@@ -8581,7 +8678,8 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get iosAutoImportTitle => '一鍵取得捷徑';
 
   @override
-  String get iosAutoImportDesc => '點擊下方按鈕，自動匯入已設定好的「截圖 → 自動記帳」捷徑，無需手動新增“截圖”操作和連接參數。匯入後建議在「輕點背面」中綁定它。';
+  String get iosAutoImportDesc =>
+      '點擊下方按鈕，自動匯入已設定好的「截圖 → 自動記帳」捷徑，無需手動新增“截圖”操作和連接參數。匯入後建議在「輕點背面」中綁定它。';
 
   @override
   String get iosAutoImportButton => '取得捷徑';
@@ -8608,7 +8706,8 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get dataManagementPageSubtitle => '管理帳單資料和分類';
 
   @override
-  String get dataManagementAttachmentHint => '還原資料時，請先匯入附件包，再匯入帳本資料（CSV或雲同步），以確保附件正確關聯。';
+  String get dataManagementAttachmentHint =>
+      '還原資料時，請先匯入附件包，再匯入帳本資料（CSV或雲同步），以確保附件正確關聯。';
 
   @override
   String get shareBilling => '分享記帳';
@@ -8617,7 +8716,8 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get shareBillingDesc => '從支付寶/微信分享支付截圖即可記帳';
 
   @override
-  String get shareBillingGuide => '在支付寶、微信、相簿等應用中看到支付截圖時，點擊「分享」並選擇「蜜蜂記帳」，即可自動識別金額、商家、時間等資訊並記帳，無需先儲存截圖。';
+  String get shareBillingGuide =>
+      '在支付寶、微信、相簿等應用中看到支付截圖時，點擊「分享」並選擇「蜜蜂記帳」，即可自動識別金額、商家、時間等資訊並記帳，無需先儲存截圖。';
 
   @override
   String get shareBillingActionHint => '分享後會在背景自動識別記帳，無需手動開啟蜜蜂記帳';
@@ -8692,7 +8792,8 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get aboutDeveloperStoryTitle => '開發者的話';
 
   @override
-  String get aboutDeveloperStory => '從 2015 年實習起，我堅持記帳至今已超過十年。因為擔心記帳軟體的廣告、付費、隱私洩露和停運跑路，我決定自己做一個——最初只是給自己和家人用的小工具。\n\n2025 年 9 月，蜜蜂記帳發佈了第一個版本。說實話，那時候心裡沒什麼底，不知道會不會有人用。但慢慢地，開始收到用戶的回饋——有人說終於找到了一款乾淨的記帳軟體，有人提了很好的建議，也有人默默給了五星好評。每一條回饋都讓我覺得，這件事值得繼續做下去。\n\n蜜蜂記帳沒有廣告、沒有會員、完全免費開源。你的每一筆資料都只存在你自己的手機裡，不會被上傳到任何第三方伺服器。但上架和維護一款 App 並非零成本——開發者帳號、伺服器等開支目前靠社群捐贈勉強支撐，每一次適配新系統、修復 Bug、開發新功能，也都是工作之餘一點點完成的。\n\n如果你覺得蜜蜂記帳對你有幫助，一個好評、一次分享或一筆捐贈，都能讓這個小專案走得更遠。謝謝你的信任。';
+  String get aboutDeveloperStory =>
+      '從 2015 年實習起，我堅持記帳至今已超過十年。因為擔心記帳軟體的廣告、付費、隱私洩露和停運跑路，我決定自己做一個——最初只是給自己和家人用的小工具。\n\n2025 年 9 月，蜜蜂記帳發佈了第一個版本。說實話，那時候心裡沒什麼底，不知道會不會有人用。但慢慢地，開始收到用戶的回饋——有人說終於找到了一款乾淨的記帳軟體，有人提了很好的建議，也有人默默給了五星好評。每一條回饋都讓我覺得，這件事值得繼續做下去。\n\n蜜蜂記帳沒有廣告、沒有會員、完全免費開源。你的每一筆資料都只存在你自己的手機裡，不會被上傳到任何第三方伺服器。但上架和維護一款 App 並非零成本——開發者帳號、伺服器等開支目前靠社群捐贈勉強支撐，每一次適配新系統、修復 Bug、開發新功能，也都是工作之餘一點點完成的。\n\n如果你覺得蜜蜂記帳對你有幫助，一個好評、一次分享或一筆捐贈，都能讓這個小專案走得更遠。謝謝你的信任。';
 
   @override
   String get aboutRelatedProducts => '更多產品';
@@ -8752,7 +8853,8 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get configImportExportInfoTitle => '功能說明';
 
   @override
-  String get configImportExportInfoMessage => '此功能用於匯出和匯入應用配置，包括雲端服務配置、AI配置等。配置檔案採用YAML格式，方便檢視和編輯。\\n\\n⚠️ 配置檔案包含敏感資訊（如API金鑰、密碼等），請妥善保管。';
+  String get configImportExportInfoMessage =>
+      '此功能用於匯出和匯入應用配置，包括雲端服務配置、AI配置等。配置檔案採用YAML格式，方便檢視和編輯。\\n\\n⚠️ 配置檔案包含敏感資訊（如API金鑰、密碼等），請妥善保管。';
 
   @override
   String get configExportTitle => '匯出配置';
@@ -9092,7 +9194,8 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get iosVersionWarningTitle => '需要 iOS 16.0 或更高版本';
 
   @override
-  String get iosVersionWarningDesc => '截圖自動記帳功能使用了 iOS 16 引入的 App Intents 框架。您的裝置系統版本較低，暫不支援此功能。\n\n請升級到 iOS 16 或更高版本以使用此功能。';
+  String get iosVersionWarningDesc =>
+      '截圖自動記帳功能使用了 iOS 16 引入的 App Intents 框架。您的裝置系統版本較低，暫不支援此功能。\n\n請升級到 iOS 16 或更高版本以使用此功能。';
 
   @override
   String get billCardSuccess => '記帳成功';
@@ -9512,7 +9615,12 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   }
 
   @override
-  String attachmentExportProgressDetail(int attachmentCount, int iconCount, int current, int total) {
+  String attachmentExportProgressDetail(
+    int attachmentCount,
+    int iconCount,
+    int current,
+    int total,
+  ) {
     return '正在匯出 $attachmentCount 個附件 + $iconCount 個圖標 ($current/$total)';
   }
 
@@ -9539,7 +9647,12 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   }
 
   @override
-  String attachmentImportResult(int imported, int skipped, int overwritten, int failed) {
+  String attachmentImportResult(
+    int imported,
+    int skipped,
+    int overwritten,
+    int failed,
+  ) {
     return '匯入 $imported 張，跳過 $skipped 張，覆蓋 $overwritten 張，失敗 $failed 張';
   }
 
@@ -9975,7 +10088,8 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get twofaMethodRecovery => '恢復碼';
 
   @override
-  String get twofaTotpHint => '請輸入 authenticator app(Google Authenticator / 1Password / Authy 等)上的 6 位動態碼。';
+  String get twofaTotpHint =>
+      '請輸入 authenticator app(Google Authenticator / 1Password / Authy 等)上的 6 位動態碼。';
 
   @override
   String get twofaRecoveryHint => '請輸入啟用 2FA 時保存的恢復碼(如 abcd-efgh),每個碼只能使用一次。';
@@ -10998,6 +11112,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String logExportCount(int count) {
     return '日誌數量：$count';
   }
+
   @override
   String get accountTypePrepaid => '儲值帳戶';
 }
