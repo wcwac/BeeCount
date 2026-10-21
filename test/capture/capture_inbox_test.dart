@@ -9,6 +9,7 @@ import 'package:beecount/pages/tag/widgets/tag_selector.dart';
 import 'package:beecount/providers.dart';
 import 'package:beecount/services/capture/capture_commit_service.dart';
 import 'package:beecount/services/capture/capture_service.dart';
+import 'package:beecount/widget/widget_manager.dart';
 import 'package:beecount/widgets/biz/amount_editor_sheet.dart';
 import 'package:drift/native.dart';
 import 'package:flutter/foundation.dart';
@@ -18,12 +19,26 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+class _RecordingWidgetManager implements WidgetManager {
+  final refreshedLedgerIds = <int>[];
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) {
+    if (invocation.isMethod && invocation.memberName == #updateAllWidgets) {
+      refreshedLedgerIds.add(invocation.positionalArguments[1] as int);
+      return Future<void>.value();
+    }
+    return super.noSuchMethod(invocation);
+  }
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   late BeeDatabase db;
   late LocalRepository repo;
   late Ledger ledger;
   late ProviderContainer container;
+  late _RecordingWidgetManager widgetManager;
   final time = DateTime(2026, 10, 21, 10);
 
   Map<String, Object?> payload(String id, String merchant) => {
@@ -40,10 +55,12 @@ void main() {
     repo = LocalRepository(db);
     final id = await repo.createLedger(name: 'Original ledger');
     ledger = (await repo.getLedgerById(id))!;
+    widgetManager = _RecordingWidgetManager();
     container = ProviderContainer(overrides: [
       databaseProvider.overrideWithValue(db),
       repositoryProvider.overrideWithValue(repo),
       ledgersStreamProvider.overrideWith((ref) => Stream.value([ledger])),
+      widgetManagerProvider.overrideWithValue(widgetManager),
     ]);
   });
   tearDown(() async {
@@ -151,6 +168,7 @@ void main() {
     expect(acknowledged, isTrue);
     expect(container.read(currentLedgerIdProvider), ledger.id);
     expect(container.read(currentLedgerCurrencyProvider), 'CNY');
+    expect(widgetManager.refreshedLedgerIds, [ledger.id]);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());
   }, variant: TargetPlatformVariant.only(TargetPlatform.android), timeout: const Timeout(Duration(minutes: 1)));

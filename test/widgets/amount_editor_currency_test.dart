@@ -47,6 +47,7 @@ void main() {
     double? initialAmount,
     double? initialNativeAmount,
     Stream<Ledger?>? ledgerStream,
+    Locale locale = const Locale('zh'),
     FutureOr<void> Function(AmountEditorResult)? onSubmit,
     String? submitErrorMessage,
   }) {
@@ -59,7 +60,7 @@ void main() {
       child: MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
-        locale: const Locale('zh'),
+        locale: locale,
         home: Scaffold(
           body: AmountEditorSheet(
             categoryName: '餐饮',
@@ -105,10 +106,29 @@ void main() {
     expect(find.textContaining('≈ 86.40 CNY'), findsOneWidget);
   });
 
+  testWidgets('英文缺汇率提示在手机宽度内完整换行，不发生横向溢出', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(360, 640);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+    await db.customStatement(
+        "INSERT INTO ledgers (id, name, currency) VALUES (1, 'L', 'CNY')");
+    await tester.pumpWidget(host(
+      locale: const Locale('en'),
+      initialCurrencyCode: 'USD',
+      initialAmount: 12.50,
+    ));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Please enter the rate for this entry before saving'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
   testWidgets('账本首值未加载时不保存，加载 USD 账本后按真实本位币保存一次', (tester) async {
     await db.customStatement(
         "INSERT INTO ledgers (id, name, currency) VALUES (1, 'L', 'USD')");
-    final ledgerStream = StreamController<Ledger?>();
+    final ledgerStream = StreamController<Ledger?>.broadcast(sync: true);
     final submitted = <AmountEditorResult>[];
     try {
       await tester.pumpWidget(host(
@@ -140,9 +160,10 @@ void main() {
     } finally {
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pump();
-      await ledgerStream.close();
+      // Complete stream cancellation outside the widget test's fake clock.
+      await tester.runAsync(() => ledgerStream.close().timeout(const Duration(seconds: 5)));
     }
-  });
+  }, timeout: const Timeout(Duration(minutes: 1)));
 
   testWidgets('异步保存失败后恢复输入，并且等待期间不重复提交', (tester) async {
     await db.customStatement(

@@ -346,18 +346,21 @@ class _AmountEditorSheetState extends ConsumerState<AmountEditorSheet> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
-          InkWell(
-            // 本地无汇率时点击手动填写。
-            onTap: rateMissing ? _editRate : null,
-            child: Text(
-              preview != null
-                  ? l10n.txConvertedPreview(
-                      preview.toStringAsFixed(2), ledgerBase)
-                  : l10n.txRateMissingHint,
-              style: text.bodySmall?.copyWith(
-                color: rateMissing
-                    ? Theme.of(context).colorScheme.error
-                    : BeeTokens.textTertiary(context),
+          Flexible(
+            child: InkWell(
+              // 本地无汇率时点击手动填写。长文案在弹层可用宽度内换行。
+              onTap: rateMissing ? _editRate : null,
+              child: Text(
+                preview != null
+                    ? l10n.txConvertedPreview(
+                        preview.toStringAsFixed(2), ledgerBase)
+                    : l10n.txRateMissingHint,
+                textAlign: TextAlign.end,
+                style: text.bodySmall?.copyWith(
+                  color: rateMissing
+                      ? Theme.of(context).colorScheme.error
+                      : BeeTokens.textTertiary(context),
+                ),
               ),
             ),
           ),
