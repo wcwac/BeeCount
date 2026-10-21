@@ -3,35 +3,37 @@ import UIKit
 import UserNotifications
 
 @main
-@objc class AppDelegate: FlutterAppDelegate {
+@objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
   override func application(
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
     excludeLocalDataFromBackup()
-    GeneratedPluginRegistrant.register(with: self)
 
     // 设置通知中心代理
     if #available(iOS 10.0, *) {
       UNUserNotificationCenter.current().delegate = self
     }
 
-    // 设置日志插件
-    let controller = window?.rootViewController as! FlutterViewController
+    return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+  }
+
+  // UIScene creates the storyboard's Flutter engine after application launch.
+  // Register plugins and channels against that engine without accessing a window.
+  func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
+    GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
+
     let loggerChannel = FlutterMethodChannel(
       name: "com.beecount.logger",
-      binaryMessenger: controller.binaryMessenger
+      binaryMessenger: engineBridge.applicationRegistrar.messenger()
     )
     LoggerPlugin.setup(channel: loggerChannel)
 
     // 测试日志
     LoggerPlugin.info(tag: "AppDelegate", message: "日志系统已初始化")
-
-    return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 
-  override func applicationDidBecomeActive(_ application: UIApplication) {
-    super.applicationDidBecomeActive(application)
+  func handleSceneBecameActive() {
     excludeLocalDataFromBackup()
     clearNotificationBadge()
   }
@@ -93,5 +95,14 @@ import UserNotifications
   ) {
     clearNotificationBadge()
     completionHandler()
+  }
+}
+
+// Keep the class in this compiled source file so the scene is included in every
+// Runner configuration without modifying Xcode's source-file build phases.
+class SceneDelegate: FlutterSceneDelegate {
+  override func sceneDidBecomeActive(_ scene: UIScene) {
+    super.sceneDidBecomeActive(scene)
+    (UIApplication.shared.delegate as? AppDelegate)?.handleSceneBecameActive()
   }
 }

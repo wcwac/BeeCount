@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:path_provider/path_provider.dart';
 
 
@@ -25,6 +24,7 @@ import '../settings/attachment_preview_page.dart';
 import '../maintenance/orphan_cleanup_page.dart';
 import '../../l10n/app_localizations.dart';
 import '../../utils/ui_scale_extensions.dart';
+import '../../utils/file_picker_helper.dart';
 import '../../services/attachment_export_import_service.dart';
 
 /// 数据管理二级页面
@@ -298,20 +298,11 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
       final file = await FilePicker.pickFile(
           type: FileType.custom, allowedExtensions: ['json']);
       if (file == null) return;
-      final length = await file.length();
-      if (length != null && length > LocalDatabaseBackupService.maxBytes) {
-        throw const FormatException('文件超过 100 MB / File exceeds 100 MB');
-      }
       final service = LocalDatabaseBackupService(ref.read(databaseProvider));
-      // Enforce the cap while reading, including providers that do not report a size.
-      final buffer = BytesBuilder(copy: false);
-      await for (final chunk in file.readAsByteStream()) {
-        if (buffer.length + chunk.length > LocalDatabaseBackupService.maxBytes) {
-          throw const FormatException('文件超过 100 MB / File exceeds 100 MB');
-        }
-        buffer.add(chunk);
-      }
-      final bytes = buffer.takeBytes();
+      final bytes = await FilePickerHelper.readBytes(
+        file,
+        maxBytes: LocalDatabaseBackupService.maxBytes,
+      );
       final snapshot = await service.inspectBytes(bytes);
       if (!mounted) return;
       final confirmed = await AppDialog.confirm<bool>(context,

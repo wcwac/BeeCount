@@ -54,8 +54,8 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
-  # 2.17.1 requires build 5; current drift_dev requires build <5.
-  build_runner: 2.17.0
+  # 2.17.1 needs build 5; 2.17.0 is retracted. Drift still needs build <5.
+  build_runner: 2.16.2
   drift_dev: ^2.35.1
   flutter_launcher_icons: ^0.14.4
   # Testing framework enhancements

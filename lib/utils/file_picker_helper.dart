@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/services.dart';
 
@@ -8,6 +10,28 @@ import '../services/system/logger_service.dart';
 /// 提供对 FilePicker 的封装，处理部分 Android 设备不支持扩展名过滤的问题。
 class FilePickerHelper {
   FilePickerHelper._();
+
+  /// Read a picked file with a byte cap even when its provider omits or
+  /// understates the length. Unknown lengths are streamed instead of eagerly
+  /// loading the whole file to determine its size.
+  static Future<Uint8List> readBytes(
+    PlatformFile file, {
+    required int maxBytes,
+  }) async {
+    if (maxBytes < 0) throw ArgumentError.value(maxBytes, 'maxBytes');
+    final knownLength = file.lengthSync();
+    if (knownLength != null && knownLength > maxBytes) {
+      throw const FormatException('文件超过大小限制 / File exceeds size limit');
+    }
+    final buffer = BytesBuilder(copy: false);
+    await for (final chunk in file.readAsByteStream()) {
+      if (buffer.length + chunk.length > maxBytes) {
+        throw const FormatException('文件超过大小限制 / File exceeds size limit');
+      }
+      buffer.add(chunk);
+    }
+    return buffer.takeBytes();
+  }
 
   /// 选择指定扩展名的文件
   ///
