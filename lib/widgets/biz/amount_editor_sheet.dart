@@ -55,6 +55,9 @@ class AmountEditorSheet extends ConsumerStatefulWidget {
   final int ledgerId;
   final int? editingTransactionId; // 编辑模式时的交易ID，用于显示已有附件
   final String transactionKind; // 'expense' / 'income' / 'transfer'，决定标记开关可见性
+  /// Capture review may retain an observed amount in a different currency from
+  /// the selected transfer accounts. Ordinary transfers keep their fixed unit.
+  final bool allowTransferCurrencyConversion;
   final bool initialExcludeFromStats; // 不计入收支，编辑模式回显
   final bool initialExcludeFromBudget; // 不计入预算，编辑模式回显
   // v30 编辑模式回显:该笔的原币种与折算快照(用于推隐含汇率,只改备注时
@@ -79,6 +82,7 @@ class AmountEditorSheet extends ConsumerStatefulWidget {
     required this.ledgerId,
     this.editingTransactionId,
     this.transactionKind = 'expense',
+    this.allowTransferCurrencyConversion = false,
     this.initialExcludeFromStats = false,
     this.initialExcludeFromBudget = false,
     this.initialCurrencyCode,
@@ -288,9 +292,11 @@ class _AmountEditorSheetState extends ConsumerState<AmountEditorSheet> {
   }
 
   /// 币种标(金额表达式最左):点开即选(币种优先联动:选后账户重置、账户
-  /// 列表按新币种过滤)。转账不显示:转账币种恒=账户币种,选了也会被忽略。
+  /// 列表按新币种过滤)。普通转账不显示；采集复核可确认原始金额与换算。
   Widget _buildCurrencyChip(BuildContext context) {
-    if (widget.transactionKind == 'transfer') return const SizedBox.shrink();
+    if (widget.transactionKind == 'transfer' && !widget.allowTransferCurrencyConversion) {
+      return const SizedBox.shrink();
+    }
     final text = Theme.of(context).textTheme;
     ref.watch(currentLedgerCurrencyProvider); // 账本切换时重建
     final txCurrency = _txCurrency();
@@ -327,7 +333,9 @@ class _AmountEditorSheetState extends ConsumerState<AmountEditorSheet> {
   /// 折算预览(仅外币时出现,金额下方右对齐一行,反馈9):`≈ 86.40 CNY`。
   /// 使用本地有效汇率；缺失时提示点击手动填写。
   Widget _buildCurrencySection(BuildContext context) {
-    if (widget.transactionKind == 'transfer') return const SizedBox.shrink();
+    if (widget.transactionKind == 'transfer' && !widget.allowTransferCurrencyConversion) {
+      return const SizedBox.shrink();
+    }
     final l10n = AppLocalizations.of(context);
     final text = Theme.of(context).textTheme;
     final ledgerBase = ref.watch(currentLedgerCurrencyProvider);

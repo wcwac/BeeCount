@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:drift/drift.dart' as d;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/db.dart';
+import '../../data/repositories/base_repository.dart';
 import '../../data/repositories/local/local_repository.dart';
 import '../../providers.dart';
 import '../../providers/local_data_providers.dart';
@@ -118,9 +121,9 @@ class _TransferFormState extends ConsumerState<TransferForm> {
 
   /// 把 synthetic accountId(负数)反查回 Owner 的 syncId(正数 id 时返 null)。
   /// 用 ledger.syncId 限定 SharedLedgerAccounts 的查询范围。
-  Future<String?> _resolveSyncIdByAccountId(int accountId, int ledgerId) async {
+  Future<String?> _resolveSyncIdByAccountId(int accountId, int ledgerId, {BaseRepository? repository}) async {
     if (accountId >= 0) return null;
-    final repo = ref.read(repositoryProvider);
+    final repo = repository ?? ref.read(repositoryProvider);
     if (repo is! LocalRepository) return null;
     final ledger = await (repo.db.select(repo.db.ledgers)
           ..where((l) => l.id.equals(ledgerId)))
@@ -138,9 +141,11 @@ class _TransferFormState extends ConsumerState<TransferForm> {
   // 当两个账户都选择后，自动弹出金额输入弹窗
   Future<void> _openAmountSheet() async {
     final l10n = AppLocalizations.of(context);
+    final fromAtOpen = _fromAccountId, toAtOpen = _toAccountId;
 
     // 检查币种是否一致(跨币种转账守卫,.docs/multi-currency-ledger 01 §4.4)
     final sameCurrency = await _checkSameCurrency();
+    if (!mounted || fromAtOpen != _fromAccountId || toAtOpen != _toAccountId) return;
     if (!sameCurrency) {
       // 存量数据放行(2026-07-12 细则):编辑模式且账户对未改动(老数据在
       // 守卫上线前就是跨币种)→ 放行让用户能改备注/日期等,不强迫重选账户。
@@ -159,8 +164,15 @@ class _TransferFormState extends ConsumerState<TransferForm> {
 
     final repo = ref.read(repositoryProvider);
     final int ledgerId = widget.captureCandidate?.ledgerId ?? ref.read<int>(currentLedgerIdProvider);
+    final captureLedger = widget.captureCandidate == null ? null : await repo.getLedgerById(ledgerId);
+    final captureAccountCurrency = widget.captureCandidate == null || fromAtOpen == null ? null
+        : await repo.getAccountCurrencyByAnyId(fromAtOpen);
+    final reviewTransferCurrency = widget.captureCandidate != null &&
+        (widget.initialCurrencyCode == null ||
+          widget.initialCurrencyCode!.toUpperCase() != captureAccountCurrency?.toUpperCase() ||
+          captureAccountCurrency?.toUpperCase() != captureLedger?.currency.toUpperCase());
 
-    if (!mounted) return;
+    if (!mounted || fromAtOpen != _fromAccountId || toAtOpen != _toAccountId) return;
 
     await showModalBottomSheet(
       context: context,
@@ -178,6 +190,7 @@ class _TransferFormState extends ConsumerState<TransferForm> {
         ledgerId: ledgerId,
         editingTransactionId: widget.editingTransactionId,
         transactionKind: 'transfer',
+        allowTransferCurrencyConversion: reviewTransferCurrency,
         initialExcludeFromStats: widget.initialExcludeFromStats,
         initialExcludeFromBudget: widget.initialExcludeFromBudget,
         initialCurrencyCode: widget.initialCurrencyCode,
@@ -185,6 +198,11 @@ class _TransferFormState extends ConsumerState<TransferForm> {
         submitErrorMessage: widget.captureCandidate == null ? null : CaptureText(context).saveFailed,
         onSubmit: (result) async {
           final attachmentService = ref.read(attachmentServiceProvider);
+          final fromAccountId = _fromAccountId;
+          final toAccountId = _toAccountId;
+          final refreshCapture = widget.captureCandidate == null ? null
+              : PostProcessor.prepareLocalRefresh(ref, ledgerId: ledgerId,
+                  tags: result.tagIds.isNotEmpty, attachments: result.pendingAttachments.isNotEmpty);
           // 获取虚拟转账分类ID
           final transferCategory = await ref.read(transferCategoryProvider.future);
           final transferCategoryId = transferCategory.id;
@@ -193,15 +211,15 @@ class _TransferFormState extends ConsumerState<TransferForm> {
           // 写本地 Drift 时 accountId / toAccountId 留 null,override 字段
           // 走 Owner 的 syncId;push 序列化时按 override 输出 payload。
           final isSyntheticFrom =
-              _fromAccountId != null && _fromAccountId! < 0;
-          final isSyntheticTo = _toAccountId != null && _toAccountId! < 0;
-          final fromAccountForAdd = isSyntheticFrom ? null : _fromAccountId;
-          final toAccountForAdd = isSyntheticTo ? null : _toAccountId;
+              fromAccountId != null && fromAccountId < 0;
+          final isSyntheticTo = toAccountId != null && toAccountId < 0;
+          final fromAccountForAdd = isSyntheticFrom ? null : fromAccountId;
+          final toAccountForAdd = isSyntheticTo ? null : toAccountId;
           final fromOverride = isSyntheticFrom
-              ? await _resolveSyncIdByAccountId(_fromAccountId!, ledgerId)
+              ? await _resolveSyncIdByAccountId(fromAccountId!, ledgerId, repository: repo)
               : null;
           final toOverride = isSyntheticTo
-              ? await _resolveSyncIdByAccountId(_toAccountId!, ledgerId)
+              ? await _resolveSyncIdByAccountId(toAccountId!, ledgerId, repository: repo)
               : null;
 
           try {
@@ -267,20 +285,38 @@ class _TransferFormState extends ConsumerState<TransferForm> {
               // 创建模式：新建转账记录
               if (widget.captureCandidate != null) {
                 if (repo is! LocalRepository) throw StateError('Local capture requires a local repository');
+                if (fromAccountId == null || toAccountId == null) throw StateError('CAPTURE_SELECTION_CHANGED');
+                final fromCurrency = (await repo.getAccountCurrencyByAnyId(fromAccountId))?.toUpperCase();
+                final toCurrency = (await repo.getAccountCurrencyByAnyId(toAccountId))?.toUpperCase();
+                final ledger = await repo.getLedgerById(ledgerId);
+                if (fromCurrency == null || fromCurrency != toCurrency || ledger == null) {
+                  throw StateError('CAPTURE_SELECTION_CHANGED');
+                }
+                final accountIsLedgerCurrency = fromCurrency == ledger.currency.toUpperCase();
+                final sameInputCurrency = result.currencyCode?.toUpperCase() == fromCurrency;
+                if (!sameInputCurrency && !accountIsLedgerCurrency) {
+                  // There is only one confirmed FX quote: input -> ledger.
+                  // Never invent a second quote for a third account currency.
+                  throw StateError('CAPTURE_TRANSFER_CURRENCY');
+                }
+                final rawAmount = sameInputCurrency ? result.amount : result.nativeAmount;
+                if (rawAmount == null || !rawAmount.isFinite || rawAmount <= 0) {
+                  throw StateError('CAPTURE_TRANSFER_CURRENCY');
+                }
+                final confirmedAmount = double.parse(rawAmount.toStringAsFixed(2));
                 final prepared = await attachmentService.prepareAttachments(result.pendingAttachments);
                 final capture = await CaptureCommitService(repo).commit(
-                  candidate: widget.captureCandidate!, type: 'transfer', amount: result.amount,
+                  candidate: widget.captureCandidate!, type: 'transfer', amount: confirmedAmount,
                   categoryId: transferCategoryId, accountId: fromAccountForAdd, toAccountId: toAccountForAdd,
                   accountSyncIdOverride: fromOverride, toAccountSyncIdOverride: toOverride,
                   note: result.note, happenedAt: result.date,
                   excludeFromStats: result.excludeFromStats, excludeFromBudget: result.excludeFromBudget,
-                  currencyCode: result.currencyCode, nativeAmount: result.nativeAmount,
+                  currencyCode: fromCurrency,
+                  nativeAmount: accountIsLedgerCurrency ? confirmedAmount : result.nativeAmount,
                   tagIds: result.tagIds, attachments: prepared,
                 );
-                await _ackCapture(capture.transactionId);
-                await PostProcessor.run(ref, ledgerId: ledgerId,
-                  tags: result.tagIds.isNotEmpty, attachments: prepared.isNotEmpty);
-                ref.invalidate(countsForLedgerProvider(ledgerId));
+                refreshCapture!();
+                unawaited(_ackCapture(capture.transactionId));
                 if (context.mounted) { Navigator.of(context).pop(); widget.onTransferComplete(); }
                 return;
               }

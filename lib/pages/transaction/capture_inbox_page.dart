@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/db.dart' show Transaction;
@@ -20,7 +22,9 @@ class _CaptureInboxPageState extends ConsumerState<CaptureInboxPage> with Widget
   List<CaptureCandidate>? _items;
   bool _busy = false;
   bool _reloadRequested = false;
-  bool _opening = false;
+  bool _acting = false;
+  bool _reconciling = false;
+  final _pendingDismissals = <String>{};
   String? _error;
   @override
   void initState() { super.initState(); WidgetsBinding.instance.addObserver(this); _load(); }
@@ -44,19 +48,12 @@ class _CaptureInboxPageState extends ConsumerState<CaptureInboxPage> with Widget
   Future<void> _loadSnapshot() async {
     try {
       var pending = await _service.pending();
+      if (!mounted) return;
       final repo = ref.read(repositoryProvider);
       if (repo is LocalRepository && pending.isNotEmpty) {
         // Recover a crash after the ledger commit but before the native ACK.
         final handled = await CaptureCommitService(repo).handled(pending.map((c) => c.id).toList());
-        for (final entry in handled.entries) {
-          try {
-            if (entry.value == null) { await _service.dismiss(entry.key); }
-            else { await _service.acknowledge(entry.key, entry.value!); }
-          } catch (_) {
-            // The ledger's durable link already proves this item was handled.
-            // Retry its native ACK on the next refresh, without hiding other drafts.
-          }
-        }
+        unawaited(_reconcileHandled(handled));
         // The bridge deliberately returns a fixed-size snapshot. Filtering must
         // produce a new list instead of trying to remove entries from that list.
         pending = pending.where((c) => !handled.containsKey(c.id)).toList(growable: false);
@@ -65,12 +62,33 @@ class _CaptureInboxPageState extends ConsumerState<CaptureInboxPage> with Widget
     } catch (_) { if (mounted) setState(() => _error = CaptureText(context).failed); }
   }
 
+  Future<void> _reconcileHandled(Map<String, int?> handled) async {
+    if (_reconciling || !mounted) return;
+    _reconciling = true;
+    try {
+      for (final entry in handled.entries) {
+        if (!mounted) return;
+        try {
+          final result = entry.value == null ? _service.dismiss(entry.key)
+              : _service.acknowledge(entry.key, entry.value!);
+          // The original call remains deduplicated and bounded in the service.
+          // A late reply for one record must not starve the rest of this batch.
+          await result.timeout(const Duration(seconds: 2));
+        } catch (_) {
+          // The durable link already proves this item was handled. A failed
+          // bridge call is retried on a later refresh, without blocking drafts.
+        }
+      }
+    } finally { _reconciling = false; }
+  }
+
   Future<void> _review(CaptureCandidate candidate) async {
-    if (_busy || _opening) return;
-    setState(() => _opening = true);
+    if (_busy || _acting || _pendingDismissals.contains(candidate.id) ||
+        _service.isDismissing(candidate.id)) return;
+    setState(() => _acting = true);
     try { await _openReview(candidate); }
     catch (_) { if (mounted) setState(() => _error = CaptureText(context).failed); }
-    finally { if (mounted) setState(() => _opening = false); }
+    finally { if (mounted) setState(() => _acting = false); }
   }
 
   Future<void> _openReview(CaptureCandidate candidate) async {
@@ -106,7 +124,7 @@ class _CaptureInboxPageState extends ConsumerState<CaptureInboxPage> with Widget
         if (choice is Transaction) {
           await commit.linkExisting(candidate, choice);
           // If this ACK fails, the durable link is reconciled by the next load.
-          try { await _service.acknowledge(candidate.id, choice.id); } catch (_) {}
+          unawaited(_reconcileHandled({candidate.id: choice.id}));
           if (mounted) await _load();
           return;
         }
@@ -153,16 +171,31 @@ class _CaptureInboxPageState extends ConsumerState<CaptureInboxPage> with Widget
   };
 
   Future<void> _dismiss(CaptureCandidate candidate) async {
+    if (_busy || _acting || _pendingDismissals.contains(candidate.id) ||
+        _service.isDismissing(candidate.id) || !mounted) return;
+    setState(() => _acting = true);
+    var ownsDialogLock = true;
     final text = CaptureText(context);
-    final ok = await showDialog<bool>(context: context, builder: (context) => AlertDialog(
-      title: Text(text.t('忽略这笔候选？', 'Dismiss this draft?')),
-      content: Text(text.t('不会创建或删除账单。', 'No ledger transaction will be created or deleted.')),
-      actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: Text(text.t('取消', 'Cancel'))),
-        TextButton(onPressed: () => Navigator.pop(context, true), child: Text(text.t('忽略', 'Dismiss')))],
-    ));
-    if (ok != true || !mounted) return;
-    try { await _service.dismiss(candidate.id); await _load(); }
-    catch (_) { if (mounted) setState(() => _error = text.failed); }
+    try {
+      final ok = await showDialog<bool>(context: context, builder: (context) => AlertDialog(
+        title: Text(text.t('忽略这笔候选？', 'Dismiss this draft?')),
+        content: Text(text.t('不会创建或删除账单。', 'No ledger transaction will be created or deleted.')),
+        actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: Text(text.t('取消', 'Cancel'))),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: Text(text.t('忽略', 'Dismiss')))],
+      ));
+      if (ok != true || !mounted) return;
+      setState(() { _pendingDismissals.add(candidate.id); _acting = false; });
+      ownsDialogLock = false;
+      await _service.dismiss(candidate.id);
+      if (mounted) await _load();
+    } catch (_) {
+      if (mounted) setState(() => _error = text.failed);
+    } finally {
+      if (mounted) setState(() {
+        _pendingDismissals.remove(candidate.id);
+        if (ownsDialogLock) _acting = false;
+      });
+    }
   }
 
   @override
@@ -193,6 +226,8 @@ class _CaptureInboxPageState extends ConsumerState<CaptureInboxPage> with Widget
             ]);
           }
           final candidate = items[index - 1];
+          final actionDisabled = _busy || _acting || _pendingDismissals.contains(candidate.id) ||
+              _service.isDismissing(candidate.id);
           return Card(
             key: ValueKey(candidate.id),
             margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -205,8 +240,8 @@ class _CaptureInboxPageState extends ConsumerState<CaptureInboxPage> with Widget
               if (candidate.paymentMethod != null) Text('${text.t('支付方式', 'Payment method')}: ${candidate.paymentMethod}'),
               for (final issue in candidate.issues) Text(text.issue(issue), style: TextStyle(color: Theme.of(context).colorScheme.error)),
               Row(mainAxisAlignment: MainAxisAlignment.end, children: [
-                TextButton(onPressed: _busy || _opening ? null : () => _dismiss(candidate), child: Text(text.t('忽略', 'Dismiss'))),
-                FilledButton(onPressed: _busy || _opening ? null : () => _review(candidate), child: Text(text.t('核对并记账', 'Review and record'))),
+                TextButton(onPressed: actionDisabled ? null : () => _dismiss(candidate), child: Text(text.t('忽略', 'Dismiss'))),
+                FilledButton(onPressed: actionDisabled ? null : () => _review(candidate), child: Text(text.t('核对并记账', 'Review and record'))),
               ]),
             ])),
           );

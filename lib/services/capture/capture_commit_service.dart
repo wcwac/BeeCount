@@ -108,6 +108,7 @@ class CaptureCommitService {
       throw const FormatException('Choose two different transfer accounts');
     }
     final db = repository.db;
+    final confirmedCurrency = (currencyCode ?? candidate.currency).trim().toUpperCase();
     return db.transaction(() async {
       final existing = await db.customSelect(
         'SELECT transaction_id FROM transaction_capture_links WHERE candidate_id=?',
@@ -123,26 +124,45 @@ class CaptureCommitService {
       // Categories and accounts are user-global in this fork. Their legacy
       // accounts.ledger_id is not an ownership filter. Only the target ledger
       // belongs to the candidate; stale/hidden picker selections are rejected.
+      final accountCurrencies = <int, String>{};
       for (final entry in [('categories', categoryId), ('accounts', accountId), ('accounts', toAccountId)]) {
         if (entry.$2 == null) continue;
         final row = await db.customSelect(
-          'SELECT ${entry.$1 == 'categories' ? 'id,kind' : 'id'} FROM ${entry.$1} WHERE id=?${entry.$1 == 'accounts' ? ' AND hidden=0' : ''}',
+          'SELECT ${entry.$1 == 'categories' ? 'id,kind' : 'id,currency'} FROM ${entry.$1} WHERE id=?${entry.$1 == 'accounts' ? ' AND hidden=0' : ''}',
           variables: [d.Variable(entry.$2!)],
         ).getSingleOrNull();
         if (row == null) throw StateError('CAPTURE_SELECTION_CHANGED');
         if (entry.$1 == 'categories' && type != 'transfer' && row.read<String>('kind') != type) {
           throw StateError('CAPTURE_SELECTION_CHANGED');
         }
+        if (entry.$1 == 'accounts') accountCurrencies[entry.$2!] = row.read<String>('currency').trim().toUpperCase();
       }
       // Preserve existing offline-backup mirror selections instead of silently
       // dropping the editor's synthetic category/account choice.
+      final mirrorAccountCurrencies = <String, String>{};
       for (final entry in [('shared_ledger_categories', categorySyncIdOverride),
           ('shared_ledger_accounts', accountSyncIdOverride), ('shared_ledger_accounts', toAccountSyncIdOverride)]) {
         if (entry.$2 == null) continue;
         if (ledger.syncId == null) throw StateError('CAPTURE_SELECTION_CHANGED');
-        final row = await db.customSelect('SELECT sync_id FROM ${entry.$1} WHERE sync_id=? AND ledger_sync_id=?',
+        final row = await db.customSelect('SELECT ${entry.$1 == 'shared_ledger_accounts' ? 'sync_id,currency' : 'sync_id'} FROM ${entry.$1} WHERE sync_id=? AND ledger_sync_id=?',
           variables: [d.Variable(entry.$2!), d.Variable(ledger.syncId!)]).getSingleOrNull();
         if (row == null) throw StateError('CAPTURE_SELECTION_CHANGED');
+        if (entry.$1 == 'shared_ledger_accounts') mirrorAccountCurrencies[entry.$2!] = row.read<String>('currency').trim().toUpperCase();
+      }
+      if (type == 'transfer') {
+        final fromCurrency = accountSyncIdOverride == null
+            ? accountCurrencies[accountId] : mirrorAccountCurrencies[accountSyncIdOverride];
+        final toCurrency = toAccountSyncIdOverride == null
+            ? accountCurrencies[toAccountId] : mirrorAccountCurrencies[toAccountSyncIdOverride];
+        // Account balances consume amount, not the ledger's nativeAmount.
+        // Recheck the selected currencies inside the same write transaction so
+        // a stale picker cannot debit an account using the captured source unit.
+        if (fromCurrency == null || fromCurrency != toCurrency ||
+            confirmedCurrency != fromCurrency ||
+            (nativeAmount != null && (!nativeAmount.isFinite || nativeAmount < 0 ||
+                (fromCurrency == ledger.currency.trim().toUpperCase() && (nativeAmount - amount).abs() > 0.0000001)))) {
+          throw StateError('CAPTURE_SELECTION_CHANGED');
+        }
       }
       final id = await repository.addTransaction(
         ledgerId: candidate.ledgerId, type: type, amount: amount, categoryId: categoryId,
@@ -150,7 +170,7 @@ class CaptureCommitService {
         categorySyncIdOverride: categorySyncIdOverride, accountSyncIdOverride: accountSyncIdOverride,
         toAccountSyncIdOverride: toAccountSyncIdOverride,
         excludeFromStats: excludeFromStats, excludeFromBudget: excludeFromBudget,
-        currencyCode: currencyCode ?? candidate.currency, nativeAmount: nativeAmount,
+        currencyCode: confirmedCurrency, nativeAmount: nativeAmount,
       );
       await _writeTags(id, ledger, tagIds);
       for (final attachment in attachments) {

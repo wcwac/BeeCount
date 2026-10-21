@@ -34,16 +34,34 @@ class CaptureBridge(private val activity: Activity, messenger: BinaryMessenger) 
                     "pendingCount" to CaptureRuntime.inbox(activity).count()) + health
             }
             "updateSettings" -> {
+                fun invalidSettings() = result.error("INVALID_SETTINGS", "Choose a ledger and supported applications", null)
                 try {
                     val args = call.arguments as? Map<*, *> ?: error("SETTINGS_REQUIRED")
                     val packages = (args["packages"] as? List<*>)?.map { it as String }?.toSet() ?: error("PACKAGES_REQUIRED")
                     val ledger = (args["ledgerId"] as? Number)?.toLong()
                     val settings = CaptureSettings(args["enabled"] == true, packages, ledger,
                         args["ledgerKey"] as? String, args["notifications"] == true)
-                    CaptureSettings.save(activity, settings)
-                    BeeCaptureService.settingsChanged()
-                    result.success(null)
-                } catch (_: Exception) { result.error("INVALID_SETTINGS", "Choose a ledger and supported applications", null) }
+                    settings.validate()
+                    // Consent commits share the engine/store worker. An in-flight
+                    // write finishes before revocation is saved; later old-generation
+                    // observations are rejected. The boundary is the successful
+                    // settings reply, not the earlier instant the user tapped.
+                    CaptureRuntime.worker.execute {
+                        try { CaptureSettings.save(activity, settings) }
+                        catch (_: Exception) {
+                            main.post { invalidSettings() }
+                            return@execute
+                        }
+                        main.post {
+                            try { BeeCaptureService.settingsChanged() }
+                            catch (_: Exception) {
+                                invalidSettings()
+                                return@post
+                            }
+                            result.success(null)
+                        }
+                    }
+                } catch (_: Exception) { invalidSettings() }
             }
             "openAccessibilitySettings" -> {
                 try { activity.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)); result.success(null) }

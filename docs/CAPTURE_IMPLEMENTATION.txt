@@ -33,9 +33,13 @@ Implemented source paths
   amount/ledger/reference observations remain separate and require review.
   No native write to the Drift ledger.
 - capture/CaptureSettings.kt / CaptureRuntime.kt: consent generations reject
-  queued work after off/on or permission narrowing. Each observation retains
-  its original ledger identity. Notification posting is best effort and cannot
-  turn a successful persistent write into a reported storage failure.
+   queued work after off/on or permission narrowing. Each observation retains
+   its original ledger identity. Notification posting is best effort and cannot
+   turn a successful persistent write into a reported storage failure.
+   Settings commits share the capture worker with parsing and candidate writes;
+   the main-thread listener refresh completes before a successful settings reply.
+   Writes already in progress finish before that reply, and stale-generation
+   observations cannot persist a candidate after the acknowledged revocation.
 - capture/CaptureScheduler.kt: at most 31 pending snapshots plus one in progress.
   Eight pending slots are reserved for possible checkout/result/failure/reset
   evidence. Ordinary same-window updates can coalesce only within the same
@@ -58,15 +62,23 @@ Implemented source paths
   requires Android verification. No raw page text is put in the health counters.
 - capture/CaptureBridge.kt: status/settings/inbox/acknowledgement methods.
 - Flutter capture settings/inbox: consent, system settings, app/ledger selection,
-  review, missing-field correction and explicit duplicate association. Inbox
-  filtering handles immutable snapshots; one failed ACK cannot hide other drafts.
+   review, missing-field correction and explicit duplicate association. Inbox
+   filtering handles immutable snapshots; failed or delayed ACKs cannot block
+   other drafts. Stale status replies cannot undo a newer settings edit. Dismiss
+   and review share one action lock, including the dismissal confirmation dialog.
 - Existing transaction/transfer editor: normal repository writes, capture
   metadata in the same transaction, ACK reconciliation after interrupted saves.
   Tags (including validated legacy mirror IDs) and prepared attachment rows also
   join that transaction. A failed row write cannot leave a partly saved payment.
   Image compression/copying finishes before opening the DB transaction; selected
   image preparation failure keeps the editor open without writing a payment.
-  Retrying an already committed candidate cannot duplicate tags/attachment rows.
+   Retrying an already committed candidate cannot duplicate tags/attachment rows.
+   Capture transfers retain the captured source amount and its exchange-rate
+   review. When conversion is needed, the saved amount is expressed in the
+   selected accounts' common currency; the ledger snapshot is not an account
+   debit in another unit. Currency selections are rechecked in the same DB
+   transaction, including legacy mirror accounts and mixed-case currency codes.
+   The original captured payload remains in the durable capture link.
   Capture review uses quickAdd so selecting a category opens the amount sheet.
   Ledger/currency/tag providers declare scoped dependencies. Each amount/tag
   route owns an independent scope with the frozen ledger ID; sibling routes
@@ -81,8 +93,10 @@ Implemented source paths
 - .github/workflows/release.yml: existing build now includes
   :app:testDevDebugUnitTest and archives XML/HTML Android unit reports. This is
   after the Flutter APK build prepares the wrapper/local.properties. Only the
-  user-authorized feat/local-transaction-capture branch also builds on push;
-  it uses version 0.3.0 without signing or publishing. No PR trigger was added.
+   user-authorized feat/local-transaction-capture and feat/flutter-stable-upgrade
+   branches also build on push. The current default version is 0.4.0 without
+   signing or publishing; the earlier capture baseline used 0.3.0.
+   No PR trigger was added.
   Independent checks continue after failures, retain full per-command logs,
   and fail the final gate unless all required outcomes are successful.
   Native JVM tests and instrumentation APK compilation have separate outcomes.
@@ -202,22 +216,33 @@ Regression coverage (Flutter/JVM executed in CI; instrumentation compiled only)
   fixtures in these DB cases are metadata, not decoded physical image samples.
 - Flutter capture_migration_test: v34→v35, preserved records and balances.
 - Flutter capture_inbox_test: fixed native snapshots, ACK failure isolation,
-  category→amount→save flow and a frozen USD ledger while the homepage uses CNY,
-  including a second tag sheet above the amount sheet.
+   category→amount→save flow and a frozen USD ledger while the homepage uses CNY,
+   including a second tag sheet above the amount sheet. Follow-up source cases
+   cover pending dismissals, delayed ACKs and commits finishing after editor exit.
+- Flutter capture_settings_test: late status replies cannot re-enable capture
+   after the user has disabled it. capture_service_test covers shared pending
+   ACKs, failed-call retries and the bounded number of outstanding completions.
 - Flutter capture_candidate_test: malformed metadata and incomplete review drafts.
 - Existing amount_editor_currency_test: awaited save failure and double-submit
   prevention, in addition to currency-display cases.
 - Android instrumentation CaptureInboxStoreTest: persistence after reopening,
   pending enrichment, terminal-state replay rejection, ledger identity, durable
   reference aliases/collisions and native v1→v2 migration. The context wrapper
-  keeps applicationContext in the instrumentation APK's sandbox.
+   keeps applicationContext inside a fixture wrapper. Database and preference
+   names use a capture_instrumentation_ prefix in the target UID's writable
+   storage; exact dev.debug/test package checks prevent another target being used.
   Recreated sessions with the same strong transaction reference merge sparse
   observations into the existing durable draft. Known fields and unresolved
   warnings survive; explicit amount conflicts and rejected original refund
   amounts still invalidate the amount. Four additional instrumentation cases
   cover preservation, enrichment and both invalidation paths.
 - Android instrumentation CaptureSettingsTest: disabled defaults, consent
-  revocation generations and ledger changes. No target-app database is used.
+   revocation generations and ledger changes. Only prefixed fixture databases and
+   preferences are used; production capture storage and the ledger remain separate.
+- Android instrumentation CaptureBridgeTest: a controlled real worker queue,
+   bridge, parser, preferences and SQLite check the acknowledged consent boundary.
+   This source test does not launch a service or Flutter engine; its fixture
+   notification manager is disabled. It remains unexecuted on a device.
 
 Remaining device acceptance before claiming real-client compatibility
 1. Continue source review and acquire redacted device page fixtures for each
@@ -234,3 +259,13 @@ Remaining device acceptance before claiming real-client compatibility
 
 The CI results above are verified build/test evidence. Real-client compatibility
 and device-performance acceptance remain outstanding.
+
+Follow-up after the stable SDK migration (cloud validation pending)
+- Serialize settings commits with candidate writes; preserve the original
+  cross-Activity session behavior and record the actual collected window ID.
+- Reject stale settings responses, isolate pending dismissals, bound/deduplicate
+  outstanding ACK calls and refresh live caches when an editor has already closed.
+- Preserve foreign source amounts and rate review while saving transfer amounts
+  in account units. Recheck account currencies atomically before changing money.
+- Add 13 Flutter regression cases and 4 instrumentation source cases. Local work
+  remains static only; instrumentation execution and screenshots remain deferred.

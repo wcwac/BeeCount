@@ -7,6 +7,10 @@ import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.util.concurrent.Callable
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 
 @RunWith(AndroidJUnit4::class)
 class CaptureSettingsTest {
@@ -57,5 +61,43 @@ class CaptureSettingsTest {
         assertEquals(1L, frozen.ledgerId)
         assertEquals("ledger-one", frozen.ledgerKey)
         assertEquals(2L, current.ledgerId)
+    }
+
+    @Test fun concurrentRevocationsFromStaleSnapshotsCannotLoseTheConsentGeneration() {
+        CaptureSettings.save(context, enabled().copy(notifications = true))
+        val frozen = CaptureSettings.read(context)
+        val otherContext = captureTestContext()
+        val workers = Executors.newFixedThreadPool(2)
+        val start = CountDownLatch(1)
+        try {
+            val removePackage = workers.submit(Callable {
+                check(start.await(10, TimeUnit.SECONDS))
+                CaptureSettings.save(context, frozen.copy(packages = setOf("com.tencent.mm")))
+            })
+            val removeNotifications = workers.submit(Callable {
+                check(start.await(10, TimeUnit.SECONDS))
+                CaptureSettings.save(otherContext, frozen.copy(notifications = false))
+            })
+            start.countDown()
+            removePackage.get(10, TimeUnit.SECONDS)
+            removeNotifications.get(10, TimeUnit.SECONDS)
+        } finally {
+            start.countDown()
+            workers.shutdownNow()
+            check(workers.awaitTermination(10, TimeUnit.SECONDS))
+        }
+        val current = CaptureSettings.read(captureTestContext())
+        assertEquals(frozen.consentGeneration + 2, current.consentGeneration)
+        assertTrue(current.enabled)
+        assertEquals(frozen.ledgerId, current.ledgerId)
+        assertEquals(frozen.ledgerKey, current.ledgerKey)
+        // Either complete edit may win; neither may keep the old consent cursor.
+        assertTrue(
+            (current.packages == setOf("com.tencent.mm") && current.notifications) ||
+                (current.packages == frozen.packages && !current.notifications),
+        )
+        assertEquals(current, CaptureSettings.read(otherContext))
+        assertTrue(frozen.notifications)
+        assertEquals(2, frozen.packages.size)
     }
 }

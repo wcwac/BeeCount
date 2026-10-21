@@ -8,6 +8,12 @@ data class CaptureSettings(val enabled: Boolean, val packages: Set<String>, val 
         "ledgerKey" to ledgerKey, "notifications" to notifications)
     fun accepts(packageName: String) = enabled && ledgerId != null && packageName in packages
 
+    fun validate() {
+        require(!enabled || (ledgerId != null && ledgerId > 0 &&
+            !ledgerKey.isNullOrBlank() && ledgerKey.length <= 100))
+        require(packages.all { it in CaptureApps.byPackage })
+    }
+
     companion object {
         @Synchronized fun read(context: Context): CaptureSettings {
             val p = context.getSharedPreferences("local_capture_settings", Context.MODE_PRIVATE)
@@ -17,9 +23,7 @@ data class CaptureSettings(val enabled: Boolean, val packages: Set<String>, val 
                 p.getBoolean("notifications", false), p.getLong("consent_generation", 0))
         }
         @Synchronized fun save(context: Context, settings: CaptureSettings) {
-            require(!settings.enabled || (settings.ledgerId != null && settings.ledgerId > 0 &&
-                !settings.ledgerKey.isNullOrBlank() && settings.ledgerKey.length <= 100))
-            require(settings.packages.all { it in CaptureApps.byPackage })
+            settings.validate()
             val previous = read(context)
             val revokesAccess = (previous.enabled && !settings.enabled) ||
                 !settings.packages.containsAll(previous.packages) || (previous.notifications && !settings.notifications)

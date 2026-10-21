@@ -16,6 +16,7 @@ class CaptureSettingsPage extends ConsumerStatefulWidget {
 class _CaptureSettingsPageState extends ConsumerState<CaptureSettingsPage> with WidgetsBindingObserver {
   final _service = CaptureService();
   CaptureStatus? _status;
+  int _statusRevision = 0;
   bool _busy = false;
   String? _error;
 
@@ -28,18 +29,27 @@ class _CaptureSettingsPageState extends ConsumerState<CaptureSettingsPage> with 
     if (state == AppLifecycleState.resumed) _load();
   }
   Future<void> _load() async {
+    if (!mounted) return;
+    final revision = ++_statusRevision;
     try {
       final value = await _service.status();
-      if (mounted) setState(() { _status = value; _error = null; });
-    } catch (_) { if (mounted) setState(() => _error = CaptureText(context).failed); }
+      if (mounted && revision == _statusRevision) {
+        setState(() { _status = value; _error = null; });
+      }
+    } catch (_) {
+      if (mounted && revision == _statusRevision) {
+        setState(() => _error = CaptureText(context).failed);
+      }
+    }
   }
   Future<void> _save({bool? enabled, Set<String>? packages, int? ledgerId, bool? notifications}) async {
     final status = _status;
     if (status == null || _busy) return;
-    setState(() => _busy = true);
+    setState(() { _busy = true; _statusRevision++; });
     try {
       final int targetId = ledgerId ?? status.ledgerId ?? ref.read<int>(currentLedgerIdProvider);
       final ledger = await ref.read(repositoryProvider).getLedgerById(targetId);
+      if (!mounted) return;
       if (ledger == null && (enabled ?? status.enabled)) throw StateError('CAPTURE_LEDGER_MISSING');
       await _service.updateSettings(enabled: enabled ?? status.enabled,
         packages: packages ?? status.packages,
@@ -52,7 +62,7 @@ class _CaptureSettingsPageState extends ConsumerState<CaptureSettingsPage> with 
 
   Future<void> _acknowledgeOverflow(CaptureStatus shown) async {
     if (_busy) return;
-    setState(() => _busy = true);
+    setState(() { _busy = true; _statusRevision++; });
     try {
       await _service.acknowledgeOverflow(shown.overflowCursor);
       await _load();

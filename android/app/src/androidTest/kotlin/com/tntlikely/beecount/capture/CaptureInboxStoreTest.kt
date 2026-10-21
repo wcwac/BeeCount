@@ -8,8 +8,12 @@ import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.util.concurrent.Callable
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 
-/** Uses only the instrumentation APK's private sandbox, never the user's ledger. */
+/** Uses only prefixed instrumentation fixtures, never the user's ledger. */
 @RunWith(AndroidJUnit4::class)
 class CaptureInboxStoreTest {
     private val context = captureTestContext()
@@ -36,6 +40,76 @@ class CaptureInboxStoreTest {
         store = CaptureInboxStore(context)
         assertEquals(1, store.count())
         assertEquals("fixture-one", store.pending().single()["id"])
+    }
+
+    @Test fun replayRacingWithCommitAcrossDatabaseConnectionsCannotReopenThePayment() {
+        store.put(candidate().copy(transactionIdentity = "trade-one"))
+        val other = CaptureInboxStore(captureTestContext())
+        val workers = Executors.newFixedThreadPool(2)
+        val start = CountDownLatch(1)
+        try {
+            assertEquals(1, other.count()) // Open a second, independent SQLite connection.
+            val replay = workers.submit(Callable {
+                check(start.await(10, TimeUnit.SECONDS))
+                other.put(candidate().copy(id = "replayed-session", sessionId = "session-two",
+                    transactionIdentity = "trade-one"))
+            })
+            val commit = workers.submit(Callable {
+                check(start.await(10, TimeUnit.SECONDS))
+                store.complete("fixture-one", 42)
+            })
+            start.countDown()
+            assertFalse(replay.get(10, TimeUnit.SECONDS))
+            commit.get(10, TimeUnit.SECONDS)
+        } finally {
+            start.countDown()
+            workers.shutdownNow()
+            check(workers.awaitTermination(10, TimeUnit.SECONDS))
+            other.close()
+        }
+        // A delayed dismissal from the editor must not replace a committed ACK.
+        store.complete("fixture-one", null)
+        store.close()
+        store = CaptureInboxStore(captureTestContext())
+        assertEquals(0, store.count())
+        assertFalse(store.put(candidate().copy(id = "after-recreation", transactionIdentity = "trade-one")))
+        store.readableDatabase.rawQuery(
+            "SELECT state,transaction_id FROM candidates WHERE id=?", arrayOf("fixture-one"),
+        ).use {
+            assertTrue(it.moveToFirst())
+            assertEquals("COMMITTED", it.getString(0))
+            assertEquals(42L, it.getLong(1))
+        }
+    }
+
+    @Test fun aFullInboxRollsBackRejectedInsertAndStillAllowsEnrichmentAndAcknowledgement() {
+        // Batch only fixture setup; the rejected insert and subsequent operations
+        // each use the production store's own real SQLite transaction boundary.
+        val db = store.writableDatabase
+        db.beginTransaction()
+        try {
+            repeat(1000) { index ->
+                assertTrue(store.put(candidate().copy(id = "full-$index", observedAt = candidate().observedAt + index)))
+            }
+            db.setTransactionSuccessful()
+        } finally { db.endTransaction() }
+        try {
+            store.put(candidate().copy(id = "over-capacity"))
+            fail("A full inbox must reject another payment")
+        } catch (error: IllegalStateException) {
+            assertEquals("INBOX_FULL", error.message)
+        }
+        assertEquals(1000, store.count())
+        assertFalse(store.put(candidate().copy(id = "full-0", merchant = "Enriched shop")))
+        assertEquals("Enriched shop", store.pending(1000).single { it["id"] == "full-0" }["merchant"])
+        store.complete("full-0", 7)
+        assertTrue(store.put(candidate().copy(id = "after-full")))
+        store.close()
+        store = CaptureInboxStore(captureTestContext())
+        val pending = store.pending(1000)
+        assertEquals(1000, pending.size)
+        assertFalse(pending.any { it["id"] == "over-capacity" || it["id"] == "full-0" })
+        assertTrue(pending.any { it["id"] == "after-full" })
     }
 
     @Test fun pendingDraftCanBeEnrichedButTerminalDraftCannotReopen() {

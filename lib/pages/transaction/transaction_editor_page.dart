@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:drift/drift.dart' as d;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -336,6 +338,9 @@ class _TransactionEditorPageState extends ConsumerState<TransactionEditorPage>
         onSubmit: (res) async {
           final repo = ref.read(repositoryProvider);
           final attachmentService = ref.read(attachmentServiceProvider);
+          final refreshCapture = widget.captureCandidate == null ? null
+              : PostProcessor.prepareLocalRefresh(ref, ledgerId: ledgerId,
+                  tags: res.tagIds.isNotEmpty, attachments: res.pendingAttachments.isNotEmpty);
           int transactionId;
           // §7 v25:Category 是来自 SharedLedger* 的 synthetic (id<0)时,
           // categoryId 留 null,override 走 syncId。同理对 account/toAccount。
@@ -390,10 +395,8 @@ class _TransactionEditorPageState extends ConsumerState<TransactionEditorPage>
             transactionId = commit.transactionId;
             // Tags and attachment rows have already committed atomically. A
             // retry must not repeat the ordinary editor's metadata writes below.
-            await _ackCapture(candidate, transactionId);
-            await PostProcessor.run(ref, ledgerId: ledgerId,
-              tags: res.tagIds.isNotEmpty, attachments: prepared.isNotEmpty);
-            ref.invalidate(countsForLedgerProvider(ledgerId));
+            refreshCapture!();
+            unawaited(_ackCapture(candidate, transactionId));
             if (ctx.mounted && Navigator.of(ctx).canPop()) Navigator.of(ctx).pop();
             if (context.mounted && Navigator.of(context).canPop()) Navigator.of(context).pop();
             return;

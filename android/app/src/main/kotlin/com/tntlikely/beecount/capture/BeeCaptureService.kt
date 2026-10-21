@@ -80,6 +80,9 @@ class BeeCaptureService : AccessibilityService() {
             }
             val budget = CaptureReadBudget()
             var collected = selected?.let { collector.collect(it, budget) }
+            // Known event IDs already match the eligible tree. If the event
+            // has no window ID, coalesce by the window whose tree was read.
+            var collectedWindowId = selected?.windowId?.takeIf { it >= 0 } ?: windowId
             // Some hybrid pages expose an opaque window tree while the event
             // source still has meaningful payment content. Try that source with
             // the remaining budget, keeping the two trees separate.
@@ -90,6 +93,7 @@ class BeeCaptureService : AccessibilityService() {
                 val fromSource = collector.collect(source!!, budget)
                 if (hasCaptureContext(fromSource) || collected?.nodes?.none { it.text.isNotBlank() } != false) {
                     collected = fromSource
+                    collectedWindowId = source.windowId
                 }
             }
             val usefulTree = collected?.nodes?.any { it.text.isNotBlank() } == true
@@ -97,7 +101,8 @@ class BeeCaptureService : AccessibilityService() {
             // Fallback metadata must not be added to a different/newer visible
             // tree: that could combine an old success message with a new checkout.
             if (nodes.any { it.text.isNotBlank() } || CaptureAdapterRegistry.isResetPage(pageClass)) CaptureRuntime.submit(applicationContext, CaptureSnapshot(
-                packageName, pageClass, windowId, System.currentTimeMillis(), SystemClock.elapsedRealtime(), nodes,
+                packageName, pageClass, if (usefulTree) collectedWindowId else windowId,
+                System.currentTimeMillis(), SystemClock.elapsedRealtime(), nodes,
                 truncated = collected?.truncated == true || !usefulTree,
             ))
         } catch (_: RuntimeException) {
