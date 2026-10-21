@@ -1,9 +1,11 @@
 """Run a CI command and expose its failure tail in GitHub check annotations."""
 
 from collections import deque
+from queue import Empty, Queue
 import subprocess
 import sys
 import re
+from threading import Thread
 
 
 def escape(value):
@@ -20,11 +22,28 @@ def main():
         sys.argv[1:], stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
         text=True, errors="replace", bufsize=1,
     )
-    for line in process.stdout:
+    output = Queue(maxsize=64)
+    def read_output():
+        for line in process.stdout:
+            output.put(line)
+        output.put(None)
+    Thread(target=read_output, daemon=True).start()
+    while True:
+        try:
+            line = output.get(timeout=60)
+        except Empty:
+            message = "No new output for 60 seconds. Last output:\n" + "\n".join(list(tail)[-8:])
+            print(f"::notice title=Command progress::{escape(message)}", flush=True)
+            continue
+        if line is None:
+            break
         print(line, end="", flush=True)
         tail.append(line.rstrip("\n"))
         if re.search(r"error\s*•|Error:|^e: |\[E\]|FAILED|Exception:", line):
             diagnostics.append(line.rstrip("\n"))
+        if "[E]" in line:
+            message = "\n".join(list(tail)[-35:])
+            print(f"::notice title=Test diagnostic::{escape(message)}", flush=True)
     result = process.wait()
     if result:
         lines = list(diagnostics) + ["--- Last output ---"] + list(tail)[-60:]
