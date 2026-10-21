@@ -6,6 +6,10 @@
 > 外部网站跳转及应用商店调用。旧云配置和 API Key 不会恢复这些功能。
 > 帮助与政策从本地资源读取；远程图片不加载。记账、统计、手动汇率、
 > 本地附件和文件导入导出继续可用。日志保存在本地，不自动上传。
+
+> **本地交易采集（Android，可选，默认关闭）**：在应用内启用并获得系统无障碍授权后，仅读取你选择的应用页面，用于提取交易金额、商户、备注、支付方式及状态。页面节点仅用于当次本地解析，不保存完整页面树；结构化候选和已确认账单保存在应用私有数据库。原始订单号如被识别，仅保留其哈希。结果需由你核对后保存，不会代替你操作支付，也不会上传采集内容。关闭总开关后停止采集，已有候选可在待确认列表中忽略。
+>
+> **通知辅助（独立可选，默认关闭）**：在另行启用并授予系统通知访问权限后，仅处理所选应用新到达的通知以补充交易证据。不扫描历史通知，不保存完整通知正文；只保存提取后的结构化候选。
 >
 > Android 移除网络权限并关闭应用自动备份；iOS 移除 iCloud 授权，
 > 为本地数据目录设置不参与系统备份标记。请使用本地导出自行保存备份。
@@ -19,6 +23,18 @@
 > Saved cloud settings and API keys cannot re-enable them. Documentation is
 > bundled, remote images are not loaded, and logs stay local. Local bookkeeping,
 > statistics, manual rates, attachments and file import/export remain available.
+>
+> **Optional local transaction capture (Android, off by default)**: after you
+> enable capture and grant accessibility access, selected app screens are read
+> locally to extract payment fields. Full page trees are not stored. Structured
+> drafts and confirmed entries stay in private local databases; recognized order
+> references are hashed. You review drafts before saving. Capture does not initiate
+> payments or upload content. Turning it off retains existing drafts.
+>
+> **Notification assistance (separately optional, off by default)**: after
+> enabling it and granting notification access, only newly posted notifications
+> from selected apps are parsed locally. No historical sweep or full notification
+> text storage is performed; extracted drafts still require review.
 >
 > Android network permission and automatic app backup are disabled. iCloud
 > entitlements are removed on iOS and local data directories are marked as

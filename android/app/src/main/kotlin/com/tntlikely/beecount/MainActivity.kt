@@ -14,8 +14,10 @@ import android.provider.Settings
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
+import com.tntlikely.beecount.capture.CaptureBridge
 
 class MainActivity: FlutterFragmentActivity() {
+    private var captureBridge: CaptureBridge? = null
     private val CHANNEL = "notification_channel"
     private val LOGGER_CHANNEL = "com.beecount.logger"
 
@@ -83,6 +85,8 @@ class MainActivity: FlutterFragmentActivity() {
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        captureBridge?.close()
+        captureBridge = CaptureBridge(this, flutterEngine.dartExecutor.binaryMessenger)
 
         android.util.Log.e("MainActivity", "==========================================")
         android.util.Log.e("MainActivity", "configureFlutterEngine 被调用！！！")
@@ -143,6 +147,12 @@ class MainActivity: FlutterFragmentActivity() {
                 else -> result.notImplemented()
             }
         }
+    }
+
+    override fun cleanUpFlutterEngine(flutterEngine: FlutterEngine) {
+        captureBridge?.close()
+        captureBridge = null
+        super.cleanUpFlutterEngine(flutterEngine)
     }
 
     private fun scheduleNotification(title: String, body: String, scheduledTimeMillis: Long, notificationId: Int) {

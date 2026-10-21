@@ -63,7 +63,7 @@ void main() {
       expect(
           (await db.customSelect('PRAGMA user_version').getSingle())
               .read<int>('user_version'),
-          34);
+          35);
     } finally {
       await db.close();
       await dir.delete(recursive: true);

@@ -1,7 +1,9 @@
 name: Offline Android
 
-# No push/PR/tag trigger: uploading source does not authorize executing it.
+# User-authorized capture CI; all other branches remain manual-only.
 on:
+  push:
+    branches: [feat/local-transaction-capture]
   workflow_dispatch:
     inputs:
       version:
@@ -35,9 +37,9 @@ jobs:
     outputs:
       tag: ${{ steps.metadata.outputs.tag }}
     env:
-      BUILD_VERSION: ${{ inputs.version }}
-      SIGN_APK: ${{ inputs.sign_apk }}
-      CREATE_RELEASE: ${{ inputs.create_release }}
+      BUILD_VERSION: ${{ inputs.version || '0.3.0' }}
+      SIGN_APK: ${{ inputs.sign_apk || false }}
+      CREATE_RELEASE: ${{ inputs.create_release || false }}
     steps:
       - name: Validate inputs
         id: metadata
@@ -111,10 +113,10 @@ jobs:
           retention-days: 14
 
       - name: Analyze source
-        run: flutter analyze --no-pub --no-fatal-infos --no-fatal-warnings
+        run: python3 .github/scripts/run_checked.py flutter analyze --no-pub --no-fatal-infos --no-fatal-warnings
 
       - name: Test local features and offline boundaries
-        run: flutter test --no-pub
+        run: python3 .github/scripts/run_checked.py flutter test --no-pub
 
       - name: Configure stable signing key
         if: inputs.sign_apk
@@ -158,10 +160,28 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          flutter build apk --release --flavor prod --no-pub \
+          python3 .github/scripts/run_checked.py flutter build apk --release --flavor prod --no-pub \
             --build-name="$BUILD_VERSION" --build-number="$GITHUB_RUN_NUMBER" \
             --dart-define="CI_VERSION=$BUILD_VERSION" \
             --dart-define="GIT_COMMIT=$GITHUB_SHA"
+
+      # Flutter's APK build above prepares the Gradle wrapper/local.properties.
+      # flutter test alone does not execute Kotlin capture rules and sessions.
+      - name: Test Android capture rules and sessions
+        working-directory: android
+        shell: bash
+        run: python3 ../.github/scripts/run_checked.py ./gradlew :app:testDevDebugUnitTest --no-daemon --console=plain
+
+      - name: Save Android unit test reports
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: android-unit-tests-${{ github.run_number }}
+          path: |
+            build/app/test-results/testDevDebugUnitTest/
+            build/app/reports/tests/testDevDebugUnitTest/
+          if-no-files-found: warn
+          retention-days: 14
 
       - name: Verify APK permissions and signatures
         shell: bash

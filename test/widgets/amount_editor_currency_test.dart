@@ -2,6 +2,8 @@
 ///   - 单币种态(无账户,未选币种):只有轻量币种标(=本位币),无汇率行
 ///   - 编辑外币交易:汇率行出现,初值=隐含汇率(nativeAmount/amount),
 ///     折算预览按隐含汇率(改备注不漂移)
+import 'dart:async';
+
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -44,6 +46,8 @@ void main() {
     String? initialCurrencyCode,
     double? initialAmount,
     double? initialNativeAmount,
+    FutureOr<void> Function(AmountEditorResult)? onSubmit,
+    String? submitErrorMessage,
   }) {
     return ProviderScope(
       overrides: [
@@ -63,7 +67,8 @@ void main() {
             initialCurrencyCode: initialCurrencyCode,
             initialNativeAmount: initialNativeAmount,
             ledgerId: 1,
-            onSubmit: (_) {},
+            onSubmit: onSubmit ?? (_) {},
+            submitErrorMessage: submitErrorMessage,
           ),
         ),
       ),
@@ -97,5 +102,39 @@ void main() {
     // 而非当前有效汇率 —— 只改备注折算基准不漂移)
     expect(find.textContaining('1 USD ='), findsNothing);
     expect(find.textContaining('≈ 86.40 CNY'), findsOneWidget);
+  });
+
+  testWidgets('异步保存失败后恢复输入，并且等待期间不重复提交', (tester) async {
+    await db.customStatement(
+        "INSERT INTO ledgers (id, name, currency) VALUES (1, 'L', 'CNY')");
+    final firstSave = Completer<void>();
+    var calls = 0;
+    await tester.pumpWidget(host(
+      initialAmount: 12.50,
+      submitErrorMessage: '保存未完成，请重试',
+      onSubmit: (_) async {
+        calls++;
+        if (calls == 1) await firstSave.future;
+      },
+    ));
+    await tester.pumpAndSettle();
+    final finish = find.text('完成');
+    expect(finish, findsOneWidget);
+    await tester.tap(finish);
+    // A second tap before the first frame is also guarded by _isSubmitting.
+    await tester.tap(finish);
+    await tester.pump();
+    expect(calls, 1);
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    firstSave.completeError(StateError('CAPTURE_LEDGER_CHANGED'));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(find.text('保存未完成，请重试'), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+    await tester.tap(finish);
+    await tester.pumpAndSettle();
+    expect(calls, 2);
+    await tester.pump(const Duration(seconds: 3)); // Let the toast release its overlay.
+    await tester.pumpWidget(const SizedBox.shrink());
   });
 }

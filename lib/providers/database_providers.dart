@@ -19,8 +19,10 @@ final repositoryProvider = Provider<BaseRepository>((ref) {
   return LocalRepository(ref.watch(databaseProvider));
 });
 
-// 记住当前账本：启动时加载，切换时持久化
-final currentLedgerIdProvider = StateProvider<int>((ref) => 1);
+// 记住当前账本：启动时加载，切换时持久化。
+// Scoped so a capture review can use its frozen ledger without switching the
+// homepage. Dependent editor providers declare this scope explicitly.
+final currentLedgerIdProvider = StateProvider<int>((ref) => 1, dependencies: const []);
 
 // 获取当前账本的详细信息。
 // StreamProvider:sync pull / 本地编辑改了 ledger 行(如 monthStartDay)会自动
@@ -29,7 +31,7 @@ final currentLedgerProvider = StreamProvider<Ledger?>((ref) {
   final ledgerId = ref.watch(currentLedgerIdProvider);
   final repo = ref.watch(repositoryProvider);
   return repo.watchLedger(ledgerId);
-});
+}, dependencies: [currentLedgerIdProvider]);
 
 /// 当前账本的每月起始日(1-28);未加载完成时按 1(自然月)兜底。
 final currentMonthStartDayProvider = Provider<int>((ref) {

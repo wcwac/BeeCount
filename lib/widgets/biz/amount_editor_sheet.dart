@@ -50,7 +50,8 @@ class AmountEditorSheet extends ConsumerStatefulWidget {
   final List<int>? initialTagIds; // 初始标签ID列表
   final bool showAccountPicker; // 是否显示账户选择
   final bool allowContinueAdding; // 双击完成后回到分类选择继续新建
-  final ValueChanged<AmountEditorResult> onSubmit;
+  final FutureOr<void> Function(AmountEditorResult) onSubmit;
+  final String? submitErrorMessage;
   final int ledgerId;
   final int? editingTransactionId; // 编辑模式时的交易ID，用于显示已有附件
   final String transactionKind; // 'expense' / 'income' / 'transfer'，决定标记开关可见性
@@ -74,6 +75,7 @@ class AmountEditorSheet extends ConsumerStatefulWidget {
     this.showAccountPicker = false,
     this.allowContinueAdding = false,
     required this.onSubmit,
+    this.submitErrorMessage,
     required this.ledgerId,
     this.editingTransactionId,
     this.transactionKind = 'expense',
@@ -395,7 +397,7 @@ class _AmountEditorSheetState extends ConsumerState<AmountEditorSheet> {
     SystemSound.play(SystemSoundType.click);
   }
 
-  void _submit({required bool continueAdding}) {
+  Future<void> _submit({required bool continueAdding}) async {
     if (_isSubmitting || !mounted) return;
 
     final current = double.tryParse(_amountStr) ?? 0.0;
@@ -424,19 +426,27 @@ class _AmountEditorSheetState extends ConsumerState<AmountEditorSheet> {
 
     HapticFeedback.lightImpact();
     SystemSound.play(SystemSoundType.click);
-    widget.onSubmit((
-      amount: total.abs(), // 始终正数
-      continueAdding: continueAdding,
-      note: _noteCtrl.text.isEmpty ? null : _noteCtrl.text,
-      date: _date,
-      accountId: _selectedAccountId,
-      tagIds: _selectedTagIds,
-      pendingAttachments: _pendingAttachments,
-      excludeFromStats: _excludeFromStats,
-      excludeFromBudget: _excludeFromBudget,
-      currencyCode: txCurrency,
-      nativeAmount: nativeAmount,
-    ));
+    try {
+      await widget.onSubmit((
+        amount: total.abs(), // 始终正数
+        continueAdding: continueAdding,
+        note: _noteCtrl.text.isEmpty ? null : _noteCtrl.text,
+        date: _date,
+        accountId: _selectedAccountId,
+        tagIds: List.unmodifiable(_selectedTagIds),
+        pendingAttachments: List.unmodifiable(_pendingAttachments),
+        excludeFromStats: _excludeFromStats,
+        excludeFromBudget: _excludeFromBudget,
+        currencyCode: txCurrency,
+        nativeAmount: nativeAmount,
+      ));
+    } catch (_) {
+      if (mounted) {
+        showToast(context, widget.submitErrorMessage ?? AppLocalizations.of(context).commonError);
+      }
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
   }
 
   // 旧 _toggleSign 已废弃，符号由类别含义决定

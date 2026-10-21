@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="capture_service_name">Local transaction capture / 本地交易采集</string>
+    <string name="capture_notification_name">Payment notification assistance / 付款通知辅助</string>
+    <string name="capture_service_description">When enabled in the app, reads transaction pages only in selected applications and stores local drafts for your review. Does not initiate payments or upload page content. 启用后，仅读取所选应用的交易页面，保存到本机待确认列表。不会发起付款或上传页面内容。</string>
     <!-- 通用资源 -->
     <string name="app_name">蜜蜂记账</string>
     <string name="app_name_test">蜜蜂记账测试版</string>

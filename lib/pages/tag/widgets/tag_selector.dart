@@ -28,12 +28,14 @@ class TagSelector extends ConsumerStatefulWidget {
     BuildContext context, {
     List<int> selectedTagIds = const [],
   }) async {
+    final editorContainer = ProviderScope.containerOf(context, listen: false);
     return await showModalBottomSheet<List<int>>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => TagSelector(
-        selectedTagIds: selectedTagIds,
+      builder: (context) => UncontrolledProviderScope(
+        container: editorContainer,
+        child: TagSelector(selectedTagIds: selectedTagIds),
       ),
     );
   }
@@ -316,9 +318,11 @@ class _TagSelectorState extends ConsumerState<TagSelector> {
   }
 
   void _createNewTag() async {
+    final editorContainer = ProviderScope.containerOf(context, listen: false);
     final result = await Navigator.of(context).push<Tag?>(
       MaterialPageRoute(
-        builder: (_) => const TagEditPage(),
+        builder: (_) => UncontrolledProviderScope(
+          container: editorContainer, child: const TagEditPage()),
       ),
     );
 

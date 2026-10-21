@@ -1,0 +1,188 @@
+Local transaction capture — implementation checkpoint
+
+Target: BeeCount offline fork, Android. Default: disabled.
+No APK/SO code is embedded. Rules are independently written from documented
+page behavior and static observations. All 22 package registrations remain
+experimental; registration is not a real-device compatibility certification.
+
+Implemented source paths
+- capture/CaptureApps.kt: 22 packages grouped into 15 rule profiles.
+- capture/CaptureAdapters.kt: semantic amount/merchant/payment labels, explicit
+  checkout/detail variants, success/failure/refund evidence, ambiguity markers.
+  Refunds use mutually consistent current-refund labels and reject recognized
+  original order, requested or cumulative totals as a fallback. Payment detail offsets
+  cannot supply missing refund amounts. Refund destinations/references take
+  precedence over the original payment channel/transaction reference.
+  Transfer principal and actual receipts have their own amount-label priorities;
+  visible positive fees request review rather than silently creating fee entries.
+  Meituan's inspected deferred-payment deduction status is recognized separately.
+- capture/CaptureEngine.kt: per-package expiring sessions, independent new
+  checkout identities, failure resets, notification identity isolation. Published
+  IDs stay stable when later observations add transaction references. Explicit
+  direction/time and unresolved field warnings survive sparse result events.
+- capture/BeeCaptureService.kt: consent/package gates before collection,
+  content-event settling, event-source fallback for opaque window trees.
+- capture/SnapshotCollector.kt: a shared window/source read budget of 400 nodes,
+  6000 characters, depth 16 and a nominal 24 ms; a slow Android IPC call cannot
+  itself be preempted by this budget. Owned legacy nodes are recycled.
+- capture/BeeCaptureNotificationService.kt: independently opt-in notifications;
+  selected packages only, no historical sweep.
+- capture/CaptureInboxStore.kt: private native SQLite drafts, terminal states,
+  bounded pending capacity, schema v2 transaction-reference index and v1 upgrade.
+  Durable reference aliases never rename an already published draft. Conflicting
+  amount/ledger/reference observations remain separate and require review.
+  No native write to the Drift ledger.
+- capture/CaptureSettings.kt / CaptureRuntime.kt: consent generations reject
+  queued work after off/on or permission narrowing. Each observation retains
+  its original ledger identity. Notification posting is best effort and cannot
+  turn a successful persistent write into a reported storage failure.
+- capture/CaptureScheduler.kt: at most 31 pending snapshots plus one in progress.
+  Eight pending slots are reserved for possible checkout/result/failure/reset
+  evidence. Ordinary same-window updates can coalesce only within the same
+  source, target ledger, consent generation and session revision. Important snapshots stay FIFO;
+  overload evicts ordinary content first. If all slots hold important evidence,
+  new work can still be rejected and is reported, rather than claiming lossless
+  capture. Classification shares parser state/checkout words and profile statuses.
+  The worker yields between observations so bridge/status/ACK jobs can run.
+  Resets advance the revision captured by future observations. They do not insert
+  a clear job between checkout/result observations already waiting in the queue.
+  The engine clears sessions when processing a new revision or consent generation.
+  Empty known-home observations are forwarded too, so a blank home tree can
+  still reset a previous checkout instead of accidentally lending it to a result.
+- Queue skips and failed candidate persistence increment an acknowledged loss
+  cursor stored in local preferences. Successful later writes do not erase it.
+  The settings page offers explicit acknowledgement of the observed cursor;
+  concurrent later loss stays visible. These counters count observations, not
+  missed transactions, and the UI does not present them as a transaction count.
+  SharedPreferences uses asynchronous apply; process/storage recovery still
+  requires Android verification. No raw page text is put in the health counters.
+- capture/CaptureBridge.kt: status/settings/inbox/acknowledgement methods.
+- Flutter capture settings/inbox: consent, system settings, app/ledger selection,
+  review, missing-field correction and explicit duplicate association. Inbox
+  filtering handles immutable snapshots; one failed ACK cannot hide other drafts.
+- Existing transaction/transfer editor: normal repository writes, capture
+  metadata in the same transaction, ACK reconciliation after interrupted saves.
+  Tags (including validated legacy mirror IDs) and prepared attachment rows also
+  join that transaction. A failed row write cannot leave a partly saved payment.
+  Image compression/copying finishes before opening the DB transaction; selected
+  image preparation failure keeps the editor open without writing a payment.
+  Retrying an already committed candidate cannot duplicate tags/attachment rows.
+  Capture review uses quickAdd so selecting a category opens the amount sheet.
+  Ledger/currency/tag providers declare scoped dependencies, and amount/tag
+  sheets carry the review's provider container across Navigator routes.
+  Submit callbacks are awaited; failed capture saves restore the submit button.
+- Widgets are refreshed after review returns to the homepage provider scope,
+  instead of changing the displayed widget ledger to the capture's frozen target.
+- Schema v35: capture links and deletion tombstones. Complete database backup
+  includes recorded capture metadata and can read legacy v34 backups.
+- .github/workflows/release.yml: existing build now includes
+  :app:testDevDebugUnitTest and archives XML/HTML Android unit reports. This is
+  after the Flutter APK build prepares the wrapper/local.properties. Only the
+  user-authorized feat/local-transaction-capture branch also builds on push;
+  it uses version 0.3.0 without signing or publishing. No PR
+  trigger was added, and no workflow has been dispatched for these changes.
+  Flutter's suite and Kotlin's suite are separate; neither replaces device checks.
+
+Safety and correctness boundaries
+- All records require user confirmation. No unattended financial write.
+- Payment failure is ignored; order-only success is marked unconfirmed.
+- Unknown amounts remain absent, never replaced by zero.
+- Same candidate retry is idempotent. Equal amounts with different candidate
+  identities remain separate unless the user explicitly confirms a duplicate.
+- Duplicate association rechecks the selected row's stable ID, direction,
+  amount, currency and time before linking. Uncertain-currency observations are
+  not suggested as confirmed CNY duplicates. The dialog shows income/expense/
+  transfer so the user can distinguish entries with the same amount.
+- Source app and payment method are separate fields. Raw order references are
+  hashed. Raw page trees are not persisted; no network permission is added.
+- Transaction references, rather than ordinary order IDs, may deduplicate a
+  payment across service restarts. Refunds do not assume that an order/reference
+  identifies one unique refund. Cross-source duplicates still require confirmation.
+- Amount parsing retains integer cents and split decimal fragments. Nearby
+  merchant guesses are marked; control labels, URLs and dates are rejected as
+  merchants. Date parsing requires the complete value, without trailing garbage.
+- Explicit amount conflicts and rejected original-payment values invalidate
+  cached amounts. They cannot be filled from an earlier checkout/refund event.
+  Refund records do not inherit the original payment's discount as a new discount.
+- Native/backup candidate fields are validated before the UI consumes them.
+- Target ledger identity includes its stable identity and creation time, so
+  restoring a different ledger with the same numeric ID cannot silently retarget
+  old pending drafts. Categories/accounts follow this fork's global semantics.
+- Inbox errors/queue saturation surface through status; capture is best effort.
+- Native pending drafts/settings/loss counters are not in the database JSON backup.
+- Filesystem preparation and SQLite commit are separate operations. If the
+  process stops between them, unreferenced content-addressed image files may
+  remain; the existing orphan-file cleanup can remove them. No financial row or
+  capture link is committed by preparation alone. Image bytes still require
+  the normal attachment backup, separately from the database JSON backup.
+
+Validation status at this checkpoint
+Source-only inspection confirmed: 22 unique package registrations, 15 profiles,
+8 Flutter/native method names present on both sides, well-formed Android XML,
+and retained removal of network permissions. git diff --check found no whitespace
+errors. This is not a Dart/Kotlin compilation or runtime verification.
+
+NOT RUN: Flutter dependency resolution, formatting/analyzer, Flutter tests,
+Gradle unit tests/build, Android instrumentation or real-device capture.
+The earlier instruction restricted work to source edits. The user subsequently
+authorized GitHub Actions compilation; cloud verification is now being started.
+The current environment also has no Flutter SDK, Android SDK or Gradle wrapper
+JAR. No tools were downloaded to bypass that decision.
+The repository's historical CI results describe earlier commits and do not
+validate this branch. No current test report or built APK exists in this workspace.
+
+Added regression sources (not executed)
+- Android CaptureEngineTest: exact money, checkout/result transitions, failed
+  checkout isolation, expiry, ledger changes, repeated events, independent
+  same-amount payments, coupons, ambiguity, refunds, late reference enrichment,
+  warning/direction/time inheritance, split decimals, complete date parsing,
+  empty-home reset, old queued results across reset boundaries and new-consent
+  cache isolation even without a service callback.
+- Android CaptureAdapterCorpusTest: 15 independently specified synthetic page
+  sequences covering all 22 package variants, plus instruction-vs-success cases.
+  These inputs are constructed from inspected patterns, not device recordings.
+- Android CaptureRefundTest: current refund vs original price for all 22 package
+  registrations; mixed success/refund statuses, requested amounts, contradictory
+  refund labels, invalidated cached amounts, equal partial refunds with distinct
+  refund IDs, fee vs transfer principal, net receipts and Meituan deferred payments.
+  This is also a synthetic corpus; no real-client refund compatibility is claimed.
+- Android CaptureSchedulerTest: reserved slots, ordinary-content coalescing,
+  evidence ordering, full-important-queue rejection, frozen-ledger/consent keys,
+  persisted cursor reconstruction, stale acknowledgements and classifier gates.
+  The existing adapter corpus also checks that all example checkout/receipt
+  sequences are classified as important. These are queue/cursor cases, not an
+  Android event storm, latency benchmark or storage-durability measurement.
+- Flutter capture_commit_test: lost ACK retries, equal-amount independence,
+  explicit cross-source association, atomic rollback, global accounts, restored
+  ledger identity, deletion tombstones and backup roundtrips. Additional cases
+  cover stale duplicate choices, uncertain currencies, failed second attachment
+  insertion, balance/tag/attachment rollback, retries without duplicated metadata,
+  deleted tags and legacy mirror tags confined to the target ledger. Attachment
+  fixtures in these DB cases are metadata, not decoded physical image samples.
+- Flutter capture_migration_test: v34→v35, preserved records and balances.
+- Flutter capture_inbox_test: fixed native snapshots, ACK failure isolation,
+  category→amount→save flow and a frozen USD ledger while the homepage uses CNY,
+  including a second tag sheet above the amount sheet.
+- Flutter capture_candidate_test: malformed metadata and incomplete review drafts.
+- Existing amount_editor_currency_test: awaited save failure and double-submit
+  prevention, in addition to currency-display cases.
+- Android instrumentation CaptureInboxStoreTest: persistence after reopening,
+  pending enrichment, terminal-state replay rejection, ledger identity, durable
+  reference aliases/collisions and native v1→v2 migration. The context wrapper
+  keeps applicationContext in the instrumentation APK's sandbox.
+- Android instrumentation CaptureSettingsTest: disabled defaults, consent
+  revocation generations and ledger changes. No target-app database is used.
+
+Remaining before this can be called verified/ready to merge
+1. Continue source review and acquire redacted device page fixtures for each
+   family; the synthetic corpus cannot establish client-version compatibility.
+2. Execute the authorized GitHub Actions analyzer/tests/build and fix failures.
+3. Verify permission/service reconnect, native inbox persistence with Flutter
+   absent, notification taps, interrupted commits and duplicate confirmation.
+4. Validate the 5 first-stage applications, then 10 second-stage and 7 final-stage
+   packages on actual client versions. Record supported/unreadable scenarios.
+5. Stress the implemented queue-overload policy on Android; audit same-amount terminal screens with
+   no observable checkout or transaction reference. Such observations cannot be
+   assumed to uniquely identify a transaction.
+
+No test or compatibility pass is claimed by this file.

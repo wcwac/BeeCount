@@ -11,7 +11,7 @@ final tagListRefreshProvider = StateProvider<int>((ref) => 0);
 /// 离线账本只在加载完成后开放标签创建，不使用历史云端角色作为权限。
 final canCreateTagForCurrentLedgerProvider = Provider<bool>((ref) {
   return ref.watch(currentLedgerProvider).unwrapPrevious().valueOrNull != null;
-});
+}, dependencies: [currentLedgerProvider]);
 
 /// 所有标签列表 Provider（响应式）
 final allTagsStreamProvider = StreamProvider<List<Tag>>((ref) {
@@ -38,7 +38,7 @@ final tagsForCurrentLedgerProvider = FutureProvider<List<Tag>>((ref) async {
   final ledgerId = ref.watch(currentLedgerIdProvider);
   final ctx = await repo.db.loadLedgerPickerContext(ledgerId);
   return repo.db.filterTagsForLedger(all, ctx);
-});
+}, dependencies: [currentLedgerIdProvider]);
 
 /// 标签列表带统计信息 Provider（响应式）
 /// 返回每个标签及其关联的交易数量
@@ -109,7 +109,7 @@ final recentTagsForCurrentLedgerProvider = FutureProvider<List<Tag>>((ref) async
     return [...local, ...historical].take(10).toList();
   }
   return repo.getRecentlyUsedTags(limit: 10);
-});
+}, dependencies: [currentLedgerIdProvider]);
 
 /// 最近使用的标签 Provider
 /// 用于标签选择器快速选择

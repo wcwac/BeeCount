@@ -9,6 +9,7 @@ import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 
 import '../data/db.dart';
+import '../models/prepared_attachment.dart';
 import '../providers.dart';
 import 'system/logger_service.dart';
 
@@ -100,6 +101,34 @@ class AttachmentService {
     bool urgent = false,
   }) async {
     try {
+      final prepared = await prepareAttachment(sourceFile: sourceFile, index: index, urgent: urgent);
+      if (prepared == null) return null;
+      final repo = ref.read(repositoryProvider);
+      final id = await repo.createAttachment(
+        transactionId: transactionId,
+        fileName: prepared.fileName,
+        originalName: prepared.originalName,
+        fileSize: prepared.fileSize,
+        width: prepared.width,
+        height: prepared.height,
+        sortOrder: prepared.sortOrder,
+      );
+      logger.info('AttachmentService', '附件保存成功${urgent ? "(urgent/sync copy)" : ""}: ${prepared.fileName}');
+      return await repo.getAttachmentById(id);
+    } catch (e, stackTrace) {
+      logger.error('AttachmentService', '保存附件失败', e, stackTrace);
+      return null;
+    }
+  }
+
+  /// Finish image compression/copying before opening a financial DB transaction.
+  /// This method creates no attachment or transaction rows.
+  Future<PreparedAttachment?> prepareAttachment({
+    required File sourceFile,
+    required int index,
+    bool urgent = false,
+  }) async {
+    try {
       final dir = await getAttachmentDirectory();
       final ext = path.extension(sourceFile.path).toLowerCase();
       final finalExt = ext.isEmpty ? '.jpg' : ext;
@@ -131,7 +160,7 @@ class AttachmentService {
           fileToStore = sourceFile;
         } else {
           // 先压缩到临时文件，再按实际保存内容的 sha256 命名（同图去重）。
-          final timestamp = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+          final timestamp = DateTime.now().microsecondsSinceEpoch;
           final tempPath = '${dir.path}/_tmp_${timestamp}_$index$finalExt';
           final compressedFile = await _compressImage(sourceFile, tempPath);
           if (compressedFile == null) {
@@ -157,10 +186,7 @@ class AttachmentService {
         fileSize = await savedFile.length();
       }
 
-      // 保存到数据库(Drift FFI,纯 Dart,不走 platform channel,不受冻结影响)
-      final repo = ref.read(repositoryProvider);
-      final id = await repo.createAttachment(
-        transactionId: transactionId,
+      return PreparedAttachment(
         fileName: fileName,
         originalName: path.basename(sourceFile.path),
         fileSize: fileSize,
@@ -168,14 +194,23 @@ class AttachmentService {
         height: height,
         sortOrder: index,
       );
-
-      logger.info('AttachmentService',
-          '附件保存成功${urgent ? "(urgent/sync copy)" : ""}: $fileName');
-      return repo.getAttachmentById(id);
     } catch (e, stackTrace) {
-      logger.error('AttachmentService', '保存附件失败', e, stackTrace);
+      logger.error('AttachmentService', '准备附件失败', e, stackTrace);
       return null;
     }
+  }
+
+  /// All selected images must be ready before confirming a captured payment.
+  /// A failed preparation keeps the editor open and creates no financial rows.
+  Future<List<PreparedAttachment>> prepareAttachments(List<File> sourceFiles) async {
+    if (sourceFiles.length > maxAttachments) throw const FormatException('Too many attachments');
+    final prepared = <PreparedAttachment>[];
+    for (var i = 0; i < sourceFiles.length; i++) {
+      final attachment = await prepareAttachment(sourceFile: sourceFiles[i], index: i);
+      if (attachment == null) throw const FileSystemException('Could not prepare selected attachment');
+      prepared.add(attachment);
+    }
+    return List.unmodifiable(prepared);
   }
 
   /// 批量保存附件

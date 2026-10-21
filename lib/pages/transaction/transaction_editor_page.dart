@@ -18,10 +18,15 @@ import '../../widgets/transaction/transfer_form.dart';
 import '../../styles/tokens.dart';
 import '../../services/billing/post_processor.dart';
 import '../../services/attachment_service.dart';
+import '../../models/capture_candidate.dart';
+import '../../services/capture/capture_commit_service.dart';
+import '../../services/capture/capture_service.dart';
+import '../settings/capture_text.dart';
 
 /// 交易编辑器页面
 /// 支持创建/编辑收入、支出和转账记录
 class TransactionEditorPage extends ConsumerStatefulWidget {
+  final CaptureCandidate? captureCandidate;
   final bool isCopy;
   final String initialKind; // 'expense', 'income', or 'transfer'
   // quickAdd: 点击分类后在当前弹窗上叠加金额输入
@@ -42,6 +47,7 @@ class TransactionEditorPage extends ConsumerStatefulWidget {
 
   const TransactionEditorPage({
     super.key,
+    this.captureCandidate,
     this.isCopy = false,
     required this.initialKind,
     this.quickAdd = false,
@@ -219,6 +225,7 @@ class _TransactionEditorPageState extends ConsumerState<TransactionEditorPage>
                   initialCategoryId: widget.initialCategoryId,
                 ),
                 TransferForm(
+                  captureCandidate: widget.captureCandidate,
                   onTransferComplete: () {
                     // 关闭交易编辑器
                     Navigator.pop(context);
@@ -279,7 +286,7 @@ class _TransactionEditorPageState extends ConsumerState<TransactionEditorPage>
       Navigator.pop(context, c);
       return;
     }
-    final ledgerId = ref.read(currentLedgerIdProvider);
+    final ledgerId = widget.captureCandidate?.ledgerId ?? ref.read(currentLedgerIdProvider);
 
     // 确定初始账户ID（新建时使用默认账户，编辑时保持原值）
     int? initialAccountId = widget.initialAccountId;
@@ -288,6 +295,7 @@ class _TransactionEditorPageState extends ConsumerState<TransactionEditorPage>
       initialAccountId = await _getDefaultAccountId(kind, ledgerId);
     }
 
+    final editorContainer = ProviderScope.containerOf(context, listen: false);
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -295,7 +303,9 @@ class _TransactionEditorPageState extends ConsumerState<TransactionEditorPage>
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (ctx) => AmountEditorSheet(
+      builder: (ctx) => UncontrolledProviderScope(
+        container: editorContainer,
+        child: AmountEditorSheet(
         categoryName: c.name,
         categoryId: c.id,
         categorySyncId: c.id < 0 ? c.syncId : null,
@@ -312,7 +322,9 @@ class _TransactionEditorPageState extends ConsumerState<TransactionEditorPage>
         initialExcludeFromBudget: widget.initialExcludeFromBudget,
         initialCurrencyCode: widget.initialCurrencyCode,
         initialNativeAmount: widget.initialNativeAmount,
+        submitErrorMessage: widget.captureCandidate == null ? null : CaptureText(ctx).saveFailed,
         allowContinueAdding: widget.quickAdd &&
+            widget.captureCandidate == null &&
             !widget.isCopy &&
             widget.editingTransactionId == null &&
             kind != 'transfer',
@@ -357,6 +369,29 @@ class _TransactionEditorPageState extends ConsumerState<TransactionEditorPage>
             transactionId = widget.editingTransactionId!;
             // 共享账本:本地 lastEditedByUserId 立即回填,UI 头像组直接展示
             // 当前 user 为编辑人(否则要等 server 下次 pull 才回来)
+          } else if (widget.captureCandidate != null) {
+            if (repo is! LocalRepository) throw StateError('Local capture requires a local repository');
+            final candidate = widget.captureCandidate!;
+            final prepared = await attachmentService.prepareAttachments(res.pendingAttachments);
+            final commit = await CaptureCommitService(repo).commit(
+              candidate: candidate, type: kind, amount: res.amount,
+              categoryId: categoryIdForWrite, accountId: accountIdForAdd,
+              categorySyncIdOverride: categoryOverride, accountSyncIdOverride: accountOverride,
+              happenedAt: res.date, note: res.note,
+              excludeFromStats: res.excludeFromStats, excludeFromBudget: res.excludeFromBudget,
+              currencyCode: res.currencyCode, nativeAmount: res.nativeAmount,
+              tagIds: res.tagIds, attachments: prepared,
+            );
+            transactionId = commit.transactionId;
+            // Tags and attachment rows have already committed atomically. A
+            // retry must not repeat the ordinary editor's metadata writes below.
+            await _ackCapture(candidate, transactionId);
+            await PostProcessor.run(ref, ledgerId: ledgerId,
+              tags: res.tagIds.isNotEmpty, attachments: prepared.isNotEmpty);
+            ref.invalidate(countsForLedgerProvider(ledgerId));
+            if (ctx.mounted && Navigator.of(ctx).canPop()) Navigator.of(ctx).pop();
+            if (context.mounted && Navigator.of(context).canPop()) Navigator.of(context).pop();
+            return;
           } else {
             transactionId = await repo.addTransaction(
               ledgerId: ledgerId,
@@ -449,6 +484,7 @@ class _TransactionEditorPageState extends ConsumerState<TransactionEditorPage>
               // 创建 tx 时 1 秒内 2 条 identical upsert)。直接砍。
             }
           }
+          if (widget.captureCandidate != null) await _ackCapture(widget.captureCandidate!, transactionId);
           // 统一处理：自动/手动同步与状态刷新（后台静默）
           PostProcessor.refreshLocal(ref, ledgerId: ledgerId);
           // 刷新：账本笔数与全局统计
@@ -478,8 +514,14 @@ class _TransactionEditorPageState extends ConsumerState<TransactionEditorPage>
           HapticFeedback.lightImpact();
           SystemSound.play(SystemSoundType.click);
         },
+        ),
       ),
     );
+  }
+
+  Future<void> _ackCapture(CaptureCandidate candidate, int transactionId) async {
+    try { await CaptureService().acknowledge(candidate.id, transactionId); }
+    catch (_) { /* Reconciled from the durable link on the next inbox load. */ }
   }
 
   /// §7 v25:account picker 返 synthetic Account(id<0)时,把 id 反查

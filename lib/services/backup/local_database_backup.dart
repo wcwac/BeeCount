@@ -6,6 +6,7 @@ import 'package:drift/drift.dart' as d;
 
 import '../../data/db.dart';
 import '../../models/finance.dart';
+import '../../models/capture_candidate.dart';
 
 /// A validated snapshot, held in memory between preview and confirmation.
 /// It contains database rows only; preferences and attachment bytes are excluded.
@@ -26,11 +27,12 @@ class LocalDatabaseBackupService {
   final BeeDatabase db;
   static const maxBytes = 100 * 1024 * 1024;
   static const _format = 'beecount-local-database';
-  static const _schemaVersion = 34;
-  static const _financeTables = [
+  static const _schemaVersion = 35;
+  static const _auxiliaryTables = [
     'finance_plans',
     'finance_events',
     'finance_transaction_links',
+    'transaction_capture_links',
   ];
 
   String _quoted(String name) => '"${name.replaceAll('"', '""')}"';
@@ -50,7 +52,7 @@ class LocalDatabaseBackupService {
     }
     final allowed = {
       for (final table in db.allTables) table.actualTableName,
-      ..._financeTables,
+      ..._auxiliaryTables,
     };
     final schema = <String, List<String>>{};
     for (final name in allowed) {
@@ -122,10 +124,18 @@ class LocalDatabaseBackupService {
     if (document is! Map ||
         document['format'] != _format ||
         document['version'] != 1 ||
-        document['schemaVersion'] != _schemaVersion ||
+        !const [34, _schemaVersion].contains(document['schemaVersion']) ||
         document['tables'] is! Map) _invalid('format/version');
     final schema = await _schema();
-    final rawTables = document['tables'] as Map;
+    final rawTables = Map<Object?, Object?>.from(document['tables'] as Map);
+    // v34 backups predate capture metadata. Upgrade their empty side table in
+    // memory; keep all other schema/table/column validation strict.
+    if (document['schemaVersion'] == 34) {
+      if (rawTables.containsKey('transaction_capture_links')) _invalid('legacy capture table');
+      rawTables['transaction_capture_links'] = {
+        'columns': schema['transaction_capture_links']!, 'rows': <List<Object?>>[],
+      };
+    }
     if (rawTables.length != schema.length ||
         !rawTables.keys.every(schema.containsKey)) _invalid('table set');
     final tables = <String, _BackupTable>{};
@@ -153,7 +163,34 @@ class LocalDatabaseBackupService {
       count += rows.length;
     }
     _validateFinanceReferences(tables);
+    _validateCaptureReferences(tables);
     return LocalDatabaseSnapshot._(Map.unmodifiable(tables), count);
+  }
+
+  void _validateCaptureReferences(Map<String, _BackupTable> tables) {
+    final tx = tables['transactions']!;
+    final transactions = <Object?, Map<String, Object?>>{
+      for (final row in tx.rows) row[tx.columns.indexOf('id')]: {
+        for (var i = 0; i < tx.columns.length; i++) tx.columns[i]: row[i],
+      },
+    };
+    final links = tables['transaction_capture_links']!;
+    final ids = <String>{};
+    for (final row in links.rows) {
+      final data = {for (var i = 0; i < links.columns.length; i++) links.columns[i]: row[i]};
+      final id = data['candidate_id'], payload = data['candidate_json'];
+      if (id is! String || !ids.add(id) || payload is! String || payload.length > 16384 ||
+          data['created_at'] is! int) _invalid('capture metadata');
+      try {
+        final candidate = CaptureCandidate.fromMap(jsonDecode(payload) as Map);
+        if (candidate.id != id || candidate.ledgerId != data['ledger_id'] ||
+            candidate.sourcePackage != data['source_package']) _invalid('capture identity');
+      } catch (_) { _invalid('capture payload'); }
+      final txId = data['transaction_id'];
+      // A user may move the recorded transaction to another ledger later.
+      // The capture payload retains its original target as provenance.
+      if (txId != null && (txId is! int || transactions[txId] == null)) _invalid('capture transaction');
+    }
   }
 
   void _validateFinanceReferences(Map<String, _BackupTable> tables) {
@@ -346,15 +383,15 @@ class LocalDatabaseBackupService {
       }
       await db.customStatement('PRAGMA defer_foreign_keys = ON');
       // Release financial guard triggers before deleting the referenced rows.
-      for (final name in _financeTables.reversed) {
+      for (final name in _auxiliaryTables.reversed) {
         await db.customStatement('DELETE FROM ${_quoted(name)}');
       }
       final ordinary =
-          schema.keys.where((name) => !_financeTables.contains(name)).toList();
+          schema.keys.where((name) => !_auxiliaryTables.contains(name)).toList();
       for (final name in ordinary.reversed) {
         await db.customStatement('DELETE FROM ${_quoted(name)}');
       }
-      for (final name in [...ordinary, ..._financeTables]) {
+      for (final name in [...ordinary, ..._auxiliaryTables]) {
         final table = snapshot._tables[name]!;
         final sql = 'INSERT INTO ${_quoted(name)} '
             '(${table.columns.map(_quoted).join(',')}) VALUES '

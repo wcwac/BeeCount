@@ -57,7 +57,7 @@ class AppLinkService {
         return AppLinkResult.success(message: _l10n.appLinkOpenManualBilling);
       case AppLinkAction.open:
         final page = uri.queryParameters['page'];
-        if (!const ['assets', 'budget', 'detail'].contains(page)) {
+        if (!const ['assets', 'budget', 'detail', 'capture'].contains(page)) {
           return AppLinkResult.failure(_l10n.appLinkNoTargetPage);
         }
         onNavigate?.call(action, params: AddTransactionParams(amount: 0, page: page));

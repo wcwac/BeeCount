@@ -9,6 +9,10 @@ Modified by wcwac from BeeCount by sunxiao (TNT-Likely). The original copyright 
 - Tap the ledger name on the home screen to switch ledgers. Use ledger management to create, edit or delete a ledger and manage its budget.
 - Recurring transactions and bookkeeping reminders are available under automation settings.
 - Photo attachments are added only when you choose a file or take a photo. The app does not monitor screenshots or your photo library.
+- Android offers experimental transaction capture under Settings → Automation. It is off by default. Select a ledger and applications, enable capture, and grant accessibility access in system settings. Review captured drafts before recording them; processing stays on this device.
+- Drafts can be retained while the Flutter UI is absent. Capture depends on service availability, permission and readable app content. Each client version requires separate validation; some Taobao and Douyin pages may be inaccessible.
+- Optional notification assistance requires separate system notification access. It processes new notifications only from selected apps, without scanning historical notifications; drafts still require review.
+- If a capture-loss warning appears, check your payment records and add missing entries. Dismissing the warning clears only the warning you saw; it does not create or delete transactions. Later losses still appear.
 
 ## Data and backups
 
@@ -40,3 +44,5 @@ Open Assets → Finance for reimbursements, money lent/borrowed, instalments, mo
 Turn off the cash-flow switch when registering an existing position. Use the finance detail screen to undo the latest event or delete a record. Prepaid accounts support top-ups by transfer and spending by expense. The homepage calendar icon shows daily totals and transactions.
 
 Data management offers a complete database JSON backup including finance plans, events, links and flags. Restore replaces the local database; export your existing database first. Attachment files and application preferences are excluded. Export/import attachment ZIPs separately. CSV and configuration YAML do not preserve the full financial relationships.
+
+Database backups include capture metadata for recorded transactions. The native pending-draft inbox and capture settings are excluded. Check the selected capture ledger after restoring a backup. Uninstalling or clearing app data also removes unconfirmed drafts.

@@ -22,12 +22,17 @@
 - 相对上游，直接运行依赖从 64 项减至 40 项，本地子包从 10 个减至 0 个。
   根锁文件包数从 254 减至 184，SQLite 原生库、图片附件和本地通知等依赖保留。
   已核对 CI 实际生成的锁定文件和本地化代码与提交内容一致。
-- 当前没有 Android 无障碍自动记账服务；周期记账和小组件手动入口继续保留。
+- `feat/local-transaction-capture` 分支新增默认关闭的 Android 无障碍交易采集、
+  可选通知辅助和确认后记账，包含 22 个包名、15 组实验性规则。新增改动尚未运行
+  构建、测试或真机验证；上面的历史 CI 结果不能用于证明这些采集改动通过。
+  当前范围和未完成验收见 `docs/CAPTURE_IMPLEMENTATION.txt`。
 
 ## 手动触发
 
 唯一保留的 workflow 是 `.github/workflows/release.yml`，名称为
-**Offline Android**。普通 push、PR 和 tag 都不会触发它。
+**Offline Android**。用户已授权采集功能的 Actions 编译，因此
+`feat/local-transaction-capture` 的 push 会执行未签名的 `0.3.0` 检查构建；
+其他分支的 push、PR 和 tag 不触发。自动检查不签名、不创建 Release。
 原有在线 AI 评测、Pullfrog 代理和 Issue 评论机器人已移除。
 
 GitHub 的手动触发要求 workflow 文件存在于默认分支。首次设置可将
@@ -92,6 +97,8 @@ flutter test --no-pub
 # 在仓库根目录，版本和构建号由 workflow 提供：
 flutter build apk --release --flavor prod --no-pub \
   --build-name=<version> --build-number=<run_number>
+# APK 构建准备好 Android wrapper 后，在 android/ 目录执行：
+./gradlew :app:testDevDebugUnitTest --no-daemon --console=plain
 ```
 
 构建后检查每个 APK：禁止 INTERNET、ACCESS_NETWORK_STATE、RECORD_AUDIO、
@@ -103,6 +110,10 @@ REQUEST_INSTALL_PACKAGES 权限；确认独立包名、`allowBackup=false`，
 运行会消耗 Actions 配额，构建产物上传到 GitHub；只有选择
 `create_release` 时才发布预发行版。CI 成功仍需真机检查本地记账、
 备份恢复、桌面组件和网络行为。
+
+手动流程另保存 Android 单元测试 XML/HTML 报告，覆盖采集规则、会话和有界队列；
+`flutter test` 不执行这些 Kotlin 用例。Android instrumentation、真实支付应用页面、
+服务重连、Flutter 未启动时的候选保留和性能测量仍需独立验收，当前流程不连接设备。
 
 
 ## 0.2.0 验证记录

@@ -13,11 +13,16 @@ import '../../services/attachment_service.dart';
 import '../biz/amount_editor_sheet.dart';
 import '../../utils/account_type_utils.dart';
 import '../../utils/shared_ledger_picker_filter.dart';
+import '../../models/capture_candidate.dart';
+import '../../services/capture/capture_commit_service.dart';
+import '../../services/capture/capture_service.dart';
+import '../../pages/settings/capture_text.dart';
 import '../ui/ui.dart';
 
 /// 转账表单组件
 /// 用于创建或编辑转账记录
 class TransferForm extends ConsumerStatefulWidget {
+  final CaptureCandidate? captureCandidate;
   final bool initialExcludeFromStats;
   final bool initialExcludeFromBudget;
   final String? initialCurrencyCode;
@@ -49,6 +54,7 @@ class TransferForm extends ConsumerStatefulWidget {
 
   const TransferForm({
     super.key,
+    this.captureCandidate,
     this.initialExcludeFromStats = false,
     this.initialExcludeFromBudget = false,
     this.initialCurrencyCode,
@@ -152,15 +158,18 @@ class _TransferFormState extends ConsumerState<TransferForm> {
     }
 
     final repo = ref.read(repositoryProvider);
-    final ledgerId = ref.read(currentLedgerIdProvider);
+    final ledgerId = widget.captureCandidate?.ledgerId ?? ref.read(currentLedgerIdProvider);
 
     if (!mounted) return;
 
+    final editorContainer = ProviderScope.containerOf(context, listen: false);
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: BeeTokens.surfaceSheet(context),
-      builder: (context) => AmountEditorSheet(
+      builder: (context) => UncontrolledProviderScope(
+        container: editorContainer,
+        child: AmountEditorSheet(
         categoryName: l10n.transferTitle,
         initialDate: widget.initialDate ?? DateTime.now(),
         initialAmount: widget.initialAmount,
@@ -174,6 +183,7 @@ class _TransferFormState extends ConsumerState<TransferForm> {
         initialExcludeFromBudget: widget.initialExcludeFromBudget,
         initialCurrencyCode: widget.initialCurrencyCode,
         initialNativeAmount: widget.initialNativeAmount,
+        submitErrorMessage: widget.captureCandidate == null ? null : CaptureText(context).saveFailed,
         onSubmit: (result) async {
           final attachmentService = ref.read(attachmentServiceProvider);
           // 获取虚拟转账分类ID
@@ -256,6 +266,25 @@ class _TransferFormState extends ConsumerState<TransferForm> {
               widget.onTransferComplete();
             } else {
               // 创建模式：新建转账记录
+              if (widget.captureCandidate != null) {
+                if (repo is! LocalRepository) throw StateError('Local capture requires a local repository');
+                final prepared = await attachmentService.prepareAttachments(result.pendingAttachments);
+                final capture = await CaptureCommitService(repo).commit(
+                  candidate: widget.captureCandidate!, type: 'transfer', amount: result.amount,
+                  categoryId: transferCategoryId, accountId: fromAccountForAdd, toAccountId: toAccountForAdd,
+                  accountSyncIdOverride: fromOverride, toAccountSyncIdOverride: toOverride,
+                  note: result.note, happenedAt: result.date,
+                  excludeFromStats: result.excludeFromStats, excludeFromBudget: result.excludeFromBudget,
+                  currencyCode: result.currencyCode, nativeAmount: result.nativeAmount,
+                  tagIds: result.tagIds, attachments: prepared,
+                );
+                await _ackCapture(capture.transactionId);
+                await PostProcessor.run(ref, ledgerId: ledgerId,
+                  tags: result.tagIds.isNotEmpty, attachments: prepared.isNotEmpty);
+                ref.invalidate(countsForLedgerProvider(ledgerId));
+                if (context.mounted) { Navigator.of(context).pop(); widget.onTransferComplete(); }
+                return;
+              }
               final txId = await repo.addTransaction(
                 ledgerId: ledgerId,
                 type: 'transfer',
@@ -301,6 +330,7 @@ class _TransferFormState extends ConsumerState<TransferForm> {
               ref.invalidate(countsForLedgerProvider(ledgerId));
               ref.read(statsRefreshProvider.notifier).state++;
 
+              await _ackCapture(txId);
               if (!context.mounted) return;
               Navigator.of(context).pop(); // 关闭金额输入弹窗
               showToast(context, l10n.transferCreateSuccess);
@@ -314,14 +344,25 @@ class _TransferFormState extends ConsumerState<TransferForm> {
               widget.onTransferComplete();
             }
           } catch (e) {
+            // Keep the draft editor open; AmountEditorSheet awaits this callback
+            // and restores its submit button after a failed capture save.
+            if (widget.captureCandidate != null) rethrow;
             if (context.mounted) {
               Navigator.of(context).pop();
               showToast(context, '${l10n.commonError}: $e');
             }
           }
         },
+        ),
       ),
     );
+  }
+
+  Future<void> _ackCapture(int transactionId) async {
+    final candidate = widget.captureCandidate;
+    if (candidate == null) return;
+    try { await CaptureService().acknowledge(candidate.id, transactionId); }
+    catch (_) { /* Reconciled from the durable link on the next inbox load. */ }
   }
 
   /// §7 共享账本:Editor 在共享账本下转账要选 Owner 的账户(SharedLedger

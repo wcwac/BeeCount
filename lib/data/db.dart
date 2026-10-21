@@ -11,6 +11,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 
 import 'finance_schema.dart';
+import 'capture_schema.dart';
 
 part 'db.g.dart';
 
@@ -513,7 +514,7 @@ class BeeDatabase extends _$BeeDatabase {
   BeeDatabase.forTesting(QueryExecutor executor) : super(executor);
 
   @override
-  int get schemaVersion => 34; // v34: 离线财务计划、事件与流水关联
+  int get schemaVersion => 35; // v35: 本地交易采集的幂等落账关联
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -1261,10 +1262,12 @@ class BeeDatabase extends _$BeeDatabase {
             logger.info('DBMigration', 'v33 迁移完成');
           }
           if (from < 34) await createFinanceSchema(this);
+          if (from < 35) await createCaptureSchema(this);
         },
         onCreate: (m) async {
           await m.createAll();
           await createFinanceSchema(this);
+          await createCaptureSchema(this);
           await customStatement(
               'CREATE UNIQUE INDEX IF NOT EXISTS idx_rate_override_pair '
               'ON exchange_rate_overrides (base_currency, quote_currency);');

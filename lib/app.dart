@@ -11,6 +11,7 @@ import 'pages/account/accounts_page.dart';
 import 'pages/budget/budget_page.dart';
 import 'pages/main/mine_page.dart';
 import 'pages/transaction/transaction_editor_page.dart';
+import 'pages/transaction/capture_inbox_page.dart';
 import 'providers.dart';
 import 'l10n/app_localizations.dart';
 import 'widget/widget_manager.dart';
@@ -219,6 +220,9 @@ class _BeeAppState extends ConsumerState<BeeApp>
   /// 落地页路由。detail(最近交易)先落统计页,后续可按需换成专门的明细列表页。
   void _openPageForDeepLink(NavigatorState nav, String? page) {
     switch (page) {
+      case 'capture':
+        nav.push(MaterialPageRoute(builder: (_) => const CaptureInboxPage()));
+        break;
       case 'assets':
         nav.push(MaterialPageRoute(builder: (_) => const AccountsPage()));
         break;
