@@ -158,7 +158,7 @@ class _TransferFormState extends ConsumerState<TransferForm> {
     }
 
     final repo = ref.read(repositoryProvider);
-    final ledgerId = widget.captureCandidate?.ledgerId ?? ref.read(currentLedgerIdProvider);
+    final int ledgerId = widget.captureCandidate?.ledgerId ?? ref.read<int>(currentLedgerIdProvider);
 
     if (!mounted) return;
 

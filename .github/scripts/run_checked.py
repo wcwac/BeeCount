@@ -3,6 +3,7 @@
 from collections import deque
 import subprocess
 import sys
+import re
 
 
 def escape(value):
@@ -13,6 +14,7 @@ def main():
     if len(sys.argv) < 2:
         raise SystemExit("Expected a command")
     tail = deque(maxlen=180)
+    diagnostics = deque(maxlen=200)
     # Commands and their arguments come from the checked-in workflow, not user text.
     process = subprocess.Popen(
         sys.argv[1:], stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
@@ -21,9 +23,11 @@ def main():
     for line in process.stdout:
         print(line, end="", flush=True)
         tail.append(line.rstrip("\n"))
+        if re.search(r"error\s*•|Error:|^e: |\[E\]|FAILED|Exception:", line):
+            diagnostics.append(line.rstrip("\n"))
     result = process.wait()
     if result:
-        lines = list(tail)
+        lines = list(diagnostics) + ["--- Last output ---"] + list(tail)[-60:]
         for start in range(0, len(lines), 20):
             message = "\n".join(lines[start:start + 20])
             print(f"::error title=Command failed (exit {result})::{escape(message)}")

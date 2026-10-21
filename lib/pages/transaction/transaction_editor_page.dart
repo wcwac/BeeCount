@@ -286,7 +286,7 @@ class _TransactionEditorPageState extends ConsumerState<TransactionEditorPage>
       Navigator.pop(context, c);
       return;
     }
-    final ledgerId = widget.captureCandidate?.ledgerId ?? ref.read(currentLedgerIdProvider);
+    final int ledgerId = widget.captureCandidate?.ledgerId ?? ref.read<int>(currentLedgerIdProvider);
 
     // 确定初始账户ID（新建时使用默认账户，编辑时保持原值）
     int? initialAccountId = widget.initialAccountId;

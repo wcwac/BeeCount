@@ -116,7 +116,7 @@ jobs:
         run: python3 .github/scripts/run_checked.py flutter analyze --no-pub --no-fatal-infos --no-fatal-warnings
 
       - name: Test local features and offline boundaries
-        run: python3 .github/scripts/run_checked.py flutter test --no-pub
+        run: python3 .github/scripts/run_checked.py flutter test --no-pub --reporter expanded
 
       - name: Configure stable signing key
         if: inputs.sign_apk
