@@ -199,7 +199,7 @@ final annualReportDataProvider =
     firstRecordCategory: firstRecordCategory,
     maxConsecutiveDays: maxConsecutive,
   );
-});
+}, dependencies: [currentLedgerIdProvider]);
 
 /// 年度账单页面
 class AnnualReportPage extends ConsumerStatefulWidget {

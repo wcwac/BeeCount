@@ -20,6 +20,7 @@ def main():
     tail = deque(maxlen=180)
     diagnostics = deque(maxlen=200)
     exception_head = None
+    test_failure_head = None
     log_directory = Path(os.environ['RUNNER_TEMP']) / 'validation-logs'
     log_directory.mkdir(parents=True, exist_ok=True)
     log_name = re.sub(r'[^A-Za-z0-9_.-]', '_', os.environ.get('GITHUB_ACTION', 'command'))
@@ -49,6 +50,11 @@ def main():
         log.write(line)
         tail.append(line.rstrip("\n"))
         if "EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK" in line:
+            # A short first exception must not disappear when Flutter emits a
+            # second exception or a final "Multiple exceptions" summary.
+            if exception_head and len(exception_head) < 25:
+                message = "\n".join(exception_head)
+                print(f"::notice title=Flutter exception diagnostic::{escape(message)}", flush=True)
             exception_head = []
         if exception_head is not None and len(exception_head) < 30:
             exception_head.append(line.rstrip("\n"))
@@ -58,8 +64,26 @@ def main():
         if re.search(r"\berror\s*(?:•|-)|Error:|^e: |\[E\]|FAILED|Exception:|\[(?:ERROR|SEVERE)\]", line):
             diagnostics.append(line.rstrip("\n"))
         if "[E]" in line:
+            if test_failure_head:
+                message = "\n".join(test_failure_head)
+                print(f"::notice title=Test failure details::{escape(message)}", flush=True)
+            # Expanded Dart test output writes Expected/Actual and the stack
+            # AFTER [E]. Capture that payload as well as the preceding tail.
+            test_failure_head = [line.rstrip("\n")]
             message = "\n".join((exception_head or []) + list(tail)[-15:])
             print(f"::notice title=Test diagnostic::{escape(message)}", flush=True)
+        elif test_failure_head is not None:
+            test_failure_head.append(line.rstrip("\n"))
+            if len(test_failure_head) >= 30:
+                message = "\n".join(test_failure_head)
+                print(f"::notice title=Test failure details::{escape(message)}", flush=True)
+                test_failure_head = None
+    if exception_head and len(exception_head) < 25:
+        message = "\n".join(exception_head)
+        print(f"::notice title=Flutter exception diagnostic::{escape(message)}", flush=True)
+    if test_failure_head:
+        message = "\n".join(test_failure_head)
+        print(f"::notice title=Test failure details::{escape(message)}", flush=True)
     result = process.wait()
     log.close()
     if result:

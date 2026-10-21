@@ -38,7 +38,7 @@ final currentLedgerProvider = StreamProvider<Ledger?>((ref) {
 final currentMonthStartDayProvider = Provider<int>((ref) {
   final ledger = ref.watch(currentLedgerProvider).value;
   return (ledger?.monthStartDay ?? 1).clamp(1, 28);
-});
+}, dependencies: [currentLedgerProvider]);
 
 // 获取指定账本的详细信息
 final ledgerByIdProvider = FutureProvider.family<Ledger?, int>((ref, ledgerId) async {
@@ -75,7 +75,7 @@ final _currentLedgerPersist = Provider<void>((ref) {
       await prefs.setInt('current_ledger_id', next);
     } catch (_) {}
   });
-});
+}, dependencies: [currentLedgerIdProvider]);
 
 // 当账本切换时，顺便触发一次设置页状态刷新（确保"我的"页及时反映）
 final _ledgerChangeListener = Provider<void>((ref) {
@@ -84,13 +84,13 @@ final _ledgerChangeListener = Provider<void>((ref) {
   ref.listen<int>(currentLedgerIdProvider, (prev, next) {
     ref.read(localDataRevisionProvider.notifier).state++;
   });
-});
+}, dependencies: [_currentLedgerPersist, currentLedgerIdProvider]);
 
 // 确保监听器被激活
 final appInitProvider = FutureProvider<void>((ref) async {
   // 读取以激活监听
   ref.read(_ledgerChangeListener);
-});
+}, dependencies: [_ledgerChangeListener]);
 
 // 分类Provider
 final categoriesProvider = FutureProvider<List<Category>>((ref) async {

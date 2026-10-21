@@ -340,7 +340,7 @@ final appSplashInitProvider = FutureProvider<void>((ref) async {
   logger.info(tag, '预加载总耗时: ${dataLoadTime.inMilliseconds}ms，切换到主应用');
   if (!ref.mounted) return;
   ref.read(appInitStateProvider.notifier).state = AppInitState.ready;
-});
+}, dependencies: [appInitProvider, baseCurrencyInitProvider, budgetOverviewProvider, currentLedgerIdProvider, incomeExpenseColorSchemeInitProvider, primaryColorInitProvider]);
 
 // 是否应该显示欢迎页面的Provider
 final shouldShowWelcomeProvider = StateProvider<bool>((ref) => false);

@@ -369,8 +369,11 @@ class _LedgersPageNewState extends ConsumerState<LedgersPageNew> {
       // 必须切到新账本 id 否则首页 header 胶囊继续显示「新建账本」、列表为
       // 空。已有账本时不动 currentLedger,保留用户当前所在账本。
       if (!mounted) return;
-      final currentLedger = await ref.read(currentLedgerProvider.future);
-      if (currentLedger == null) {
+      final activeLedgerId = ref.read(currentLedgerIdProvider);
+      final currentLedger = await repo.getLedgerById(activeLedgerId);
+      if (!mounted) return;
+      if (currentLedger == null &&
+          ref.read(currentLedgerIdProvider) == activeLedgerId) {
         ref.read(currentLedgerIdProvider.notifier).state = newLedgerId;
         ref.invalidate(currentLedgerProvider);
       }

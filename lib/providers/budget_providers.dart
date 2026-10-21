@@ -43,7 +43,7 @@ final totalBudgetProvider = FutureProvider<Budget?>((ref) async {
   final repo = ref.watch(repositoryProvider);
 
   return repo.getTotalBudget(ledgerId);
-});
+}, dependencies: [currentLedgerIdProvider]);
 
 /// 当前账本的所有预算
 final allBudgetsProvider = FutureProvider<List<Budget>>((ref) async {
@@ -53,7 +53,7 @@ final allBudgetsProvider = FutureProvider<List<Budget>>((ref) async {
   final repo = ref.watch(repositoryProvider);
 
   return repo.getAllBudgets(ledgerId);
-});
+}, dependencies: [currentLedgerIdProvider]);
 
 /// 当前账本的预算概览
 final budgetOverviewProvider = FutureProvider<BudgetOverview?>((ref) async {
@@ -64,7 +64,7 @@ final budgetOverviewProvider = FutureProvider<BudgetOverview?>((ref) async {
   final now = DateTime.now();
 
   return repo.getBudgetOverview(ledgerId, now);
-});
+}, dependencies: [currentLedgerIdProvider]);
 
 /// 分类预算列表
 final categoryBudgetsProvider = FutureProvider<List<CategoryBudgetUsage>>((ref) async {
@@ -75,7 +75,7 @@ final categoryBudgetsProvider = FutureProvider<List<CategoryBudgetUsage>>((ref) 
   final now = DateTime.now();
 
   return repo.getCategoryBudgetUsages(ledgerId, now);
-});
+}, dependencies: [currentLedgerIdProvider]);
 
 /// 监听预算变化
 final budgetsStreamProvider = StreamProvider<List<Budget>>((ref) {
@@ -83,7 +83,7 @@ final budgetsStreamProvider = StreamProvider<List<Budget>>((ref) {
   final repo = ref.watch(repositoryProvider);
 
   return repo.watchBudgets(ledgerId);
-});
+}, dependencies: [currentLedgerIdProvider]);
 
 /// 指定分类的预算使用情况
 final categoryBudgetUsageProvider = FutureProvider.family<CategoryBudgetUsage?, int>((ref, categoryId) async {
@@ -110,4 +110,4 @@ final categoryBudgetUsageProvider = FutureProvider.family<CategoryBudgetUsage?, 
     categoryIcon: category.icon,
     usage: usage,
   );
-});
+}, dependencies: [currentLedgerIdProvider]);

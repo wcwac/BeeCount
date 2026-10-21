@@ -11,6 +11,7 @@ import 'package:beecount/data/repositories/local/local_repository.dart';
 import 'package:beecount/l10n/app_localizations.dart';
 import 'package:beecount/pages/tag/tag_detail_page.dart';
 import 'package:beecount/providers/database_providers.dart';
+import 'package:beecount/utils/month_range.dart';
 import 'package:beecount/widgets/biz/biz.dart' show TransactionListItem;
 
 void main() {
@@ -97,6 +98,43 @@ void main() {
     // 手动拆树:drift QueryStream 取消订阅时会排一个 zero-duration Timer,
     // 留给框架自动拆树会触发 "A Timer is still pending" 断言。
     // pump 必须带时长——不带时不推进 FakeAsync 时钟,timer 不会执行。
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump(const Duration(milliseconds: 1));
+  });
+
+  testWidgets('局部账本的自定义月起始日同时决定周期标签和交易范围', (tester) async {
+    final otherLedger = await repo.createLedger(name: 'Root ledger');
+    final ledgerId = await repo.createLedger(name: 'Scoped ledger');
+    await repo.updateLedger(id: ledgerId, monthStartDay: 28);
+    final tagId = await repo.createTag(name: '旅行');
+    final now = DateTime.now();
+    final label = labelForDate(now, 28);
+    final period = periodForLabel(label.year, label.month, 28);
+
+    Future<void> seed(int targetLedger, DateTime date) async {
+      final transactionId = await repo.addTransaction(
+        ledgerId: targetLedger,
+        type: 'expense',
+        amount: 10,
+        happenedAt: date,
+      );
+      await repo.addTagToTransaction(transactionId: transactionId, tagId: tagId);
+    }
+
+    await seed(ledgerId, period.start.add(const Duration(days: 1)));
+    await seed(ledgerId, period.start.subtract(const Duration(days: 1)));
+    await seed(otherLedger, period.start.add(const Duration(days: 1)));
+    await tester.pumpWidget(host(ledgerId, tagId));
+    await tester.pumpAndSettle();
+    expect(find.byType(TransactionListItem), findsNWidgets(2));
+
+    await tester.tap(find.text('月'));
+    await tester.pumpAndSettle();
+    expect(find.text('${label.year}-${label.month.toString().padLeft(2, '0')}'), findsOneWidget);
+    expect(find.byType(TransactionListItem), findsOneWidget);
+    expect(find.text('1笔'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
     await tester.pumpWidget(const SizedBox());
     await tester.pump(const Duration(milliseconds: 1));
   });

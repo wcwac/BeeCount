@@ -65,7 +65,7 @@ final primaryColorInitProvider = FutureProvider<void>((ref) async {
   ref.listen<Color>(primaryColorProvider, (prev, next) async {
     await _persistPrimaryColor(ref, prefs, next);
   });
-});
+}, dependencies: [currentLedgerIdProvider]);
 
 /// 保存主题色并刷新桌面小组件。
 Future<void> _persistPrimaryColor(
@@ -317,7 +317,7 @@ final incomeExpenseColorSchemeInitProvider = FutureProvider<void>((ref) async {
     }
 
   });
-});
+}, dependencies: [currentLedgerIdProvider]);
 
 // 用户显示名仅保存在本机。
 final displayNameProvider = StateProvider<String>((ref) => '');

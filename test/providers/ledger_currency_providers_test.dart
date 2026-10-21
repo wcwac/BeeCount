@@ -42,14 +42,18 @@ void main() {
           .overrideWith((ref) => Stream<Ledger?>.value(ledgerWith('usd'))),
     ]);
     addTearDown(container.dispose);
-    await container.read(currentLedgerProvider.future);
+    final ledgerSubscription = container.listen(currentLedgerProvider, (_, __) {});
+    addTearDown(ledgerSubscription.close);
+    await container.read(currentLedgerProvider.future).timeout(const Duration(seconds: 5));
     expect(container.read(currentLedgerCurrencyProvider), 'USD');
 
     final empty = ProviderContainer(overrides: [
       currentLedgerProvider.overrideWith((ref) => Stream<Ledger?>.value(null)),
     ]);
     addTearDown(empty.dispose);
-    await empty.read(currentLedgerProvider.future);
+    final emptySubscription = empty.listen(currentLedgerProvider, (_, __) {});
+    addTearDown(emptySubscription.close);
+    await empty.read(currentLedgerProvider.future).timeout(const Duration(seconds: 5));
     expect(empty.read(currentLedgerCurrencyProvider), 'CNY');
   });
 
@@ -76,7 +80,9 @@ void main() {
           .overrideWith((ref) => Stream<Ledger?>.value(ledgerWith('USD'))),
     ]);
     addTearDown(container.dispose);
-    await container.read(currentLedgerProvider.future);
+    final ledgerSubscription = container.listen(currentLedgerProvider, (_, __) {});
+    addTearDown(ledgerSubscription.close);
+    await container.read(currentLedgerProvider.future).timeout(const Duration(seconds: 5));
     // 主币种是 CNY,但账本本位币 USD → 应取 base=USD 的组
     container.read(baseCurrencyProvider.notifier).state = 'CNY';
 
@@ -85,5 +91,35 @@ void main() {
     expect(rates.keys, containsAll(['CNY', 'JPY']));
     expect(rates['CNY']!.rate, '0.14');
     expect(rates.containsKey('USD'), isFalse); // base 自身不在 quote 里
+  });
+
+  test('a review scope keeps its ledger currency and month boundary independent', () async {
+    final homeLedger = await repo.createLedger(name: 'Home', currency: 'USD');
+    final reviewLedger = await repo.createLedger(name: 'Review', currency: 'JPY');
+    await repo.updateLedger(id: homeLedger, monthStartDay: 5);
+    await repo.updateLedger(id: reviewLedger, monthStartDay: 20);
+    final home = ProviderContainer(overrides: [
+      repositoryProvider.overrideWithValue(repo),
+      currentLedgerIdProvider.overrideWith((ref) => homeLedger),
+    ]);
+    addTearDown(home.dispose);
+    final review = ProviderContainer(parent: home, overrides: [
+      currentLedgerIdProvider.overrideWith((ref) => reviewLedger),
+    ]);
+    addTearDown(review.dispose);
+    // Riverpod 3 pauses unobserved streams. Keep the same active watchers that
+    // the homepage and a review editor have while their database values load.
+    final homeSubscription = home.listen(currentLedgerProvider, (_, __) {});
+    final reviewSubscription = review.listen(currentLedgerProvider, (_, __) {});
+    addTearDown(homeSubscription.close);
+    addTearDown(reviewSubscription.close);
+    await home.read(currentLedgerProvider.future).timeout(const Duration(seconds: 5));
+    await review.read(currentLedgerProvider.future).timeout(const Duration(seconds: 5));
+
+    expect(home.read(currentLedgerCurrencyProvider), 'USD');
+    expect(home.read(currentMonthStartDayProvider), 5);
+    expect(review.read(currentLedgerCurrencyProvider), 'JPY');
+    expect(review.read(currentMonthStartDayProvider), 20);
+    expect(home.read(currentLedgerIdProvider), homeLedger);
   });
 }

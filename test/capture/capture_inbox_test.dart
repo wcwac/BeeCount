@@ -173,11 +173,17 @@ void main() {
     // Warm the homepage providers first: a child review must not inherit their
     // cached CNY value or switch the homepage's current ledger to the target.
     container.read(currentLedgerIdProvider.notifier).state = ledger.id;
+    // Riverpod 3 pauses stream subscriptions without listeners. Keep the
+    // homepage watcher alive while warming its cache before mounting the app.
     // Drift's first watched value can need an event-loop turn. Waiting for it
     // directly in testWidgets' fake clock can stall before the first pump.
+    late ProviderSubscription<AsyncValue<Ledger?>> homepageLedger;
     await tester.runAsync(() async {
-      await container.read(currentLedgerProvider.future);
+      homepageLedger = container.listen(currentLedgerProvider, (_, __) {});
+      await container.read(currentLedgerProvider.future)
+          .timeout(const Duration(seconds: 5));
     });
+    addTearDown(homepageLedger.close);
     expect(container.read(currentLedgerCurrencyProvider), 'CNY');
     final draft = {...payload('scoped-draft', 'USD payment'),
       'ledgerId': targetId, 'ledgerKey': CaptureCommitService.ledgerKey(target), 'currency': 'USD'};
@@ -202,7 +208,8 @@ void main() {
     final amountContext = tester.element(find.byType(AmountEditorSheet));
     final scoped = ProviderScope.containerOf(amountContext, listen: false);
     expect(scoped.read(currentLedgerIdProvider), targetId);
-    final reviewedLedger = await tester.runAsync(() => scoped.read(currentLedgerProvider.future));
+    final reviewedLedger = await tester.runAsync(() => scoped.read(currentLedgerProvider.future)
+        .timeout(const Duration(seconds: 5)));
     expect(reviewedLedger!.id, targetId);
     expect(scoped.read(currentLedgerCurrencyProvider), 'USD');
     unawaited(TagSelector.show(amountContext));

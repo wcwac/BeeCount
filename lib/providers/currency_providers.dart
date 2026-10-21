@@ -37,7 +37,7 @@ final baseCurrencyInitProvider = FutureProvider<void>((ref) async {
   ref.listen<String>(baseCurrencyProvider, (prev, next) async {
     await prefs.setString('baseCurrency', next);
   });
-});
+}, dependencies: [currentLedgerProvider]);
 
 /// 使用中币种 ∪ {主币种}(大写)。watch statsRefresh 跟随账户增删改。
 final usedCurrenciesProvider = FutureProvider<Set<String>>((ref) async {
@@ -138,7 +138,7 @@ final ledgerUnconvertedForeignTxCountProvider = FutureProvider<int>((ref) async 
   if (ledger == null) return 0;
   final repo = ref.watch(repositoryProvider);
   return repo.countUnconvertedForeignTx(ledger.id);
-});
+}, dependencies: [currentLedgerProvider]);
 
 /// 当前账本外币交易条数(含已折算):>0 时账本统计页显示折算脚注(01 §五)。
 final ledgerForeignTxCountProvider = FutureProvider<int>((ref) async {
@@ -147,7 +147,7 @@ final ledgerForeignTxCountProvider = FutureProvider<int>((ref) async {
   if (ledger == null) return 0;
   final repo = ref.watch(repositoryProvider);
   return repo.countForeignCurrencyTx(ledger.id);
-});
+}, dependencies: [currentLedgerProvider]);
 
 /// 资产页折算结果。
 final convertedNetWorthProvider =

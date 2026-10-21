@@ -50,3 +50,12 @@ https://github.com/wcwac/BeeCount/actions/runs/39656943238
 源码a200385；依赖解析已计算更新114项，但flutter pub get附带的gen-l10n因locale/template占位符类型不一致退出。批量比对所有ARB后一次修正17项（16条消息）中文元数据，与现有英文模板Object签名一致，不改显示文案和调用API。
 另补：未完成付款时同类订单号/交易号变化必须断开会话，避免把前一单金额/商户/付款方式沿用给新单；新增两项JVM序列回归，不改变不同类型订单号→支付交易号的补充行为。
 云端新增独立macos-26 / Xcode26.6无签名iOS与WidgetExtension编译；工作副本重解析过时Podfile.lock，新锁仅在两平台全部检查成功且Dart依赖图完全一致时回写。iOS编译不是设备运行验收，不签名、不发布。
+
+第三轮云端结果（完整原始outcome）
+https://github.com/wcwac/BeeCount/actions/runs/39657723214
+源码dddc857；实际Flutter3.47.7 / Dart3.13.5已由命令日志确认，解析、Drift生成、本地化生成和分析通过（584条info/warning，不代表零告警）。
+iOS与WidgetExtension无签名编译通过，Xcode构建201.9秒，Runner.app 39.2MB，仅编译不表示设备运行通过。
+采集专项26通过1失败；全Flutter504通过7失败、1项原有手动预览测试跳过。失败涉及无人监听StreamProvider.future、Riverpod3更严格的scoped dependencies及新通知插件在测试环境的平台注册。不得把HTML check-step的success结论（continue-on-error重写）误认为原始验证通过；最终gate已正确保留失败。
+Android APK与两个原生任务都在配置阶段被AGP9.2.1要求Gradle>=9.4.1拦截，因此尚无本轮原生JVM通过声明。下一批将wrapper改9.4.1及官方checksum，并完整重跑。
+继续集中处理上述7项、同步Flutter官方analysis_options排除迁移（仅build/android/ios，lib/test仍分析）、升级Actions固定SHA到当前Node24稳定版，并执行pub upgrade重新选择整个兼容传递依赖图。
+日志采集补强：短Flutter异常在下个异常出现前立即输出，常规测试[E]后继续捕获Expected/Actual及堆栈，避免只保留末尾“Multiple exceptions”而丢首因。

@@ -84,8 +84,9 @@ keytool -genkeypair -v -keystore beecount-offline.jks \
 
 ## 执行范围与验证
 
-执行位置为 GitHub 托管的 Ubuntu runner。流程下载 Flutter 3.27.3、
-Java 17、Android SDK/NDK 和 Pub/Gradle 依赖；使用已固定提交的
+当前升级分支使用 GitHub 托管 Ubuntu runner 验证 Android，并独立使用
+macos-26 / Xcode 26.6 无签名编译 iOS 与桌面组件扩展。流程下载 Flutter 3.47.7
+（Dart 3.13.5）、Java 17、Android SDK/NDK 和 Pub/Gradle/Pods 依赖；使用已固定提交的
 `actions/checkout`、`actions/setup-java`、`actions/upload-artifact`、
 `actions/download-artifact` 和 `subosito/flutter-action`。
 Gradle 通过仓库 wrapper 下载并执行。来源和版本写在 workflow 与
@@ -95,6 +96,8 @@ Gradle 通过仓库 wrapper 下载并执行。来源和版本写在 workflow 与
 
 ```sh
 flutter pub get
+dart run build_runner build --delete-conflicting-outputs
+flutter gen-l10n
 flutter analyze --no-pub --no-fatal-infos --no-fatal-warnings
 # 采集专项也是下方完整测试集的子集：
 flutter test --no-pub test/capture test/widgets/amount_editor_currency_test.dart \
@@ -124,6 +127,10 @@ REQUEST_INSTALL_PACKAGES 权限；确认独立包名、`allowBackup=false`，
 原始 `outcome`，任一必需检查未成功都会使 job 失败；发布仍要求整个构建 job 成功。
 instrumentation APK 当前仅编译，未运行其中的设备测试。真实支付应用页面、
 服务重连、Flutter 未启动时的候选保留和性能测量仍需独立验收，当前流程不连接设备。
+
+`feat/flutter-stable-upgrade` 正在迁移新版 SDK 与依赖，过程及实际 CI 结果见
+`docs/SDK_UPGRADE_IMPLEMENTATION.txt`。其最低 Android 版本提升到 API 24；
+下方 0.3.0 记录只验证旧 Flutter 3.27.3 基线。
 
 ## 0.3.0 采集功能验证记录
 
