@@ -51,17 +51,17 @@ final selectedViewProvider = StateProvider<String>((ref) => 'month');
 // ---------- Analytics 提示持久化（本地 SharedPreferences） ----------
 final analyticsHeaderHintDismissedProvider =
     FutureProvider.autoDispose<bool>((ref) async {
-  final prefs = await SharedPreferences.getInstance();
   final link = ref.keepAlive();
   ref.onDispose(() => link.close());
+  final prefs = await SharedPreferences.getInstance();
   return prefs.getBool('analytics_header_hint_dismissed') ?? false;
 });
 
 final analyticsChartHintDismissedProvider =
     FutureProvider.autoDispose<bool>((ref) async {
-  final prefs = await SharedPreferences.getInstance();
   final link = ref.keepAlive();
   ref.onDispose(() => link.close());
+  final prefs = await SharedPreferences.getInstance();
   return prefs.getBool('analytics_chart_hint_dismissed') ?? false;
 });
 
@@ -80,9 +80,9 @@ class AnalyticsHintsSetter {
 // ---------- FAB 长按提示持久化 ----------
 final fabSpeedDialTipDismissedProvider =
     FutureProvider.autoDispose<bool>((ref) async {
-  final prefs = await SharedPreferences.getInstance();
   final link = ref.keepAlive();
   ref.onDispose(() => link.close());
+  final prefs = await SharedPreferences.getInstance();
   return prefs.getBool('fab_speed_dial_tip_dismissed') ?? false;
 });
 
@@ -115,9 +115,9 @@ final appInitStateProvider =
 // 搜索页面金额范围筛选开关持久化
 final searchAmountFilterEnabledProvider =
     FutureProvider.autoDispose<bool>((ref) async {
-  final prefs = await SharedPreferences.getInstance();
   final link = ref.keepAlive();
   ref.onDispose(() => link.close());
+  final prefs = await SharedPreferences.getInstance();
   return prefs.getBool('search_amount_filter_enabled') ?? false;
 });
 
@@ -135,9 +135,9 @@ final searchSettingsSetterProvider = Provider<SearchSettingsSetter>((ref) {
 // 账户功能启用状态持久化
 final accountFeatureEnabledProvider =
     FutureProvider.autoDispose<bool>((ref) async {
-  final prefs = await SharedPreferences.getInstance();
   final link = ref.keepAlive();
   ref.onDispose(() => link.close());
+  final prefs = await SharedPreferences.getInstance();
   return prefs.getBool('account_feature_enabled') ?? true;
 });
 
@@ -361,18 +361,18 @@ final welcomeCheckProvider = FutureProvider<bool>((ref) async {
 // 默认收入账户ID持久化
 final defaultIncomeAccountIdProvider =
     FutureProvider.autoDispose<int?>((ref) async {
-  final prefs = await SharedPreferences.getInstance();
   final link = ref.keepAlive();
   ref.onDispose(() => link.close());
+  final prefs = await SharedPreferences.getInstance();
   return prefs.getInt('default_income_account_id');
 });
 
 // 默认支出账户ID持久化
 final defaultExpenseAccountIdProvider =
     FutureProvider.autoDispose<int?>((ref) async {
-  final prefs = await SharedPreferences.getInstance();
   final link = ref.keepAlive();
   ref.onDispose(() => link.close());
+  final prefs = await SharedPreferences.getInstance();
   return prefs.getInt('default_expense_account_id');
 });
 

@@ -165,6 +165,8 @@ final netWorthTrendSeriesProvider = FutureProvider.family.autoDispose<
     List<({DateTime date, double assets, double liabilities, double net})>,
     ({DateTime startDate, DateTime endDate})>((ref, params) async {
   final repo = ref.watch(repositoryProvider);
+  final link = ref.keepAlive();
+  ref.onDispose(() => link.close());
   ref.watch(statsRefreshProvider);
   // 折算到主币种,与净资产卡(convertedNetWorthProvider)同口径:各币种 → base 汇率,
   // base 自身 1.0;缺汇率的币种在 repo 内整条剔除。这样趋势末点 = 当前净资产。
@@ -175,8 +177,6 @@ final netWorthTrendSeriesProvider = FutureProvider.family.autoDispose<
     final r = double.tryParse(e.value.rate);
     if (r != null && r > 0) ratesToBase[e.key.toUpperCase()] = r;
   }
-  final link = ref.keepAlive();
-  ref.onDispose(() => link.close());
   return repo.getNetWorthTrendSeries(
       startDate: params.startDate, endDate: params.endDate, ratesToBase: ratesToBase);
 });

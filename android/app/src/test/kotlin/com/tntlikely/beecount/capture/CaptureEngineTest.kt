@@ -42,6 +42,30 @@ class CaptureEngineTest {
         assertEquals("label:实付款", result.evidence["amount"])
     }
 
+    @Test fun aChangedCheckoutOrderCannotBorrowThePreviousOrdersFields() {
+        val engine = CaptureEngine()
+        engine.accept(snapshot(wechat, "确认付款", "支付金额", "¥100.00", "收款方", "Original shop",
+            "付款方式", "Original card", "订单号", "ORDER202610220001"), 1)
+        assertNull(engine.accept(snapshot(wechat, "确认付款", "订单号", "ORDER202610220002", elapsed = 1500), 1))
+        val result = engine.accept(snapshot(wechat, "支付成功", elapsed = 2000), 1)!!
+        assertEquals(captureHash("wechat:ORDER202610220002"), result.referenceHash)
+        assertNull(result.amountMinor)
+        assertNull(result.merchant)
+        assertNull(result.paymentMethod)
+        assertTrue("AMOUNT_MISSING" in result.issues)
+    }
+
+    @Test fun aDifferentResultTransactionCannotBorrowAnUnfinishedCheckout() {
+        val engine = CaptureEngine()
+        engine.accept(snapshot(wechat, "确认付款", "支付金额", "¥100.00", "收款方", "Original shop",
+            "交易单号", "TRADE202610220001"), 1)
+        val result = engine.accept(snapshot(wechat, "支付成功", "交易单号", "TRADE202610220002", elapsed = 2000), 1)!!
+        assertEquals(captureHash("wechat:TRADE202610220002"), result.referenceHash)
+        assertNull(result.amountMinor)
+        assertNull(result.merchant)
+        assertTrue("AMOUNT_MISSING" in result.issues)
+    }
+
     @Test fun cancelledCheckoutCannotSupplyTheNextPayment() {
         val engine = CaptureEngine()
         engine.accept(snapshot(wechat, "确认付款", "支付金额", "￥20.00"), 1)

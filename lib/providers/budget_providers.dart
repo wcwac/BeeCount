@@ -21,6 +21,7 @@ class _BudgetCardEnabledNotifier extends StateNotifier<bool> {
 
   Future<void> _load() async {
     final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
     state = prefs.getBool(_budgetCardEnabledKey) ?? true;
   }
 

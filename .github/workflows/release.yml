@@ -79,9 +79,7 @@ jobs:
             "platforms;android-36" "build-tools;36.0.0" "ndk;28.2.13676358"
 
       - name: Report SDK versions
-        run: |
-          flutter --version
-          dart --version
+        run: python3 .github/scripts/run_checked.py flutter --version
 
       - name: Resolve dependencies
         run: python3 .github/scripts/run_checked.py flutter pub get
@@ -379,9 +377,73 @@ jobs:
           print('::notice::All required validation checks passed')
           PY
 
+  ios:
+    runs-on: macos-26
+    timeout-minutes: 45
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+      BUILD_VERSION: ${{ inputs.version || '0.4.0' }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - name: Report Apple toolchain versions
+        run: |
+          xcodebuild -version
+          flutter --version
+          pod --version
+      - name: Resolve iOS dependencies
+        run: python3 .github/scripts/run_checked.py flutter pub get
+      - name: Regenerate iOS database sources
+        id: codegen
+        continue-on-error: true
+        timeout-minutes: 10
+        run: python3 .github/scripts/run_checked.py dart run build_runner build --delete-conflicting-outputs
+      - name: Re-resolve the previous plugin Pod locks
+        run: rm -f ios/Podfile.lock
+      - name: Compile iOS and widget extension without signing
+        id: ios_build
+        continue-on-error: true
+        timeout-minutes: 25
+        shell: bash
+        run: |
+          python3 .github/scripts/run_checked.py flutter build ios --release --no-codesign --no-pub \
+            --build-name="$BUILD_VERSION" --build-number="$GITHUB_RUN_NUMBER"
+      - name: Save iOS dependency locks
+        if: ${{ !cancelled() && steps.ios_build.outcome == 'success' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ios-locks-${{ github.run_number }}
+          path: |
+            pubspec.lock
+            ios/Podfile.lock
+          if-no-files-found: error
+          retention-days: 14
+      - name: Save iOS validation logs
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ios-validation-logs-${{ github.run_number }}
+          path: ${{ runner.temp }}/validation-logs/
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Require iOS code generation and compilation
+        if: always() && !cancelled()
+        env:
+          CODEGEN: ${{ steps.codegen.outcome }}
+          IOS_BUILD: ${{ steps.ios_build.outcome }}
+        run: |
+          test "$CODEGEN" = success
+          test "$IOS_BUILD" = success
+
   persist-generated:
     if: ${{ github.ref == 'refs/heads/feat/flutter-stable-upgrade' }}
-    needs: android
+    needs: [android, ios]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
@@ -398,12 +460,20 @@ jobs:
         with:
           name: upgrade-generated-${{ github.run_number }}
           path: .
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: ios-locks-${{ github.run_number }}
+          path: ${{ runner.temp }}/ios-locks
+      - name: Verify both platforms used the same Dart dependency graph
+        run: |
+          cmp pubspec.lock "$RUNNER_TEMP/ios-locks/pubspec.lock"
+          cp "$RUNNER_TEMP/ios-locks/ios/Podfile.lock" ios/Podfile.lock
       - name: Commit the validated dependency lock and generated sources
         env:
           VALIDATED_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
-          git -c core.hooksPath=/dev/null add -- pubspec.lock lib/data/db.g.dart lib/l10n/app_localizations*.dart
+          git -c core.hooksPath=/dev/null add -- pubspec.lock ios/Podfile.lock lib/data/db.g.dart lib/l10n/app_localizations*.dart
           if git diff --cached --quiet; then
             echo "Generated sources already match the validated build."
             exit 0

@@ -55,7 +55,7 @@ def main():
             if len(exception_head) == 25:
                 message = "\n".join(exception_head)
                 print(f"::notice title=Flutter exception diagnostic::{escape(message)}", flush=True)
-        if re.search(r"error\s*•|Error:|^e: |\[E\]|FAILED|Exception:", line):
+        if re.search(r"\berror\s*(?:•|-)|Error:|^e: |\[E\]|FAILED|Exception:|\[(?:ERROR|SEVERE)\]", line):
             diagnostics.append(line.rstrip("\n"))
         if "[E]" in line:
             message = "\n".join((exception_head or []) + list(tail)[-15:])

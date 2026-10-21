@@ -14,6 +14,7 @@ class AttachmentKeepOriginalNotifier extends AsyncNotifier<bool> {
   Future<void> setEnabled(bool enabled) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(preferenceKey, enabled);
+    if (!ref.mounted) return;
     state = AsyncData(enabled);
   }
 }

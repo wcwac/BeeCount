@@ -44,3 +44,9 @@ https://pub.dev/api/packages/sqlite3/versions/3.7.1
 https://github.com/wcwac/BeeCount/actions/runs/39656543819
 源码13c1771；Flutter3.47.7的准备完成，pub解析因误选已撤回build_runner2.17.0而失败，后续检查未执行；不作任何升级通过声明。修复为2.16.2，并同步加入官方UIScene启动迁移和备份读取大小边界回归。
 iOS仅静态迁移（AppDelegate/Info.plist），Android Actions不验证Swift编译或UIScene运行。明确来源：https://docs.flutter.dev/release/breaking-changes/uiscenedelegate
+
+第二轮云端结果与集中修复
+https://github.com/wcwac/BeeCount/actions/runs/39656943238
+源码a200385；依赖解析已计算更新114项，但flutter pub get附带的gen-l10n因locale/template占位符类型不一致退出。批量比对所有ARB后一次修正17项（16条消息）中文元数据，与现有英文模板Object签名一致，不改显示文案和调用API。
+另补：未完成付款时同类订单号/交易号变化必须断开会话，避免把前一单金额/商户/付款方式沿用给新单；新增两项JVM序列回归，不改变不同类型订单号→支付交易号的补充行为。
+云端新增独立macos-26 / Xcode26.6无签名iOS与WidgetExtension编译；工作副本重解析过时Podfile.lock，新锁仅在两平台全部检查成功且Dart依赖图完全一致时回写。iOS编译不是设备运行验收，不签名、不发布。

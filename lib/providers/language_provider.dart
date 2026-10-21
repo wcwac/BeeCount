@@ -25,6 +25,7 @@ class LanguageNotifier extends StateNotifier<Locale?> {
   Future<void> _loadLanguage() async {
     try {
       final prefs = await SharedPreferences.getInstance();
+      if (!mounted) return;
       final languageCode = prefs.getString(_languageKey);
       final countryCode = prefs.getString('${_languageKey}_country');
       if (languageCode != null) {
@@ -54,6 +55,7 @@ class LanguageNotifier extends StateNotifier<Locale?> {
           await prefs.remove('${_languageKey}_country');
         }
       }
+      if (!mounted) return;
       state = locale;
       // 同步无 context 路径的应用内语言。
       setAppLocaleOverride(locale);

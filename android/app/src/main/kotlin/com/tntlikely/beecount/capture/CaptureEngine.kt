@@ -49,16 +49,19 @@ class CaptureEngine(private val adapters: CaptureAdapterRegistry = CaptureAdapte
         }
         var session = sessions[snapshot.packageName]?.takeIf { it.ledgerId == ledgerId && it.ledgerKey == ledgerKey }
         val prior = session
+        // A new order may appear before either checkout has produced a result.
+        // Do not lend that order the previous order's partially observed fields.
+        // Order IDs and PSP transaction IDs remain separate kinds of reference.
+        val differentReference = prior != null && fields.referenceHash != null && prior.fields.referenceHash != null &&
+            fields.referenceIsTransaction == prior.fields.referenceIsTransaction && fields.referenceHash != prior.fields.referenceHash
         val distinctResult = prior != null && prior.finalized && fields.page != CapturePage.CHECKOUT && (
             fields.page != prior.fields.page ||
-            (fields.referenceHash != null && prior.fields.referenceHash != null &&
-                fields.referenceIsTransaction == prior.fields.referenceIsTransaction && fields.referenceHash != prior.fields.referenceHash) ||
             (fields.amountMinor != null && prior.fields.amountMinor != null && fields.amountMinor != prior.fields.amountMinor) ||
             (fields.merchant != null && prior.fields.merchant != null && fields.merchant != prior.fields.merchant) ||
             (fields.transactionTime != null && prior.fields.transactionTime != null && fields.transactionTime != prior.fields.transactionTime)
         )
         val newRefund = fields.page == CapturePage.REFUND && prior?.fields?.page != CapturePage.REFUND
-        if (session == null || distinctResult || newRefund || (fields.page == CapturePage.CHECKOUT && session.finalized)) {
+        if (session == null || differentReference || distinctResult || newRefund || (fields.page == CapturePage.CHECKOUT && session.finalized)) {
             session = Session(UUID.randomUUID().toString(), ledgerId, ledgerKey, snapshot.elapsedAt, fields)
             sessions[snapshot.packageName] = session
         }

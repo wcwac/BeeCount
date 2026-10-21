@@ -76,6 +76,7 @@ class ReminderSettingsNotifier extends StateNotifier<ReminderSettings> {
   Future<void> _loadSettings() async {
     try {
       final prefs = await SharedPreferences.getInstance();
+      if (!mounted) return;
       final isEnabled = prefs.getBool(_keyEnabled) ?? false;
       final hour = prefs.getInt(_keyHour) ?? 21;
       final minute = prefs.getInt(_keyMinute) ?? 0;
@@ -92,11 +93,12 @@ class ReminderSettingsNotifier extends StateNotifier<ReminderSettings> {
 
   /// 保存设置
   Future<void> _saveSettings() async {
+    final settings = state;
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool(_keyEnabled, state.isEnabled);
-      await prefs.setInt(_keyHour, state.hour);
-      await prefs.setInt(_keyMinute, state.minute);
+      await prefs.setBool(_keyEnabled, settings.isEnabled);
+      await prefs.setInt(_keyHour, settings.hour);
+      await prefs.setInt(_keyMinute, settings.minute);
     } catch (e) {
       // 忽略保存错误
     }
@@ -106,6 +108,7 @@ class ReminderSettingsNotifier extends StateNotifier<ReminderSettings> {
   Future<void> updateEnabled(bool enabled) async {
     state = state.copyWith(isEnabled: enabled);
     await _saveSettings();
+    if (!mounted || !_ref.mounted) return;
 
     final notificationUtil = NotificationFactory.getInstance();
     if (enabled) {
@@ -125,6 +128,7 @@ class ReminderSettingsNotifier extends StateNotifier<ReminderSettings> {
   Future<void> updateTime(int hour, int minute) async {
     state = state.copyWith(hour: hour, minute: minute);
     await _saveSettings();
+    if (!mounted || !_ref.mounted) return;
 
     // 如果提醒已启用，重新设置通知
     if (state.isEnabled) {
@@ -143,6 +147,7 @@ class ReminderSettingsNotifier extends StateNotifier<ReminderSettings> {
   Future<void> updateSettings(ReminderSettings settings) async {
     state = settings;
     await _saveSettings();
+    if (!mounted || !_ref.mounted) return;
 
     final notificationUtil = NotificationFactory.getInstance();
     if (settings.isEnabled) {

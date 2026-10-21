@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show ProviderListenable;
 import '../../providers.dart';
 import '../../providers/budget_providers.dart';
 import '../../providers/calendar_providers.dart';
@@ -27,13 +28,17 @@ class PostProcessor {
       _refresh(c.read, ledgerId: ledgerId, tags: tags, attachments: attachments);
 
   static Future<void> runR(Ref ref, {required int ledgerId,
-      bool tags = false, bool attachments = false}) async =>
-      _refresh(ref.read, ledgerId: ledgerId, tags: tags, attachments: attachments);
+      bool tags = false, bool attachments = false}) async {
+    if (!ref.mounted) return;
+    _refresh(ref.read, ledgerId: ledgerId, tags: tags, attachments: attachments);
+  }
 
   static Future<void> refreshLocal(WidgetRef ref, {required int ledgerId}) async =>
       _refresh(ref.read, ledgerId: ledgerId);
   static Future<void> refreshLocalC(ProviderContainer c, {required int ledgerId}) async =>
       _refresh(c.read, ledgerId: ledgerId);
-  static Future<void> refreshLocalR(Ref ref, {required int ledgerId}) async =>
-      _refresh(ref.read, ledgerId: ledgerId);
+  static Future<void> refreshLocalR(Ref ref, {required int ledgerId}) async {
+    if (!ref.mounted) return;
+    _refresh(ref.read, ledgerId: ledgerId);
+  }
 }
