@@ -115,6 +115,12 @@ jobs:
       - name: Analyze source
         run: python3 .github/scripts/run_checked.py flutter analyze --no-pub --no-fatal-infos --no-fatal-warnings
 
+      - name: Test capture review and atomic commits
+        run: >-
+          python3 .github/scripts/run_checked.py flutter test --no-pub
+          test/capture test/widgets/amount_editor_currency_test.dart
+          --reporter expanded --timeout 2m
+
       - name: Test local features and offline boundaries
         run: python3 .github/scripts/run_checked.py flutter test --no-pub --reporter expanded --timeout 2m
 

@@ -35,7 +35,6 @@ void main() {
   };
 
   setUp(() async {
-    debugDefaultTargetPlatformOverride = TargetPlatform.android;
     SharedPreferences.setMockInitialValues({});
     db = BeeDatabase.forTesting(NativeDatabase.memory());
     repo = LocalRepository(db);
@@ -52,7 +51,6 @@ void main() {
         .setMockMethodCallHandler(CaptureService.channel, null);
     container.dispose();
     await db.close();
-    debugDefaultTargetPlatformOverride = null;
   });
 
   Widget app() => UncontrolledProviderScope(container: container, child: MaterialApp(
@@ -75,7 +73,7 @@ void main() {
     expect(find.text('Review and record'), findsOneWidget);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 
   testWidgets('a failed acknowledgement does not hide unrelated unhandled drafts', (tester) async {
     final handled = payload('handled', 'Already recorded');
@@ -94,7 +92,7 @@ void main() {
     expect(find.text('Already recorded'), findsNothing);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());
-  });
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 
   testWidgets('review saves to its frozen ledger and carries that scope through editor sheets', (tester) async {
     final targetId = await repo.createLedger(name: 'USD capture ledger', currency: 'USD');
@@ -152,5 +150,5 @@ void main() {
     expect(container.read(currentLedgerCurrencyProvider), 'CNY');
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());
-  }, timeout: const Timeout(Duration(minutes: 1)));
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android), timeout: const Timeout(Duration(minutes: 1)));
 }
