@@ -231,3 +231,10 @@ build：https://pub.dev/api/packages/build；查询：2026-10-21T17:47:44.147676
 source_gen：https://pub.dev/api/packages/source_gen；查询：2026-10-21T17:47:44.161332+00:00
 markdown：https://pub.dev/api/packages/markdown；查询：2026-10-21T17:47:44.210241+00:00
 meta：https://pub.dev/api/packages/meta；查询：2026-10-21T17:47:44.177425+00:00
+
+十一、后续取得的基线编译证据
+本报告评估后，采集分支的Actions20已在现有Flutter3.27.3工具链下全部通过：
+https://github.com/wcwac/BeeCount/actions/runs/39648617497
+源码89ecf8124c94d6388a1429dc8f4b7dfb6fd32d36；完整Flutter499通过、1项原有手动预览测试跳过；采集专项25是其中子集；原生JVM54通过；生产APK、instrumentation测试APK编译和权限检查通过。此结果不是Flutter3.47.7或新依赖版本的验证。
+本次Gradle8.13日志明确提示使用了不兼容Gradle9的弃用特性，因此9.x迁移需要查清具体脚本/插件来源，不能只改wrapper版本。
+Actions还提示旧Node20入口被强制使用Node24，setup-java v4已弃用；后续CI维护应单独核对官方稳定版本及固定提交，不将本次告警误写为构建失败。

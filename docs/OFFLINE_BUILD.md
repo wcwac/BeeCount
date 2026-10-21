@@ -15,7 +15,7 @@
 - Android 使用独立应用 ID `io.github.wcwac.beecount.offline`。
   Kotlin namespace 保持原值，以兼容现有原生类和桌面组件类名。
 - 与原版数据目录隔离。迁移需要先从原版导出，再导入离线版；请先验证备份。
-- 本轮重构已通过源码分析（警告和提示暂不阻断）、437 项测试、签名 APK 编译
+- 早期离线重构通过源码分析（警告和提示暂不阻断）、437 项测试、签名 APK 编译
   及权限检查：[Actions #5](https://github.com/wcwac/BeeCount/actions/runs/39457643240)，
   对应源码提交 `1a5d71b`。1 项手动预览图片生成测试按原配置跳过。
   真机验证和 iOS 构建尚未完成。
@@ -23,9 +23,12 @@
   根锁文件包数从 254 减至 184，SQLite 原生库、图片附件和本地通知等依赖保留。
   已核对 CI 实际生成的锁定文件和本地化代码与提交内容一致。
 - `feat/local-transaction-capture` 分支新增默认关闭的 Android 无障碍交易采集、
-  可选通知辅助和确认后记账，包含 22 个包名、15 组实验性规则。新增改动尚未运行
-  构建、测试或真机验证；上面的历史 CI 结果不能用于证明这些采集改动通过。
-  当前范围和未完成验收见 `docs/CAPTURE_IMPLEMENTATION.txt`。
+  可选通知辅助和确认后记账，包含 22 个包名、15 组实验性规则。
+  [Actions 构建 20](https://github.com/wcwac/BeeCount/actions/runs/39648617497)
+  已在源码 `89ecf81` 通过全部必需检查：完整 Flutter 测试 499 项通过、原生 JVM
+  测试 54 项通过，未签名 release APK 与 instrumentation APK 编译成功。
+  真实支付应用兼容、权限重连和性能测量仍需设备验收；详见本文的 0.3.0 记录及
+  `docs/CAPTURE_IMPLEMENTATION.txt`。
 
 ## 手动触发
 
@@ -93,12 +96,16 @@ Gradle 通过仓库 wrapper 下载并执行。来源和版本写在 workflow 与
 ```sh
 flutter pub get
 flutter analyze --no-pub --no-fatal-infos --no-fatal-warnings
+# 采集专项也是下方完整测试集的子集：
+flutter test --no-pub test/capture test/widgets/amount_editor_currency_test.dart \
+  --reporter expanded --timeout 2m
 flutter test --no-pub
 # 在仓库根目录，版本和构建号由 workflow 提供：
 flutter build apk --release --flavor prod --no-pub \
   --build-name=<version> --build-number=<run_number>
 # APK 构建准备好 Android wrapper 后，在 android/ 目录执行：
-./gradlew :app:testDevDebugUnitTest --no-daemon --console=plain
+./gradlew :app:testDevDebugUnitTest --continue --no-daemon --console=plain
+./gradlew :app:assembleDevDebugAndroidTest --continue --no-daemon --console=plain
 ```
 
 构建后检查每个 APK：禁止 INTERNET、ACCESS_NETWORK_STATE、RECORD_AUDIO、
@@ -111,9 +118,34 @@ REQUEST_INSTALL_PACKAGES 权限；确认独立包名、`allowBackup=false`，
 `create_release` 时才发布预发行版。CI 成功仍需真机检查本地记账、
 备份恢复、桌面组件和网络行为。
 
-手动流程另保存 Android 单元测试 XML/HTML 报告，覆盖采集规则、会话和有界队列；
-`flutter test` 不执行这些 Kotlin 用例。Android instrumentation、真实支付应用页面、
+流程另保存 Android 单元测试 XML/HTML 报告和逐命令完整日志，覆盖采集规则、
+会话和有界队列；`flutter test` 不执行这些 Kotlin 用例。独立分析、测试、APK
+和 instrumentation 编译检查会尽可能在其他检查失败后继续，最终汇总读取各步骤的
+原始 `outcome`，任一必需检查未成功都会使 job 失败；发布仍要求整个构建 job 成功。
+instrumentation APK 当前仅编译，未运行其中的设备测试。真实支付应用页面、
 服务重连、Flutter 未启动时的候选保留和性能测量仍需独立验收，当前流程不连接设备。
+
+## 0.3.0 采集功能验证记录
+
+[Actions 构建 20](https://github.com/wcwac/BeeCount/actions/runs/39648617497)
+从源码 `89ecf8124c94d6388a1429dc8f4b7dfb6fd32d36` 构建，版本 `0.3.0`，
+Android versionCode `20`，耗时 11 分 23 秒；`sign_apk=false`、
+`create_release=false`。全部必需检查通过，未签名、未发布。
+
+- 依赖解析和分析通过；519 条既有 info/warning 按当前策略不阻断。
+- 采集专项 25 项通过；它们是完整 Flutter 测试 499 项通过结果的子集，不能相加。
+  1 项原有手动截图预览生成测试按配置跳过。
+- Android 原生 JVM 测试 54 项，失败、错误、跳过均为 0。
+- release APK 编译成功，构建日志报告 APK 43.1 MB；instrumentation APK 编译成功。
+  未在模拟器或真机执行 instrumentation 测试。
+- APK 权限和清单检查通过：不含 INTERNET、ACCESS_NETWORK_STATE、RECORD_AUDIO、
+  REQUEST_INSTALL_PACKAGES，独立包名及 `allowBackup=false` 正确。
+- 产物为 `dependency-locks-20`、`finance-sources-20`、`android-unit-tests-20`、
+  `validation-logs-20`、`offline-android-20`；APK 文件带 `UNSIGNED-`，不能直接安装。
+- 本轮未升级 Flutter/Android SDK 或依赖版本，未在本机配置或执行 Flutter/Android
+  构建环境；测试和编译发生在已授权的 Actions。原始分析 APK 及其 SO 均未运行。
+- 逐界面自动截图按用户要求暂缓。22 个真实应用的版本兼容、权限和服务重连、
+  中断恢复及性能测量仍待设备验收；CI 全绿不等于这些设备场景已经通过。
 
 
 ## 0.2.0 验证记录

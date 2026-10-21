@@ -122,21 +122,41 @@ Safety and correctness boundaries
   the normal attachment backup, separately from the database JSON backup.
 
 Validation status at this checkpoint
-Source-only inspection confirmed: 22 unique package registrations, 15 profiles,
-8 Flutter/native method names present on both sides, well-formed Android XML,
-and retained removal of network permissions. git diff --check found no whitespace
-errors. This is not a Dart/Kotlin compilation or runtime verification.
+GitHub Actions build 20 passed every required validation gate for source
+89ecf8124c94d6388a1429dc8f4b7dfb6fd32d36, version 0.3.0,
+with sign_apk=false and create_release=false (duration 11m23s):
+https://github.com/wcwac/BeeCount/actions/runs/39648617497
+- Dependency resolution and analyzer passed. The analyzer reported 519 existing
+  informational/warning findings; this workflow does not treat those as fatal.
+- The focused capture run passed 25 tests. These are a subset of the complete
+  Flutter run's 499 passing tests, not an additional 25. One existing manual
+  screenshot-preview generation test remained skipped.
+- Native JVM tests: 54 tests, zero failures, errors or skips.
+- Release APK compilation passed; the build log reported a 43.1 MB APK.
+- assembleDevDebugAndroidTest passed. This compiles the instrumentation APK;
+  instrumentation tests were not executed on an emulator or physical device.
+- APK validation passed for absence of INTERNET, ACCESS_NETWORK_STATE,
+  RECORD_AUDIO and REQUEST_INSTALL_PACKAGES; the independent package ID and
+  allowBackup=false were also verified. The APKs are unsigned and no release
+  was published.
+- Artifacts: dependency-locks-20, finance-sources-20, android-unit-tests-20,
+  validation-logs-20 and offline-android-20.
 
-NOT RUN: Flutter dependency resolution, formatting/analyzer, Flutter tests,
-Gradle unit tests/build, Android instrumentation or real-device capture.
-The earlier instruction restricted work to source edits. The user subsequently
-authorized GitHub Actions compilation; cloud verification is now being started.
-The current environment also has no Flutter SDK, Android SDK or Gradle wrapper
-JAR. No tools were downloaded to bypass that decision.
-The repository's historical CI results describe earlier commits and do not
-validate this branch. No current test report or built APK exists in this workspace.
+Independent analyzer/test/build checks continue where possible after a failure;
+the final gate reads their original outcomes and fails unless every required
+check succeeded. continue-on-error does not turn a failed validation into a pass.
+Flutter/Android SDKs and dependency versions were not upgraded in this round.
+No local Flutter/Android build environment was installed or used for compilation
+or project tests. The original analyzed third-party APK and its SO libraries
+were not run. Automatic screenshots of every screen are deferred at the user's
+request; the skipped manual preview test is not screenshot coverage.
 
-Added regression sources (not executed)
+Static checks also confirmed 22 unique registrations, 15 profiles, matching
+Flutter/native methods and well-formed Android XML. CI proves the exercised
+synthetic/widget/JVM cases and compilation; it does not establish compatibility
+with all 22 real applications, service reconnection or Android performance.
+
+Regression coverage (Flutter/JVM executed in CI; instrumentation compiled only)
 - Android CaptureEngineTest: exact money, checkout/result transitions, failed
   checkout isolation, expiry, ledger changes, repeated events, independent
   same-amount payments, coupons, ambiguity, refunds, late reference enrichment,
@@ -183,16 +203,18 @@ Added regression sources (not executed)
 - Android instrumentation CaptureSettingsTest: disabled defaults, consent
   revocation generations and ledger changes. No target-app database is used.
 
-Remaining before this can be called verified/ready to merge
+Remaining device acceptance before claiming real-client compatibility
 1. Continue source review and acquire redacted device page fixtures for each
    family; the synthetic corpus cannot establish client-version compatibility.
-2. Execute the authorized GitHub Actions analyzer/tests/build and fix failures.
-3. Verify permission/service reconnect, native inbox persistence with Flutter
+2. Execute the compiled instrumentation cases and verify permission/service
+   reconnect, native inbox persistence with Flutter
    absent, notification taps, interrupted commits and duplicate confirmation.
-4. Validate the 5 first-stage applications, then 10 second-stage and 7 final-stage
+3. Validate the 5 first-stage applications, then 10 second-stage and 7 final-stage
    packages on actual client versions. Record supported/unreadable scenarios.
-5. Stress the implemented queue-overload policy on Android; audit same-amount terminal screens with
+4. Stress the implemented queue-overload policy on Android and measure latency,
+   memory and event handling; audit same-amount terminal screens with
    no observable checkout or transaction reference. Such observations cannot be
    assumed to uniquely identify a transaction.
 
-No test or compatibility pass is claimed by this file.
+The CI results above are verified build/test evidence. Real-client compatibility
+and device-performance acceptance remain outstanding.
