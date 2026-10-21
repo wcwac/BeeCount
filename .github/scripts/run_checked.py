@@ -2,6 +2,8 @@
 
 from collections import deque
 from queue import Empty, Queue
+from pathlib import Path
+import os
 import subprocess
 import sys
 import re
@@ -18,6 +20,11 @@ def main():
     tail = deque(maxlen=180)
     diagnostics = deque(maxlen=200)
     exception_head = None
+    log_directory = Path(os.environ['RUNNER_TEMP']) / 'validation-logs'
+    log_directory.mkdir(parents=True, exist_ok=True)
+    log_name = re.sub(r'[^A-Za-z0-9_.-]', '_', os.environ.get('GITHUB_ACTION', 'command'))
+    log = (log_directory / f'{log_name}.log').open('w', buffering=1)
+    log.write('Command: ' + repr(sys.argv[1:]) + '\n')
     # Commands and their arguments come from the checked-in workflow, not user text.
     process = subprocess.Popen(
         sys.argv[1:], stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
@@ -39,6 +46,7 @@ def main():
         if line is None:
             break
         print(line, end="", flush=True)
+        log.write(line)
         tail.append(line.rstrip("\n"))
         if "EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK" in line:
             exception_head = []
@@ -53,6 +61,7 @@ def main():
             message = "\n".join((exception_head or []) + list(tail)[-15:])
             print(f"::notice title=Test diagnostic::{escape(message)}", flush=True)
     result = process.wait()
+    log.close()
     if result:
         lines = list(diagnostics) + ["--- Last output ---"] + list(tail)[-60:]
         for start in range(0, len(lines), 20):

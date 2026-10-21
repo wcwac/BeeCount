@@ -113,9 +113,13 @@ jobs:
           retention-days: 14
 
       - name: Analyze source
+        id: analyze
+        continue-on-error: true
         run: python3 .github/scripts/run_checked.py flutter analyze --no-pub --no-fatal-infos --no-fatal-warnings
 
       - name: Test capture review and atomic commits
+        id: capture_tests
+        continue-on-error: true
         timeout-minutes: 5
         run: >-
           python3 .github/scripts/run_checked.py flutter test --no-pub
@@ -123,6 +127,8 @@ jobs:
           --reporter expanded --timeout 2m
 
       - name: Test local features and offline boundaries
+        id: flutter_tests
+        continue-on-error: true
         timeout-minutes: 10
         run: python3 .github/scripts/run_checked.py flutter test --no-pub --reporter expanded --timeout 2m
 
@@ -165,6 +171,8 @@ jobs:
           PY
 
       - name: Build APKs
+        id: apk_build
+        continue-on-error: true
         shell: bash
         run: |
           set -euo pipefail
@@ -176,19 +184,34 @@ jobs:
       # Flutter's APK build above prepares the Gradle wrapper/local.properties.
       # flutter test alone does not execute Kotlin capture rules and sessions.
       - name: Test Android capture rules and sessions
+        id: native_unit
+        continue-on-error: true
         working-directory: android
         shell: bash
         run: >-
           python3 ../.github/scripts/run_checked.py ./gradlew
-          :app:testDevDebugUnitTest :app:assembleDevDebugAndroidTest
-          --no-daemon --console=plain
+          :app:testDevDebugUnitTest --continue --no-daemon --console=plain
+
+      - name: Compile Android instrumentation tests
+        id: instrumentation_build
+        continue-on-error: true
+        working-directory: android
+        shell: bash
+        run: >-
+          python3 ../.github/scripts/run_checked.py ./gradlew
+          :app:assembleDevDebugAndroidTest --continue --no-daemon --console=plain
 
       - name: Summarize Android unit tests
+        id: native_summary
+        continue-on-error: true
         if: always()
+        env:
+          UNIT_OUTCOME: ${{ steps.native_unit.outcome }}
         shell: bash
         run: |
           python3 - <<'PY'
           from pathlib import Path
+          import os
           import xml.etree.ElementTree as ET
           def escape(value):
               return value.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
@@ -204,6 +227,8 @@ jobs:
                       print(f'::error title=Android unit test failed::{escape(message[:6000])}')
           if reports:
               print(f'::notice title=Android unit test totals::{totals}')
+          if os.environ['UNIT_OUTCOME'] == 'success' and totals['tests'] == 0:
+              raise SystemExit('Android unit task succeeded without a test report or discovered tests')
           PY
 
       - name: Save Android unit test reports
@@ -217,7 +242,19 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
+      - name: Save full validation logs
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: validation-logs-${{ github.run_number }}
+          path: ${{ runner.temp }}/validation-logs/
+          if-no-files-found: warn
+          retention-days: 14
+
       - name: Verify APK permissions and signatures
+        id: verify_apks
+        if: ${{ !cancelled() && steps.apk_build.outcome == 'success' }}
+        continue-on-error: true
         shell: bash
         run: |
           set -euo pipefail
@@ -262,11 +299,45 @@ jobs:
         run: rm -f android/key.properties android/app/offline-release.keystore
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: ${{ !cancelled() && steps.verify_apks.outcome == 'success' }}
         with:
           name: offline-android-${{ github.run_number }}
           path: dist/
           if-no-files-found: error
           retention-days: 14
+
+      # Each check reports its own outcome; none of the required checks can be
+      # hidden by continue-on-error. Publishing still requires the whole job.
+      - name: Require every validation check to pass
+        if: always() && !cancelled()
+        env:
+          ANALYZE: ${{ steps.analyze.outcome }}
+          CAPTURE_TESTS: ${{ steps.capture_tests.outcome }}
+          FLUTTER_TESTS: ${{ steps.flutter_tests.outcome }}
+          APK_BUILD: ${{ steps.apk_build.outcome }}
+          NATIVE_UNIT: ${{ steps.native_unit.outcome }}
+          INSTRUMENTATION_BUILD: ${{ steps.instrumentation_build.outcome }}
+          NATIVE_SUMMARY: ${{ steps.native_summary.outcome }}
+          VERIFY_APKS: ${{ steps.verify_apks.outcome }}
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import os
+          checks = ['ANALYZE', 'CAPTURE_TESTS', 'FLUTTER_TESTS', 'APK_BUILD',
+                    'NATIVE_UNIT', 'INSTRUMENTATION_BUILD', 'NATIVE_SUMMARY', 'VERIFY_APKS']
+          failures = []
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as summary:
+              summary.write('| Check | Outcome |\n| --- | --- |\n')
+              for check in checks:
+                  outcome = os.environ.get(check) or 'not run'
+                  summary.write(f'| {check} | {outcome} |\n')
+                  if outcome != 'success':
+                      failures.append(check)
+                      print(f'::error::{check}: {outcome}')
+          if failures:
+              raise SystemExit(f"Required checks failed: {', '.join(failures)}")
+          print('::notice::All required validation checks passed')
+          PY
 
   release:
     if: inputs.create_release

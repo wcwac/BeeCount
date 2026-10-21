@@ -171,5 +171,8 @@ void main() {
     expect(widgetManager.refreshedLedgerIds, [ledger.id]);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());
+    // AccountSelector's diagnostic logger batches persistence for two seconds.
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pumpAndSettle();
   }, variant: TargetPlatformVariant.only(TargetPlatform.android), timeout: const Timeout(Duration(minutes: 1)));
 }

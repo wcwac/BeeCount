@@ -68,8 +68,11 @@ Implemented source paths
   image preparation failure keeps the editor open without writing a payment.
   Retrying an already committed candidate cannot duplicate tags/attachment rows.
   Capture review uses quickAdd so selecting a category opens the amount sheet.
-  Ledger/currency/tag providers declare scoped dependencies, and amount/tag
-  sheets carry the review's provider container across Navigator routes.
+  Ledger/currency/tag providers declare scoped dependencies. Each amount/tag
+  route owns an independent scope with the frozen ledger ID; sibling routes
+  never share the same container and its build-time refresh scheduler.
+  Saving waits until the real target-ledger currency is available; rates from
+  a previous base currency are not reused while the new rates are loading.
   Submit callbacks are awaited; failed capture saves restore the submit button.
 - Widgets are refreshed after review returns to the homepage provider scope,
   instead of changing the displayed widget ledger to the capture's frozen target.
@@ -79,8 +82,10 @@ Implemented source paths
   :app:testDevDebugUnitTest and archives XML/HTML Android unit reports. This is
   after the Flutter APK build prepares the wrapper/local.properties. Only the
   user-authorized feat/local-transaction-capture branch also builds on push;
-  it uses version 0.3.0 without signing or publishing. No PR
-  trigger was added, and no workflow has been dispatched for these changes.
+  it uses version 0.3.0 without signing or publishing. No PR trigger was added.
+  Independent checks continue after failures, retain full per-command logs,
+  and fail the final gate unless all required outcomes are successful.
+  Native JVM tests and instrumentation APK compilation have separate outcomes.
   Flutter's suite and Kotlin's suite are separate; neither replaces device checks.
 
 Safety and correctness boundaries
