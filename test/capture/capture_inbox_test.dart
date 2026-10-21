@@ -97,10 +97,18 @@ void main() {
     final handled = payload('handled', 'Already recorded');
     await CaptureCommitService(repo).commit(candidate: CaptureCandidate.fromMap(handled),
       type: 'expense', amount: 12.5, happenedAt: time);
+    var failAcknowledgement = true;
+    var acknowledged = false;
+    var acknowledgementCalls = 0;
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
       CaptureService.channel, (call) async {
-        if (call.method == 'listCandidates') return [handled, payload('unhandled', 'Still needs review')];
-        if (call.method == 'ackCommitted') throw PlatformException(code: 'TEMPORARY_UNAVAILABLE');
+        if (call.method == 'listCandidates') return [if (!acknowledged) handled,
+          payload('unhandled', 'Still needs review')];
+        if (call.method == 'ackCommitted') {
+          acknowledgementCalls++;
+          if (failAcknowledgement) throw PlatformException(code: 'TEMPORARY_UNAVAILABLE');
+          acknowledged = true;
+        }
         return null;
       },
     );
@@ -108,6 +116,17 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Still needs review'), findsOneWidget);
     expect(find.text('Already recorded'), findsNothing);
+    final waiting = find.textContaining('1 saved or handled record still needs a local status update.');
+    expect(waiting, findsOneWidget);
+    expect(find.textContaining('no additional transactions will be created.'), findsOneWidget);
+    failAcknowledgement = false;
+    await tester.tap(find.text('Refresh and retry'));
+    await tester.pumpAndSettle();
+    expect(acknowledgementCalls, 2);
+    expect(acknowledged, isTrue);
+    expect(waiting, findsNothing);
+    expect(find.text('Still needs review'), findsOneWidget);
+    expect(await db.select(db.transactions).get(), hasLength(1));
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());
   }, variant: TargetPlatformVariant.only(TargetPlatform.android));
@@ -394,13 +413,33 @@ void main() {
     final before = container.read(statsRefreshProvider);
     await tester.tap(find.text('Finish'));
     await tester.pump();
-    Navigator.of(tester.element(find.byType(AmountEditorSheet))).pop();
-    // Start each reverse animation before advancing its elapsed frame time.
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 400));
-    Navigator.of(tester.element(find.byType(TransactionEditorPage))).pop();
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 400));
+    final amountContext = tester.element(find.byType(AmountEditorSheet));
+    final editorContext = tester.element(find.byType(TransactionEditorPage));
+    final editorState = tester.state(find.byType(TransactionEditorPage));
+
+    Future<void> popUntilDisposed(BuildContext routeContext) async {
+      final route = ModalRoute.of(routeContext)! as TransitionRoute<dynamic>;
+      // Verify that this pop closes the intended route, rather than consuming
+      // a dialog or a local-history entry above the page under test.
+      expect(route.isCurrent, isTrue);
+      expect(route.willHandlePopInternally, isFalse);
+      var disposed = false;
+      unawaited(route.completed.then((_) { disposed = true; }));
+      Navigator.of(routeContext).pop();
+      // Android's default predictive-back transition is 450 ms in Flutter
+      // 3.47.7. Wait for actual disposal instead of assuming 400 ms, or using
+      // pumpAndSettle while the blocked save still animates its progress icon.
+      for (var frame = 0; !disposed && frame < 100; frame++) {
+        await tester.pump(const Duration(milliseconds: 20));
+      }
+      expect(disposed, isTrue, reason: '${route.runtimeType} did not finish closing within 2 seconds');
+      await tester.pump();
+    }
+
+    await popUntilDisposed(amountContext);
+    expect(find.byType(AmountEditorSheet), findsNothing);
+    await popUntilDisposed(editorContext);
+    expect(editorState.mounted, isFalse);
     expect(find.byType(TransactionEditorPage), findsNothing);
 
     await tester.runAsync(() async {

@@ -17,6 +17,7 @@ class CaptureService {
       required String? ledgerKey, required bool notifications}) =>
       channel.invokeMethod<void>('updateSettings', {'enabled': enabled, 'packages': packages.toList(),
         'ledgerId': ledgerId, 'ledgerKey': ledgerKey, 'notifications': notifications});
+  Future<void> stopCapture() => channel.invokeMethod<void>('stopCapture');
   Future<void> openSettings() => channel.invokeMethod<void>('openAccessibilitySettings');
   Future<void> openNotificationSettings() => channel.invokeMethod<void>('openNotificationSettings');
   Future<List<CaptureCandidate>> pending() async {

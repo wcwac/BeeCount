@@ -23,6 +23,10 @@ on:
         description: "发布 GitHub 预发行版（必须同时开启签名）"
         type: boolean
         default: false
+      run_device_tests:
+        description: "仅在明确获授权后开启：Android/iOS 成功后下载官方镜像并运行采集测试 APK"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -534,3 +538,12 @@ jobs:
             --title "BeeCount Offline $RELEASE_TAG" \
             --notes-file "$RUNNER_TEMP/release-notes.md" \
             --prerelease --latest=false
+
+  capture-device-tests:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_device_tests == true && needs.android.result == 'success' && needs.ios.result == 'success' }}
+    needs: [android, ios]
+    permissions:
+      contents: read
+    uses: ./.github/workflows/capture-device-tests.yml
+    with:
+      run_device_tests: ${{ inputs.run_device_tests }}

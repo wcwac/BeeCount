@@ -1,0 +1,176 @@
+name: Capture device tests (manual opt-in)
+
+# Preparing this workflow does not authorize running an emulator or an APK.
+# Obtain the user's explicit execution authorization before selecting true.
+# There are deliberately no push, pull_request, workflow_run or schedule triggers.
+on:
+  workflow_dispatch:
+    inputs:
+      run_device_tests:
+        description: "仅在明确获授权后开启：下载官方镜像、启动临时模拟器并运行本项目采集测试 APK"
+        type: boolean
+        required: true
+        default: false
+  workflow_call:
+    inputs:
+      run_device_tests:
+        description: "仅允许已明确授权的手动 Release 调用启动设备测试"
+        type: boolean
+        required: false
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: capture-device-tests-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  FLUTTER_VERSION: "3.47.7"
+  CAPTURE_SYSTEM_IMAGE: "system-images;android-36;default;x86_64"
+  # Explicitly reviewed stable revisions. Stop before executing adb/emulator if
+  # Google's unversioned package names resolve to different revisions later.
+  CAPTURE_IMAGE_REVISION: "2"
+  CAPTURE_EMULATOR_REVISION: "37.2.12"
+  CAPTURE_PLATFORM_TOOLS_REVISION: "37.0.1"
+  CAPTURE_DEVICE_TESTS_OPT_IN: ${{ inputs.run_device_tests || false }}
+
+jobs:
+  capture-device-tests:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_device_tests == true }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Install compile SDK components
+        timeout-minutes: 12
+        run: >-
+          python3 .github/scripts/run_checked.py
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --channel=0
+          "platforms;android-36" "build-tools;36.0.0" "ndk;28.2.13676358"
+          < /dev/null
+
+      - name: Resolve locked dependencies
+        timeout-minutes: 10
+        run: python3 .github/scripts/run_checked.py flutter pub get
+
+      - name: Regenerate database sources
+        timeout-minutes: 10
+        run: python3 .github/scripts/run_checked.py dart run build_runner build --delete-conflicting-outputs
+
+      - name: Regenerate localizations
+        run: python3 .github/scripts/run_checked.py flutter gen-l10n
+
+      - name: Build the isolated dev debug application
+        timeout-minutes: 15
+        run: python3 .github/scripts/run_checked.py flutter build apk --debug --flavor dev --no-pub
+
+      - name: Compile capture instrumentation
+        working-directory: android
+        timeout-minutes: 10
+        run: >-
+          python3 ../.github/scripts/run_checked.py ./gradlew
+          :app:assembleDevDebugAndroidTest --no-daemon --console=plain --continue
+
+      - name: Grant this ephemeral runner user access to KVM
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ -c /dev/kvm ]] || { echo "::error::This runner has no KVM device"; exit 1; }
+          if [[ ! -r /dev/kvm || ! -w /dev/kvm ]]; then
+            sudo -n setfacl -m "u:$(id -un):rw" /dev/kvm
+          fi
+          [[ -r /dev/kvm && -w /dev/kvm ]]
+
+      # Official sources, read on 2026-10-21; no GMS/Play Store image is used:
+      # https://dl.google.com/android/repository/repository2-3.xml
+      # https://dl.google.com/android/repository/sys-img/android/sys-img2-3.xml
+      # API36 default x86_64 r02: x86_64-36_r02.zip, 844217077 bytes,
+      # metadata SHA1 829c076e8ff448a336097ae25a355b495ba36e2c.
+      # sdkmanager uses Google's repository checksums; no image is run until the
+      # installed image/emulator/platform-tools revision guards also pass.
+      - name: Install reviewed official emulator and AOSP image
+        timeout-minutes: 12
+        run: >-
+          python3 .github/scripts/run_checked.py
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --channel=0
+          "platform-tools" "emulator" "$CAPTURE_SYSTEM_IMAGE"
+          < /dev/null
+
+      - name: Run capture package on a disposable emulator
+        id: device_tests
+        timeout-minutes: 18
+        run: bash .github/scripts/run_capture_device_tests.sh
+
+      - name: Verify instrumentation discovery and results
+        if: ${{ always() && steps.device_tests.outcome != 'skipped' && steps.device_tests.outcome != '' }}
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import os
+          import xml.etree.ElementTree as ET
+          reports = list(Path('build/app/outputs/androidTest-results/connected').rglob('*.xml'))
+          totals = dict(tests=0, failures=0, errors=0, skipped=0)
+          classes = set()
+          cases = set()
+          for report in reports:
+              root = ET.parse(report).getroot()
+              suites = [root] if root.tag == 'testsuite' else list(root.iter('testsuite'))
+              for suite in suites:
+                  for key in totals:
+                      totals[key] += int(suite.get(key, '0'))
+              for case in root.iter('testcase'):
+                  classes.add(case.get('classname', ''))
+                  cases.add((case.get('classname', ''), case.get('name', '')))
+          prefix = 'com.tntlikely.beecount.capture.'
+          required = {prefix + name for name in ('CaptureBridgeTest', 'CaptureInboxStoreTest', 'CaptureSettingsTest')}
+          required_bridge_cases = {
+              (prefix + 'CaptureBridgeTest', name) for name in (
+                  'disablingCaptureAcknowledgesOnlyAfterOldWritesAndRejectsRemainingQueuedWork',
+                  'feedbackInterruptPreservesCheckoutFieldsForTheFollowingResult',
+                  'stopCaptureReadsTheLatestWorkerSettingsAndPreservesTheirTargetAndOptions',
+              )
+          }
+          summary = f'Capture device tests: {totals}; classes: {sorted(classes)}'
+          print(summary)
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as output:
+              output.write(summary + '\n')
+          if not reports or totals['tests'] == 0 or not required.issubset(classes):
+              raise SystemExit('Capture instrumentation did not discover all required test classes')
+          if not required_bridge_cases.issubset(cases):
+              raise SystemExit(f'Missing bridge regressions: {sorted(required_bridge_cases - cases)}')
+          if any(not name.startswith(prefix) for name in classes):
+              raise SystemExit('An instrumentation class outside the capture package ran')
+          if totals['failures'] or totals['errors'] or totals['skipped']:
+              raise SystemExit('Capture instrumentation failed or skipped tests')
+          PY
+
+      - name: Save device diagnostics and reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: capture-device-diagnostics-${{ github.run_number }}
+          path: |
+            ${{ runner.temp }}/capture-device/
+            ${{ runner.temp }}/validation-logs/
+            build/app/outputs/androidTest-results/connected/
+            build/app/reports/androidTests/connected/
+            pubspec.lock
+          if-no-files-found: warn
+          retention-days: 14

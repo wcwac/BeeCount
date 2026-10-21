@@ -65,7 +65,8 @@ Implemented source paths
    review, missing-field correction and explicit duplicate association. Inbox
    filtering handles immutable snapshots; failed or delayed ACKs cannot block
    other drafts. Stale status replies cannot undo a newer settings edit. Dismiss
-   and review share one action lock, including the dismissal confirmation dialog.
+   and review share a confirmation-dialog lock; pending dismissals lock their
+   own candidate while another draft remains reviewable.
 - Existing transaction/transfer editor: normal repository writes, capture
   metadata in the same transaction, ACK reconciliation after interrupted saves.
   Tags (including validated legacy mirror IDs) and prepared attachment rows also
@@ -278,7 +279,7 @@ Both failures identify the same new late-commit widget case. Its fake-zone
 Completers were awaited inside runAsync, then transaction cleanup timed out;
 the editor-exit assertion also failed. The correction preserves the real SQLite
 transaction, editor disposal, commit/cache assertions and original time limits.
-This correction still requires another cloud run.
+Actions 26 rechecked that correction; its result is recorded below.
 
 All other required checks completed successfully: generation, analysis (597
 info/warning findings under the existing policy), Android release APK compilation
@@ -287,3 +288,64 @@ APK compilation, APK permission and native SQLite ABI checks. iOS plus its widge
 extension compiled without signing (212.4 s; Runner.app 39.6 MB). The final gate
 correctly rejected the failed Flutter suites; generated-source persistence and
 release jobs were skipped. This is not a device-execution or publication result.
+
+
+Follow-up validation — Actions 26 (source 687d48b)
+https://github.com/wcwac/BeeCount/actions/runs/39670252070
+The complete Flutter run still had 525 passes, one failure and the existing
+manual preview skip; focused capture had 39 passes and the same failure.
+The real SQLite barrier now starts and releases without its earlier timeout.
+The remaining assertion found the transaction editor still mounted after the
+test attempted to leave its routes. Static inspection of the official 3.47.7
+framework found the Android MaterialPageRoute reverse transition is 450 ms,
+longer than this test's 400 ms pump. The next source batch waits for each actual
+route.completed with a bounded two-second pump and asserts State disposal
+before releasing SQLite. The failed case remains a required gate; no successful
+validation of this late-commit scenario is claimed yet.
+Other command outcomes completed successfully: code generation, analysis
+(596 info/warning findings), Android release APK compilation (489.4 s, 45.9 MB),
+JVM tests, instrumentation APK compilation, permissions and SQLite ABI checks.
+iOS and WidgetExtension compiled unsigned (Xcode 241.5 s; Runner.app 39.6 MB).
+The Android final gate failed; generated persistence and release were skipped.
+
+Next source batch (not yet validated)
+- Accessibility feedback interruption preserves checkout observations. Actual
+  unbind/destroy clears pending reads and session state only for the current
+  service instance. Notification authorization and actual listener connection
+  are reported independently; no real service recovery result is claimed.
+- A worker-serialized stopCapture command reads the latest native settings and
+  changes only enabled=false. It needs neither a readable Flutter status nor
+  a surviving ledger, and cannot overwrite a newer target from an old snapshot.
+- Settings writes read back after either success or failure. Unknown status
+  disables ordinary editing while retaining stop/refresh. Read-only status
+  calls time out after five seconds; writes are not automatically repeated.
+  A successful native stop is displayed as stopped even if its following status
+  read is unavailable. Revision guards reject older reads and enable preflights.
+  Only explicit ledger selection may rebind a restored ledger with a reused ID.
+- The inbox explains durable saves with a pending native acknowledgement and
+  offers retry. Native pending counts and notifications say records to process;
+  they may include already-saved records awaiting acknowledgement.
+- Additional Flutter regressions and two Android instrumentation source cases
+  cover these boundaries. Instrumentation compilation is not device execution.
+
+Prepared device validation (default off, not authorized or run)
+.github/workflows/capture-device-tests.yml and its guarded helper prepare an
+isolated API36 AOSP x86_64 emulator on an ephemeral GitHub-hosted runner. No
+local SDK/emulator setup, application installation or screenshot automation is
+introduced. No third-party payment APK is installed by this workflow.
+Both workflow entry points and the helper require an explicit manual opt-in.
+The registered Release workflow can invoke it only after Android and iOS checks
+pass. A normal push cannot run this device job. Reviewed official package
+revisions are AOSP API36 image r2, Android Emulator 37.2.12 and platform-tools
+37.0.1; unexpected revisions stop before adb/emulator execution.
+The test runner filters com.tntlikely.beecount.capture, requires the three
+capture test classes and three bridge regression methods, rejects failures,
+errors/skips and empty discovery, retains logs/XML, then removes its emulator.
+Its temporary runner may download about 1.2 GB of emulator/image data, install
+this fork's dev.debug and test APKs there, and execute the capture tests.
+This needs explicit additional execution authorization under the user's global
+AGENTS.md; cloud build permission alone was not interpreted as APK execution
+permission. A manual Release run on feat/flutter-stable-upgrade with
+run_device_tests=true is the prepared approval/execution path; sign_apk and
+create_release stay false. No device result or 22-client compatibility claim
+follows from preparing these files.

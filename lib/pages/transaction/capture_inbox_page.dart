@@ -24,6 +24,7 @@ class _CaptureInboxPageState extends ConsumerState<CaptureInboxPage> with Widget
   bool _reloadRequested = false;
   bool _acting = false;
   bool _reconciling = false;
+  Set<String> _pendingUpdates = {};
   final _pendingDismissals = <String>{};
   String? _error;
   @override
@@ -50,15 +51,18 @@ class _CaptureInboxPageState extends ConsumerState<CaptureInboxPage> with Widget
       var pending = await _service.pending();
       if (!mounted) return;
       final repo = ref.read(repositoryProvider);
+      var handled = <String, int?>{};
       if (repo is LocalRepository && pending.isNotEmpty) {
         // Recover a crash after the ledger commit but before the native ACK.
-        final handled = await CaptureCommitService(repo).handled(pending.map((c) => c.id).toList());
-        unawaited(_reconcileHandled(handled));
+        handled = await CaptureCommitService(repo).handled(pending.map((c) => c.id).toList());
         // The bridge deliberately returns a fixed-size snapshot. Filtering must
         // produce a new list instead of trying to remove entries from that list.
         pending = pending.where((c) => !handled.containsKey(c.id)).toList(growable: false);
       }
-      if (mounted) setState(() { _items = pending; _error = null; });
+      if (mounted) {
+        setState(() { _items = pending; _pendingUpdates = handled.keys.toSet(); _error = null; });
+        unawaited(_reconcileHandled(handled));
+      }
     } catch (_) { if (mounted) setState(() => _error = CaptureText(context).failed); }
   }
 
@@ -74,6 +78,7 @@ class _CaptureInboxPageState extends ConsumerState<CaptureInboxPage> with Widget
           // The original call remains deduplicated and bounded in the service.
           // A late reply for one record must not starve the rest of this batch.
           await result.timeout(const Duration(seconds: 2));
+          if (mounted) setState(() => _pendingUpdates.remove(entry.key));
         } catch (_) {
           // The durable link already proves this item was handled. A failed
           // bridge call is retried on a later refresh, without blocking drafts.
@@ -222,6 +227,10 @@ class _CaptureInboxPageState extends ConsumerState<CaptureInboxPage> with Widget
                 'Check payment completion, actual amount, direction and account. A shopping app and a payment app may describe the same transaction.'))),
               if (_busy) const LinearProgressIndicator(),
               if (_error != null) ListTile(title: Text(_error!), onTap: _load, leading: const Icon(Icons.error_outline)),
+              if (_pendingUpdates.isNotEmpty) ListTile(leading: const Icon(Icons.sync),
+                title: Text(text.pendingUpdates(_pendingUpdates.length)),
+                trailing: TextButton(onPressed: _busy ? null : _load,
+                  child: Text(text.t('刷新重试', 'Refresh and retry')))),
               if (_items?.isEmpty == true) Padding(padding: const EdgeInsets.all(32), child: Text(text.t('暂无待确认交易', 'No transactions to review'))),
             ]);
           }

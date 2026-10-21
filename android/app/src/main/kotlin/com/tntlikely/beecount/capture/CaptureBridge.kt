@@ -29,12 +29,17 @@ class CaptureBridge(private val activity: Activity, messenger: BinaryMessenger) 
                 mapOf("supported" to true, "permissionGranted" to enabled,
                     "serviceConnected" to BeeCaptureService.isConnected(),
                     "notificationsGranted" to notificationsGranted,
+                    "notificationsConnected" to BeeCaptureNotificationService.isConnected(),
                     "settings" to CaptureSettings.read(activity).asMap(),
                     "apps" to CaptureApps.all.map { it.asMap() },
                     "pendingCount" to CaptureRuntime.inbox(activity).count()) + health
             }
+            "stopCapture" -> persistSettings(result) {
+                // Read on the same worker as writes: stop needs no Flutter
+                // snapshot, ledger lookup or otherwise valid enabled target.
+                CaptureSettings.read(activity).copy(enabled = false)
+            }
             "updateSettings" -> {
-                fun invalidSettings() = result.error("INVALID_SETTINGS", "Choose a ledger and supported applications", null)
                 try {
                     val args = call.arguments as? Map<*, *> ?: error("SETTINGS_REQUIRED")
                     val packages = (args["packages"] as? List<*>)?.map { it as String }?.toSet() ?: error("PACKAGES_REQUIRED")
@@ -42,26 +47,8 @@ class CaptureBridge(private val activity: Activity, messenger: BinaryMessenger) 
                     val settings = CaptureSettings(args["enabled"] == true, packages, ledger,
                         args["ledgerKey"] as? String, args["notifications"] == true)
                     settings.validate()
-                    // Consent commits share the engine/store worker. An in-flight
-                    // write finishes before revocation is saved; later old-generation
-                    // observations are rejected. The boundary is the successful
-                    // settings reply, not the earlier instant the user tapped.
-                    CaptureRuntime.worker.execute {
-                        try { CaptureSettings.save(activity, settings) }
-                        catch (_: Exception) {
-                            main.post { invalidSettings() }
-                            return@execute
-                        }
-                        main.post {
-                            try { BeeCaptureService.settingsChanged() }
-                            catch (_: Exception) {
-                                invalidSettings()
-                                return@post
-                            }
-                            result.success(null)
-                        }
-                    }
-                } catch (_: Exception) { invalidSettings() }
+                    persistSettings(result) { settings }
+                } catch (_: Exception) { invalidSettings(result) }
             }
             "openAccessibilitySettings" -> {
                 try { activity.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)); result.success(null) }
@@ -94,6 +81,31 @@ class CaptureBridge(private val activity: Activity, messenger: BinaryMessenger) 
                 }
             }
             else -> result.notImplemented()
+        }
+    }
+
+    private fun invalidSettings(result: MethodChannel.Result) =
+        result.error("INVALID_SETTINGS", "Choose a ledger and supported applications", null)
+
+    private fun persistSettings(result: MethodChannel.Result, settings: () -> CaptureSettings) {
+        // Consent commits share the engine/store worker. An in-flight write
+        // finishes before revocation is saved; later old-generation observations
+        // are rejected. The boundary is the successful settings reply, not the
+        // earlier instant the user tapped. Evaluate read/modify operations here too.
+        CaptureRuntime.worker.execute {
+            try { CaptureSettings.save(activity, settings()) }
+            catch (_: Exception) {
+                main.post { invalidSettings(result) }
+                return@execute
+            }
+            main.post {
+                try { BeeCaptureService.settingsChanged() }
+                catch (_: Exception) {
+                    invalidSettings(result)
+                    return@post
+                }
+                result.success(null)
+            }
         }
     }
 

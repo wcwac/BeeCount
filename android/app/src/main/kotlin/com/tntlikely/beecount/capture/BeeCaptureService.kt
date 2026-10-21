@@ -1,6 +1,7 @@
 package com.tntlikely.beecount.capture
 
 import android.accessibilityservice.AccessibilityService
+import android.content.Intent
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
@@ -113,17 +114,37 @@ class BeeCaptureService : AccessibilityService() {
         }
     }
 
-    override fun onInterrupt() { handler.removeCallbacksAndMessages(null); pending = null; firstPendingAt = 0; CaptureRuntime.reset() }
+    override fun onInterrupt() {
+        // This interrupts accessibility feedback, not the service connection.
+        // There is no feedback to stop; retain the pending read and checkout.
+    }
+
+    private fun disconnect() {
+        handler.removeCallbacksAndMessages(null)
+        pending = null
+        firstPendingAt = 0
+        // Local cleanup is idempotent. An old instance must not invalidate a
+        // newer connection or its checkout/result session.
+        if (connected?.get() === this) {
+            connected = null
+            CaptureRuntime.reset()
+        }
+    }
+
+    override fun onUnbind(intent: Intent?): Boolean {
+        disconnect()
+        return super.onUnbind(intent)
+    }
+
     override fun onDestroy() {
-        if (connected?.get() === this) connected = null
-        onInterrupt()
+        disconnect()
         super.onDestroy()
     }
 
     companion object {
         private val CAPTURE_CONTEXT = listOf("支付成功", "付款成功", "交易成功", "退款成功", "支付失败", "付款失败",
             "确认付款", "确认订单", "提交订单", "交易详情", "账单详情", "下单成功", "实付", "合计", "现价")
-        private var connected: WeakReference<BeeCaptureService>? = null
+        @Volatile private var connected: WeakReference<BeeCaptureService>? = null
         fun isConnected() = connected?.get() != null
         fun settingsChanged() { connected?.get()?.refreshSettings() }
     }

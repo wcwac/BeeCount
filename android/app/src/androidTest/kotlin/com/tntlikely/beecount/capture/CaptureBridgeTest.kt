@@ -113,6 +113,84 @@ class CaptureBridgeTest {
         }
     }
 
+    @Test fun feedbackInterruptPreservesCheckoutFieldsForTheFollowingResult() {
+        CaptureSettings.save(context, CaptureSettings(true, setOf("com.tencent.mm"), 1, "ledger-one"))
+        val checkout = CaptureSnapshot(
+            packageName = "com.tencent.mm", pageClass = "fixture.Checkout", windowId = 1,
+            observedAt = 1_792_598_401_000, elapsedAt = 1000,
+            nodes = listOf("确认付款", "支付金额", "￥20.00", "收款方", "Fixture shop",
+                "付款方式", "Fixture card").map { CaptureNode(it) },
+        )
+        CaptureRuntime.submit(context, checkout)
+        val before = CaptureRuntime.worker.submit(Callable {
+            CaptureRuntime.inbox(context).pending()
+        }).get(10, TimeUnit.SECONDS)
+        assertTrue(before.isEmpty()) // The real engine has consumed the checkout.
+
+        // Invoke the actual callback without binding a system service or opening
+        // a payment app. Interrupting feedback does not revoke its connection.
+        onMain { BeeCaptureService().onInterrupt() }
+        CaptureRuntime.submit(context, checkout.copy(
+            pageClass = "fixture.Result", observedAt = 1_792_598_402_000, elapsedAt = 2000,
+            nodes = listOf(CaptureNode("支付成功")),
+        ))
+        val pending = CaptureRuntime.worker.submit(Callable {
+            CaptureRuntime.inbox(context).pending()
+        }).get(10, TimeUnit.SECONDS)
+        assertEquals(1, pending.size)
+        assertEquals(2000L, (pending.single()["amountMinor"] as Number).toLong())
+        assertEquals("Fixture shop", pending.single()["merchant"])
+        assertEquals("Fixture card", pending.single()["paymentMethod"])
+        assertFalse((pending.single()["issues"] as List<*>).contains("AMOUNT_MISSING"))
+    }
+
+    @Test fun stopCaptureReadsTheLatestWorkerSettingsAndPreservesTheirTargetAndOptions() {
+        CaptureSettings.save(context, CaptureSettings(true, setOf("com.tencent.mm"), 1, "old-ledger"))
+        val entered = CountDownLatch(1)
+        val release = CountDownLatch(1)
+        val blockedWorker = CaptureRuntime.worker.submit(Callable {
+            entered.countDown()
+            check(release.await(10, TimeUnit.SECONDS))
+        })
+        val result = RecordingResult()
+        var bridge: CaptureBridge? = null
+        try {
+            assertTrue(entered.await(10, TimeUnit.SECONDS))
+            val latest = CaptureSettings(true, setOf("com.tencent.mm", "com.eg.android.AlipayGphone"),
+                987_654_321L, "target-with-no-financial-database", notifications = true)
+            val queuedSettings = CaptureRuntime.worker.submit(Callable {
+                CaptureSettings.save(context, latest)
+                CaptureSettings.read(context)
+            })
+            onMain {
+                bridge = CaptureBridge(FixtureActivity(context), RegistrationMessenger())
+                // No arguments or Flutter ledger/repository exist in this fixture.
+                bridge!!.onMethodCall(MethodCall("stopCapture", null), result)
+            }
+            assertEquals(1L, result.completed.count)
+            assertEquals("old-ledger", CaptureSettings.read(context).ledgerKey)
+            assertTrue(CaptureSettings.read(context).enabled)
+
+            release.countDown()
+            blockedWorker.get(10, TimeUnit.SECONDS)
+            val savedBeforeStop = queuedSettings.get(10, TimeUnit.SECONDS)
+            assertTrue(result.completed.await(10, TimeUnit.SECONDS))
+            assertTrue(result.succeeded)
+            assertNull(result.errorCode)
+            assertTrue(result.calledOnMainThread)
+            assertEquals(savedBeforeStop.copy(enabled = false,
+                consentGeneration = savedBeforeStop.consentGeneration + 1), CaptureSettings.read(context))
+            CaptureRuntime.submit(context, payment("after-native-stop", 3000))
+            assertTrue(CaptureRuntime.worker.submit(Callable {
+                CaptureRuntime.inbox(context).pending().isEmpty()
+            }).get(10, TimeUnit.SECONDS))
+        } finally {
+            release.countDown()
+            blockedWorker.get(10, TimeUnit.SECONDS)
+            onMain { bridge?.close() }
+        }
+    }
+
     private class FixtureActivity(context: Context) : Activity() {
         init { attachBaseContext(context) }
     }

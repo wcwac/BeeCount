@@ -76,7 +76,8 @@ class CaptureAppInfo {
 }
 
 class CaptureStatus {
-  final bool supported, permissionGranted, connected, enabled, notifications, notificationsGranted;
+  final bool supported, permissionGranted, connected, enabled, notifications, notificationsGranted,
+      notificationsConnected;
   final int? ledgerId;
   final String? ledgerKey;
   final int pendingCount, skippedObservations, overflowCursor;
@@ -91,6 +92,7 @@ class CaptureStatus {
         enabled = (map['settings'] as Map?)?['enabled'] == true,
         notifications = (map['settings'] as Map?)?['notifications'] == true,
         notificationsGranted = map['notificationsGranted'] == true,
+        notificationsConnected = map['notificationsConnected'] == true,
         ledgerId = (((map['settings'] as Map?)?['ledgerId']) as num?)?.toInt(),
         ledgerKey = (map['settings'] as Map?)?['ledgerKey'] as String?,
         pendingCount = (map['pendingCount'] as num?)?.toInt() ?? 0,
