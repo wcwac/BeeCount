@@ -77,11 +77,11 @@ class _ConfigImportExportPageState
       if (!mounted) return;
       setState(() => _lastExportedFilePath = filePath);
       final box = context.findRenderObject() as RenderBox?;
-      final result = await Share.shareXFiles(
-        [XFile(filePath)],
+      final result = await SharePlus.instance.share(ShareParams(
+        files: [XFile(filePath)],
         subject: AppLocalizations.of(context).configExportShareSubject,
         sharePositionOrigin: box == null ? null : box.localToGlobal(Offset.zero) & box.size,
-      );
+      ));
       if (!mounted) return;
       if (result.status == ShareResultStatus.success) {
         showToast(context, AppLocalizations.of(context).configExportSuccess);
@@ -145,14 +145,14 @@ class _ConfigImportExportPageState
       // Step 1: 选择文件（使用 FilePickerHelper 处理部分设备不支持扩展名过滤的问题）
       final result = await FilePickerHelper.pickYamlFile();
 
-      if (result == null || result.files.isEmpty) {
+      if (result == null) {
         if (mounted) {
           setState(() => _isImporting = false);
         }
         return;
       }
 
-      final filePath = result.files.first.path;
+      final filePath = result.path;
       if (filePath == null) {
         if (!mounted) return;
         throw Exception(AppLocalizations.of(context).configImportNoFilePath);

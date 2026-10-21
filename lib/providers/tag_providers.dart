@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart' show StateProvider;
 import '../data/db.dart';
 import '../data/repositories/local/local_repository.dart';
 import '../utils/shared_ledger_picker_filter.dart';
@@ -10,7 +11,7 @@ final tagListRefreshProvider = StateProvider<int>((ref) => 0);
 
 /// 离线账本只在加载完成后开放标签创建，不使用历史云端角色作为权限。
 final canCreateTagForCurrentLedgerProvider = Provider<bool>((ref) {
-  return ref.watch(currentLedgerProvider).unwrapPrevious().valueOrNull != null;
+  return ref.watch(currentLedgerProvider).unwrapPrevious().value != null;
 }, dependencies: [currentLedgerProvider]);
 
 /// 所有标签列表 Provider（响应式）
@@ -33,9 +34,9 @@ final tagsForCurrentLedgerProvider = FutureProvider<List<Tag>>((ref) async {
   ref.watch(tagListRefreshProvider);
   ref.watch(localDataRevisionProvider);  // 本地编辑后刷新
   final repo = ref.watch(repositoryProvider);
+  final ledgerId = ref.watch(currentLedgerIdProvider);
   final all = await repo.getAllTags();
   if (repo is! LocalRepository) return all;
-  final ledgerId = ref.watch(currentLedgerIdProvider);
   final ctx = await repo.db.loadLedgerPickerContext(ledgerId);
   return repo.db.filterTagsForLedger(all, ctx);
 }, dependencies: [currentLedgerIdProvider]);

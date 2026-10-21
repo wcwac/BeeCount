@@ -93,6 +93,10 @@ Future<void> main() async {
   // 切账本触发的小组件渲染全靠它,必须真正生效。
   final container = ProviderContainer(
     observers: const [_WidgetUpdateObserver()],
+    // Riverpod 3 retries failed providers by default. Initialization providers
+    // also perform local writes; keep failures explicit instead of replaying
+    // those operations in the background.
+    retry: (retryCount, error) => null,
   );
 
   // 注意：不再在启动时生成重复交易
@@ -128,25 +132,24 @@ Future<void> main() async {
   // 执行,失败不致命。
   unawaited(_runOrphanFileGcOnce(container));
 
-  runApp(ProviderScope(
-    parent: container,
+  runApp(UncontrolledProviderScope(
+    container: container,
     child: const MainApp(),
   ));
 }
 
 /// Provider observer to update widget on app start
-class _WidgetUpdateObserver extends ProviderObserver {
+final class _WidgetUpdateObserver extends ProviderObserver {
   const _WidgetUpdateObserver();
   @override
   void didUpdateProvider(
-    ProviderBase provider,
+    ProviderObserverContext context,
     Object? previousValue,
     Object? newValue,
-    ProviderContainer container,
   ) {
     // Update widget when current ledger is loaded
-    if (provider == currentLedgerIdProvider && newValue != null) {
-      _updateWidgetOnStart(container);
+    if (context.provider == currentLedgerIdProvider && newValue != null) {
+      _updateWidgetOnStart(context.container);
     }
   }
 

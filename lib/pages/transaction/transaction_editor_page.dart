@@ -168,7 +168,7 @@ class _TransactionEditorPageState extends ConsumerState<TransactionEditorPage>
           onPressed: () => ref.invalidate(financePlanForTransactionProvider(editingId)),
           child: Text(AppLocalizations.of(context).helpCenterRetry))));
       }
-      final planId = managed.valueOrNull;
+      final planId = managed.value;
       if (planId != null) return FinanceDetailPage(planId: planId);
     }
     return Scaffold(

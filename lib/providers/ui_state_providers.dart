@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart' show StateProvider;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'database_providers.dart';
@@ -202,6 +203,7 @@ final appSplashInitProvider = FutureProvider<void>((ref) async {
       ref.watch(baseCurrencyInitProvider.future),
       ref.watch(securityInitProvider.future),
     ]);
+    if (!ref.mounted) return;
     logger.info(tag, '基础配置初始化完成: ${DateTime.now().difference(stepTime).inMilliseconds}ms');
     stepTime = DateTime.now();
 
@@ -213,6 +215,7 @@ final appSplashInitProvider = FutureProvider<void>((ref) async {
     final now = DateTime.now();
     // 月份周期标签:startDay>1 时今天可能属于「上个标签月」(如 6月5日属 5月周期)
     final ledgerRow = await repo.getLedgerById(ledgerId);
+    if (!ref.mounted) return;
     final startDay = (ledgerRow?.monthStartDay ?? 1).clamp(1, 28);
     final currentMonth = labelForDate(now, startDay);
     ref.read(selectedMonthProvider.notifier).state = currentMonth;
@@ -238,6 +241,7 @@ final appSplashInitProvider = FutureProvider<void>((ref) async {
       // 预加载预算概览，避免首页进度条闪现
       timed('预算概览', ref.read(budgetOverviewProvider.future)),
     ]);
+    if (!ref.mounted) return;
 
     final monthlyResult = results[0] as (double, double);
     final transactionsWithCategory = results[1] as List<({Transaction t, Category? category, Account? account, Account? toAccount})>;
@@ -262,6 +266,7 @@ final appSplashInitProvider = FutureProvider<void>((ref) async {
       timed('附件数量', repo.getAttachmentCountsForTransactions(transactionIds)),
       timed('账户数据', repo.getAccountsByIds(accountIds.toList())),
     ]);
+    if (!ref.mounted) return;
 
     final tagsMap = detailResults[0] as Map<int, List<Tag>>;
     final attachmentCounts = detailResults[1] as Map<int, int>;
@@ -304,6 +309,7 @@ final appSplashInitProvider = FutureProvider<void>((ref) async {
 
     // 账本统计异步加载（不阻塞启动）
     Future.microtask(() async {
+      if (!ref.mounted) return;
       final start = DateTime.now();
       await ref.read(countsForLedgerProvider(ledgerId).future);
       logger.info(tag, '账本统计(异步): ${DateTime.now().difference(start).inMilliseconds}ms');
@@ -319,6 +325,7 @@ final appSplashInitProvider = FutureProvider<void>((ref) async {
 
       // 统一后处理：刷新UI + 触发云同步（如果有生成交易）
       for (final genLedgerId in generatedLedgerIds) {
+        if (!ref.mounted) return;
         await PostProcessor.runR(ref, ledgerId: genLedgerId);
       }
     } catch (e, stackTrace) {
@@ -331,6 +338,7 @@ final appSplashInitProvider = FutureProvider<void>((ref) async {
   // 计算数据预加载耗时
   final dataLoadTime = DateTime.now().difference(startTime);
   logger.info(tag, '预加载总耗时: ${dataLoadTime.inMilliseconds}ms，切换到主应用');
+  if (!ref.mounted) return;
   ref.read(appInitStateProvider.notifier).state = AppInitState.ready;
 });
 
@@ -340,6 +348,7 @@ final shouldShowWelcomeProvider = StateProvider<bool>((ref) => false);
 // 初始化检查是否需要显示欢迎页面
 final welcomeCheckProvider = FutureProvider<bool>((ref) async {
   final prefs = await SharedPreferences.getInstance();
+  if (!ref.mounted) return false;
   final welcomeShown = prefs.getBool('welcome_shown') ?? false;
   if (!welcomeShown) {
     print('👋 首次启动，需要展示欢迎页面');
@@ -390,4 +399,3 @@ class DefaultAccountSetter {
 final defaultAccountSetterProvider = Provider<DefaultAccountSetter>((ref) {
   return DefaultAccountSetter();
 });
-

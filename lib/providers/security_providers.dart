@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart' show StateProvider;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/security/app_lock_service.dart';
 
@@ -20,6 +21,7 @@ final appLockTimeoutProvider = StateProvider<int>((ref) => 0);
 // 初始化安全相关 Provider（在 splash 阶段调用）
 final securityInitProvider = FutureProvider<void>((ref) async {
   final prefs = await SharedPreferences.getInstance();
+  if (!ref.mounted) return;
 
   // 读取应用锁状态
   final enabled = prefs.getBool('app_lock_enabled') ?? false;
@@ -31,7 +33,9 @@ final securityInitProvider = FutureProvider<void>((ref) async {
   ref.read(appLockTimeoutProvider.notifier).state = timeout;
 
   // 安全检查：锁已启用但无 PIN，自动禁用
-  if (enabled && !(await AppLockService.hasPin())) {
+  final hasPin = !enabled || await AppLockService.hasPin();
+  if (!ref.mounted) return;
+  if (!hasPin) {
     ref.read(appLockEnabledProvider.notifier).state = false;
     await prefs.setBool('app_lock_enabled', false);
     return;

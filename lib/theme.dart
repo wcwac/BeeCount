@@ -31,7 +31,7 @@ class BeeTheme {
       ),
       primaryColor: honeyGold,
       scaffoldBackgroundColor: paperIvory,
-      appBarTheme: const AppBarTheme(
+      appBarTheme: const AppBarThemeData(
         backgroundColor: Colors.white,
         foregroundColor: textDark,
         elevation: 0.0,
@@ -73,7 +73,7 @@ class BeeTheme {
       ),
       primaryColor: honeyGoldDark,     // ⭐ 主题色
       scaffoldBackgroundColor: Colors.black, // ⭐ 纯黑背景（OLED 友好）
-      appBarTheme: const AppBarTheme(
+      appBarTheme: const AppBarThemeData(
         backgroundColor: Colors.black,  // ⭐ 改为纯黑
         foregroundColor: Colors.white,
         elevation: 0.0,
@@ -91,7 +91,7 @@ class BeeTheme {
         backgroundColor: Colors.transparent, // 悬浮胶囊样式，外层透明
         elevation: 0,
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: Colors.black,             // ⭐ 改为纯黑卡片
         elevation: 0,
         shape: RoundedRectangleBorder(

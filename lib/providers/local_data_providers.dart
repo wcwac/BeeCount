@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart' show StateProvider;
 import '../models/ledger_display_item.dart';
 import '../services/system/logger_service.dart';
 import 'database_providers.dart';

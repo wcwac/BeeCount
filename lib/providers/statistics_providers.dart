@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart' show StateProvider;
 import 'database_providers.dart';
 import 'ui_state_providers.dart';
 import 'currency_providers.dart';
@@ -41,7 +42,7 @@ final countsAllProvider =
   ref.onDispose(() => link.close());
   final res = await repo.getCountsAll();
   // 写入最近一次成功值，供 UI 在刷新期间显示旧值
-  ref.read(lastCountsAllProvider.notifier).state = res;
+  if (ref.mounted) ref.read(lastCountsAllProvider.notifier).state = res;
   return res;
 });
 
@@ -78,7 +79,9 @@ final monthlyTotalsProvider = FutureProvider.family
   ref.onDispose(() => link.close());
   final res = await repo.monthlyTotals(ledgerId: params.ledgerId, month: params.month);
   // 写入最近一次成功值，供 UI 在刷新期间显示旧值
-  ref.read(lastMonthlyTotalsProvider(params).notifier).state = res;
+  if (ref.mounted) {
+    ref.read(lastMonthlyTotalsProvider(params).notifier).state = res;
+  }
   return res;
 });
 

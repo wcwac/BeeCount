@@ -1,0 +1,41 @@
+Flutter / 依赖实际迁移记录（2026-10-22，北京时间）
+
+升级分支：feat/flutter-stable-upgrade；基于 feat/local-transaction-capture 的已验证源码89ecf81和文档提交de13c54。
+本文件描述已修改源码及验证计划；首轮新版CI结果尚待取得，不等同于升级通过。
+不在本机安装SDK、生成代码、编译或执行项目测试，所有这些步骤仅在已授权的GitHub Actions中运行。自动截图继续暂缓。
+
+目标和边界
+- Flutter3.47.7 / Dart3.13.5。重新核实的官方Linux发布清单URL为 https://storage.googleapis.com/flutter_infra_release/releases/releases_linux.json 。此前审计使用的 /flutter/releases/ 多出一层目录，因此404；此处纠正来源并保留此前审计的历史记录。
+- 清单stable hash=abaf9c523780a608bd46686fd5e53740a07077f8；Linux SDK SHA256=af7455f540df951184c7953fbe3cf884766e7541dacf8571f9f582db03dd6230。SDK实际仅由Actions下载执行。
+- 根生产依赖38项（含2个SDK包），移除sqlite3_flutter_libs及jovial_svg直接依赖；sqlite3 3.x由Drift依赖并通过native-assets hooks打包，country_flags内部自行依赖jovial_svg。
+- 其余直接依赖目标按2026-10-22的pub.dev官方API latest稳定版本更新约束。实际解析图以云端pubspec.lock和回归结果为准，不手工捏造锁文件。
+- 两项已确认约束：excel4.0.6仍依赖archive^3.6.1，所以保留archive3.6.1；build_runner2.17.1依赖build5，而drift_dev2.35.1要求build<5，所以固定build_runner2.17.0（build^4.1.0，analyzer>=14.3<15，与drift_dev交集成立）。未用overrides强行绕过。
+- AGP9.2.1 / Gradle9.3.1 / Kotlin2.4.21，Java17，NDK28.2.13676358，compile/target36。选择Flutter工具已知AGP9.2系列及其默认Gradle9.3.1；未把AGP9.4/Gradle9.8的最新发布直接等同于该Flutter版经过验证的组合。
+- 按Flutter3.47官方现有插件兼容路径显式android.builtInKotlin=false、android.newDsl=false，保留根Kotlin插件；Flutter会为未显式应用Kotlin的Android库模块注入传统Kotlin插件。新AppLinks等库依赖此路径。
+- 最低Android API24（Android7.0），来自Flutter新基线及新版通知/认证/AppLinks插件，旧API23不再作为支持目标。
+
+实质源码迁移
+- Riverpod3.4.3：legacy API精确导入、AsyncValue.value、ObserverContext、根容器复用；根容器明确关闭新增自动失败重试，避免初始化写入被重放；异步任务增加mounted保护，依赖在await之前登记。
+- Drift2.35.2 / drift_dev2.35.1：云端重跑build_runner，不手改db.g.dart。业务schema仍35，不因库升级改用户数据结构；SQLite后台isolate与磁盘重开新增回归。
+- CSV8：使用Csv.encode并保留现有分隔、换行、BOM。
+- file_picker13：单文件PlatformFile返回值、异步读数据和流式备份大小限制；SharePlus13统一ShareParams；通知22改命名参数并补后台调度receiver；认证3使用新接口及AppCompat原生主题。
+- country_flags4通过公开币种API显示EUR；image_cropper13解除旧平台接口覆盖；Flutter主题使用*ThemeData。
+
+云端验证与生成物
+- 解析、Drift生成、本地化生成、分析、采集专项、全Flutter回归、Kotlin单元、release与仪器测试APK编译、APK权限/native SQLite ABI检查。
+- 独立检查尽可能继续执行，最终gate读取各步骤原始outcome；失败、跳过、未执行不能伪装通过。
+- 只在升级分支全部检查成功后，用单独contents:write后续job回写实际已验证的pubspec.lock、db.g.dart和本地化生成文件；仅这些路径，检测源SHA未被更新，提交[skip ci]。普通编译job仍contents:read。
+- 仪器测试当前只编译，不表示已在设备执行；22个真实应用规则仍为实验性。后台服务重连、权限撤销、实际客户端页面、性能与iOS仍需对应设备/平台验证。
+
+主要明确官方来源（只读直达，无搜索引擎）
+https://storage.googleapis.com/flutter_infra_release/releases/releases_linux.json
+https://raw.githubusercontent.com/flutter/flutter/3.47.7/packages/flutter_localizations/pubspec.yaml
+https://raw.githubusercontent.com/flutter/flutter/3.47.7/packages/flutter_tools/lib/src/android/gradle_utils.dart
+https://raw.githubusercontent.com/flutter/flutter/3.47.7/packages/flutter_tools/lib/src/android/migrations/disable_built_in_kotlin_migration.dart
+https://raw.githubusercontent.com/flutter/flutter/3.47.7/packages/flutter_tools/lib/src/android/migrations/disable_new_dsl_migration.dart
+https://raw.githubusercontent.com/flutter/flutter/3.47.7/packages/flutter_tools/gradle/src/main/kotlin/FlutterPluginUtils.kt
+https://pub.dev/api/packages/drift
+https://pub.dev/api/packages/drift_dev
+https://pub.dev/api/packages/build_runner/versions/2.17.0
+https://pub.dev/api/packages/excel/versions/4.0.6
+https://pub.dev/api/packages/sqlite3/versions/3.7.1

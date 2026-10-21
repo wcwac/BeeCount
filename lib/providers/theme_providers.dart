@@ -1,6 +1,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart' show StateProvider, StateNotifier, StateNotifierProvider;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/note_history.dart';
 import '../theme.dart';
@@ -13,6 +14,7 @@ final themeModeProvider = StateProvider<ThemeMode>((ref) => ThemeMode.system);
 // 主题模式持久化初始化
 final themeModeInitProvider = FutureProvider<void>((ref) async {
   final prefs = await SharedPreferences.getInstance();
+  if (!ref.mounted) return;
   final saved = prefs.getString('themeMode');
   if (saved != null) {
     switch (saved) {
@@ -55,6 +57,7 @@ final hideAmountsProvider = StateProvider<bool>((ref) => false);
 // - 监听主色变化并写入本地
 final primaryColorInitProvider = FutureProvider<void>((ref) async {
   final prefs = await SharedPreferences.getInstance();
+  if (!ref.mounted) return;
   final saved = prefs.getInt('primaryColor');
   if (saved != null) {
     ref.read(primaryColorProvider.notifier).state = Color(saved);
@@ -70,6 +73,7 @@ Future<void> _persistPrimaryColor(
   {
     final colorValue = (next.a * 255).toInt() << 24 | (next.r * 255).toInt() << 16 | (next.g * 255).toInt() << 8 | (next.b * 255).toInt();
     await prefs.setInt('primaryColor', colorValue);
+    if (!ref.mounted) return;
     // Update widget with new theme color
     try {
       final repository = ref.read(repositoryProvider);
@@ -100,6 +104,7 @@ Future<void> _persistPrimaryColor(
 // - 监听隐私模式变化并写入本地
 final hideAmountsInitProvider = FutureProvider<void>((ref) async {
   final prefs = await SharedPreferences.getInstance();
+  if (!ref.mounted) return;
   final saved = prefs.getBool('hideAmounts');
   if (saved != null) {
     ref.read(hideAmountsProvider.notifier).state = saved;
@@ -124,6 +129,7 @@ class AssetTrendViewNotifier extends StateNotifier<AssetTrendView> {
 
   Future<void> _load() async {
     final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
     if (prefs.getString(_key) == 'composition') {
       state = AssetTrendView.composition;
     }
@@ -133,6 +139,7 @@ class AssetTrendViewNotifier extends StateNotifier<AssetTrendView> {
     if (state == v) return;
     state = v;
     final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
     await prefs.setString(
         _key, v == AssetTrendView.composition ? 'composition' : 'trend');
   }
@@ -148,6 +155,7 @@ final compactAmountProvider = StateProvider<bool>((ref) => false);
 // 金额显示格式持久化初始化
 final compactAmountInitProvider = FutureProvider<void>((ref) async {
   final prefs = await SharedPreferences.getInstance();
+  if (!ref.mounted) return;
   final saved = prefs.getBool('compactAmount');
   if (saved != null) {
     ref.read(compactAmountProvider.notifier).state = saved;
@@ -165,6 +173,7 @@ final showTransactionTimeProvider = StateProvider<bool>((ref) => false);
 // 显示交易时间持久化初始化
 final showTransactionTimeInitProvider = FutureProvider<void>((ref) async {
   final prefs = await SharedPreferences.getInstance();
+  if (!ref.mounted) return;
   final saved = prefs.getBool('showTransactionTime');
   if (saved != null) {
     ref.read(showTransactionTimeProvider.notifier).state = saved;
@@ -182,6 +191,7 @@ final noteDisplayModeProvider = StateProvider<String>((ref) => 'category');
 // 备注显示方式持久化初始化
 final noteDisplayModeInitProvider = FutureProvider<void>((ref) async {
   final prefs = await SharedPreferences.getInstance();
+  if (!ref.mounted) return;
   final saved = prefs.getString('noteDisplayMode');
   if (saved != null) {
     ref.read(noteDisplayModeProvider.notifier).state = saved;
@@ -215,6 +225,7 @@ final noteHistoryLimitProvider =
 /// 初始化历史备注偏好，并在用户修改时持久化配置。
 final noteHistoryPreferencesInitProvider = FutureProvider<void>((ref) async {
   final prefs = await SharedPreferences.getInstance();
+  if (!ref.mounted) return;
   final savedScope = prefs.getString('noteHistoryScope');
   final savedSort = prefs.getString('noteHistorySort');
   final savedLimit = prefs.getInt('noteHistoryLimit');
@@ -252,6 +263,7 @@ final noteHistoryPreferencesInitProvider = FutureProvider<void>((ref) async {
   await prefs.setString('noteHistoryScope', scope.name);
   await prefs.setString('noteHistorySort', sort.name);
   await prefs.setInt('noteHistoryLimit', limit);
+  if (!ref.mounted) return;
 
   ref.listen<NoteHistoryScope>(noteHistoryScopeProvider, (prev, next) async {
     // 用户选择变化后写本机偏好，保存在本机。
@@ -275,12 +287,14 @@ final incomeExpenseColorSchemeProvider = StateProvider<bool>((ref) => true);
 // 收支颜色方案持久化初始化
 final incomeExpenseColorSchemeInitProvider = FutureProvider<void>((ref) async {
   final prefs = await SharedPreferences.getInstance();
+  if (!ref.mounted) return;
   final saved = prefs.getBool('incomeExpenseColorScheme');
   if (saved != null) {
     ref.read(incomeExpenseColorSchemeProvider.notifier).state = saved;
   }
   ref.listen<bool>(incomeExpenseColorSchemeProvider, (prev, next) async {
     await prefs.setBool('incomeExpenseColorScheme', next);
+    if (!ref.mounted) return;
     try {
       final repository = ref.read(repositoryProvider);
       final currentLedgerId = ref.read(currentLedgerIdProvider);
@@ -312,6 +326,7 @@ final displayNameProvider = StateProvider<String>((ref) => '');
 // 完全照搬 themeMode / compactAmount 的写法。
 final displayNameInitProvider = FutureProvider<void>((ref) async {
   final prefs = await SharedPreferences.getInstance();
+  if (!ref.mounted) return;
   final saved = prefs.getString('displayName');
   if (saved != null) {
     ref.read(displayNameProvider.notifier).state = saved;

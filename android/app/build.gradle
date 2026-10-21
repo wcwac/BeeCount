@@ -5,7 +5,7 @@ plugins {
     id "dev.flutter.flutter-gradle-plugin"
 }
 
-// Google Play 自动保护要求 AAB 至少 API 24；APK 继续支持 API 23。
+// APK/AAB 都至少支持 API 24，与通知和生物识别插件最低版本保持一致。
 def buildingAppBundle = gradle.startParameter.taskNames.any { it.toLowerCase().contains("bundle") }
 
 // Load signing credentials from key.properties (not committed to VCS)
@@ -19,7 +19,7 @@ android {
     namespace = "com.tntlikely.beecount"
     compileSdk = 36
     // Keep in sync with plugins' required NDK to avoid build warnings/errors.
-    ndkVersion = "27.0.12077973"
+    ndkVersion = "28.2.13676358"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -29,19 +29,13 @@ android {
         coreLibraryDesugaringEnabled true
     }
 
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_17
-    }
-
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "io.github.wcwac.beecount.offline"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = buildingAppBundle ? 24 : 23
-        // 硬编码 36(Android 16):Google Play 自 2026-11-01 起要求 targetSdk >= 36,
-        // 而当前锁定的 Flutter 3.27.3 内置 flutter.targetSdkVersion 仍为 35。
-        // 升 Flutter 后可考虑改回 flutter.targetSdkVersion。
+        minSdk = 24
+        // 显式固定 Android 16 的 API 36，独立于 Flutter SDK 的默认值。
         targetSdk = 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName
@@ -166,6 +160,12 @@ android.applicationVariants.all { variant ->
     }
 }
 
+kotlin {
+    compilerOptions {
+        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
+    }
+}
+
 flutter {
     source = "../.."
 }
@@ -179,6 +179,6 @@ dependencies {
     // Java language desugaring support for older Android devices.
     coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.4'
 
-    // Required by uCrop 2.2.11 (bundled with image_cropper 10.0.0) for downloading image URIs
+    // uCrop 2.2.11 (image_cropper 13.0.0) still references OkHttp for image URIs.
     implementation 'com.squareup.okhttp3:okhttp:4.12.0'
 }

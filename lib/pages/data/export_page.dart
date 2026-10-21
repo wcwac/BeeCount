@@ -239,7 +239,7 @@ class _ExportPageState extends ConsumerState<ExportPage> {
         }
       }
 
-      final csvStr = const ListToCsvConverter(eol: '\n').convert(rows);
+      final csvStr = Csv(lineDelimiter: '\n').encode(rows);
       final ts = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
       final path = p.join(directory, 'beecount_$ts.csv');
       
@@ -255,7 +255,10 @@ class _ExportPageState extends ConsumerState<ExportPage> {
       final l10nDialog = AppLocalizations.of(context);
       if (shareAfter) {
         // 触发分享面板
-        await Share.shareXFiles([XFile(path)], text: l10nDialog.exportShareText);
+        await SharePlus.instance.share(ShareParams(
+          files: [XFile(path)],
+          text: l10nDialog.exportShareText,
+        ));
         await AppDialog.info(context,
             title: l10nDialog.exportSuccessTitle, message: l10nDialog.exportSuccessMessageIOS(path));
       } else {

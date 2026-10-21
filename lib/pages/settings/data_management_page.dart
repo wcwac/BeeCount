@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:path_provider/path_provider.dart';
 
 
@@ -277,8 +278,10 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
       await file.writeAsBytes(bytes, flush: true);
       if (!mounted) return;
       final box = context.findRenderObject() as RenderBox?;
-      await Share.shareXFiles([XFile(file.path)],
-          sharePositionOrigin: box == null ? null : box.localToGlobal(Offset.zero) & box.size);
+      await SharePlus.instance.share(ShareParams(
+        files: [XFile(file.path)],
+        sharePositionOrigin: box == null ? null : box.localToGlobal(Offset.zero) & box.size,
+      ));
     } catch (error) {
       if (mounted) await AppDialog.error(context,
           title: _backupText('备份失败', 'Backup failed'), message: '$error');
@@ -292,16 +295,23 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
     var restored = false;
     setState(() => _databaseBusy = true);
     try {
-      final selection = await FilePicker.platform.pickFiles(
+      final file = await FilePicker.pickFile(
           type: FileType.custom, allowedExtensions: ['json']);
-      if (selection == null || selection.files.isEmpty) return;
-      final file = selection.files.single;
-      if (file.size > LocalDatabaseBackupService.maxBytes) {
+      if (file == null) return;
+      final length = await file.length();
+      if (length != null && length > LocalDatabaseBackupService.maxBytes) {
         throw const FormatException('文件超过 100 MB / File exceeds 100 MB');
       }
       final service = LocalDatabaseBackupService(ref.read(databaseProvider));
-      final bytes = file.bytes ?? (file.path == null ? null : await service.readFile(File(file.path!)));
-      if (bytes == null) throw const FormatException('无法读取文件 / File unavailable');
+      // Enforce the cap while reading, including providers that do not report a size.
+      final buffer = BytesBuilder(copy: false);
+      await for (final chunk in file.readAsByteStream()) {
+        if (buffer.length + chunk.length > LocalDatabaseBackupService.maxBytes) {
+          throw const FormatException('文件超过 100 MB / File exceeds 100 MB');
+        }
+        buffer.add(chunk);
+      }
+      final bytes = buffer.takeBytes();
       final snapshot = await service.inspectBytes(bytes);
       if (!mounted) return;
       final confirmed = await AppDialog.confirm<bool>(context,
@@ -497,10 +507,10 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
         return;
       }
       final box = context.findRenderObject() as RenderBox?;
-      final result = await Share.shareXFiles(
-        [XFile(exportPath)],
+      final result = await SharePlus.instance.share(ShareParams(
+        files: [XFile(exportPath)],
         sharePositionOrigin: box == null ? null : box.localToGlobal(Offset.zero) & box.size,
-      );
+      ));
       if (!mounted) return;
       if (result.status == ShareResultStatus.success) {
         showToast(context, l10n.attachmentExportSuccess);
@@ -517,14 +527,14 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
   }
 
   Future<void> _selectImportFile() async {
-    final pickerResult = await FilePicker.platform.pickFiles(
+    final pickerResult = await FilePicker.pickFile(
       type: FileType.custom,
       allowedExtensions: ['gz', 'tar'],
     );
 
-    if (pickerResult == null || pickerResult.files.isEmpty) return;
+    if (pickerResult == null) return;
 
-    final filePath = pickerResult.files.first.path;
+    final filePath = pickerResult.path;
     if (filePath == null) return;
 
     final service = ref.read(attachmentExportImportServiceProvider);

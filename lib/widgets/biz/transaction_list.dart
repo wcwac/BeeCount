@@ -486,7 +486,7 @@ class TransactionListState extends ConsumerState<TransactionList> {
             // accounts 行变化 + 镜像表 sharedLedgerAccounts 变化,无需任何
             // 命令式 cache / setState / provider fallback。
             final accountFeatureEnabled =
-                ref.watch(accountFeatureEnabledProvider).valueOrNull ?? true;
+                ref.watch(accountFeatureEnabledProvider).value ?? true;
             String? accountName;
             String? toAccountName;
             if (accountFeatureEnabled) {

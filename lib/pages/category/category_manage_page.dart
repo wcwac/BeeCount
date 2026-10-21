@@ -331,10 +331,10 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage> with Ti
       if (Platform.isAndroid) {
         showToast(context, l10n.categoryShareSuccess(outputPath.replaceAll('/storage/emulated/0/', '')));
       } else {
-        await Share.shareXFiles(
-          [XFile(outputPath)],
+        await SharePlus.instance.share(ShareParams(
+          files: [XFile(outputPath)],
           subject: l10n.categoryShareSubject,
-        );
+        ));
       }
     } catch (e) {
       logger.error('CategoryManage', '分享分类失败: $e');
@@ -349,19 +349,19 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage> with Ti
 
     try {
       // 选择文件
-      FilePickerResult? result;
+      PlatformFile? result;
       try {
-        result = await FilePicker.platform.pickFiles(
+        result = await FilePicker.pickFile(
           type: FileType.custom,
           allowedExtensions: ['zip'],
         );
       } catch (e) {
-        result = await FilePicker.platform.pickFiles(type: FileType.any);
+        result = await FilePicker.pickFile(type: FileType.any);
       }
 
-      if (result == null || result.files.isEmpty || !mounted) return;
+      if (result == null || !mounted) return;
 
-      final filePath = result.files.first.path;
+      final filePath = result.path;
       if (filePath == null) {
         showToast(context, l10n.configImportNoFilePath);
         return;
@@ -444,7 +444,7 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage> with Ti
   /// 清空未使用的分类
   Future<void> _clearUnusedCategories() async {
     final l10n = AppLocalizations.of(context);
-    final categoriesWithCount = ref.read(categoriesWithCountProvider).valueOrNull ?? [];
+    final categoriesWithCount = ref.read(categoriesWithCountProvider).value ?? [];
 
     // 找出交易数为0的分类（统计已包含子分类交易数）
     final unusedCategories = categoriesWithCount
@@ -535,7 +535,7 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage> with Ti
 
   /// 静默清空未使用的分类（用于覆盖导入）
   Future<void> _clearUnusedCategoriesSilent() async {
-    final categoriesWithCount = ref.read(categoriesWithCountProvider).valueOrNull ?? [];
+    final categoriesWithCount = ref.read(categoriesWithCountProvider).value ?? [];
     final unusedCategories = categoriesWithCount
         .where((item) => item.transactionCount == 0)
         .toList();

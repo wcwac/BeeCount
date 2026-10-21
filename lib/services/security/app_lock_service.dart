@@ -142,10 +142,8 @@ class AppLockService {
       return await _localAuth.authenticate(
         localizedReason: reason ??
             resolveAppLocalizations(null).appLockBiometricReason,
-        options: const AuthenticationOptions(
-          stickyAuth: true,
-          biometricOnly: true,
-        ),
+        persistAcrossBackgrounding: true,
+        biometricOnly: true,
       );
     } catch (e) {
       logger.error('AppLock', '生物识别认证失败', e);

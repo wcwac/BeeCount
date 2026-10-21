@@ -1,15 +1,12 @@
 import 'package:country_flags/country_flags.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show rootBundle;
-import 'package:jovial_svg/jovial_svg.dart';
 
 import '../../styles/tokens.dart';
 import '../../utils/currencies.dart';
 
 /// 币种国旗(统一入口:币种选择弹窗 + 记账币种标共用)。
 /// - 普通币种:CountryFlag.fromCountryCode(码前两位派生的国家)
-/// - 欧元:country_flags 的国家码表无 'EU',但包内有 eu.si 资源 —— 直接照
-///   country_flags 内部方式用 jovial_svg 渲染欧盟旗
+/// - 欧元:通过 CountryFlag.fromCurrencyCode 的公开币种映射显示欧盟旗
 /// - 区域货币(无国家码,如 XAF/XDR):币种符号占位圆
 Widget currencyFlag(
   BuildContext context,
@@ -40,15 +37,13 @@ Widget currencyFlag(
       ),
     );
   }
+  final flagTheme = ImageTheme(width: width, height: height);
   final Widget flag = country == 'EU'
-      ? ScalableImageWidget.fromSISource(
-          si: ScalableImageSource.fromSI(
-            rootBundle,
-            'packages/country_flags/res/si/eu.si',
-          ),
-          fit: BoxFit.cover,
+      ? CountryFlag.fromCurrencyCode(
+          'EUR',
+          theme: flagTheme,
         )
-      : CountryFlag.fromCountryCode(country, width: width, height: height);
+      : CountryFlag.fromCountryCode(country, theme: flagTheme);
   return ClipRRect(
     borderRadius: BorderRadius.circular(radius),
     child: SizedBox(width: width, height: height, child: flag),

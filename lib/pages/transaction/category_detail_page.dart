@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart' show StateProvider;
 import '../../providers.dart';
 import '../../providers/budget_providers.dart';
 import '../../data/db.dart' as db;
@@ -331,7 +332,7 @@ class _CategoryDetailPageState extends ConsumerState<CategoryDetailPage> {
 
     // 全部账本模式下，构建账本名映射，用于在交易项展示账本标签
     final ledgerNames = widget.allLedgers
-        ? {for (final l in (ref.watch(ledgersStreamProvider).valueOrNull ?? [])) l.id: l.name}
+        ? {for (final l in (ref.watch(ledgersStreamProvider).value ?? [])) l.id: l.name}
         : const <int, String>{};
 
     // 金额排序时：预计算UI列表，避免动态插入导致卡顿

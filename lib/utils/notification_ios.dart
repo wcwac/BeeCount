@@ -20,7 +20,7 @@ class IOSNotificationUtil implements util.NotificationUtil {
 
     const initSettings = InitializationSettings(iOS: iosSettings);
 
-    await _plugin.initialize(initSettings);
+    await _plugin.initialize(settings: initSettings);
 
     // 初始化后立即请求权限
     await requestPermissions();
@@ -72,13 +72,12 @@ class IOSNotificationUtil implements util.NotificationUtil {
 
     try {
       await _plugin.zonedSchedule(
-        id,
-        title,
-        body,
-        tzScheduledDate,
-        notificationDetails,
-        uiLocalNotificationDateInterpretation:
-            UILocalNotificationDateInterpretation.absoluteTime,
+        id: id,
+        title: title,
+        body: body,
+        scheduledDate: tzScheduledDate,
+        notificationDetails: notificationDetails,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
         matchDateTimeComponents: DateTimeComponents.time, // 每天重复
       );
 
@@ -110,13 +109,12 @@ class IOSNotificationUtil implements util.NotificationUtil {
     const notificationDetails = NotificationDetails(iOS: iosDetails);
 
     await _plugin.zonedSchedule(
-      id,
-      title,
-      body,
-      tzScheduledDate,
-      notificationDetails,
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
+      id: id,
+      title: title,
+      body: body,
+      scheduledDate: tzScheduledDate,
+      notificationDetails: notificationDetails,
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
     );
 
     print('[iOS] 单次提醒设置成功: $scheduledDate');
@@ -125,7 +123,7 @@ class IOSNotificationUtil implements util.NotificationUtil {
   @override
   Future<void> cancelNotification(int id) async {
     if (!_initialized) await initialize();
-    await _plugin.cancel(id);
+    await _plugin.cancel(id: id);
     print('[iOS] 通知已取消: $id');
   }
 
@@ -152,7 +150,12 @@ class IOSNotificationUtil implements util.NotificationUtil {
 
     const notificationDetails = NotificationDetails(iOS: iosDetails);
 
-    await _plugin.show(id, title, body, notificationDetails);
+    await _plugin.show(
+      id: id,
+      title: title,
+      body: body,
+      notificationDetails: notificationDetails,
+    );
     print('[iOS] 即时通知已显示: $title');
   }
 

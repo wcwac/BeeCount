@@ -291,10 +291,10 @@ class _LogCenterPageState extends ConsumerState<LogCenterPage> {
   Future<void> _exportLogs() async {
     try {
       final text = logger.exportAsText();
-      await Share.share(
-        text,
+      await SharePlus.instance.share(ShareParams(
+        text: text,
         subject: 'BeeCount 日志导出',
-      );
+      ));
     } catch (e) {
       if (mounted) {
         showToast(context, AppLocalizations.of(context).logCenterExportFailed);

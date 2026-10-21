@@ -177,7 +177,7 @@ class _TagDetailPageState extends ConsumerState<TagDetailPage> {
       start: range?.start,
       end: range?.end,
     )));
-    final tag = tagAsync.valueOrNull;
+    final tag = tagAsync.value;
 
     return Scaffold(
       backgroundColor: BeeTokens.scaffoldBackground(context),
@@ -367,7 +367,7 @@ class _TagDetailPageState extends ConsumerState<TagDetailPage> {
 
     // 全部账本模式下，构建账本名映射，用于在交易项展示账本标签
     final ledgerNames = widget.allLedgers
-        ? {for (final l in (ref.watch(ledgersStreamProvider).valueOrNull ?? [])) l.id: l.name}
+        ? {for (final l in (ref.watch(ledgersStreamProvider).value ?? [])) l.id: l.name}
         : const <int, String>{};
 
     // 按日期分组

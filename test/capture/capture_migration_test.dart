@@ -22,7 +22,7 @@ void main() {
       await db.customStatement('DROP TABLE transaction_capture_links');
       await db.customStatement('PRAGMA user_version=34');
       await db.close();
-      db = BeeDatabase.forTesting(NativeDatabase(file));
+      db = BeeDatabase.forTesting(NativeDatabase.createInBackground(file));
       repo = LocalRepository(db);
       expect((await repo.getTransactionById(id))!.amount, 12.5);
       expect(await repo.getAccountBalance(account), closeTo(87.5, .00001));

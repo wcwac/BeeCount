@@ -1,5 +1,7 @@
+import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart' show StateProvider;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/currency/rate_math.dart';
@@ -19,15 +21,17 @@ final rateRefreshTickProvider = StateProvider<int>((ref) => 0);
 /// ① Welcome 选币(selected_currency) → ② 当前账本币种 → ③ CNY 初始化。
 final baseCurrencyInitProvider = FutureProvider<void>((ref) async {
   final prefs = await SharedPreferences.getInstance();
+  if (!ref.mounted) return;
   var saved = prefs.getString('baseCurrency');
   if (saved == null || saved.isEmpty) {
     saved = prefs.getString('selected_currency');
     if (saved == null || saved.isEmpty) {
-      saved = ref.read(currentLedgerProvider).valueOrNull?.currency;
+      saved = ref.read(currentLedgerProvider).value?.currency;
     }
     if (saved == null || saved.isEmpty) saved = 'CNY';
     await prefs.setString('baseCurrency', saved);
   }
+  if (!ref.mounted) return;
   ref.read(baseCurrencyProvider.notifier).state = saved.toUpperCase();
 
   ref.listen<String>(baseCurrencyProvider, (prev, next) async {
@@ -39,15 +43,16 @@ final baseCurrencyInitProvider = FutureProvider<void>((ref) async {
 final usedCurrenciesProvider = FutureProvider<Set<String>>((ref) async {
   ref.watch(statsRefreshProvider);
   final repo = ref.watch(repositoryProvider);
+  final base = ref.watch(baseCurrencyProvider).toUpperCase();
   final used = await repo.getUsedCurrencies();
-  used.add(ref.watch(baseCurrencyProvider).toUpperCase());
+  used.add(base);
   return used;
 });
 
 /// 多币种态总闸(README D6):使用中币种 ≥2 即恒为折算态,与 Web 端对齐。
 /// 原「按主币种折算」开关已下线(默认折算),不再有「非折算多币种」态。
 final multiCurrencyActiveProvider = Provider<bool>((ref) {
-  final used = ref.watch(usedCurrenciesProvider).valueOrNull;
+  final used = ref.watch(usedCurrenciesProvider).value;
   return used != null && used.length >= 2;
 });
 
@@ -96,7 +101,7 @@ final currencyPickerRatesProvider =
 /// 当前账本本位币(ISO 大写)。`ledger.currency` 的语义化别名——交易级多币种后
 /// 它的语义是「账本统计折算的目标币种」(.docs/multi-currency-ledger L1)。
 final currentLedgerCurrencyProvider = Provider<String>((ref) {
-  final ledger = ref.watch(currentLedgerProvider).valueOrNull;
+  final ledger = ref.watch(currentLedgerProvider).value;
   final c = ledger?.currency;
   return (c == null || c.isEmpty) ? 'CNY' : c.toUpperCase();
 }, dependencies: [currentLedgerProvider]);
@@ -129,7 +134,7 @@ final effectiveRatesForLedgerProvider =
 final ledgerUnconvertedForeignTxCountProvider = FutureProvider<int>((ref) async {
   ref.watch(statsRefreshProvider);
   ref.watch(rateRefreshTickProvider);
-  final ledger = ref.watch(currentLedgerProvider).valueOrNull;
+  final ledger = ref.watch(currentLedgerProvider).value;
   if (ledger == null) return 0;
   final repo = ref.watch(repositoryProvider);
   return repo.countUnconvertedForeignTx(ledger.id);
@@ -138,7 +143,7 @@ final ledgerUnconvertedForeignTxCountProvider = FutureProvider<int>((ref) async 
 /// 当前账本外币交易条数(含已折算):>0 时账本统计页显示折算脚注(01 §五)。
 final ledgerForeignTxCountProvider = FutureProvider<int>((ref) async {
   ref.watch(statsRefreshProvider);
-  final ledger = ref.watch(currentLedgerProvider).valueOrNull;
+  final ledger = ref.watch(currentLedgerProvider).value;
   if (ledger == null) return 0;
   final repo = ref.watch(repositoryProvider);
   return repo.countForeignCurrencyTx(ledger.id);
@@ -147,9 +152,10 @@ final ledgerForeignTxCountProvider = FutureProvider<int>((ref) async {
 /// 资产页折算结果。
 final convertedNetWorthProvider =
     FutureProvider<ConvertedNetWorth>((ref) async {
-  final breakdown = await ref.watch(netWorthBreakdownByCurrencyProvider.future);
-  final rates = await ref.watch(effectiveRatesProvider.future);
+  final breakdownFuture = ref.watch(netWorthBreakdownByCurrencyProvider.future);
+  final ratesFuture = ref.watch(effectiveRatesProvider.future);
   final base = ref.watch(baseCurrencyProvider).toUpperCase();
+  final (breakdown, rates) = await (breakdownFuture, ratesFuture).wait;
   return computeConvertedNetWorth(breakdown: breakdown, rates: rates, base: base);
 });
 
@@ -158,11 +164,12 @@ final convertedNetWorthProvider =
 /// 多币种折算态喂给 [AssetCompositionChart](入参类型与 [assetCompositionProvider] 相同)。
 final convertedAssetCompositionProvider =
     FutureProvider<List<({String type, double totalBalance})>>((ref) async {
-  final rates = await ref.watch(effectiveRatesProvider.future);
+  final ratesFuture = ref.watch(effectiveRatesProvider.future);
   final base = ref.watch(baseCurrencyProvider).toUpperCase();
   ref.watch(statsRefreshProvider);
   ref.watch(rateRefreshTickProvider);
   final repo = ref.watch(repositoryProvider);
+  final rates = await ratesFuture;
   final rows = await repo.getAssetCompositionByTypeAndCurrency();
 
   final byType = <String, double>{};

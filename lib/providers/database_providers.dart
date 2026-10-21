@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart' show StateProvider;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../data/db.dart';
 import 'local_data_providers.dart';
@@ -35,7 +36,7 @@ final currentLedgerProvider = StreamProvider<Ledger?>((ref) {
 
 /// 当前账本的每月起始日(1-28);未加载完成时按 1(自然月)兜底。
 final currentMonthStartDayProvider = Provider<int>((ref) {
-  final ledger = ref.watch(currentLedgerProvider).valueOrNull;
+  final ledger = ref.watch(currentLedgerProvider).value;
   return (ledger?.monthStartDay ?? 1).clamp(1, 28);
 });
 
@@ -57,6 +58,7 @@ final _currentLedgerPersist = Provider<void>((ref) {
   () async {
     try {
       final prefs = await SharedPreferences.getInstance();
+      if (!ref.mounted) return;
       final saved = prefs.getInt('current_ledger_id');
       if (saved != null) {
         final st = ref.read(currentLedgerIdProvider);

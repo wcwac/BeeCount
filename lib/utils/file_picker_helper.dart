@@ -19,44 +19,41 @@ class FilePickerHelper {
   ///
   /// 如果用户取消选择，返回 null。
   /// 如果选择的文件扩展名不匹配且 [validateExtension] 为 true，抛出 [FileExtensionException]。
-  static Future<FilePickerResult?> pickFileWithExtensions({
+  static Future<PlatformFile?> pickFileWithExtensions({
     required List<String> allowedExtensions,
     bool validateExtension = true,
   }) async {
-    FilePickerResult? result;
+    PlatformFile? result;
 
     try {
       // 尝试使用扩展名过滤
-      result = await FilePicker.platform.pickFiles(
+      result = await FilePicker.pickFile(
         type: FileType.custom,
         allowedExtensions: allowedExtensions,
       );
     } on PlatformException catch (e) {
       // 设备不支持扩展名过滤，fallback 到选择任意文件
       logger.warning('FilePickerHelper', '设备不支持扩展名过滤，fallback 到选择任意文件: $e');
-      result = await FilePicker.platform.pickFiles(type: FileType.any);
+      result = await FilePicker.pickFile(type: FileType.any);
     }
 
     // 用户取消选择
-    if (result == null || result.files.isEmpty) {
+    if (result == null) {
       return null;
     }
 
     // 验证扩展名
     if (validateExtension) {
-      final filePath = result.files.first.path;
-      if (filePath != null) {
-        final fileName = filePath.toLowerCase();
-        final hasValidExtension = allowedExtensions.any(
-          (ext) => fileName.endsWith('.${ext.toLowerCase()}'),
-        );
+      final fileName = result.name.toLowerCase();
+      final hasValidExtension = allowedExtensions.any(
+        (ext) => fileName.endsWith('.${ext.toLowerCase()}'),
+      );
 
-        if (!hasValidExtension) {
-          throw FileExtensionException(
-            expectedExtensions: allowedExtensions,
-            actualPath: filePath,
-          );
-        }
+      if (!hasValidExtension) {
+        throw FileExtensionException(
+          expectedExtensions: allowedExtensions,
+          actualPath: result.path ?? result.name,
+        );
       }
     }
 
@@ -64,7 +61,7 @@ class FilePickerHelper {
   }
 
   /// 选择 YAML 配置文件 (.yml, .yaml)
-  static Future<FilePickerResult?> pickYamlFile() async {
+  static Future<PlatformFile?> pickYamlFile() async {
     return pickFileWithExtensions(
       allowedExtensions: ['yml', 'yaml'],
       validateExtension: true,
@@ -72,7 +69,7 @@ class FilePickerHelper {
   }
 
   /// 选择压缩归档文件 (.gz, .tar, .tar.gz)
-  static Future<FilePickerResult?> pickArchiveFile() async {
+  static Future<PlatformFile?> pickArchiveFile() async {
     return pickFileWithExtensions(
       allowedExtensions: ['gz', 'tar'],
       validateExtension: true,

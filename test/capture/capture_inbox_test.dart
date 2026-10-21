@@ -5,6 +5,7 @@ import 'package:beecount/data/repositories/local/local_repository.dart';
 import 'package:beecount/l10n/app_localizations.dart';
 import 'package:beecount/models/capture_candidate.dart';
 import 'package:beecount/pages/transaction/capture_inbox_page.dart';
+import 'package:beecount/pages/transaction/transaction_editor_page.dart';
 import 'package:beecount/pages/tag/widgets/tag_selector.dart';
 import 'package:beecount/providers.dart';
 import 'package:beecount/services/capture/capture_commit_service.dart';
@@ -110,6 +111,60 @@ void main() {
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());
   }, variant: TargetPlatformVariant.only(TargetPlatform.android));
+
+  testWidgets('a large inbox builds rows on demand and reviews a scrolled draft', (tester) async {
+    final drafts = List.generate(1000, (index) => payload('candidate-$index', 'Draft $index'));
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
+      CaptureService.channel, (call) async {
+        if (call.method == 'listCandidates') return drafts;
+        if (call.method == 'dismissCandidate') {
+          final id = (call.arguments as Map)['id'];
+          drafts.removeWhere((draft) => draft['id'] == id);
+        }
+        return null;
+      },
+    );
+    await tester.pumpWidget(app());
+    await tester.pumpAndSettle();
+
+    // Both ListView constructors mount visible rows lazily. Requiring a builder
+    // delegate also guards against allocating every off-screen Card upfront.
+    final list = tester.widget<ListView>(find.byType(ListView));
+    expect(list.childrenDelegate, isA<SliverChildBuilderDelegate>());
+    expect(find.byType(Card).evaluate().length, lessThan(20));
+    expect(find.text('Draft 0'), findsOneWidget);
+    expect(find.text('Draft 40'), findsNothing);
+    expect(find.text('Draft 999'), findsNothing);
+
+    final target = find.byKey(const ValueKey('candidate-40'));
+    await tester.scrollUntilVisible(target, 600, maxScrolls: 60);
+    await tester.pumpAndSettle();
+    expect(find.text('Draft 40'), findsOneWidget);
+    await tester.tap(find.descendant(of: target, matching: find.text('Review and record')));
+    await tester.pumpAndSettle();
+    final editor = tester.widget<TransactionEditorPage>(find.byType(TransactionEditorPage));
+    expect(editor.captureCandidate?.id, 'candidate-40');
+    expect(editor.initialNote, 'Draft 40');
+    Navigator.of(tester.element(find.byType(TransactionEditorPage))).pop();
+    await tester.pumpAndSettle();
+
+    // The page owns the review lock. Returning must restore the recycled row's
+    // actions, and removing that row must not associate its key with a neighbor.
+    await tester.ensureVisible(target);
+    await tester.tap(find.descendant(of: target, matching: find.text('Dismiss')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.descendant(of: find.byType(AlertDialog), matching: find.text('Dismiss')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('candidate-40')), findsNothing);
+    expect(find.text('Draft 41'), findsOneWidget);
+    expect(drafts, hasLength(999));
+    expect(await db.select(db.transactions).get(), isEmpty);
+    expect(tester.takeException(), isNull);
+
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pumpAndSettle();
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android), timeout: const Timeout(Duration(minutes: 1)));
 
   testWidgets('review saves to its frozen ledger and carries that scope through editor sheets', (tester) async {
     final targetId = await repo.createLedger(name: 'USD capture ledger', currency: 'USD');

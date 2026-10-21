@@ -292,10 +292,10 @@ class _TagManagePageState extends ConsumerState<TagManagePage> {
         await file.writeAsString(yamlContent);
 
         if (!mounted) return;
-        await Share.shareXFiles(
-          [XFile(filePath)],
+        await SharePlus.instance.share(ShareParams(
+          files: [XFile(filePath)],
           subject: l10n.tagShareSubject,
-        );
+        ));
       }
     } catch (e) {
       logger.error('TagManage', '分享标签失败: $e');
@@ -310,19 +310,19 @@ class _TagManagePageState extends ConsumerState<TagManagePage> {
 
     try {
       // 选择文件
-      FilePickerResult? result;
+      PlatformFile? result;
       try {
-        result = await FilePicker.platform.pickFiles(
+        result = await FilePicker.pickFile(
           type: FileType.custom,
           allowedExtensions: ['yml', 'yaml'],
         );
       } catch (e) {
-        result = await FilePicker.platform.pickFiles(type: FileType.any);
+        result = await FilePicker.pickFile(type: FileType.any);
       }
 
-      if (result == null || result.files.isEmpty || !mounted) return;
+      if (result == null || !mounted) return;
 
-      final filePath = result.files.first.path;
+      final filePath = result.path;
       if (filePath == null) {
         showToast(context, l10n.configImportNoFilePath);
         return;
@@ -420,7 +420,7 @@ class _TagManagePageState extends ConsumerState<TagManagePage> {
   /// 清空未使用的标签
   Future<void> _clearUnusedTags() async {
     final l10n = AppLocalizations.of(context);
-    final tagsWithStats = ref.read(tagsWithStatsProvider).valueOrNull ?? [];
+    final tagsWithStats = ref.read(tagsWithStatsProvider).value ?? [];
 
     // 找出交易数为0的标签
     final unusedTags = tagsWithStats
@@ -481,7 +481,7 @@ class _TagManagePageState extends ConsumerState<TagManagePage> {
 
   /// 静默清空未使用的标签（用于覆盖导入）
   Future<void> _clearUnusedTagsSilent() async {
-    final tagsWithStats = ref.read(tagsWithStatsProvider).valueOrNull ?? [];
+    final tagsWithStats = ref.read(tagsWithStatsProvider).value ?? [];
     final unusedTags = tagsWithStats
         .where((item) => item.transactionCount == 0)
         .toList();

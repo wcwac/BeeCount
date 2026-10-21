@@ -63,7 +63,7 @@ class _CaptureSettingsPageState extends ConsumerState<CaptureSettingsPage> with 
   @override
   Widget build(BuildContext context) {
     final text = CaptureText(context), status = _status;
-    final ledgers = ref.watch(ledgersStreamProvider).valueOrNull ?? [];
+    final ledgers = ref.watch(ledgersStreamProvider).value ?? [];
     final selected = status?.ledgerId ?? ref.watch(currentLedgerIdProvider);
     return Scaffold(
       appBar: AppBar(title: Text(text.title), actions: [IconButton(onPressed: _busy ? null : _load, icon: const Icon(Icons.refresh))]),

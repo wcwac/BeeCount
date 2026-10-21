@@ -1,9 +1,9 @@
 name: Offline Android
 
-# User-authorized capture CI; all other branches remain manual-only.
+# User-authorized capture and SDK upgrade CI; other branches remain manual-only.
 on:
   push:
-    branches: [feat/local-transaction-capture]
+    branches: [feat/local-transaction-capture, feat/flutter-stable-upgrade]
   workflow_dispatch:
     inputs:
       version:
@@ -25,10 +25,10 @@ permissions:
 
 concurrency:
   group: offline-android-${{ github.ref }}
-  cancel-in-progress: ${{ github.ref == 'refs/heads/feat/local-transaction-capture' }}
+  cancel-in-progress: ${{ github.ref == 'refs/heads/feat/local-transaction-capture' || github.ref == 'refs/heads/feat/flutter-stable-upgrade' }}
 
 env:
-  FLUTTER_VERSION: "3.27.3"
+  FLUTTER_VERSION: "3.47.7"
 
 jobs:
   android:
@@ -37,7 +37,7 @@ jobs:
     outputs:
       tag: ${{ steps.metadata.outputs.tag }}
     env:
-      BUILD_VERSION: ${{ inputs.version || '0.3.0' }}
+      BUILD_VERSION: ${{ inputs.version || '0.4.0' }}
       SIGN_APK: ${{ inputs.sign_apk || false }}
       CREATE_RELEASE: ${{ inputs.create_release || false }}
     steps:
@@ -76,10 +76,38 @@ jobs:
         run: |
           set -euo pipefail
           python3 .github/scripts/run_checked.py "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" \
-            "platforms;android-36" "build-tools;36.0.0" "ndk;27.0.12077973"
+            "platforms;android-36" "build-tools;36.0.0" "ndk;28.2.13676358"
+
+      - name: Report SDK versions
+        run: |
+          flutter --version
+          dart --version
 
       - name: Resolve dependencies
         run: python3 .github/scripts/run_checked.py flutter pub get
+
+      - name: Regenerate database sources
+        id: codegen
+        continue-on-error: true
+        timeout-minutes: 10
+        run: python3 .github/scripts/run_checked.py dart run build_runner build --delete-conflicting-outputs
+
+      - name: Regenerate localizations
+        id: l10n
+        continue-on-error: true
+        run: python3 .github/scripts/run_checked.py flutter gen-l10n
+
+      - name: Save upgrade generated sources
+        if: ${{ !cancelled() && steps.codegen.outcome == 'success' && steps.l10n.outcome == 'success' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: upgrade-generated-${{ github.run_number }}
+          path: |
+            pubspec.lock
+            lib/data/db.g.dart
+            lib/l10n/app_localizations*.dart
+          if-no-files-found: error
+          retention-days: 14
 
       - name: Save resolved dependency locks
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -90,7 +118,7 @@ jobs:
 
       - name: Format financial feature sources
         run: >-
-          dart format lib/models/finance.dart lib/data/finance_schema.dart
+          dart format lib/theme.dart lib/models/finance.dart lib/data/finance_schema.dart
           lib/data/repositories/finance_repository.dart lib/providers/finance_providers.dart
           lib/pages/finance lib/services/backup test/finance
           lib/pages/auth/welcome_page.dart test/offline/welcome_flow_test.dart
@@ -271,14 +299,24 @@ jobs:
             manifest=$("$ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer" manifest print "$apk")
             manifest_path="$RUNNER_TEMP/offline-manifest.xml"
             printf '%s\n' "$manifest" > "$manifest_path"
-            python3 - "$manifest_path" <<'PY'
+            python3 - "$manifest_path" "$apk" <<'PY'
           import sys
+          import zipfile
           import xml.etree.ElementTree as ET
           root = ET.parse(sys.argv[1]).getroot()
           assert root.attrib["package"] == "io.github.wcwac.beecount.offline"
           app = root.find("application")
           assert app is not None
           assert app.attrib.get("{http://schemas.android.com/apk/res/android}allowBackup") == "false"
+          with zipfile.ZipFile(sys.argv[2]) as apk:
+              names = set(apk.namelist())
+              flutter_libs = [name for name in names if name.endswith('/libflutter.so')]
+              assert flutter_libs, 'APK has no Flutter native libraries'
+              for flutter_lib in flutter_libs:
+                  sqlite_lib = flutter_lib.rsplit('/', 1)[0] + '/libsqlite3.so'
+                  assert sqlite_lib in names, f'SQLite native asset missing: {sqlite_lib}'
+                  assert apk.getinfo(sqlite_lib).file_size > 0
+              print(f'::notice::SQLite native assets verified for {len(flutter_libs)} ABIs')
           PY
             if [[ "$SIGN_APK" == true ]]; then
               "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose "$apk"
@@ -311,6 +349,8 @@ jobs:
       - name: Require every validation check to pass
         if: always() && !cancelled()
         env:
+          CODEGEN: ${{ steps.codegen.outcome }}
+          L10N: ${{ steps.l10n.outcome }}
           ANALYZE: ${{ steps.analyze.outcome }}
           CAPTURE_TESTS: ${{ steps.capture_tests.outcome }}
           FLUTTER_TESTS: ${{ steps.flutter_tests.outcome }}
@@ -323,7 +363,7 @@ jobs:
         run: |
           python3 - <<'PY'
           import os
-          checks = ['ANALYZE', 'CAPTURE_TESTS', 'FLUTTER_TESTS', 'APK_BUILD',
+          checks = ['CODEGEN', 'L10N', 'ANALYZE', 'CAPTURE_TESTS', 'FLUTTER_TESTS', 'APK_BUILD',
                     'NATIVE_UNIT', 'INSTRUMENTATION_BUILD', 'NATIVE_SUMMARY', 'VERIFY_APKS']
           failures = []
           with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as summary:
@@ -338,6 +378,40 @@ jobs:
               raise SystemExit(f"Required checks failed: {', '.join(failures)}")
           print('::notice::All required validation checks passed')
           PY
+
+  persist-generated:
+    if: ${{ github.ref == 'refs/heads/feat/flutter-stable-upgrade' }}
+    needs: android
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.ref_name }}
+      - name: Reject a superseded source revision
+        env:
+          VALIDATED_SHA: ${{ github.sha }}
+        run: test "$(git rev-parse HEAD)" = "$VALIDATED_SHA"
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: upgrade-generated-${{ github.run_number }}
+          path: .
+      - name: Commit the validated dependency lock and generated sources
+        env:
+          VALIDATED_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          git -c core.hooksPath=/dev/null add -- pubspec.lock lib/data/db.g.dart lib/l10n/app_localizations*.dart
+          if git diff --cached --quiet; then
+            echo "Generated sources already match the validated build."
+            exit 0
+          fi
+          git -c core.hooksPath=/dev/null -c user.name='github-actions[bot]' \
+            -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
+            commit -m "Update generated sources validated at ${VALIDATED_SHA} [skip ci]"
+          git -c core.hooksPath=/dev/null push origin HEAD:feat/flutter-stable-upgrade
 
   release:
     if: inputs.create_release

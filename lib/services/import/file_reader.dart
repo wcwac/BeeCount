@@ -30,7 +30,7 @@ class FileReaderService {
     // 读取文件字节
     List<int> bytes;
     if (file.path == null || file.path!.isEmpty) {
-      bytes = file.bytes ?? [];
+      bytes = await file.readAsBytes();
       if (bytes.isEmpty) return '';
     } else {
       bytes = await _readFileWithProgress(

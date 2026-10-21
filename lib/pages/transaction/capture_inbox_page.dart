@@ -168,19 +168,33 @@ class _CaptureInboxPageState extends ConsumerState<CaptureInboxPage> with Widget
   @override
   Widget build(BuildContext context) {
     final text = CaptureText(context);
-    final ledgers = ref.watch(ledgersStreamProvider).valueOrNull ?? [];
+    final ledgers = ref.watch(ledgersStreamProvider).value ?? [];
+    final items = _items ?? const <CaptureCandidate>[];
     return Scaffold(
       appBar: AppBar(title: Text(text.inbox), actions: [IconButton(onPressed: _busy ? null : _load, icon: const Icon(Icons.refresh))]),
-      body: RefreshIndicator(onRefresh: _load, child: ListView(
+      body: RefreshIndicator(onRefresh: _load, child: ListView.builder(
         physics: const AlwaysScrollableScrollPhysics(),
-        children: [
-          Padding(padding: const EdgeInsets.all(16), child: Text(text.t(
-            '请核对是否确实付款、实付金额、收支方向和账户。电商与支付应用可能分别产生同一笔交易的候选。',
-            'Check payment completion, actual amount, direction and account. A shopping app and a payment app may describe the same transaction.'))),
-          if (_busy) const LinearProgressIndicator(),
-          if (_error != null) ListTile(title: Text(_error!), onTap: _load, leading: const Icon(Icons.error_outline)),
-          if (_items?.isEmpty == true) Padding(padding: const EdgeInsets.all(32), child: Text(text.t('暂无待确认交易', 'No transactions to review'))),
-          for (final candidate in _items ?? <CaptureCandidate>[]) Card(
+        itemCount: items.length + 1,
+        findChildIndexCallback: (key) {
+          if (key == const ValueKey<int>(0)) return 0;
+          if (key is! ValueKey<String>) return null;
+          final index = items.indexWhere((candidate) => candidate.id == key.value);
+          return index < 0 ? null : index + 1;
+        },
+        itemBuilder: (context, index) {
+          if (index == 0) {
+            return Column(key: const ValueKey<int>(0), crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              Padding(padding: const EdgeInsets.all(16), child: Text(text.t(
+                '请核对是否确实付款、实付金额、收支方向和账户。电商与支付应用可能分别产生同一笔交易的候选。',
+                'Check payment completion, actual amount, direction and account. A shopping app and a payment app may describe the same transaction.'))),
+              if (_busy) const LinearProgressIndicator(),
+              if (_error != null) ListTile(title: Text(_error!), onTap: _load, leading: const Icon(Icons.error_outline)),
+              if (_items?.isEmpty == true) Padding(padding: const EdgeInsets.all(32), child: Text(text.t('暂无待确认交易', 'No transactions to review'))),
+            ]);
+          }
+          final candidate = items[index - 1];
+          return Card(
+            key: ValueKey(candidate.id),
             margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             child: Padding(padding: const EdgeInsets.all(12), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text('${candidate.appName} · ${candidate.amountMinor == null ? text.t('待补金额', 'Amount needed') : '${candidate.currency} ${(candidate.amountMinor! / 100).toStringAsFixed(2)}'}', style: Theme.of(context).textTheme.titleMedium),
@@ -195,8 +209,8 @@ class _CaptureInboxPageState extends ConsumerState<CaptureInboxPage> with Widget
                 FilledButton(onPressed: _busy || _opening ? null : () => _review(candidate), child: Text(text.t('核对并记账', 'Review and record'))),
               ]),
             ])),
-          ),
-        ],
+          );
+        },
       )),
     );
   }

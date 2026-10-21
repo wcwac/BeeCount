@@ -115,10 +115,10 @@ class SharePosterService {
       await file.writeAsBytes(imageBytes);
 
       // 分享文件
-      await Share.shareXFiles(
-        [XFile(file.path)],
+      await SharePlus.instance.share(ShareParams(
+        files: [XFile(file.path)],
         text: resolveAppLocalizations(null).sharePosterAppText,
-      );
+      ));
     } catch (e) {
       // 忽略错误
     }

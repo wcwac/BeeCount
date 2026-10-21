@@ -37,7 +37,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
     super.initState();
     // 访问一次平台通道，促使插件在部分场景下完成注册（修复热重载后 MissingPluginException 的偶现）
     // ignore: unawaited_futures
-    FilePicker.platform.clearTemporaryFiles();
+    FilePicker.clearTemporaryFiles();
   }
 
   @override
@@ -183,15 +183,13 @@ class _ImportPageState extends ConsumerState<ImportPage> {
 
   Future<void> _pickFile() async {
     try {
-      final res = await FilePicker.platform.pickFiles(
+      final res = await FilePicker.pickFile(
         type: FileType.custom,
         allowedExtensions: ['csv', 'tsv', 'txt', 'xlsx'],
-        allowMultiple: false,
-        withData: true, // iOS 模拟器/沙盒下读取 bytes
       );
       if (!context.mounted) return;
-      if (res != null && res.files.isNotEmpty) {
-        setState(() => _picked = res.files.first);
+      if (res != null) {
+        setState(() => _picked = res);
         // 选中即进入确认页
         await _onImport();
         if (!context.mounted) return;

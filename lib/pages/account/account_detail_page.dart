@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart' show StateNotifier, StateNotifierProvider;
 
 import '../../data/db.dart' as db;
 import '../../providers.dart';
@@ -1265,7 +1266,7 @@ class _TransactionTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     Color amountColor;
     final l10n = AppLocalizations.of(context);
-    final transferCategory = ref.watch(transferCategoryProvider).valueOrNull;
+    final transferCategory = ref.watch(transferCategoryProvider).value;
 
     bool isTransferOut = false;
     bool isTransferIn = false;

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart' show StateProvider;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/ui/ui_scale_service.dart';
 
@@ -55,6 +56,7 @@ final uiScaleDebugProvider = Provider.family<Map<String, double>, BuildContext>(
 /// 初始化: 读取并监听写回
 final fontScaleInitProvider = FutureProvider<void>((ref) async {
   final prefs = await SharedPreferences.getInstance();
+  if (!ref.mounted) return;
 
   // 读取档位设置
   final savedLevel = prefs.getInt('fontScaleLevel');
@@ -71,6 +73,7 @@ final fontScaleInitProvider = FutureProvider<void>((ref) async {
   // 监听档位变化并保存
   ref.listen<int>(fontScaleLevelProvider, (prev, next) async {
     await prefs.setInt('fontScaleLevel', next);
+    if (!ref.mounted) return;
     // 当选择档位时，重置自定义缩放
     if (next != 0 || (ref.read(customFontScaleProvider) - 1.0).abs() > 0.01) {
       ref.read(customFontScaleProvider.notifier).state = 1.0;
@@ -81,6 +84,7 @@ final fontScaleInitProvider = FutureProvider<void>((ref) async {
   // 监听自定义缩放变化并保存
   ref.listen<double>(customFontScaleProvider, (prev, next) async {
     await prefs.setDouble('customFontScale', next);
+    if (!ref.mounted) return;
     // 当使用自定义缩放时，重置档位到标准
     if ((next - 1.0).abs() > 0.01 && ref.read(fontScaleLevelProvider) != 0) {
       ref.read(fontScaleLevelProvider.notifier).state = 0;
