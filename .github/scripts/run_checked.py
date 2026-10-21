@@ -31,6 +31,9 @@ def main():
         for start in range(0, len(lines), 20):
             message = "\n".join(lines[start:start + 20])
             print(f"::error title=Command failed (exit {result})::{escape(message)}")
+    else:
+        message = "\n".join(list(tail)[-8:])
+        print(f"::notice title=Command succeeded::{escape(message)}")
     return result
 
 

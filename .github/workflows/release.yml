@@ -170,7 +170,33 @@ jobs:
       - name: Test Android capture rules and sessions
         working-directory: android
         shell: bash
-        run: python3 ../.github/scripts/run_checked.py ./gradlew :app:testDevDebugUnitTest --no-daemon --console=plain
+        run: >-
+          python3 ../.github/scripts/run_checked.py ./gradlew
+          :app:testDevDebugUnitTest :app:assembleDevDebugAndroidTest
+          --no-daemon --console=plain
+
+      - name: Summarize Android unit tests
+        if: always()
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import xml.etree.ElementTree as ET
+          def escape(value):
+              return value.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+          totals = dict(tests=0, failures=0, errors=0, skipped=0)
+          reports = list(Path('build/app/test-results/testDevDebugUnitTest').glob('TEST-*.xml'))
+          for report in reports:
+              root = ET.parse(report).getroot()
+              for key in totals:
+                  totals[key] += int(root.get(key, '0'))
+              for case in root.iter('testcase'):
+                  for failure in list(case.findall('failure')) + list(case.findall('error')):
+                      message = f"{case.get('classname')}.{case.get('name')}\n{failure.text or failure.get('message', '')}"
+                      print(f'::error title=Android unit test failed::{escape(message[:6000])}')
+          if reports:
+              print(f'::notice title=Android unit test totals::{totals}')
+          PY
 
       - name: Save Android unit test reports
         if: always()

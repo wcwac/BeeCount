@@ -38,7 +38,7 @@ class _CaptureSettingsPageState extends ConsumerState<CaptureSettingsPage> with 
     if (status == null || _busy) return;
     setState(() => _busy = true);
     try {
-      final targetId = ledgerId ?? status.ledgerId ?? ref.read(currentLedgerIdProvider);
+      final int targetId = ledgerId ?? status.ledgerId ?? ref.read<int>(currentLedgerIdProvider);
       final ledger = await ref.read(repositoryProvider).getLedgerById(targetId);
       if (ledger == null && (enabled ?? status.enabled)) throw StateError('CAPTURE_LEDGER_MISSING');
       await _service.updateSettings(enabled: enabled ?? status.enabled,
