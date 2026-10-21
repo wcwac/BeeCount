@@ -260,7 +260,7 @@ Remaining device acceptance before claiming real-client compatibility
 The CI results above are verified build/test evidence. Real-client compatibility
 and device-performance acceptance remain outstanding.
 
-Follow-up after the stable SDK migration (cloud validation pending)
+Follow-up after the stable SDK migration
 - Serialize settings commits with candidate writes; preserve the original
   cross-Activity session behavior and record the actual collected window ID.
 - Reject stale settings responses, isolate pending dismissals, bound/deduplicate
@@ -269,3 +269,21 @@ Follow-up after the stable SDK migration (cloud validation pending)
   in account units. Recheck account currencies atomically before changing money.
 - Add 13 Flutter regression cases and 4 instrumentation source cases. Local work
   remains static only; instrumentation execution and screenshots remain deferred.
+
+Actions #25: https://github.com/wcwac/BeeCount/actions/runs/39666995080
+Tested source: 457632696703dd524a758fcca55236109b297630. Overall failure is
+retained: full Flutter regression 525 passed / 1 failed / 1 original preview skip;
+capture regression 39 passed / 1 failed (a subset of the full suite).
+Both failures identify the same new late-commit widget case. Its fake-zone
+Completers were awaited inside runAsync, then transaction cleanup timed out;
+the editor-exit assertion also failed. The correction preserves the real SQLite
+transaction, editor disposal, commit/cache assertions and original time limits.
+This correction still requires another cloud run.
+
+All other required checks completed successfully: generation, analysis (597
+info/warning findings under the existing policy), Android release APK compilation
+(515.6 s; 45.9 MB), 56 JVM tests with zero failures/errors/skips, instrumentation
+APK compilation, APK permission and native SQLite ABI checks. iOS plus its widget
+extension compiled without signing (212.4 s; Runner.app 39.6 MB). The final gate
+correctly rejected the failed Flutter suites; generated-source persistence and
+release jobs were skipped. This is not a device-execution or publication result.

@@ -371,32 +371,42 @@ void main() {
 
     // Hold a real database transaction ahead of the payment commit. The user
     // can close both routes while the already-confirmed save waits for SQLite.
-    final release = Completer<void>();
-    final locked = Completer<void>();
+    late Completer<void> release;
     late Future<void> blocker;
     await tester.runAsync(() async {
+      // Both gates belong to the real zone: completing a fake-zone Future
+      // while runAsync awaits it would need a fake microtask flush to proceed.
+      release = Completer<void>();
+      final locked = Completer<void>();
       blocker = db.transaction(() async {
         await db.customSelect('SELECT 1').get();
         locked.complete();
         await release.future;
       });
+      // Register cleanup before waiting for startup so a failed barrier cannot
+      // leave the real transaction open when the database teardown runs.
+      addTearDown(() async {
+        if (!release.isCompleted) release.complete();
+        await blocker.timeout(const Duration(seconds: 5));
+      });
       await locked.future.timeout(const Duration(seconds: 5));
-    });
-    addTearDown(() async {
-      if (!release.isCompleted) release.complete();
-      await blocker.timeout(const Duration(seconds: 5));
     });
     final before = container.read(statsRefreshProvider);
     await tester.tap(find.text('Finish'));
     await tester.pump();
     Navigator.of(tester.element(find.byType(AmountEditorSheet))).pop();
+    // Start each reverse animation before advancing its elapsed frame time.
+    await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
     Navigator.of(tester.element(find.byType(TransactionEditorPage))).pop();
+    await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
     expect(find.byType(TransactionEditorPage), findsNothing);
 
-    release.complete();
-    await tester.runAsync(() => blocker);
+    await tester.runAsync(() async {
+      release.complete();
+      await blocker.timeout(const Duration(seconds: 5));
+    });
     await tester.pumpAndSettle();
     final rows = await db.select(db.transactions).get();
     expect(rows, hasLength(1));
