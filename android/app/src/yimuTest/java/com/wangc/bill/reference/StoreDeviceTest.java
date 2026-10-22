@@ -8,7 +8,7 @@ import static org.junit.Assert.*;
 @RunWith(AndroidJUnit4.class)
 public final class StoreDeviceTest {
     private ReferenceStore store;
-    @Before public void setUp(){android.content.Context context=ApplicationProvider.getApplicationContext();context.deleteDatabase("yimu_reference.sqlite");store=new ReferenceStore(context);store.getWritableDatabase();}
+    @Before public void setUp(){android.content.Context context=ApplicationProvider.getApplicationContext();context.deleteDatabase("reference_test.sqlite");store=new ReferenceStore(context,"reference_test.sqlite");store.getWritableDatabase();}
     @After public void close(){store.close();}
     private JSONObject draft(long amount){return Json.object("book_id",1,"kind","expense","amount",amount,"category_id",store.defaultCategory("expense"),"account_id",1,"time",System.currentTimeMillis());}
     @Test public void candidateConfirmationIsIdempotentAndBookFrozen(){JSONObject input=draft(1234);String candidate=store.addCandidate(input,"test.fixture",1);long id=store.saveTransaction(input,0,candidate);assertEquals(id,store.saveTransaction(input,0,candidate));assertEquals(1,store.scalar("SELECT COUNT(*) n FROM transactions"));assertEquals(-1234,store.accountBalance(1));}

@@ -16,7 +16,7 @@ android {
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
     }
     sourceSets {
-        main { java.srcDirs = ['src/yimu/java']; res.srcDirs = ['src/yimu/res']; manifest.srcFile 'src/yimu/AndroidManifest.xml'; assets.srcDirs = [] }
+        main { java.srcDirs = ['src/yimu/java']; res.srcDirs = ['src/yimu/res']; manifest.srcFile 'src/yimu/AndroidManifest.xml'; assets.srcDirs = []; jniLibs.srcDirs = [] }
         test { java.srcDirs = ['src/yimuUnit/java'] }
         androidTest { java.srcDirs = ['src/yimuTest/java']; res.srcDirs = []; assets.srcDirs = [] }
     }

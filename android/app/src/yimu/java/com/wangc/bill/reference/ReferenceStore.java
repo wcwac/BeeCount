@@ -13,7 +13,8 @@ import java.util.UUID;
 
 /** Local experimental schema. Does not open or modify any BeeCount database. */
 public final class ReferenceStore extends SQLiteOpenHelper {
-    public ReferenceStore(Context context) { super(context.getApplicationContext(), "yimu_reference.sqlite", null, 1); }
+    public ReferenceStore(Context context) { this(context,"yimu_reference.sqlite"); }
+    ReferenceStore(Context context,String name) { super(context.getApplicationContext(), name, null, 1); }
     @Override public void onConfigure(SQLiteDatabase db) { db.setForeignKeyConstraintsEnabled(true); }
     @Override public void onCreate(SQLiteDatabase db) {
         db.execSQL("CREATE TABLE books(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT NOT NULL,currency TEXT NOT NULL DEFAULT 'CNY',budget INTEGER NOT NULL DEFAULT 0,archived INTEGER NOT NULL DEFAULT 0,created INTEGER NOT NULL)");
