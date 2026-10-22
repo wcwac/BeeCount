@@ -53,7 +53,7 @@ jobs:
               raw = response.read(16384)
           assert 'sha256:' + hashlib.sha256(raw).hexdigest() == original['digest']
           lines = []
-          for line in raw.decode().splitlines():
+          for line in raw.decode().replace(chr(92) + 'n', chr(10)).splitlines():
               if not line.strip():
                   continue
               digest, name = line.split(None, 1)
@@ -61,6 +61,7 @@ jobs:
               assert name in assets and assets[name]['digest'] == 'sha256:' + digest
               lines.append(digest + '  ' + name)
           corrected = ('\n'.join(lines) + '\n').encode()
+          assert corrected.decode().splitlines() == lines
           if corrected == raw:
               print('Published checksums already match all actual asset names and digests.')
               raise SystemExit(0)
