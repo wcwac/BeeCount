@@ -18,7 +18,7 @@ import java.util.concurrent.RejectedExecutionException;
 import org.json.JSONObject;
 
 public final class ReferenceCaptureService extends AccessibilityService {
-    private static WeakReference<ReferenceCaptureService> connected = new WeakReference<>(null);
+    private static volatile WeakReference<ReferenceCaptureService> connected = new WeakReference<>(null);
     private final Handler main = new Handler(Looper.getMainLooper());
     @Override protected void onServiceConnected() { connected = new WeakReference<>(this); applySettings(); ReferenceDiagnostics.result("CONNECTED"); }
     public static ReferenceCaptureService current() { return connected.get(); }

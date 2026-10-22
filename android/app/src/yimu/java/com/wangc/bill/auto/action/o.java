@@ -1,6 +1,8 @@
 // Yimu 6.3.0 recovered DEX/JADX; original Java SHA256 f2c99ce204cc28fc9132ac4abab076d1162586dd4c686ef86555ab6ad725d97d
 package com.wangc.bill.auto.action;
 
+import static com.wangc.bill.reference.RecoveredValues.*;
+
 import android.content.Context;
 import android.text.TextUtils;
 import android.view.accessibility.AccessibilityNodeInfo;
@@ -107,63 +109,331 @@ public class o extends c implements x1.a {
         return str.equals("com.unionpay") && (str2.equals("com.unionpay.activity.UPActivityMain") || str2.equals("com.unionpay.activity.payment.UPActivityScan") || str2.equals("com.unionpay.activity.payment.UPActivityPaymentQrCodeOut"));
     }
 
-    public void s(Context context, String str, AccessibilityNodeInfo accessibilityNodeInfo) {
-        List<String> listG;
-        HashMap<String, Boolean> map;
-        if (str.equals("com.unionpay.activity.UPActivityMain")) {
-            this.a = 0;
-            this.f13768g = false;
-            this.b = false;
-        } else {
-            if (!str.equals("com.unionpay.activity.payment.UPActivityScan") && !str.equals("com.unionpay.activity.payment.UPActivityPaymentQrCodeOut")) {
-                if (accessibilityNodeInfo != null) {
-                    y.l("sssss", "start get data");
-                    listG = g(accessibilityNodeInfo);
-                    map = new HashMap<>();
-                    Iterator<String> it = listG.iterator();
-                    while (it.hasNext()) {
-                        map.put(it.next(), Boolean.TRUE);
-                    }
-                    if (map.containsKey("支付成功") && map.containsKey("付款方式")) {
-                        this.a = 4;
-                        this.b = true;
-                    } else if (map.containsKey("账单详情") && map.containsKey("转给本人") && map.containsKey("转账金额")) {
-                        this.a = 12;
-                        this.b = true;
-                    } else if (map.containsKey("实收金额（元）") || map.containsKey("实付金额（元）") || ((map.containsKey("当前状态") && map.containsKey("订单时间")) || ((map.containsKey("当前状态") && map.containsKey("扣款时间")) || ((map.containsKey("交易详情") && map.containsKey("时间")) || ((map.containsKey("交易详情") && map.containsKey("交易时间")) || (map.containsKey("当前状态") && map.containsKey("退款时间"))))))) {
-                        this.a = 5;
-                        this.b = true;
-                    } else if ((map.containsKey("转账成功") && map.containsKey("完成")) || (map.containsKey("账单详情") && map.containsKey("转出成功"))) {
-                        this.a = 12;
-                        this.b = true;
-                    } else if (map.containsKey("本次还款金额") && map.containsKey("本期账单") && map.containsKey("立即还") && map.containsKey("分期还")) {
-                        int iF = f(listG, "[", false);
-                        if (iF >= 0) {
-                            this.f13766e = listG.get(iF);
-                            this.f13768g = true;
-                        }
-                        y.l("sssss", Boolean.valueOf(this.f13768g), this.f13766e);
-                    }
-                }
-                if (this.b || accessibilityNodeInfo == null) {
-                }
-                if (listG == null) {
-                    listG = g(accessibilityNodeInfo);
-                    map = new HashMap<>();
-                    Iterator<String> it2 = listG.iterator();
-                    while (it2.hasNext()) {
-                        map.put(it2.next(), Boolean.TRUE);
-                    }
-                }
-                r(context, listG, map);
-                return;
-            }
-            this.a = 4;
-            this.b = true;
+    /** DEX-exact branch transcription of s; original register and block addresses retained. */
+    public void s(android.content.Context arg0, java.lang.String arg1, android.view.accessibility.AccessibilityNodeInfo arg2) {
+        Object[] v=new Object[13]; Object[] result=new Object[2]; int pc=0;
+        v[9]=this;
+        v[10]=arg0;
+        v[11]=arg1;
+        v[12]=arg2;
+        while(true) {
+            if(pc==-1) { return; }
+            if(pc<0xf8) pc=recovered_s_block0(v,result,pc);
+            else pc=recovered_s_block1(v,result,pc);
         }
-        listG = null;
-        map = null;
-        if (this.b) {
+    }
+    private int recovered_s_block0(Object[] v,Object[] result,int pc) {
+        while(true) switch(pc) {
+            case 0x0: {
+                v[0]="com.unionpay.activity.UPActivityMain";
+                result[0]=dexN((((java.lang.String)dexR(v[11])).equals(((java.lang.Object)dexR(v[0]))))?1:0);
+                v[0]=result[0];
+                v[1]=dexN(0L);
+                pc=(dexZero(v[0]))?0x11:0x9; continue;
+            }
+            case 0x9: {
+                ((com.wangc.bill.auto.action.c)dexR(v[9])).a=dexI(v[1]);
+                ((com.wangc.bill.auto.action.o)dexR(v[9])).f13768g=dexZ(v[1]);
+                ((com.wangc.bill.auto.action.c)dexR(v[9])).b=dexZ(v[1]);
+                pc=0x151; continue;
+            }
+            case 0x11: {
+                v[0]="com.unionpay.activity.payment.UPActivityScan";
+                result[0]=dexN((((java.lang.String)dexR(v[11])).equals(((java.lang.Object)dexR(v[0]))))?1:0);
+                v[0]=result[0];
+                v[2]=dexN(4L);
+                v[3]=dexN(1L);
+                pc=(!dexZero(v[0]))?0x14d:0x1b; continue;
+            }
+            case 0x1b: {
+                v[0]="com.unionpay.activity.payment.UPActivityPaymentQrCodeOut";
+                result[0]=dexN((((java.lang.String)dexR(v[11])).equals(((java.lang.Object)dexR(v[0]))))?1:0);
+                v[11]=result[0];
+                pc=(dexZero(v[11]))?0x25:0x23; continue;
+            }
+            case 0x23: {
+                pc=0x14d; continue;
+            }
+            case 0x25: {
+                pc=(dexZero(v[12]))?0x151:0x27; continue;
+            }
+            case 0x27: {
+                v[11]="start get data";
+                v[0]="sssss";
+                result[0]=new java.lang.Object[]{((java.lang.Object)dexR(v[0])),((java.lang.Object)dexR(v[11]))};
+                v[11]=result[0];
+                com.blankj.utilcode.util.y.l(((java.lang.Object[])dexR(v[11])));
+                result[0]=((com.wangc.bill.auto.action.c)dexR(v[9])).g(((android.view.accessibility.AccessibilityNodeInfo)dexR(v[12])));
+                v[11]=result[0];
+                v[4]=new DexReference(); // new java.util.HashMap
+                ((DexReference)v[4]).value=new java.util.HashMap();
+                result[0]=((java.util.List)dexR(v[11])).iterator();
+                v[5]=result[0];
+                pc=0x3f; continue;
+            }
+            case 0x3f: {
+                result[0]=dexN((((java.util.Iterator)dexR(v[5])).hasNext())?1:0);
+                v[6]=result[0];
+                pc=(dexZero(v[6]))?0x51:0x45; continue;
+            }
+            case 0x45: {
+                result[0]=((java.util.Iterator)dexR(v[5])).next();
+                v[6]=result[0];
+                v[6]=((java.lang.String)dexR(v[6]));
+                v[7]=java.lang.Boolean.TRUE;
+                result[0]=((java.util.HashMap)dexR(v[4])).put(((java.lang.Object)dexR(v[6])),((java.lang.Object)dexR(v[7])));
+                pc=0x3f; continue;
+            }
+            case 0x51: {
+                v[5]="支付成功";
+                result[0]=dexN((((java.util.HashMap)dexR(v[4])).containsKey(((java.lang.Object)dexR(v[5]))))?1:0);
+                v[5]=result[0];
+                pc=(dexZero(v[5]))?0x67:0x59; continue;
+            }
+            case 0x59: {
+                v[5]="付款方式";
+                result[0]=dexN((((java.util.HashMap)dexR(v[4])).containsKey(((java.lang.Object)dexR(v[5]))))?1:0);
+                v[5]=result[0];
+                pc=(dexZero(v[5]))?0x67:0x61; continue;
+            }
+            case 0x61: {
+                ((com.wangc.bill.auto.action.c)dexR(v[9])).a=dexI(v[2]);
+                ((com.wangc.bill.auto.action.c)dexR(v[9])).b=dexZ(v[3]);
+                pc=0x153; continue;
+            }
+            case 0x67: {
+                v[2]="账单详情";
+                result[0]=dexN((((java.util.HashMap)dexR(v[4])).containsKey(((java.lang.Object)dexR(v[2]))))?1:0);
+                v[5]=result[0];
+                v[6]=dexN(12L);
+                pc=(dexZero(v[5]))?0x87:0x71; continue;
+            }
+            case 0x71: {
+                v[5]="转给本人";
+                result[0]=dexN((((java.util.HashMap)dexR(v[4])).containsKey(((java.lang.Object)dexR(v[5]))))?1:0);
+                v[5]=result[0];
+                pc=(dexZero(v[5]))?0x87:0x79; continue;
+            }
+            case 0x79: {
+                v[5]="转账金额";
+                result[0]=dexN((((java.util.HashMap)dexR(v[4])).containsKey(((java.lang.Object)dexR(v[5]))))?1:0);
+                v[5]=result[0];
+                pc=(dexZero(v[5]))?0x87:0x81; continue;
+            }
+            case 0x81: {
+                ((com.wangc.bill.auto.action.c)dexR(v[9])).a=dexI(v[6]);
+                ((com.wangc.bill.auto.action.c)dexR(v[9])).b=dexZ(v[3]);
+                pc=0x153; continue;
+            }
+            case 0x87: {
+                v[5]="实收金额（元）";
+                result[0]=dexN((((java.util.HashMap)dexR(v[4])).containsKey(((java.lang.Object)dexR(v[5]))))?1:0);
+                v[5]=result[0];
+                pc=(!dexZero(v[5]))?0x147:0x8f; continue;
+            }
+            case 0x8f: {
+                v[5]="实付金额（元）";
+                result[0]=dexN((((java.util.HashMap)dexR(v[4])).containsKey(((java.lang.Object)dexR(v[5]))))?1:0);
+                v[5]=result[0];
+                pc=(!dexZero(v[5]))?0x147:0x97; continue;
+            }
+            case 0x97: {
+                v[5]="当前状态";
+                result[0]=dexN((((java.util.HashMap)dexR(v[4])).containsKey(((java.lang.Object)dexR(v[5]))))?1:0);
+                v[7]=result[0];
+                pc=(dexZero(v[7]))?0xa7:0x9f; continue;
+            }
+            case 0x9f: {
+                v[7]="订单时间";
+                result[0]=dexN((((java.util.HashMap)dexR(v[4])).containsKey(((java.lang.Object)dexR(v[7]))))?1:0);
+                v[7]=result[0];
+                pc=(!dexZero(v[7]))?0x147:0xa7; continue;
+            }
+            case 0xa7: {
+                result[0]=dexN((((java.util.HashMap)dexR(v[4])).containsKey(((java.lang.Object)dexR(v[5]))))?1:0);
+                v[7]=result[0];
+                pc=(dexZero(v[7]))?0xb5:0xad; continue;
+            }
+            case 0xad: {
+                v[7]="扣款时间";
+                result[0]=dexN((((java.util.HashMap)dexR(v[4])).containsKey(((java.lang.Object)dexR(v[7]))))?1:0);
+                v[7]=result[0];
+                pc=(!dexZero(v[7]))?0x147:0xb5; continue;
+            }
+            case 0xb5: {
+                v[7]="交易详情";
+                result[0]=dexN((((java.util.HashMap)dexR(v[4])).containsKey(((java.lang.Object)dexR(v[7]))))?1:0);
+                v[8]=result[0];
+                pc=(dexZero(v[8]))?0xc5:0xbd; continue;
+            }
+            case 0xbd: {
+                v[8]="时间";
+                result[0]=dexN((((java.util.HashMap)dexR(v[4])).containsKey(((java.lang.Object)dexR(v[8]))))?1:0);
+                v[8]=result[0];
+                pc=(!dexZero(v[8]))?0x147:0xc5; continue;
+            }
+            case 0xc5: {
+                result[0]=dexN((((java.util.HashMap)dexR(v[4])).containsKey(((java.lang.Object)dexR(v[7]))))?1:0);
+                v[7]=result[0];
+                pc=(dexZero(v[7]))?0xd3:0xcb; continue;
+            }
+            case 0xcb: {
+                v[7]="交易时间";
+                result[0]=dexN((((java.util.HashMap)dexR(v[4])).containsKey(((java.lang.Object)dexR(v[7]))))?1:0);
+                v[7]=result[0];
+                pc=(!dexZero(v[7]))?0x147:0xd3; continue;
+            }
+            case 0xd3: {
+                result[0]=dexN((((java.util.HashMap)dexR(v[4])).containsKey(((java.lang.Object)dexR(v[5]))))?1:0);
+                v[5]=result[0];
+                pc=(dexZero(v[5]))?0xe2:0xd9; continue;
+            }
+            case 0xd9: {
+                v[5]="退款时间";
+                result[0]=dexN((((java.util.HashMap)dexR(v[4])).containsKey(((java.lang.Object)dexR(v[5]))))?1:0);
+                v[5]=result[0];
+                pc=(dexZero(v[5]))?0xe2:0xe1; continue;
+            }
+            case 0xe1: {
+                pc=0x147; continue;
+            }
+            case 0xe2: {
+                v[5]="转账成功";
+                result[0]=dexN((((java.util.HashMap)dexR(v[4])).containsKey(((java.lang.Object)dexR(v[5]))))?1:0);
+                v[5]=result[0];
+                pc=(dexZero(v[5]))?0xf2:0xea; continue;
+            }
+            case 0xea: {
+                v[5]="完成";
+                result[0]=dexN((((java.util.HashMap)dexR(v[4])).containsKey(((java.lang.Object)dexR(v[5]))))?1:0);
+                v[5]=result[0];
+                pc=(!dexZero(v[5]))?0x100:0xf2; continue;
+            }
+            case 0xf2: {
+                result[0]=dexN((((java.util.HashMap)dexR(v[4])).containsKey(((java.lang.Object)dexR(v[2]))))?1:0);
+                v[2]=result[0];
+                pc=(dexZero(v[2]))?0x105:0xf8; continue;
+            }
+            default: return pc;
+        }
+    }
+    private int recovered_s_block1(Object[] v,Object[] result,int pc) {
+        while(true) switch(pc) {
+            case 0xf8: {
+                v[2]="转出成功";
+                result[0]=dexN((((java.util.HashMap)dexR(v[4])).containsKey(((java.lang.Object)dexR(v[2]))))?1:0);
+                v[2]=result[0];
+                pc=(dexZero(v[2]))?0x105:0x100; continue;
+            }
+            case 0x100: {
+                ((com.wangc.bill.auto.action.c)dexR(v[9])).a=dexI(v[6]);
+                ((com.wangc.bill.auto.action.c)dexR(v[9])).b=dexZ(v[3]);
+                pc=0x153; continue;
+            }
+            case 0x105: {
+                v[2]="本次还款金额";
+                result[0]=dexN((((java.util.HashMap)dexR(v[4])).containsKey(((java.lang.Object)dexR(v[2]))))?1:0);
+                v[2]=result[0];
+                pc=(dexZero(v[2]))?0x153:0x10d; continue;
+            }
+            case 0x10d: {
+                v[2]="本期账单";
+                result[0]=dexN((((java.util.HashMap)dexR(v[4])).containsKey(((java.lang.Object)dexR(v[2]))))?1:0);
+                v[2]=result[0];
+                pc=(dexZero(v[2]))?0x153:0x115; continue;
+            }
+            case 0x115: {
+                v[2]="立即还";
+                result[0]=dexN((((java.util.HashMap)dexR(v[4])).containsKey(((java.lang.Object)dexR(v[2]))))?1:0);
+                v[2]=result[0];
+                pc=(dexZero(v[2]))?0x153:0x11d; continue;
+            }
+            case 0x11d: {
+                v[2]="分期还";
+                result[0]=dexN((((java.util.HashMap)dexR(v[4])).containsKey(((java.lang.Object)dexR(v[2]))))?1:0);
+                v[2]=result[0];
+                pc=(dexZero(v[2]))?0x153:0x125; continue;
+            }
+            case 0x125: {
+                v[2]="[";
+                result[0]=dexN(((com.wangc.bill.auto.action.c)dexR(v[9])).f(((java.util.List)dexR(v[11])),((java.lang.String)dexR(v[2])),dexZ(v[1])));
+                v[1]=result[0];
+                pc=(dexI(v[1])<0)?0x137:0x12d; continue;
+            }
+            case 0x12d: {
+                result[0]=((java.util.List)dexR(v[11])).get(dexI(v[1]));
+                v[1]=result[0];
+                v[1]=((java.lang.String)dexR(v[1]));
+                ((com.wangc.bill.auto.action.o)dexR(v[9])).f13766e=((java.lang.String)dexR(v[1]));
+                ((com.wangc.bill.auto.action.o)dexR(v[9])).f13768g=dexZ(v[3]);
+                pc=0x137; continue;
+            }
+            case 0x137: {
+                v[1]=dexN((((com.wangc.bill.auto.action.o)dexR(v[9])).f13768g)?1:0);
+                result[0]=java.lang.Boolean.valueOf(dexZ(v[1]));
+                v[1]=result[0];
+                v[2]=((com.wangc.bill.auto.action.o)dexR(v[9])).f13766e;
+                result[0]=new java.lang.Object[]{((java.lang.Object)dexR(v[0])),((java.lang.Object)dexR(v[1])),((java.lang.Object)dexR(v[2]))};
+                v[0]=result[0];
+                com.blankj.utilcode.util.y.l(((java.lang.Object[])dexR(v[0])));
+                pc=0x153; continue;
+            }
+            case 0x147: {
+                v[0]=dexN(5L);
+                ((com.wangc.bill.auto.action.c)dexR(v[9])).a=dexI(v[0]);
+                ((com.wangc.bill.auto.action.c)dexR(v[9])).b=dexZ(v[3]);
+                pc=0x153; continue;
+            }
+            case 0x14d: {
+                ((com.wangc.bill.auto.action.c)dexR(v[9])).a=dexI(v[2]);
+                ((com.wangc.bill.auto.action.c)dexR(v[9])).b=dexZ(v[3]);
+                pc=0x151; continue;
+            }
+            case 0x151: {
+                v[11]=dexN(0L);
+                v[4]=v[11];
+                pc=0x153; continue;
+            }
+            case 0x153: {
+                v[0]=dexN((((com.wangc.bill.auto.action.c)dexR(v[9])).b)?1:0);
+                pc=(dexZero(v[0]))?0x17d:0x157; continue;
+            }
+            case 0x157: {
+                pc=(dexZero(v[12]))?0x17d:0x159; continue;
+            }
+            case 0x159: {
+                pc=(!dexZero(v[11]))?0x17a:0x15b; continue;
+            }
+            case 0x15b: {
+                result[0]=((com.wangc.bill.auto.action.c)dexR(v[9])).g(((android.view.accessibility.AccessibilityNodeInfo)dexR(v[12])));
+                v[11]=result[0];
+                v[4]=new DexReference(); // new java.util.HashMap
+                ((DexReference)v[4]).value=new java.util.HashMap();
+                result[0]=((java.util.List)dexR(v[11])).iterator();
+                v[12]=result[0];
+                pc=0x168; continue;
+            }
+            case 0x168: {
+                result[0]=dexN((((java.util.Iterator)dexR(v[12])).hasNext())?1:0);
+                v[0]=result[0];
+                pc=(dexZero(v[0]))?0x17a:0x16e; continue;
+            }
+            case 0x16e: {
+                result[0]=((java.util.Iterator)dexR(v[12])).next();
+                v[0]=result[0];
+                v[0]=((java.lang.String)dexR(v[0]));
+                v[1]=java.lang.Boolean.TRUE;
+                result[0]=((java.util.HashMap)dexR(v[4])).put(((java.lang.Object)dexR(v[0])),((java.lang.Object)dexR(v[1])));
+                pc=0x168; continue;
+            }
+            case 0x17a: {
+                ((com.wangc.bill.auto.action.o)dexR(v[9])).r(((android.content.Context)dexR(v[10])),((java.util.List)dexR(v[11])),((java.util.HashMap)dexR(v[4])));
+                pc=0x17d; continue;
+            }
+            case 0x17d: {
+                return -1;
+            }
+            default: return pc;
         }
     }
 
@@ -252,108 +522,455 @@ public class o extends c implements x1.a {
         return billInfo;
     }
 
-    /* JADX WARN: Code duplicated, block: B:68:0x01bf  */
-    public BillInfo u(List<String> list) {
-        String str;
-        if (list.size() == 0) {
-            return null;
+    /** DEX-exact branch transcription of u; original register and block addresses retained. */
+    public com.wangc.bill.http.entity.BillInfo u(java.util.List arg0) {
+        Object[] v=new Object[22]; Object[] result=new Object[2]; int pc=0;
+        v[20]=this;
+        v[21]=arg0;
+        while(true) {
+            if(pc==-1) { return ((com.wangc.bill.http.entity.BillInfo)dexR(result[1])); }
+            if(pc<0x156) pc=recovered_u_block0(v,result,pc);
+            else pc=recovered_u_block1(v,result,pc);
         }
-        BillInfo billInfo = new BillInfo();
-        billInfo.setOrigin("云闪付");
-        boolean z5 = false;
-        for (int i6 = 0; i6 < list.size(); i6++) {
-            String str2 = list.get(i6);
-            int i7 = 1;
-            String str3 = "";
-            if ((str2.equals("实付金额（元）") || str2.equals("实收金额（元）")) && i6 < list.size() - 1) {
-                if (str2.equals("实收金额（元）")) {
-                    billInfo.setIncome(true);
-                    z5 = true;
-                }
-                String strReplace = list.get(i6 + 1).replace("元", "").replace(",", "");
-                if (h2.J(strReplace)) {
-                    billInfo.setNumber(Math.abs(h2.S(strReplace)) + "");
-                }
-            } else if (str2.contains("订单状态") && str2.contains("交易类型")) {
-                List listAsList = Arrays.asList(str2.split(" "));
-                if (listAsList.size() > 0) {
-                    int i8 = 0;
-                    while (i8 < listAsList.size()) {
-                        String str4 = (String) listAsList.get(i8);
-                        if (str4.contains("商户名称")) {
-                            billInfo.setShopName(str4.replace("商户名称", str3));
-                        } else if (str4.contains("乘车线路")) {
-                            billInfo.setShopName(str4.replace("乘车线路", str3));
-                        } else if (str4.contains("交易类型") && TextUtils.isEmpty(billInfo.getShopName())) {
-                            billInfo.setShopName(str4.replace("交易类型", str3));
-                        } else if (str4.contains("付款卡号")) {
-                            String strReplace2 = str4.replace("付款卡号", str3);
-                            billInfo.setAsset(strReplace2.substring(strReplace2.length() - 4));
-                        } else if (str4.contains("信用卡卡号")) {
-                            String strReplace3 = str4.replace("信用卡卡号", str3);
-                            billInfo.setAsset(strReplace3.substring(strReplace3.length() - 4));
-                        } else if (str4.contains("转入卡号")) {
-                            String strReplace4 = str4.replace("转入卡号", str3);
-                            billInfo.setAsset(strReplace4.substring(strReplace4.length() - 4));
-                        } else if (str4.contains("银行名称")) {
-                            billInfo.setAsset(str4.replace("银行名称", str3) + billInfo.getAsset());
-                        } else if (str4.contains("付款卡")) {
-                            billInfo.setAsset(str4.replace("付款卡", str3));
-                        } else if (str4.contains("收款卡")) {
-                            billInfo.setAsset(str4.replace("收款卡", str3));
-                        } else {
-                            if (str4.contains("订单时间")) {
-                                String strReplace5 = str4.replace("订单时间", str3);
-                                if (i8 < listAsList.size() - i7) {
-                                    String str5 = (String) listAsList.get(i8 + 1);
-                                    if (str5.contains(":")) {
-                                        str = str3;
-                                        long jX0 = t0.X0(strReplace5 + " " + str5, "yyyy-MM-dd HH:mm:ss");
-                                        if (jX0 != -1) {
-                                            billInfo.setTime(jX0);
-                                        }
-                                    } else {
-                                        str = str3;
-                                    }
-                                } else {
-                                    str = str3;
-                                }
-                                if (billInfo.getTime() <= 0) {
-                                    billInfo.setTime(t0.X0(strReplace5, "yyyy-MM-dd HH:mm:ss"));
-                                    if (billInfo.getTime() == -1 || billInfo.getTime() == 0) {
-                                        billInfo.setTime(t0.X0(strReplace5, "yyyy-MM-dd HH:mm"));
-                                    }
-                                    if (billInfo.getTime() == -1 || billInfo.getTime() == 0) {
-                                        billInfo.setTime(t0.X0(strReplace5, "yyyy-MM-dd"));
-                                    }
-                                }
-                            }
-                            i8++;
-                            str3 = str;
-                            i7 = 1;
-                        }
-                        str = str3;
-                        i8++;
-                        str3 = str;
-                        i7 = 1;
-                    }
-                }
+    }
+    private int recovered_u_block0(Object[] v,Object[] result,int pc) {
+        while(true) switch(pc) {
+            case 0x0: {
+                v[0]=v[21];
+                result[0]=dexN(((java.util.List)dexR(v[21])).size());
+                v[1]=result[0];
+                v[2]=dexN(0L);
+                pc=(!dexZero(v[1]))?0xa:0x9; continue;
             }
-        }
-        if (TextUtils.isEmpty(billInfo.getRemark())) {
-            if (TextUtils.isEmpty(billInfo.getShopName())) {
-                billInfo.setRemark(billInfo.getOrigin());
-            } else {
-                billInfo.setRemark(billInfo.getShopName());
+            case 0x9: {
+                result[1]=v[2]; return -1;
             }
+            case 0xa: {
+                v[1]=new DexReference(); // new com.wangc.bill.http.entity.BillInfo
+                ((DexReference)v[1]).value=new com.wangc.bill.http.entity.BillInfo();
+                v[3]="云闪付";
+                ((com.wangc.bill.http.entity.BillInfo)dexR(v[1])).setOrigin(((java.lang.String)dexR(v[3])));
+                v[4]=dexN(0L);
+                v[5]=dexN(0L);
+                pc=0x16; continue;
+            }
+            case 0x16: {
+                result[0]=dexN(((java.util.List)dexR(v[21])).size());
+                v[6]=result[0];
+                pc=(dexI(v[4])>=dexI(v[6]))?0x20f:0x1c; continue;
+            }
+            case 0x1c: {
+                result[0]=((java.util.List)dexR(v[0])).get(dexI(v[4]));
+                v[6]=result[0];
+                v[6]=((java.lang.String)dexR(v[6]));
+                v[7]="实付金额（元）";
+                result[0]=dexN((((java.lang.String)dexR(v[6])).equals(((java.lang.Object)dexR(v[7]))))?1:0);
+                v[7]=result[0];
+                v[8]="实收金额（元）";
+                v[9]=dexN(1L);
+                v[10]="";
+                pc=(!dexZero(v[7]))?0x35:0x2f; continue;
+            }
+            case 0x2f: {
+                result[0]=dexN((((java.lang.String)dexR(v[6])).equals(((java.lang.Object)dexR(v[8]))))?1:0);
+                v[7]=result[0];
+                pc=(dexZero(v[7]))?0x7c:0x35; continue;
+            }
+            case 0x35: {
+                result[0]=dexN(((java.util.List)dexR(v[21])).size());
+                v[7]=result[0];
+                v[7]=dexN(dexI(v[7])-dexI(v[9]));
+                pc=(dexI(v[4])>=dexI(v[7]))?0x7c:0x3c; continue;
+            }
+            case 0x3c: {
+                result[0]=dexN((((java.lang.String)dexR(v[6])).equals(((java.lang.Object)dexR(v[8]))))?1:0);
+                v[6]=result[0];
+                pc=(dexZero(v[6]))?0x46:0x42; continue;
+            }
+            case 0x42: {
+                ((com.wangc.bill.http.entity.BillInfo)dexR(v[1])).setIncome(dexZ(v[9]));
+                v[5]=v[9];
+                pc=0x46; continue;
+            }
+            case 0x46: {
+                v[6]=dexN(dexI(v[4])+(1));
+                result[0]=((java.util.List)dexR(v[0])).get(dexI(v[6]));
+                v[6]=result[0];
+                v[6]=((java.lang.String)dexR(v[6]));
+                v[7]="元";
+                result[0]=((java.lang.String)dexR(v[6])).replace(((java.lang.CharSequence)dexR(v[7])),((java.lang.CharSequence)dexR(v[10])));
+                v[6]=result[0];
+                v[7]=",";
+                result[0]=((java.lang.String)dexR(v[6])).replace(((java.lang.CharSequence)dexR(v[7])),((java.lang.CharSequence)dexR(v[10])));
+                v[6]=result[0];
+                result[0]=dexN((com.wangc.bill.utils.h2.J(((java.lang.String)dexR(v[6]))))?1:0);
+                v[7]=result[0];
+                pc=(dexZero(v[7]))?0x20b:0x60; continue;
+            }
+            case 0x60: {
+                v[7]=new DexReference(); // new java.lang.StringBuilder
+                ((DexReference)v[7]).value=new java.lang.StringBuilder();
+                result[0]=dexN(Double.doubleToRawLongBits(com.wangc.bill.utils.h2.S(((java.lang.String)dexR(v[6])))));
+                v[8]=result[0];
+                result[0]=dexN(Double.doubleToRawLongBits(java.lang.Math.abs(dexD(v[8]))));
+                v[8]=result[0];
+                result[0]=((java.lang.StringBuilder)dexR(v[7])).append(dexD(v[8]));
+                result[0]=((java.lang.StringBuilder)dexR(v[7])).append(((java.lang.String)dexR(v[10])));
+                result[0]=((java.lang.StringBuilder)dexR(v[7])).toString();
+                v[6]=result[0];
+                ((com.wangc.bill.http.entity.BillInfo)dexR(v[1])).setNumber(((java.lang.String)dexR(v[6])));
+                pc=0x20b; continue;
+            }
+            case 0x7c: {
+                v[7]="订单状态";
+                result[0]=dexN((((java.lang.String)dexR(v[6])).contains(((java.lang.CharSequence)dexR(v[7]))))?1:0);
+                v[7]=result[0];
+                pc=(dexZero(v[7]))?0x20b:0x84; continue;
+            }
+            case 0x84: {
+                v[7]="交易类型";
+                result[0]=dexN((((java.lang.String)dexR(v[6])).contains(((java.lang.CharSequence)dexR(v[7]))))?1:0);
+                v[8]=result[0];
+                pc=(dexZero(v[8]))?0x20b:0x8c; continue;
+            }
+            case 0x8c: {
+                v[8]=" ";
+                result[0]=((java.lang.String)dexR(v[6])).split(((java.lang.String)dexR(v[8])));
+                v[6]=result[0];
+                result[0]=java.util.Arrays.asList(((java.lang.Object[])dexR(v[6])));
+                v[6]=result[0];
+                result[0]=dexN(((java.util.List)dexR(v[6])).size());
+                v[11]=result[0];
+                pc=(dexI(v[11])<=0)?0x20b:0x9c; continue;
+            }
+            case 0x9c: {
+                v[11]=dexN(0L);
+                pc=0x9d; continue;
+            }
+            case 0x9d: {
+                result[0]=dexN(((java.util.List)dexR(v[6])).size());
+                v[12]=result[0];
+                pc=(dexI(v[11])>=dexI(v[12]))?0x20b:0xa3; continue;
+            }
+            case 0xa3: {
+                result[0]=((java.util.List)dexR(v[6])).get(dexI(v[11]));
+                v[12]=result[0];
+                v[12]=((java.lang.String)dexR(v[12]));
+                v[13]="商户名称";
+                result[0]=dexN((((java.lang.String)dexR(v[12])).contains(((java.lang.CharSequence)dexR(v[13]))))?1:0);
+                v[14]=result[0];
+                pc=(dexZero(v[14]))?0xbc:0xb1; continue;
+            }
+            case 0xb1: {
+                result[0]=((java.lang.String)dexR(v[12])).replace(((java.lang.CharSequence)dexR(v[13])),((java.lang.CharSequence)dexR(v[10])));
+                v[12]=result[0];
+                ((com.wangc.bill.http.entity.BillInfo)dexR(v[1])).setShopName(((java.lang.String)dexR(v[12])));
+                pc=0xb8; continue;
+            }
+            case 0xb8: {
+                v[17]=v[10];
+                pc=0x204; continue;
+            }
+            case 0xbc: {
+                v[13]="乘车线路";
+                result[0]=dexN((((java.lang.String)dexR(v[12])).contains(((java.lang.CharSequence)dexR(v[13]))))?1:0);
+                v[14]=result[0];
+                pc=(dexZero(v[14]))?0xcc:0xc4; continue;
+            }
+            case 0xc4: {
+                result[0]=((java.lang.String)dexR(v[12])).replace(((java.lang.CharSequence)dexR(v[13])),((java.lang.CharSequence)dexR(v[10])));
+                v[12]=result[0];
+                ((com.wangc.bill.http.entity.BillInfo)dexR(v[1])).setShopName(((java.lang.String)dexR(v[12])));
+                pc=0xb8; continue;
+            }
+            case 0xcc: {
+                result[0]=dexN((((java.lang.String)dexR(v[12])).contains(((java.lang.CharSequence)dexR(v[7]))))?1:0);
+                v[13]=result[0];
+                pc=(dexZero(v[13]))?0xe4:0xd2; continue;
+            }
+            case 0xd2: {
+                result[0]=((com.wangc.bill.http.entity.BillInfo)dexR(v[1])).getShopName();
+                v[13]=result[0];
+                result[0]=dexN((android.text.TextUtils.isEmpty(((java.lang.CharSequence)dexR(v[13]))))?1:0);
+                v[13]=result[0];
+                pc=(dexZero(v[13]))?0xe4:0xdc; continue;
+            }
+            case 0xdc: {
+                result[0]=((java.lang.String)dexR(v[12])).replace(((java.lang.CharSequence)dexR(v[7])),((java.lang.CharSequence)dexR(v[10])));
+                v[12]=result[0];
+                ((com.wangc.bill.http.entity.BillInfo)dexR(v[1])).setShopName(((java.lang.String)dexR(v[12])));
+                pc=0xb8; continue;
+            }
+            case 0xe4: {
+                v[13]="付款卡号";
+                result[0]=dexN((((java.lang.String)dexR(v[12])).contains(((java.lang.CharSequence)dexR(v[13]))))?1:0);
+                v[14]=result[0];
+                pc=(dexZero(v[14]))?0xfe:0xec; continue;
+            }
+            case 0xec: {
+                result[0]=((java.lang.String)dexR(v[12])).replace(((java.lang.CharSequence)dexR(v[13])),((java.lang.CharSequence)dexR(v[10])));
+                v[12]=result[0];
+                result[0]=dexN(((java.lang.String)dexR(v[12])).length());
+                v[13]=result[0];
+                v[13]=dexN(dexI(v[13])+(-4));
+                result[0]=((java.lang.String)dexR(v[12])).substring(dexI(v[13]));
+                v[12]=result[0];
+                ((com.wangc.bill.http.entity.BillInfo)dexR(v[1])).setAsset(((java.lang.String)dexR(v[12])));
+                pc=0xb8; continue;
+            }
+            case 0xfe: {
+                v[13]="信用卡卡号";
+                result[0]=dexN((((java.lang.String)dexR(v[12])).contains(((java.lang.CharSequence)dexR(v[13]))))?1:0);
+                v[14]=result[0];
+                pc=(dexZero(v[14]))?0x118:0x106; continue;
+            }
+            case 0x106: {
+                result[0]=((java.lang.String)dexR(v[12])).replace(((java.lang.CharSequence)dexR(v[13])),((java.lang.CharSequence)dexR(v[10])));
+                v[12]=result[0];
+                result[0]=dexN(((java.lang.String)dexR(v[12])).length());
+                v[13]=result[0];
+                v[13]=dexN(dexI(v[13])+(-4));
+                result[0]=((java.lang.String)dexR(v[12])).substring(dexI(v[13]));
+                v[12]=result[0];
+                ((com.wangc.bill.http.entity.BillInfo)dexR(v[1])).setAsset(((java.lang.String)dexR(v[12])));
+                pc=0xb8; continue;
+            }
+            case 0x118: {
+                v[13]="转入卡号";
+                result[0]=dexN((((java.lang.String)dexR(v[12])).contains(((java.lang.CharSequence)dexR(v[13]))))?1:0);
+                v[14]=result[0];
+                pc=(dexZero(v[14]))?0x132:0x120; continue;
+            }
+            case 0x120: {
+                result[0]=((java.lang.String)dexR(v[12])).replace(((java.lang.CharSequence)dexR(v[13])),((java.lang.CharSequence)dexR(v[10])));
+                v[12]=result[0];
+                result[0]=dexN(((java.lang.String)dexR(v[12])).length());
+                v[13]=result[0];
+                v[13]=dexN(dexI(v[13])+(-4));
+                result[0]=((java.lang.String)dexR(v[12])).substring(dexI(v[13]));
+                v[12]=result[0];
+                ((com.wangc.bill.http.entity.BillInfo)dexR(v[1])).setAsset(((java.lang.String)dexR(v[12])));
+                pc=0xb8; continue;
+            }
+            case 0x132: {
+                v[13]="银行名称";
+                result[0]=dexN((((java.lang.String)dexR(v[12])).contains(((java.lang.CharSequence)dexR(v[13]))))?1:0);
+                v[14]=result[0];
+                pc=(dexZero(v[14]))?0x156:0x13a; continue;
+            }
+            case 0x13a: {
+                result[0]=((java.lang.String)dexR(v[12])).replace(((java.lang.CharSequence)dexR(v[13])),((java.lang.CharSequence)dexR(v[10])));
+                v[12]=result[0];
+                v[13]=new DexReference(); // new java.lang.StringBuilder
+                ((DexReference)v[13]).value=new java.lang.StringBuilder();
+                result[0]=((java.lang.StringBuilder)dexR(v[13])).append(((java.lang.String)dexR(v[12])));
+                result[0]=((com.wangc.bill.http.entity.BillInfo)dexR(v[1])).getAsset();
+                v[12]=result[0];
+                result[0]=((java.lang.StringBuilder)dexR(v[13])).append(((java.lang.String)dexR(v[12])));
+                result[0]=((java.lang.StringBuilder)dexR(v[13])).toString();
+                v[12]=result[0];
+                ((com.wangc.bill.http.entity.BillInfo)dexR(v[1])).setAsset(((java.lang.String)dexR(v[12])));
+                pc=0xb8; continue;
+            }
+            default: return pc;
         }
-        if (z5) {
-            billInfo.setShopName("收入-" + billInfo.getShopName());
+    }
+    private int recovered_u_block1(Object[] v,Object[] result,int pc) {
+        while(true) switch(pc) {
+            case 0x156: {
+                v[13]="付款卡";
+                result[0]=dexN((((java.lang.String)dexR(v[12])).contains(((java.lang.CharSequence)dexR(v[13]))))?1:0);
+                v[14]=result[0];
+                pc=(dexZero(v[14]))?0x167:0x15e; continue;
+            }
+            case 0x15e: {
+                result[0]=((java.lang.String)dexR(v[12])).replace(((java.lang.CharSequence)dexR(v[13])),((java.lang.CharSequence)dexR(v[10])));
+                v[12]=result[0];
+                ((com.wangc.bill.http.entity.BillInfo)dexR(v[1])).setAsset(((java.lang.String)dexR(v[12])));
+                pc=0xb8; continue;
+            }
+            case 0x167: {
+                v[13]="收款卡";
+                result[0]=dexN((((java.lang.String)dexR(v[12])).contains(((java.lang.CharSequence)dexR(v[13]))))?1:0);
+                v[14]=result[0];
+                pc=(dexZero(v[14]))?0x178:0x16f; continue;
+            }
+            case 0x16f: {
+                result[0]=((java.lang.String)dexR(v[12])).replace(((java.lang.CharSequence)dexR(v[13])),((java.lang.CharSequence)dexR(v[10])));
+                v[12]=result[0];
+                ((com.wangc.bill.http.entity.BillInfo)dexR(v[1])).setAsset(((java.lang.String)dexR(v[12])));
+                pc=0xb8; continue;
+            }
+            case 0x178: {
+                v[13]="订单时间";
+                result[0]=dexN((((java.lang.String)dexR(v[12])).contains(((java.lang.CharSequence)dexR(v[13]))))?1:0);
+                v[14]=result[0];
+                pc=(dexZero(v[14]))?0xb8:0x180; continue;
+            }
+            case 0x180: {
+                result[0]=((java.lang.String)dexR(v[12])).replace(((java.lang.CharSequence)dexR(v[13])),((java.lang.CharSequence)dexR(v[10])));
+                v[12]=result[0];
+                result[0]=dexN(((java.util.List)dexR(v[6])).size());
+                v[13]=result[0];
+                v[13]=dexN(dexI(v[13])-dexI(v[9]));
+                v[14]="yyyy-MM-dd HH:mm:ss";
+                v[15]=dexN(-1L);
+                pc=(dexI(v[11])>=dexI(v[13]))?0x1bf:0x18f; continue;
+            }
+            case 0x18f: {
+                v[13]=dexN(dexI(v[11])+(1));
+                result[0]=((java.util.List)dexR(v[6])).get(dexI(v[13]));
+                v[13]=result[0];
+                v[13]=((java.lang.String)dexR(v[13]));
+                v[3]=":";
+                result[0]=dexN((((java.lang.String)dexR(v[13])).contains(((java.lang.CharSequence)dexR(v[3]))))?1:0);
+                v[3]=result[0];
+                pc=(dexZero(v[3]))?0x1bf:0x19f; continue;
+            }
+            case 0x19f: {
+                v[3]=new DexReference(); // new java.lang.StringBuilder
+                ((DexReference)v[3]).value=new java.lang.StringBuilder();
+                result[0]=((java.lang.StringBuilder)dexR(v[3])).append(((java.lang.String)dexR(v[12])));
+                result[0]=((java.lang.StringBuilder)dexR(v[3])).append(((java.lang.String)dexR(v[8])));
+                result[0]=((java.lang.StringBuilder)dexR(v[3])).append(((java.lang.String)dexR(v[13])));
+                result[0]=((java.lang.StringBuilder)dexR(v[3])).toString();
+                v[3]=result[0];
+                v[17]=v[10];
+                result[0]=dexN(com.blankj.utilcode.util.t0.X0(((java.lang.String)dexR(v[3])),((java.lang.String)dexR(v[14]))));
+                v[9]=result[0];
+                v[3]=dexN(Long.compare(dexL(v[9]),dexL(v[15])));
+                pc=(dexZero(v[3]))?0x1c1:0x1bb; continue;
+            }
+            case 0x1bb: {
+                ((com.wangc.bill.http.entity.BillInfo)dexR(v[1])).setTime(dexL(v[9]));
+                pc=0x1c1; continue;
+            }
+            case 0x1bf: {
+                v[17]=v[10];
+                pc=0x1c1; continue;
+            }
+            case 0x1c1: {
+                result[0]=dexN(((com.wangc.bill.http.entity.BillInfo)dexR(v[1])).getTime());
+                v[9]=result[0];
+                v[18]=dexN(0L);
+                v[3]=dexN(Long.compare(dexL(v[9]),dexL(v[18])));
+                pc=(dexI(v[3])>0)?0x204:0x1cb; continue;
+            }
+            case 0x1cb: {
+                result[0]=dexN(com.blankj.utilcode.util.t0.X0(((java.lang.String)dexR(v[12])),((java.lang.String)dexR(v[14]))));
+                v[9]=result[0];
+                ((com.wangc.bill.http.entity.BillInfo)dexR(v[1])).setTime(dexL(v[9]));
+                result[0]=dexN(((com.wangc.bill.http.entity.BillInfo)dexR(v[1])).getTime());
+                v[9]=result[0];
+                v[3]=dexN(Long.compare(dexL(v[9]),dexL(v[15])));
+                pc=(dexZero(v[3]))?0x1e2:0x1da; continue;
+            }
+            case 0x1da: {
+                result[0]=dexN(((com.wangc.bill.http.entity.BillInfo)dexR(v[1])).getTime());
+                v[9]=result[0];
+                v[3]=dexN(Long.compare(dexL(v[9]),dexL(v[18])));
+                pc=(!dexZero(v[3]))?0x1eb:0x1e2; continue;
+            }
+            case 0x1e2: {
+                v[3]="yyyy-MM-dd HH:mm";
+                result[0]=dexN(com.blankj.utilcode.util.t0.X0(((java.lang.String)dexR(v[12])),((java.lang.String)dexR(v[3]))));
+                v[9]=result[0];
+                ((com.wangc.bill.http.entity.BillInfo)dexR(v[1])).setTime(dexL(v[9]));
+                pc=0x1eb; continue;
+            }
+            case 0x1eb: {
+                result[0]=dexN(((com.wangc.bill.http.entity.BillInfo)dexR(v[1])).getTime());
+                v[9]=result[0];
+                v[3]=dexN(Long.compare(dexL(v[9]),dexL(v[15])));
+                pc=(dexZero(v[3]))?0x1fb:0x1f3; continue;
+            }
+            case 0x1f3: {
+                result[0]=dexN(((com.wangc.bill.http.entity.BillInfo)dexR(v[1])).getTime());
+                v[9]=result[0];
+                v[3]=dexN(Long.compare(dexL(v[9]),dexL(v[18])));
+                pc=(!dexZero(v[3]))?0x204:0x1fb; continue;
+            }
+            case 0x1fb: {
+                v[3]="yyyy-MM-dd";
+                result[0]=dexN(com.blankj.utilcode.util.t0.X0(((java.lang.String)dexR(v[12])),((java.lang.String)dexR(v[3]))));
+                v[9]=result[0];
+                ((com.wangc.bill.http.entity.BillInfo)dexR(v[1])).setTime(dexL(v[9]));
+                pc=0x204; continue;
+            }
+            case 0x204: {
+                v[11]=dexN(dexI(v[11])+(1));
+                v[10]=v[17];
+                v[9]=dexN(1L);
+                pc=0x9d; continue;
+            }
+            case 0x20b: {
+                v[4]=dexN(dexI(v[4])+(1));
+                pc=0x16; continue;
+            }
+            case 0x20f: {
+                result[0]=((com.wangc.bill.http.entity.BillInfo)dexR(v[1])).getRemark();
+                v[0]=result[0];
+                result[0]=dexN((android.text.TextUtils.isEmpty(((java.lang.CharSequence)dexR(v[0]))))?1:0);
+                v[0]=result[0];
+                pc=(dexZero(v[0]))?0x232:0x219; continue;
+            }
+            case 0x219: {
+                result[0]=((com.wangc.bill.http.entity.BillInfo)dexR(v[1])).getShopName();
+                v[0]=result[0];
+                result[0]=dexN((android.text.TextUtils.isEmpty(((java.lang.CharSequence)dexR(v[0]))))?1:0);
+                v[0]=result[0];
+                pc=(!dexZero(v[0]))?0x22b:0x223; continue;
+            }
+            case 0x223: {
+                result[0]=((com.wangc.bill.http.entity.BillInfo)dexR(v[1])).getShopName();
+                v[0]=result[0];
+                ((com.wangc.bill.http.entity.BillInfo)dexR(v[1])).setRemark(((java.lang.String)dexR(v[0])));
+                pc=0x232; continue;
+            }
+            case 0x22b: {
+                result[0]=((com.wangc.bill.http.entity.BillInfo)dexR(v[1])).getOrigin();
+                v[0]=result[0];
+                ((com.wangc.bill.http.entity.BillInfo)dexR(v[1])).setRemark(((java.lang.String)dexR(v[0])));
+                pc=0x232; continue;
+            }
+            case 0x232: {
+                pc=(dexZero(v[5]))?0x24c:0x234; continue;
+            }
+            case 0x234: {
+                v[0]=new DexReference(); // new java.lang.StringBuilder
+                ((DexReference)v[0]).value=new java.lang.StringBuilder();
+                v[3]="收入-";
+                result[0]=((java.lang.StringBuilder)dexR(v[0])).append(((java.lang.String)dexR(v[3])));
+                result[0]=((com.wangc.bill.http.entity.BillInfo)dexR(v[1])).getShopName();
+                v[3]=result[0];
+                result[0]=((java.lang.StringBuilder)dexR(v[0])).append(((java.lang.String)dexR(v[3])));
+                result[0]=((java.lang.StringBuilder)dexR(v[0])).toString();
+                v[0]=result[0];
+                ((com.wangc.bill.http.entity.BillInfo)dexR(v[1])).setShopName(((java.lang.String)dexR(v[0])));
+                pc=0x24c; continue;
+            }
+            case 0x24c: {
+                result[0]=((com.wangc.bill.http.entity.BillInfo)dexR(v[1])).getRemark();
+                v[0]=result[0];
+                result[0]=dexN((android.text.TextUtils.isEmpty(((java.lang.CharSequence)dexR(v[0]))))?1:0);
+                v[0]=result[0];
+                pc=(!dexZero(v[0]))?0x261:0x256; continue;
+            }
+            case 0x256: {
+                result[0]=((com.wangc.bill.http.entity.BillInfo)dexR(v[1])).getNumber();
+                v[0]=result[0];
+                result[0]=dexN((android.text.TextUtils.isEmpty(((java.lang.CharSequence)dexR(v[0]))))?1:0);
+                v[0]=result[0];
+                pc=(!dexZero(v[0]))?0x261:0x260; continue;
+            }
+            case 0x260: {
+                result[1]=v[1]; return -1;
+            }
+            case 0x261: {
+                result[1]=v[2]; return -1;
+            }
+            default: return pc;
         }
-        if (TextUtils.isEmpty(billInfo.getRemark()) || TextUtils.isEmpty(billInfo.getNumber())) {
-            return null;
-        }
-        return billInfo;
     }
 
     public BillInfo v(List<String> list) {
@@ -466,88 +1083,473 @@ public class o extends c implements x1.a {
         return billInfo;
     }
 
-    /* JADX WARN: Code duplicated, block: B:104:0x0296 A[SYNTHETIC] */
-    /* JADX WARN: Code duplicated, block: B:26:0x00b0  */
-    /* JADX WARN: Code duplicated, block: B:28:0x00c2  */
-    public BillInfo x(List<String> list, String str, String str2) {
-        String strReplace;
-        if (list.size() == 0) {
-            return null;
+    /** DEX-exact branch transcription of x; original register and block addresses retained. */
+    public com.wangc.bill.http.entity.BillInfo x(java.util.List arg0, java.lang.String arg1, java.lang.String arg2) {
+        Object[] v=new Object[14]; Object[] result=new Object[2]; int pc=0;
+        v[10]=this;
+        v[11]=arg0;
+        v[12]=arg1;
+        v[13]=arg2;
+        while(true) {
+            if(pc==-1) { return ((com.wangc.bill.http.entity.BillInfo)dexR(result[1])); }
+            if(pc<0x194) pc=recovered_x_block0(v,result,pc);
+            else pc=recovered_x_block1(v,result,pc);
         }
-        BillInfo billInfo = new BillInfo();
-        billInfo.setTransfer(true);
-        billInfo.setOrigin("云闪付");
-        billInfo.setFromAsset(str);
-        billInfo.setToAsset(str2);
-        for (int i6 = 0; i6 < list.size(); i6++) {
-            String str3 = list.get(i6);
-            if (str3.contains("¥")) {
-                String strReplace2 = str3.replace("¥", "").replace(",", "");
-                if (TextUtils.isEmpty(billInfo.getNumber()) && h2.J(strReplace2)) {
-                    billInfo.setNumber(Math.abs(h2.S(strReplace2)) + "");
-                }
-            } else if (str3.contains("手续费")) {
-                if (!str3.equals("手续费") || i6 >= list.size() - 1) {
-                    strReplace = str3.substring(0, str3.lastIndexOf("手续费")).replace(",", "");
-                    if (h2.J(strReplace)) {
-                        billInfo.setServiceCharge(Math.abs(h2.S(strReplace)));
-                    }
-                } else {
-                    int i7 = i6 + 1;
-                    if (list.get(i7).contains("元")) {
-                        String strReplace3 = list.get(i7).replace("元", "").replace(",", "");
-                        if (h2.J(strReplace3)) {
-                            billInfo.setServiceCharge(Math.abs(h2.S(strReplace3)));
-                        }
-                    } else {
-                        strReplace = str3.substring(0, str3.lastIndexOf("手续费")).replace(",", "");
-                        if (h2.J(strReplace)) {
-                            billInfo.setServiceCharge(Math.abs(h2.S(strReplace)));
-                        }
-                    }
-                }
-            } else if (str3.equals("订单金额") && i6 < list.size() - 1) {
-                String strReplace4 = list.get(i6 + 1).replace("¥", "").replace(",", "");
-                if (h2.J(strReplace4)) {
-                    billInfo.setNumber(Math.abs(h2.S(strReplace4)) + "");
-                }
-            } else if (str3.equals("转账金额") && i6 < list.size() - 1) {
-                String strReplace5 = list.get(i6 + 1).replace("¥", "").replace(",", "");
-                if (h2.J(strReplace5)) {
-                    billInfo.setNumber(Math.abs(h2.S(strReplace5)) + "");
-                }
-            } else if ((str3.equals("收款银行") || str3.contains("信用卡号") || str3.contains("收款方式")) && i6 < list.size() - 1) {
-                billInfo.setToAsset(list.get(i6 + 1));
-            } else if ((str3.equals("付款银行") || str3.contains("付款方式")) && i6 < list.size() - 1) {
-                billInfo.setFromAsset(list.get(i6 + 1));
-            } else if (str3.contains("付款卡号") && i6 < list.size() - 1) {
-                String str4 = list.get(i6 + 1);
-                String strSubstring = str4.substring(str4.length() - 4);
-                if (h2.J(strSubstring)) {
-                    billInfo.setFromAsset(billInfo.getFromAsset() + strSubstring);
-                }
-            } else if (str3.contains("收款卡号") && i6 < list.size() - 1) {
-                String str5 = list.get(i6 + 1);
-                String strSubstring2 = str5.substring(str5.length() - 4);
-                if (h2.J(strSubstring2)) {
-                    billInfo.setToAsset(billInfo.getToAsset() + strSubstring2);
-                }
-            } else if (str3.contains("创建时间") && i6 < list.size() - 1) {
-                String str6 = list.get(i6 + 1);
-                billInfo.setTime(t0.X0(str6, "yyyy-MM-dd HH:mm:ss"));
-                if (billInfo.getTime() == -1 || billInfo.getTime() == 0) {
-                    billInfo.setTime(t0.X0(str6, "yyyy-MM-dd HH:mm"));
-                }
-                if (billInfo.getTime() == -1 || billInfo.getTime() == 0) {
-                    billInfo.setTime(t0.X0(str6, "yyyy-MM-dd"));
-                }
-            } else if (str3.contains("订单时间") && i6 < list.size() - 1) {
-                billInfo.setTime(t0.X0(list.get(i6 + 1), "yyyy年MM月dd日 HH:mm:ss"));
+    }
+    private int recovered_x_block0(Object[] v,Object[] result,int pc) {
+        while(true) switch(pc) {
+            case 0x0: {
+                result[0]=dexN(((java.util.List)dexR(v[11])).size());
+                v[0]=result[0];
+                v[1]=dexN(0L);
+                pc=(!dexZero(v[0]))?0x8:0x7; continue;
             }
+            case 0x7: {
+                result[1]=v[1]; return -1;
+            }
+            case 0x8: {
+                v[0]=new DexReference(); // new com.wangc.bill.http.entity.BillInfo
+                ((DexReference)v[0]).value=new com.wangc.bill.http.entity.BillInfo();
+                v[2]=dexN(1L);
+                ((com.wangc.bill.http.entity.BillInfo)dexR(v[0])).setTransfer(dexZ(v[2]));
+                v[3]="云闪付";
+                ((com.wangc.bill.http.entity.BillInfo)dexR(v[0])).setOrigin(((java.lang.String)dexR(v[3])));
+                ((com.wangc.bill.http.entity.BillInfo)dexR(v[0])).setFromAsset(((java.lang.String)dexR(v[12])));
+                ((com.wangc.bill.http.entity.BillInfo)dexR(v[0])).setToAsset(((java.lang.String)dexR(v[13])));
+                v[12]=dexN(0L);
+                v[13]=v[12];
+                pc=0x1e; continue;
+            }
+            case 0x1e: {
+                result[0]=dexN(((java.util.List)dexR(v[11])).size());
+                v[3]=result[0];
+                pc=(dexI(v[13])>=dexI(v[3]))?0x29a:0x24; continue;
+            }
+            case 0x24: {
+                result[0]=((java.util.List)dexR(v[11])).get(dexI(v[13]));
+                v[3]=result[0];
+                v[3]=((java.lang.String)dexR(v[3]));
+                v[4]="¥";
+                result[0]=dexN((((java.lang.String)dexR(v[3])).contains(((java.lang.CharSequence)dexR(v[4]))))?1:0);
+                v[5]=result[0];
+                v[6]=",";
+                v[7]="";
+                pc=(dexZero(v[5]))?0x6a:0x36; continue;
+            }
+            case 0x36: {
+                result[0]=((java.lang.String)dexR(v[3])).replace(((java.lang.CharSequence)dexR(v[4])),((java.lang.CharSequence)dexR(v[7])));
+                v[3]=result[0];
+                result[0]=((java.lang.String)dexR(v[3])).replace(((java.lang.CharSequence)dexR(v[6])),((java.lang.CharSequence)dexR(v[7])));
+                v[3]=result[0];
+                result[0]=((com.wangc.bill.http.entity.BillInfo)dexR(v[0])).getNumber();
+                v[4]=result[0];
+                result[0]=dexN((android.text.TextUtils.isEmpty(((java.lang.CharSequence)dexR(v[4]))))?1:0);
+                v[4]=result[0];
+                pc=(dexZero(v[4]))?0x296:0x48; continue;
+            }
+            case 0x48: {
+                result[0]=dexN((com.wangc.bill.utils.h2.J(((java.lang.String)dexR(v[3]))))?1:0);
+                v[4]=result[0];
+                pc=(dexZero(v[4]))?0x296:0x4e; continue;
+            }
+            case 0x4e: {
+                v[4]=new DexReference(); // new java.lang.StringBuilder
+                ((DexReference)v[4]).value=new java.lang.StringBuilder();
+                result[0]=dexN(Double.doubleToRawLongBits(com.wangc.bill.utils.h2.S(((java.lang.String)dexR(v[3])))));
+                v[5]=result[0];
+                result[0]=dexN(Double.doubleToRawLongBits(java.lang.Math.abs(dexD(v[5]))));
+                v[5]=result[0];
+                result[0]=((java.lang.StringBuilder)dexR(v[4])).append(dexD(v[5]));
+                result[0]=((java.lang.StringBuilder)dexR(v[4])).append(((java.lang.String)dexR(v[7])));
+                result[0]=((java.lang.StringBuilder)dexR(v[4])).toString();
+                v[3]=result[0];
+                ((com.wangc.bill.http.entity.BillInfo)dexR(v[0])).setNumber(((java.lang.String)dexR(v[3])));
+                pc=0x296; continue;
+            }
+            case 0x6a: {
+                v[5]="手续费";
+                result[0]=dexN((((java.lang.String)dexR(v[3])).contains(((java.lang.CharSequence)dexR(v[5]))))?1:0);
+                v[8]=result[0];
+                pc=(dexZero(v[8]))?0xcf:0x72; continue;
+            }
+            case 0x72: {
+                result[0]=dexN((((java.lang.String)dexR(v[3])).equals(((java.lang.Object)dexR(v[5]))))?1:0);
+                v[4]=result[0];
+                pc=(dexZero(v[4]))?0xb0:0x78; continue;
+            }
+            case 0x78: {
+                result[0]=dexN(((java.util.List)dexR(v[11])).size());
+                v[4]=result[0];
+                v[4]=dexN(dexI(v[4])-dexI(v[2]));
+                pc=(dexI(v[13])>=dexI(v[4]))?0xb0:0x7f; continue;
+            }
+            case 0x7f: {
+                v[4]=dexN(dexI(v[13])+(1));
+                result[0]=((java.util.List)dexR(v[11])).get(dexI(v[4]));
+                v[8]=result[0];
+                v[8]=((java.lang.String)dexR(v[8]));
+                v[9]="元";
+                result[0]=dexN((((java.lang.String)dexR(v[8])).contains(((java.lang.CharSequence)dexR(v[9]))))?1:0);
+                v[8]=result[0];
+                pc=(dexZero(v[8]))?0xb0:0x8f; continue;
+            }
+            case 0x8f: {
+                result[0]=((java.util.List)dexR(v[11])).get(dexI(v[4]));
+                v[3]=result[0];
+                v[3]=((java.lang.String)dexR(v[3]));
+                result[0]=((java.lang.String)dexR(v[3])).replace(((java.lang.CharSequence)dexR(v[9])),((java.lang.CharSequence)dexR(v[7])));
+                v[3]=result[0];
+                result[0]=((java.lang.String)dexR(v[3])).replace(((java.lang.CharSequence)dexR(v[6])),((java.lang.CharSequence)dexR(v[7])));
+                v[3]=result[0];
+                result[0]=dexN((com.wangc.bill.utils.h2.J(((java.lang.String)dexR(v[3]))))?1:0);
+                v[4]=result[0];
+                pc=(dexZero(v[4]))?0x296:0xa3; continue;
+            }
+            case 0xa3: {
+                result[0]=dexN(Double.doubleToRawLongBits(com.wangc.bill.utils.h2.S(((java.lang.String)dexR(v[3])))));
+                v[3]=result[0];
+                result[0]=dexN(Double.doubleToRawLongBits(java.lang.Math.abs(dexD(v[3]))));
+                v[3]=result[0];
+                ((com.wangc.bill.http.entity.BillInfo)dexR(v[0])).setServiceCharge(dexD(v[3]));
+                pc=0x296; continue;
+            }
+            case 0xb0: {
+                result[0]=dexN(((java.lang.String)dexR(v[3])).lastIndexOf(((java.lang.String)dexR(v[5]))));
+                v[4]=result[0];
+                result[0]=((java.lang.String)dexR(v[3])).substring(dexI(v[12]),dexI(v[4]));
+                v[3]=result[0];
+                result[0]=((java.lang.String)dexR(v[3])).replace(((java.lang.CharSequence)dexR(v[6])),((java.lang.CharSequence)dexR(v[7])));
+                v[3]=result[0];
+                result[0]=dexN((com.wangc.bill.utils.h2.J(((java.lang.String)dexR(v[3]))))?1:0);
+                v[4]=result[0];
+                pc=(dexZero(v[4]))?0x296:0xc2; continue;
+            }
+            case 0xc2: {
+                result[0]=dexN(Double.doubleToRawLongBits(com.wangc.bill.utils.h2.S(((java.lang.String)dexR(v[3])))));
+                v[3]=result[0];
+                result[0]=dexN(Double.doubleToRawLongBits(java.lang.Math.abs(dexD(v[3]))));
+                v[3]=result[0];
+                ((com.wangc.bill.http.entity.BillInfo)dexR(v[0])).setServiceCharge(dexD(v[3]));
+                pc=0x296; continue;
+            }
+            case 0xcf: {
+                v[5]="订单金额";
+                result[0]=dexN((((java.lang.String)dexR(v[3])).equals(((java.lang.Object)dexR(v[5]))))?1:0);
+                v[5]=result[0];
+                pc=(dexZero(v[5]))?0x110:0xd7; continue;
+            }
+            case 0xd7: {
+                result[0]=dexN(((java.util.List)dexR(v[11])).size());
+                v[5]=result[0];
+                v[5]=dexN(dexI(v[5])-dexI(v[2]));
+                pc=(dexI(v[13])>=dexI(v[5]))?0x110:0xde; continue;
+            }
+            case 0xde: {
+                v[3]=dexN(dexI(v[13])+(1));
+                result[0]=((java.util.List)dexR(v[11])).get(dexI(v[3]));
+                v[3]=result[0];
+                v[3]=((java.lang.String)dexR(v[3]));
+                result[0]=((java.lang.String)dexR(v[3])).replace(((java.lang.CharSequence)dexR(v[4])),((java.lang.CharSequence)dexR(v[7])));
+                v[3]=result[0];
+                result[0]=((java.lang.String)dexR(v[3])).replace(((java.lang.CharSequence)dexR(v[6])),((java.lang.CharSequence)dexR(v[7])));
+                v[3]=result[0];
+                result[0]=dexN((com.wangc.bill.utils.h2.J(((java.lang.String)dexR(v[3]))))?1:0);
+                v[4]=result[0];
+                pc=(dexZero(v[4]))?0x296:0xf4; continue;
+            }
+            case 0xf4: {
+                v[4]=new DexReference(); // new java.lang.StringBuilder
+                ((DexReference)v[4]).value=new java.lang.StringBuilder();
+                result[0]=dexN(Double.doubleToRawLongBits(com.wangc.bill.utils.h2.S(((java.lang.String)dexR(v[3])))));
+                v[5]=result[0];
+                result[0]=dexN(Double.doubleToRawLongBits(java.lang.Math.abs(dexD(v[5]))));
+                v[5]=result[0];
+                result[0]=((java.lang.StringBuilder)dexR(v[4])).append(dexD(v[5]));
+                result[0]=((java.lang.StringBuilder)dexR(v[4])).append(((java.lang.String)dexR(v[7])));
+                result[0]=((java.lang.StringBuilder)dexR(v[4])).toString();
+                v[3]=result[0];
+                ((com.wangc.bill.http.entity.BillInfo)dexR(v[0])).setNumber(((java.lang.String)dexR(v[3])));
+                pc=0x296; continue;
+            }
+            case 0x110: {
+                v[5]="转账金额";
+                result[0]=dexN((((java.lang.String)dexR(v[3])).equals(((java.lang.Object)dexR(v[5]))))?1:0);
+                v[5]=result[0];
+                pc=(dexZero(v[5]))?0x151:0x118; continue;
+            }
+            case 0x118: {
+                result[0]=dexN(((java.util.List)dexR(v[11])).size());
+                v[5]=result[0];
+                v[5]=dexN(dexI(v[5])-dexI(v[2]));
+                pc=(dexI(v[13])>=dexI(v[5]))?0x151:0x11f; continue;
+            }
+            case 0x11f: {
+                v[3]=dexN(dexI(v[13])+(1));
+                result[0]=((java.util.List)dexR(v[11])).get(dexI(v[3]));
+                v[3]=result[0];
+                v[3]=((java.lang.String)dexR(v[3]));
+                result[0]=((java.lang.String)dexR(v[3])).replace(((java.lang.CharSequence)dexR(v[4])),((java.lang.CharSequence)dexR(v[7])));
+                v[3]=result[0];
+                result[0]=((java.lang.String)dexR(v[3])).replace(((java.lang.CharSequence)dexR(v[6])),((java.lang.CharSequence)dexR(v[7])));
+                v[3]=result[0];
+                result[0]=dexN((com.wangc.bill.utils.h2.J(((java.lang.String)dexR(v[3]))))?1:0);
+                v[4]=result[0];
+                pc=(dexZero(v[4]))?0x296:0x135; continue;
+            }
+            case 0x135: {
+                v[4]=new DexReference(); // new java.lang.StringBuilder
+                ((DexReference)v[4]).value=new java.lang.StringBuilder();
+                result[0]=dexN(Double.doubleToRawLongBits(com.wangc.bill.utils.h2.S(((java.lang.String)dexR(v[3])))));
+                v[5]=result[0];
+                result[0]=dexN(Double.doubleToRawLongBits(java.lang.Math.abs(dexD(v[5]))));
+                v[5]=result[0];
+                result[0]=((java.lang.StringBuilder)dexR(v[4])).append(dexD(v[5]));
+                result[0]=((java.lang.StringBuilder)dexR(v[4])).append(((java.lang.String)dexR(v[7])));
+                result[0]=((java.lang.StringBuilder)dexR(v[4])).toString();
+                v[3]=result[0];
+                ((com.wangc.bill.http.entity.BillInfo)dexR(v[0])).setNumber(((java.lang.String)dexR(v[3])));
+                pc=0x296; continue;
+            }
+            case 0x151: {
+                v[4]="收款银行";
+                result[0]=dexN((((java.lang.String)dexR(v[3])).equals(((java.lang.Object)dexR(v[4]))))?1:0);
+                v[4]=result[0];
+                pc=(!dexZero(v[4]))?0x169:0x159; continue;
+            }
+            case 0x159: {
+                v[4]="信用卡号";
+                result[0]=dexN((((java.lang.String)dexR(v[3])).contains(((java.lang.CharSequence)dexR(v[4]))))?1:0);
+                v[4]=result[0];
+                pc=(!dexZero(v[4]))?0x169:0x161; continue;
+            }
+            case 0x161: {
+                v[4]="收款方式";
+                result[0]=dexN((((java.lang.String)dexR(v[3])).contains(((java.lang.CharSequence)dexR(v[4]))))?1:0);
+                v[4]=result[0];
+                pc=(dexZero(v[4]))?0x17d:0x169; continue;
+            }
+            case 0x169: {
+                result[0]=dexN(((java.util.List)dexR(v[11])).size());
+                v[4]=result[0];
+                v[4]=dexN(dexI(v[4])-dexI(v[2]));
+                pc=(dexI(v[13])>=dexI(v[4]))?0x17d:0x170; continue;
+            }
+            case 0x170: {
+                v[3]=dexN(dexI(v[13])+(1));
+                result[0]=((java.util.List)dexR(v[11])).get(dexI(v[3]));
+                v[3]=result[0];
+                v[3]=((java.lang.String)dexR(v[3]));
+                ((com.wangc.bill.http.entity.BillInfo)dexR(v[0])).setToAsset(((java.lang.String)dexR(v[3])));
+                pc=0x296; continue;
+            }
+            case 0x17d: {
+                v[4]="付款银行";
+                result[0]=dexN((((java.lang.String)dexR(v[3])).equals(((java.lang.Object)dexR(v[4]))))?1:0);
+                v[4]=result[0];
+                pc=(!dexZero(v[4]))?0x18d:0x185; continue;
+            }
+            case 0x185: {
+                v[4]="付款方式";
+                result[0]=dexN((((java.lang.String)dexR(v[3])).contains(((java.lang.CharSequence)dexR(v[4]))))?1:0);
+                v[4]=result[0];
+                pc=(dexZero(v[4]))?0x1a1:0x18d; continue;
+            }
+            case 0x18d: {
+                result[0]=dexN(((java.util.List)dexR(v[11])).size());
+                v[4]=result[0];
+                v[4]=dexN(dexI(v[4])-dexI(v[2]));
+                pc=(dexI(v[13])>=dexI(v[4]))?0x1a1:0x194; continue;
+            }
+            default: return pc;
         }
-        if (TextUtils.isEmpty(billInfo.getNumber())) {
-            return null;
+    }
+    private int recovered_x_block1(Object[] v,Object[] result,int pc) {
+        while(true) switch(pc) {
+            case 0x194: {
+                v[3]=dexN(dexI(v[13])+(1));
+                result[0]=((java.util.List)dexR(v[11])).get(dexI(v[3]));
+                v[3]=result[0];
+                v[3]=((java.lang.String)dexR(v[3]));
+                ((com.wangc.bill.http.entity.BillInfo)dexR(v[0])).setFromAsset(((java.lang.String)dexR(v[3])));
+                pc=0x296; continue;
+            }
+            case 0x1a1: {
+                v[4]="付款卡号";
+                result[0]=dexN((((java.lang.String)dexR(v[3])).contains(((java.lang.CharSequence)dexR(v[4]))))?1:0);
+                v[4]=result[0];
+                pc=(dexZero(v[4]))?0x1e0:0x1a9; continue;
+            }
+            case 0x1a9: {
+                result[0]=dexN(((java.util.List)dexR(v[11])).size());
+                v[4]=result[0];
+                v[4]=dexN(dexI(v[4])-dexI(v[2]));
+                pc=(dexI(v[13])>=dexI(v[4]))?0x1e0:0x1b0; continue;
+            }
+            case 0x1b0: {
+                v[3]=dexN(dexI(v[13])+(1));
+                result[0]=((java.util.List)dexR(v[11])).get(dexI(v[3]));
+                v[3]=result[0];
+                v[3]=((java.lang.String)dexR(v[3]));
+                result[0]=dexN(((java.lang.String)dexR(v[3])).length());
+                v[4]=result[0];
+                v[4]=dexN(dexI(v[4])+(-4));
+                result[0]=((java.lang.String)dexR(v[3])).substring(dexI(v[4]));
+                v[3]=result[0];
+                result[0]=dexN((com.wangc.bill.utils.h2.J(((java.lang.String)dexR(v[3]))))?1:0);
+                v[4]=result[0];
+                pc=(dexZero(v[4]))?0x296:0x1c8; continue;
+            }
+            case 0x1c8: {
+                v[4]=new DexReference(); // new java.lang.StringBuilder
+                ((DexReference)v[4]).value=new java.lang.StringBuilder();
+                result[0]=((com.wangc.bill.http.entity.BillInfo)dexR(v[0])).getFromAsset();
+                v[5]=result[0];
+                result[0]=((java.lang.StringBuilder)dexR(v[4])).append(((java.lang.String)dexR(v[5])));
+                result[0]=((java.lang.StringBuilder)dexR(v[4])).append(((java.lang.String)dexR(v[3])));
+                result[0]=((java.lang.StringBuilder)dexR(v[4])).toString();
+                v[3]=result[0];
+                ((com.wangc.bill.http.entity.BillInfo)dexR(v[0])).setFromAsset(((java.lang.String)dexR(v[3])));
+                pc=0x296; continue;
+            }
+            case 0x1e0: {
+                v[4]="收款卡号";
+                result[0]=dexN((((java.lang.String)dexR(v[3])).contains(((java.lang.CharSequence)dexR(v[4]))))?1:0);
+                v[4]=result[0];
+                pc=(dexZero(v[4]))?0x21f:0x1e8; continue;
+            }
+            case 0x1e8: {
+                result[0]=dexN(((java.util.List)dexR(v[11])).size());
+                v[4]=result[0];
+                v[4]=dexN(dexI(v[4])-dexI(v[2]));
+                pc=(dexI(v[13])>=dexI(v[4]))?0x21f:0x1ef; continue;
+            }
+            case 0x1ef: {
+                v[3]=dexN(dexI(v[13])+(1));
+                result[0]=((java.util.List)dexR(v[11])).get(dexI(v[3]));
+                v[3]=result[0];
+                v[3]=((java.lang.String)dexR(v[3]));
+                result[0]=dexN(((java.lang.String)dexR(v[3])).length());
+                v[4]=result[0];
+                v[4]=dexN(dexI(v[4])+(-4));
+                result[0]=((java.lang.String)dexR(v[3])).substring(dexI(v[4]));
+                v[3]=result[0];
+                result[0]=dexN((com.wangc.bill.utils.h2.J(((java.lang.String)dexR(v[3]))))?1:0);
+                v[4]=result[0];
+                pc=(dexZero(v[4]))?0x296:0x207; continue;
+            }
+            case 0x207: {
+                v[4]=new DexReference(); // new java.lang.StringBuilder
+                ((DexReference)v[4]).value=new java.lang.StringBuilder();
+                result[0]=((com.wangc.bill.http.entity.BillInfo)dexR(v[0])).getToAsset();
+                v[5]=result[0];
+                result[0]=((java.lang.StringBuilder)dexR(v[4])).append(((java.lang.String)dexR(v[5])));
+                result[0]=((java.lang.StringBuilder)dexR(v[4])).append(((java.lang.String)dexR(v[3])));
+                result[0]=((java.lang.StringBuilder)dexR(v[4])).toString();
+                v[3]=result[0];
+                ((com.wangc.bill.http.entity.BillInfo)dexR(v[0])).setToAsset(((java.lang.String)dexR(v[3])));
+                pc=0x296; continue;
+            }
+            case 0x21f: {
+                v[4]="创建时间";
+                result[0]=dexN((((java.lang.String)dexR(v[3])).contains(((java.lang.CharSequence)dexR(v[4]))))?1:0);
+                v[4]=result[0];
+                pc=(dexZero(v[4]))?0x276:0x227; continue;
+            }
+            case 0x227: {
+                result[0]=dexN(((java.util.List)dexR(v[11])).size());
+                v[4]=result[0];
+                v[4]=dexN(dexI(v[4])-dexI(v[2]));
+                pc=(dexI(v[13])>=dexI(v[4]))?0x276:0x22e; continue;
+            }
+            case 0x22e: {
+                v[3]=dexN(dexI(v[13])+(1));
+                result[0]=((java.util.List)dexR(v[11])).get(dexI(v[3]));
+                v[3]=result[0];
+                v[3]=((java.lang.String)dexR(v[3]));
+                v[4]="yyyy-MM-dd HH:mm:ss";
+                result[0]=dexN(com.blankj.utilcode.util.t0.X0(((java.lang.String)dexR(v[3])),((java.lang.String)dexR(v[4]))));
+                v[4]=result[0];
+                ((com.wangc.bill.http.entity.BillInfo)dexR(v[0])).setTime(dexL(v[4]));
+                result[0]=dexN(((com.wangc.bill.http.entity.BillInfo)dexR(v[0])).getTime());
+                v[4]=result[0];
+                v[6]=dexN(-1L);
+                v[4]=dexN(Long.compare(dexL(v[4]),dexL(v[6])));
+                v[8]=dexN(0L);
+                pc=(dexZero(v[4]))?0x253:0x24b; continue;
+            }
+            case 0x24b: {
+                result[0]=dexN(((com.wangc.bill.http.entity.BillInfo)dexR(v[0])).getTime());
+                v[4]=result[0];
+                v[4]=dexN(Long.compare(dexL(v[4]),dexL(v[8])));
+                pc=(!dexZero(v[4]))?0x25c:0x253; continue;
+            }
+            case 0x253: {
+                v[4]="yyyy-MM-dd HH:mm";
+                result[0]=dexN(com.blankj.utilcode.util.t0.X0(((java.lang.String)dexR(v[3])),((java.lang.String)dexR(v[4]))));
+                v[4]=result[0];
+                ((com.wangc.bill.http.entity.BillInfo)dexR(v[0])).setTime(dexL(v[4]));
+                pc=0x25c; continue;
+            }
+            case 0x25c: {
+                result[0]=dexN(((com.wangc.bill.http.entity.BillInfo)dexR(v[0])).getTime());
+                v[4]=result[0];
+                v[4]=dexN(Long.compare(dexL(v[4]),dexL(v[6])));
+                pc=(dexZero(v[4]))?0x26c:0x264; continue;
+            }
+            case 0x264: {
+                result[0]=dexN(((com.wangc.bill.http.entity.BillInfo)dexR(v[0])).getTime());
+                v[4]=result[0];
+                v[4]=dexN(Long.compare(dexL(v[4]),dexL(v[8])));
+                pc=(!dexZero(v[4]))?0x296:0x26c; continue;
+            }
+            case 0x26c: {
+                v[4]="yyyy-MM-dd";
+                result[0]=dexN(com.blankj.utilcode.util.t0.X0(((java.lang.String)dexR(v[3])),((java.lang.String)dexR(v[4]))));
+                v[3]=result[0];
+                ((com.wangc.bill.http.entity.BillInfo)dexR(v[0])).setTime(dexL(v[3]));
+                pc=0x296; continue;
+            }
+            case 0x276: {
+                v[4]="订单时间";
+                result[0]=dexN((((java.lang.String)dexR(v[3])).contains(((java.lang.CharSequence)dexR(v[4]))))?1:0);
+                v[3]=result[0];
+                pc=(dexZero(v[3]))?0x296:0x27e; continue;
+            }
+            case 0x27e: {
+                result[0]=dexN(((java.util.List)dexR(v[11])).size());
+                v[3]=result[0];
+                v[3]=dexN(dexI(v[3])-dexI(v[2]));
+                pc=(dexI(v[13])>=dexI(v[3]))?0x296:0x285; continue;
+            }
+            case 0x285: {
+                v[3]=dexN(dexI(v[13])+(1));
+                result[0]=((java.util.List)dexR(v[11])).get(dexI(v[3]));
+                v[3]=result[0];
+                v[3]=((java.lang.String)dexR(v[3]));
+                v[4]="yyyy年MM月dd日 HH:mm:ss";
+                result[0]=dexN(com.blankj.utilcode.util.t0.X0(((java.lang.String)dexR(v[3])),((java.lang.String)dexR(v[4]))));
+                v[3]=result[0];
+                ((com.wangc.bill.http.entity.BillInfo)dexR(v[0])).setTime(dexL(v[3]));
+                pc=0x296; continue;
+            }
+            case 0x296: {
+                v[13]=dexN(dexI(v[13])+(1));
+                pc=0x1e; continue;
+            }
+            case 0x29a: {
+                result[0]=((com.wangc.bill.http.entity.BillInfo)dexR(v[0])).getNumber();
+                v[11]=result[0];
+                result[0]=dexN((android.text.TextUtils.isEmpty(((java.lang.CharSequence)dexR(v[11]))))?1:0);
+                v[11]=result[0];
+                pc=(!dexZero(v[11]))?0x2a5:0x2a4; continue;
+            }
+            case 0x2a4: {
+                result[1]=v[0]; return -1;
+            }
+            case 0x2a5: {
+                result[1]=v[1]; return -1;
+            }
+            default: return pc;
         }
-        return billInfo;
     }
 }

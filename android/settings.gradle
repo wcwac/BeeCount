@@ -2,3 +2,4 @@ pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal()
 plugins { id "com.android.application" version "9.2.1" apply false }
 rootProject.name = "YimuReference"
 include ":app"
+include ":captureFixture"

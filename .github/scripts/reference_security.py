@@ -2,6 +2,7 @@
 from pathlib import Path
 import argparse
 import re
+import struct
 import xml.etree.ElementTree as ET
 import zipfile
 
@@ -21,16 +22,23 @@ PERMISSIONS = {'android.permission.POST_NOTIFICATIONS', 'android.permission.RECE
 
 def manifest(path, merged=False):
     root = ET.parse(path).getroot()
+    private_permission='io.github.wcwac.yimu.reference.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION'
     if merged:
         assert root.get('package') == 'io.github.wcwac.yimu.reference'
     for p in root.findall('uses-permission'):
         if not merged and p.get('{http://schemas.android.com/tools}node') == 'remove':
             continue
-        assert p.get(A+'name') in PERMISSIONS, 'Unexpected permission: ' + str(p.attrib)
+        name=p.get(A+'name')
+        if merged and name==private_permission:
+            definition=next((v for v in root.findall('permission') if v.get(A+'name')==private_permission),None)
+            assert definition is not None and definition.get(A+'protectionLevel') in {'signature','0x2','2'}
+        else:
+            assert name in PERMISSIONS, 'Unexpected permission: ' + str(p.attrib)
     app = root.find('application')
     assert app is not None and app.get(A+'allowBackup') == 'false'
     assert app.get(A+'name') == 'com.wangc.bill.reference.ReferenceApplication'
     assert app.get(A+'usesCleartextTraffic') == 'false'
+    assert app.get(A+'debuggable','false')=='false'
     found = set()
     for c in app:
         if c.tag not in {'activity','service','receiver','provider','activity-alias'}:
@@ -79,12 +87,37 @@ def source():
     print(f'Source boundary verified: {count} Java files, read-only accessibility, local attachments, no dynamic/native/network APIs')
 
 def apk(path):
+    count=0
     with zipfile.ZipFile(path) as archive:
         for name in archive.namelist():
-            assert not name.startswith(('lib/','assets/')), 'Unexpected native library/asset: '+name
+            assert not name.startswith('lib/'), 'Unexpected native library: '+name
+            if name.startswith('assets/'):
+                profiles={'assets/dexopt/baseline.prof':b'pro\x00','assets/dexopt/baseline.profm':b'prm\x00'}
+                assert name in profiles and archive.getinfo(name).file_size<1024*1024, 'Unexpected asset: '+name
+                assert archive.read(name).startswith(profiles[name]), 'Invalid profile data'
             assert not name.lower().endswith(('.so','.jar','.apk','.js','.html','.ser')), 'Unexpected bundled executable: '+name
+            if re.fullmatch(r'classes(?:[0-9]+)?\.dex',name):
+                count+=inspect_classes(archive.read(name))
         assert 'classes.dex' in archive.namelist()
-    print('APK payload verified: no native libraries, SDK assets, nested APKs or scripts')
+    print(f'APK payload verified: {count} class definitions, no unknown SDKs/native libraries/nested APKs/scripts')
+
+def inspect_classes(data):
+    assert data[:4]==b'dex\n'
+    def pair(offset):return struct.unpack_from('<II',data,offset)
+    def uleb(p):
+        while data[p]&128:p+=1
+        return p+1
+    n,off=pair(0x38);strings=[]
+    for i in range(n):
+        p=uleb(struct.unpack_from('<I',data,off+4*i)[0]);strings.append(data[p:data.index(0,p)].decode('utf-8','replace'))
+    n,off=pair(0x40);types=[strings[struct.unpack_from('<I',data,off+4*i)[0]] for i in range(n)]
+    n,off=pair(0x60)
+    own=re.compile(r'L(?:com/wangc/bill/(?:reference/.*|auto/action/[a-p](?:\$.*)?|auto/x1(?:\$.*)?|http/entity/BillInfo(?:\$.*)?|utils/(?:a2|b2|h2)|database/action/(?:p|s)|(?:R|Manifest|BuildConfig)(?:\$.*)?)|com/blankj/utilcode/util/(?:t0|y)(?:\$.*)?|com/google/android/accessibility/selecttospeak/SelectToSpeakService(?:\$.*)?|s6/b);')
+    for i in range(n):
+        name=types[struct.unpack_from('<I',data,off+i*32)[0]]
+        assert not name.startswith('Landroidx/test/'), 'Test code in release APK'
+        assert name.startswith(('Landroidx/','Landroid/support/','Lkotlin/','Lkotlinx/','Lorg/jetbrains/annotations/','Lorg/intellij/lang/annotations/','Lorg/jspecify/annotations/','Lcom/android/tools/r8/')) or name=='Lcom/google/common/util/concurrent/ListenableFuture;' or own.fullmatch(name), 'Unexpected class definition: '+name
+    return n
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

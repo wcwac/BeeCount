@@ -65,7 +65,7 @@ public final class YimuKernel {
             "tag_ids", tags, "originalNumberValid", amount > 0);
         try {
             String id = store.addCandidate(data, pkg, bookId);
-            lastSubmit = now; lastKey = key; lastCandidate = id; lastPackage = pkg;
+            lastSubmit = now;com.google.android.accessibility.selecttospeak.SelectToSpeakService.f1838j=now; lastKey = key; lastCandidate = id; lastPackage = pkg;
             if (callback != null) HANDLERS.put(callback, id);
             ReferenceDiagnostics.result("DRAFT_SAVED");
             if (ReferenceApplication.prefs().getBoolean("auto_save", false) && amount > 0 && (!kind.equals("transfer") || (account > 0 && toAccount > 0))) {

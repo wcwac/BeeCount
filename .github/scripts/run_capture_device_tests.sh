@@ -96,10 +96,35 @@ timeout 10s "$capture_adb" -s "$capture_serial" shell getprop > "$capture_logs/d
 [[ "$(timeout 10s "$capture_adb" -s "$capture_serial" shell getprop ro.build.version.sdk | tr -d '\r')" == 36 ]]
 [[ "$(timeout 10s "$capture_adb" -s "$capture_serial" shell getprop ro.product.cpu.abi | tr -d '\r')" == x86_64 ]]
 
-cd "$GITHUB_WORKSPACE/android"
-timeout --signal=TERM --kill-after=20s 12m \
-  python3 "$GITHUB_WORKSPACE/.github/scripts/run_checked.py" ./gradlew \
-  :app:connectedDevDebugAndroidTest \
-  -Pandroid.testInstrumentationRunnerArguments.package=com.tntlikely.beecount.capture \
-  -Pandroid.testInstrumentationRunnerArguments.timeout_msec=60000 \
-  --no-daemon --console=plain --continue
+# Reuse verified artifacts; compilation is intentionally confined to the source run.
+python3 - <<'PY_APKS'
+from pathlib import Path
+import os,subprocess
+root=Path(os.environ['GITHUB_WORKSPACE'])/'cloud-apks'
+analyzer=Path(os.environ['ANDROID_HOME'])/'cmdline-tools/latest/bin/apkanalyzer'
+adb=Path(os.environ['ANDROID_HOME'])/'platform-tools/adb'
+expected={'io.github.wcwac.yimu.reference.debug','io.github.wcwac.yimu.reference.debug.test','com.tencent.mm','com.taobao.taobao','io.github.wcwac.paymentfixture.ignored'}
+found={}
+for apk in root.rglob('*.apk'):
+    package=subprocess.check_output([str(analyzer),'manifest','application-id',str(apk)],text=True).strip()
+    assert package in expected and package not in found, 'Unexpected/duplicate project test APK: '+package
+    found[package]=apk
+assert set(found)==expected, 'Missing project test APKs'
+for package,apk in found.items():
+    subprocess.run([str(adb),'-s','emulator-5554','install','-r',str(apk)],check=True,timeout=90)
+PY_APKS
+
+timeout --signal=TERM --kill-after=20s 15m \
+  "$capture_adb" -s "$capture_serial" shell am instrument -w -r \
+  -e reference_cloud_only true -e timeout_msec 180000 \
+  io.github.wcwac.yimu.reference.debug.test/androidx.test.runner.AndroidJUnitRunner \
+  | tee "$capture_logs/instrumentation.txt"
+python3 - <<'PY_RESULTS'
+from pathlib import Path
+import os,re
+text=(Path(os.environ['RUNNER_TEMP'])/'capture-device/instrumentation.txt').read_text()
+assert not any(s in text for s in ['FAILURES!!!','INSTRUMENTATION_FAILED','Process crashed','INSTRUMENTATION_RESULT: shortMsg']), 'Device tests failed or crashed'
+match=re.search(r'OK \(([0-9]+) tests?\)',text)
+assert match and int(match[1])>=16, 'Required device tests were not discovered or did not all pass'
+print('Device tests verified:',match[1])
+PY_RESULTS

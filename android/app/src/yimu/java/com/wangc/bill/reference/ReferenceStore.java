@@ -198,6 +198,7 @@ public final class ReferenceStore extends SQLiteOpenHelper {
         Money.scale(currency); name = requiredName(name); if (budget < 0) throw new IllegalArgumentException("预算不能小于零");
         JSONObject old = book(id);
         if (old != null && !currency.equals(old.optString("currency")) && scalar("SELECT COUNT(*) n FROM transactions WHERE book_id=?", "" + id) > 0) throw new IllegalArgumentException("已有账单的账本不能更换币种");
+        if(old!=null&&!currency.equals(old.optString("currency"))&&(scalar("SELECT COUNT(*) n FROM candidates WHERE book_id=?",""+id)>0||hasPlanForBook(id)))throw new IllegalArgumentException("有采集记录或周期账单的账本不能更换币种");
         ContentValues v = new ContentValues(); v.put("name", name); v.put("currency", currency); v.put("budget", budget);
         if (id > 0) { if (old == null) throw new IllegalArgumentException("账本不存在"); getWritableDatabase().update("books", v, "id=?", new String[]{"" + id}); return id; }
         v.put("created", System.currentTimeMillis()); return getWritableDatabase().insertOrThrow("books", null, v);
@@ -205,6 +206,7 @@ public final class ReferenceStore extends SQLiteOpenHelper {
     public synchronized void removeBook(long id) {
         if (books().size() <= 1) throw new IllegalArgumentException("至少保留一个账本");
         if (scalar("SELECT COUNT(*) n FROM transactions WHERE book_id=?", "" + id) > 0 || scalar("SELECT COUNT(*) n FROM candidates WHERE book_id=?", "" + id) > 0) throw new IllegalArgumentException("账本内还有账单或采集记录，请保留或先迁移数据");
+        if(hasPlanForBook(id))throw new IllegalArgumentException("请先删除关联的周期记账规则");
         getWritableDatabase().delete("rules", "book_id=?", new String[]{"" + id});
         getWritableDatabase().delete("books", "id=?", new String[]{"" + id});
     }
@@ -235,16 +237,18 @@ public final class ReferenceStore extends SQLiteOpenHelper {
     }
     public synchronized long savePlan(long id,String name,String interval,JSONObject payload,long due){
         if(!java.util.Arrays.asList("daily","weekly","monthly","yearly").contains(interval)||due<=0)throw new IllegalArgumentException("周期设置无效");
-        if(book(payload.optLong("book_id"))==null||payload.optLong("amount")<=0)throw new IllegalArgumentException("周期账单缺少有效账本或金额");
+        validatePlan(payload);
         ContentValues v=new ContentValues();v.put("name",requiredName(name));v.put("interval",interval);v.put("payload",payload.toString());v.put("next_due",due);
         if(id>0){getWritableDatabase().update("plans",v,"id=?",new String[]{""+id});return id;}return getWritableDatabase().insertOrThrow("plans",null,v);
     }
     public synchronized void enablePlan(long id,boolean enabled){getWritableDatabase().execSQL("UPDATE plans SET enabled=? WHERE id=?",new Object[]{enabled?1:0,id});}
+    private boolean hasPlanForBook(long id){for(JSONObject row:query("SELECT payload FROM plans"))if(Json.parse(row.optString("payload")).optLong("book_id")==id)return true;return false;}
+    private void validatePlan(JSONObject payload){JSONObject book=book(payload.optLong("book_id"));long amount=payload.optLong("amount");if(book==null||book.optInt("archived")!=0||amount<=0||amount>99999999999999L)throw new IllegalArgumentException("周期账单缺少有效账本或金额");if(!java.util.Arrays.asList("expense","income").contains(payload.optString("kind")))throw new IllegalArgumentException("周期账单收支方向无效");Json.put(payload,"currency",book.optString("currency"));}
     public synchronized int processPlans(long now){
         SQLiteDatabase db=getWritableDatabase();db.beginTransaction();int count=0;try{
-            for(JSONObject plan:query("SELECT * FROM plans WHERE enabled=1 AND next_due<=? ORDER BY next_due",""+now)){
+            for(JSONObject plan:query("SELECT * FROM plans WHERE enabled=1 AND next_due<=? ORDER BY next_due LIMIT 50",""+now)){
                 JSONObject payload=Json.parse(plan.optString("payload"));long due=plan.optLong("next_due");int generated=0;
-                while(due<=now&&generated++<12){JSONObject draft=Json.copy(payload);Json.put(draft,"time",due);Json.put(draft,"origin","周期记账");addCandidate(draft,"local.plan",payload.optLong("book_id"));count++;java.util.Calendar c=java.util.Calendar.getInstance();c.setTimeInMillis(due);String interval=plan.optString("interval");if(interval.equals("monthly")||interval.equals("yearly")){int day=payload.optInt("anchor_day",c.get(java.util.Calendar.DAY_OF_MONTH));c.set(java.util.Calendar.DAY_OF_MONTH,1);c.add(interval.equals("monthly")?java.util.Calendar.MONTH:java.util.Calendar.YEAR,1);c.set(java.util.Calendar.DAY_OF_MONTH,Math.min(day,c.getActualMaximum(java.util.Calendar.DAY_OF_MONTH)));}else c.add(java.util.Calendar.DATE,interval.equals("weekly")?7:1);due=c.getTimeInMillis();}
+                while(due<=now&&generated++<12){JSONObject draft=Json.copy(payload);validatePlan(draft);Json.put(draft,"time",due);Json.put(draft,"origin","周期记账");addCandidate(draft,"local.plan",payload.optLong("book_id"));count++;java.util.Calendar c=java.util.Calendar.getInstance();c.setTimeInMillis(due);String interval=plan.optString("interval");if(interval.equals("monthly")||interval.equals("yearly")){int day=payload.optInt("anchor_day",c.get(java.util.Calendar.DAY_OF_MONTH));c.set(java.util.Calendar.DAY_OF_MONTH,1);c.add(interval.equals("monthly")?java.util.Calendar.MONTH:java.util.Calendar.YEAR,1);c.set(java.util.Calendar.DAY_OF_MONTH,Math.min(day,c.getActualMaximum(java.util.Calendar.DAY_OF_MONTH)));}else c.add(java.util.Calendar.DATE,interval.equals("weekly")?7:1);due=c.getTimeInMillis();}
                 db.execSQL("UPDATE plans SET next_due=? WHERE id=?",new Object[]{due,plan.optLong("id")});
             }
             db.setTransactionSuccessful();return count;
@@ -289,7 +293,8 @@ public final class ReferenceStore extends SQLiteOpenHelper {
             try (Cursor c = db.rawQuery("PRAGMA foreign_key_check", null)) { if (c.moveToFirst()) throw new IllegalArgumentException("备份的账本或账户关联损坏"); }
             for (JSONObject book : query("SELECT * FROM books")) Money.scale(book.optString("currency"));
             if(scalar("SELECT COUNT(*) n FROM books WHERE archived=0")==0)throw new IllegalArgumentException("备份中没有可用账本");
-            if(scalar("SELECT COUNT(*) n FROM transactions t JOIN books b ON b.id=t.book_id LEFT JOIN accounts a ON a.id=t.account_id LEFT JOIN accounts z ON z.id=t.to_account_id WHERE t.currency<>b.currency OR (a.id IS NOT NULL AND a.currency<>t.currency) OR (z.id IS NOT NULL AND z.currency<>t.currency) OR t.amount>99999999999999 OR t.not_total NOT IN(0,1) OR t.not_budget NOT IN(0,1) OR t.deleted NOT IN(0,1)")>0)throw new IllegalArgumentException("备份账单的币种或数值无效");
+            if(scalar("SELECT COUNT(*) n FROM transactions t JOIN books b ON b.id=t.book_id LEFT JOIN accounts a ON a.id=t.account_id LEFT JOIN accounts z ON z.id=t.to_account_id WHERE t.currency<>b.currency OR (a.id IS NOT NULL AND a.currency<>t.currency) OR (z.id IS NOT NULL AND z.currency<>t.currency) OR t.amount>99999999999999 OR t.fee>99999999999999 OR t.discount>99999999999999 OR t.not_total NOT IN(0,1) OR t.not_budget NOT IN(0,1) OR t.deleted NOT IN(0,1)")>0)throw new IllegalArgumentException("备份账单的币种或数值无效");
+            for(JSONObject plan:query("SELECT * FROM plans")){if(!java.util.Arrays.asList("daily","weekly","monthly","yearly").contains(plan.optString("interval"))||plan.optLong("next_due")<=0)throw new IllegalArgumentException("备份周期规则无效");validatePlan(Json.parse(plan.optString("payload")));}
             for(JSONObject candidate:query("SELECT * FROM candidates")){
                 if(!java.util.Arrays.asList("PENDING","SAVED","DISMISSED").contains(candidate.optString("state")))throw new IllegalArgumentException("备份采集状态无效");
                 JSONObject payload=Json.parse(candidate.optString("payload"));if(payload.optLong("book_id")!=candidate.optLong("book_id"))throw new IllegalArgumentException("备份采集账本不匹配");

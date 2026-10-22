@@ -79,6 +79,7 @@ jobs:
         run: >-
           python3 .github/scripts/run_checked.py gradle -p android
           :app:assembleRelease :app:assembleDebug :app:assembleDebugAndroidTest
+          :captureFixture:assembleWechatDebug :captureFixture:assembleTaobaoDebug :captureFixture:assembleIgnoredDebug
           :app:testDebugUnitTest :app:lintRelease --continue --no-daemon --console=plain --stacktrace
       - name: Require discovered tests and inspect packaged app
         id: packaged
@@ -126,6 +127,7 @@ jobs:
           path: |
             build/app/outputs/apk/debug/*.apk
             build/app/outputs/apk/androidTest/debug/*.apk
+            build/captureFixture/outputs/apk/*/debug/*.apk
           if-no-files-found: error
           retention-days: 14
       - name: Require all checks to pass

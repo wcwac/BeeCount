@@ -21,7 +21,7 @@ public final class CaptureOverlay {
     private static View shown;private static WindowManager manager;private static String candidate;
     private CaptureOverlay(){}
     public static void show(String id,x1.a callback){
-        ReferenceCaptureService service=ReferenceCaptureService.current();if(service==null)return;
+        ReferenceCaptureService service=ReferenceCaptureService.current();if(service==null||!AutoApps.enabled()||!ReferenceApplication.prefs().getBoolean("show_overlay",true))return;
         JSONObject row=ReferenceApplication.store().candidate(id);if(row==null||!row.optString("state").equals("PENDING"))return;
         close();
         try{
@@ -32,7 +32,7 @@ public final class CaptureOverlay {
             Ui.text(view,"discount_edit",Money.text(data.optLong("discount"),"CNY"));Ui.text(view,"service_charge_edit",Money.text(data.optLong("fee"),"CNY"));
             Ui.hide(view,"lend_date_layout","refund_in_date_layout","reimbursement_layout","file_layout","tag_list","file_list","asset_num_tip","repeat_tip");
             Runnable render=()->{
-                Ui.text(view,"asset_name",accountName(data.optLong("account_id")));
+                Ui.text(view,"asset_name",accountName(data.optLong("account_id")));Ui.text(view,"num_symbol",data.optString("kind").equals("income")?"+":data.optString("kind").equals("expense")?"-":"");
                 FrameLayout container=Ui.view(view,"category_pager");container.removeAllViews();
                 if(data.optString("kind").equals("transfer")){LinearLayout column=Ui.column(c);column.addView(Ui.row(c,"转出账户",accountName(data.optLong("account_id")),()->openEditor(c,id)));column.addView(Ui.row(c,"转入账户",accountName(data.optLong("to_account_id")),()->openEditor(c,id)));container.addView(column);return;}
                 List<JSONObject> cats=ReferenceApplication.store().categories(data.optString("kind"));GridView grid=new GridView(c);grid.setNumColumns(5);grid.setVerticalSpacing(Ui.dp(c,4));grid.setAdapter(new BaseAdapter(){public int getCount(){return cats.size();}public Object getItem(int i){return cats.get(i);}public long getItemId(int i){return i;}public View getView(int i,View old,ViewGroup parent){JSONObject category=cats.get(i);LinearLayout cell=new LinearLayout(c);cell.setOrientation(LinearLayout.VERTICAL);cell.setGravity(android.view.Gravity.CENTER);cell.setPadding(0,Ui.dp(c,7),0,Ui.dp(c,7));ImageView icon=new ImageView(c);int image=Ui.res(c,"mipmap",category.optString("icon"));if(image==0)image=Ui.res(c,"mipmap","ic_parent_other");icon.setImageResource(image);cell.addView(icon,new LinearLayout.LayoutParams(Ui.dp(c,26),Ui.dp(c,26)));cell.addView(Ui.label(c,category.optString("name"),11));if(category.optLong("id")==data.optLong("category_id"))cell.setBackground(Ui.rounded(0x2248ab93,8,c));return cell;}});grid.setOnItemClickListener((p,v,index,rowId)->{Json.put(data,"category_id",cats.get(index).optLong("id"));((BaseAdapter)grid.getAdapter()).notifyDataSetChanged();});container.addView(grid,new FrameLayout.LayoutParams(-1,Ui.dp(c,135)));
@@ -47,11 +47,11 @@ public final class CaptureOverlay {
             Ui.click(view,"background",CaptureOverlay::close);
             Ui.click(view,"close_btn",()->{ReferenceApplication.store().dismiss(id);YimuKernel.complete(id);close();CaptureNotifications.update();});
             Ui.click(view,"btn_save",()->{
-                try{EditText note=Ui.view(view,"remark"),discount=Ui.view(view,"discount_edit"),fee=Ui.view(view,"service_charge_edit");if(note!=null)Json.put(data,"remark",note.getText().toString());if(discount!=null)Json.put(data,"discount",Money.signed(discount.getText().toString(),"CNY"));if(fee!=null)Json.put(data,"fee",Money.signed(fee.getText().toString(),"CNY"));ReferenceApplication.store().saveTransaction(data,0,id);complete(id);CaptureNotifications.update();Ui.toast(c,"已保存账单");}
+                try{EditText cost=Ui.view(view,"cost"),note=Ui.view(view,"remark"),discount=Ui.view(view,"discount_edit"),fee=Ui.view(view,"service_charge_edit");Json.put(data,"amount",Money.positive(cost.getText().toString(),"CNY"));if(note!=null)Json.put(data,"remark",note.getText().toString());if(discount!=null)Json.put(data,"discount",Money.signed(discount.getText().toString(),"CNY"));if(fee!=null)Json.put(data,"fee",Money.signed(fee.getText().toString(),"CNY"));ReferenceApplication.store().saveTransaction(data,0,id);complete(id);CaptureNotifications.update();Ui.toast(c,"已保存账单");}
                 catch(Exception e){Ui.error(c,e);}
             });
             render.run();WindowManager.LayoutParams params=new WindowManager.LayoutParams(-1,-1,WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,PixelFormat.TRANSLUCENT);params.softInputMode=WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE;manager.addView(view,params);
-        }catch(Exception e){ReferenceDiagnostics.result("OVERLAY_UNAVAILABLE");close();}
+        }catch(Exception e){ReferenceDiagnostics.failure("OVERLAY_UNAVAILABLE",e);close();}
     }
     private static String accountName(long id){JSONObject a=ReferenceApplication.store().one("SELECT name FROM accounts WHERE id=?",""+id);return a==null?"无账户":a.optString("name");}
     private static void openEditor(Context context,String id){try{context.startActivity(new Intent(context,EditorActivity.class).putExtra("candidate",id).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));close();}catch(RuntimeException e){Ui.toast(context,"请从应用内待确认列表打开记录");}}
