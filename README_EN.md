@@ -1,7 +1,9 @@
 > **Local offline edition**: cloud sync, AI/image/voice recognition, online updates, public rates and external links are disabled. Manual bookkeeping, local statistics, attachments and file import/export remain available. Automatic backups are disabled; keep exported backups. Online features described below belong to the upstream version.
 
-Offline source: [wcwac/BeeCount · offline](https://github.com/wcwac/BeeCount/tree/offline).
-See the [offline build guide (Chinese)](docs/OFFLINE_BUILD.md) for Android builds, signing and releases. The simplified edition passed 437 tests, signed APK compilation and permission checks. Device testing is still pending.
+**Download offline edition 0.4.0 (signed prerelease)**: [Release](https://github.com/wcwac/BeeCount/releases/tag/offline-v0.4.0-28) · [ARM64 APK](https://github.com/wcwac/BeeCount/releases/download/offline-v0.4.0-28/app-prod-release-v0.4.0.28.apk) · [Universal APK](https://github.com/wcwac/BeeCount/releases/download/offline-v0.4.0-28/app-prod-universal-release-v0.4.0.28.apk). Requires Android 7.0 or later.
+
+Offline source: [wcwac/BeeCount · main](https://github.com/wcwac/BeeCount/tree/main).
+See the [offline build guide (Chinese)](docs/OFFLINE_BUILD.md) for Android builds, signing and releases. Version 0.4.0 passed 536 Flutter tests, 56 JVM tests, signing and permission checks; a separate cloud emulator run passed 23 tests. One existing manual preview test is skipped. Real-client compatibility remains experimental.
 
 # BeeCount &nbsp; [中文](README.md)
 

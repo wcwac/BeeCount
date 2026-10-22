@@ -31,6 +31,23 @@
   真实支付应用兼容、权限重连和性能测量仍需设备验收；详见本文的 0.3.0 记录及
   `docs/CAPTURE_IMPLEMENTATION.txt`。
 
+## 可安装的 0.4.0 预发行版
+
+[Release 0.4.0（build 28）](https://github.com/wcwac/BeeCount/releases/tag/offline-v0.4.0-28) 已发布，APK 使用已有固定密钥签名，可直接安装。
+
+- 常见 64 位安卓手机：[app-prod-release-v0.4.0.28.apk](https://github.com/wcwac/BeeCount/releases/download/offline-v0.4.0-28/app-prod-release-v0.4.0.28.apk)。
+- 不确定架构：[app-prod-universal-release-v0.4.0.28.apk](https://github.com/wcwac/BeeCount/releases/download/offline-v0.4.0-28/app-prod-universal-release-v0.4.0.28.apk)。
+- 最低 Android 7.0 / API24。另提供 armeabi-v7a 和 x86_64，均在 Release 页面。
+
+[签名发布 Actions #28](https://github.com/wcwac/BeeCount/actions/runs/39729805255)
+验证并发布提交 `8d15864`：536 项 Flutter、56 项 JVM、两端编译、APK 签名、权限与
+SQLite ABI 检查全部通过。1 项原有手动预览测试跳过；同一应用源码此前已通过
+独立 API36 AOSP 模拟器的 23 项测试。本轮未重复执行设备测试，也未本地编译。
+
+GitHub 会规范化资产名，括号变成点号；工作流在生成校验清单前使用统一名称。
+本次 `SHA256SUMS` 已与 GitHub 实际上传的全部 9 个文件名及 SHA256 逐项核实。
+APK 为预发行版，22 个真实应用仍为实验适配；本轮不等于真实客户端兼容性认证。
+
 ## 手动触发
 
 常规构建使用 `.github/workflows/release.yml`，分支内名称为

@@ -331,11 +331,14 @@ jobs:
                   assert apk.getinfo(sqlite_lib).file_size > 0
               print(f'::notice::SQLite native assets verified for {len(flutter_libs)} ABIs')
           PY
+            asset_name="${apk##*/}"
+            asset_name="${asset_name//\(/.}"
+            asset_name="${asset_name//\)/}"
             if [[ "$SIGN_APK" == true ]]; then
               "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose "$apk"
-              cp "$apk" "dist/$(basename "$apk")"
+              cp "$apk" "dist/$asset_name"
             else
-              cp "$apk" "dist/UNSIGNED-$(basename "$apk")"
+              cp "$apk" "dist/UNSIGNED-$asset_name"
             fi
           done
           cp pubspec.lock dist/pubspec.lock
