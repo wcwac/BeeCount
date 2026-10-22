@@ -142,10 +142,30 @@ class CaptureInboxStore(context: Context) : SQLiteOpenHelper(context.application
         } finally { db.endTransaction() }
     }
 
+    /** Older parser versions could persist notification fields beyond the bridge
+     * contract. Adapt only their display payload; retain the original SQLite row.
+     */
+    private fun pendingPayload(json: JSONObject): Map<String, Any?> {
+        val payload = jsonMap(json).toMutableMap()
+        var truncated = false
+        for (key in listOf("remark", "paymentMethod")) {
+            val value = payload[key] as? String ?: continue
+            if (value.length > 512) {
+                payload[key] = value.take(512)
+                truncated = true
+            }
+        }
+        if (truncated) {
+            payload["issues"] = ((payload["issues"] as? List<*>).orEmpty() + "TEXT_TRUNCATED").distinct()
+            payload["state"] = "NEEDS_REVIEW"
+        }
+        return payload
+    }
+
     fun pending(limit: Int = 100): List<Map<String, Any?>> = readableDatabase.rawQuery(
         "SELECT payload FROM candidates WHERE state IN ('READY','NEEDS_REVIEW') ORDER BY observed_at DESC, id LIMIT ?",
         arrayOf(limit.coerceIn(1, 1000).toString()),
-    ).use { cursor -> buildList { while (cursor.moveToNext()) add(jsonMap(JSONObject(cursor.getString(0)))) } }
+    ).use { cursor -> buildList { while (cursor.moveToNext()) add(pendingPayload(JSONObject(cursor.getString(0)))) } }
 
     fun count(): Int = readableDatabase.rawQuery(
         "SELECT COUNT(*) FROM candidates WHERE state IN ('READY','NEEDS_REVIEW')", null,

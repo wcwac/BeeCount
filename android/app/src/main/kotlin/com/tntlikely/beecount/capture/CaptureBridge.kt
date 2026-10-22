@@ -32,6 +32,7 @@ class CaptureBridge(private val activity: Activity, messenger: BinaryMessenger) 
                     "notificationsConnected" to BeeCaptureNotificationService.isConnected(),
                     "settings" to CaptureSettings.read(activity).asMap(),
                     "apps" to CaptureApps.all.map { it.asMap() },
+                    "diagnostics" to CaptureDiagnostics.snapshot(),
                     "pendingCount" to CaptureRuntime.inbox(activity).count()) + health
             }
             "stopCapture" -> persistSettings(result) {

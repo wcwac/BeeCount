@@ -22,8 +22,10 @@ class CaptureService {
   Future<void> openNotificationSettings() => channel.invokeMethod<void>('openNotificationSettings');
   Future<List<CaptureCandidate>> pending() async {
     if (!supported) return const [];
-    final list = await channel.invokeListMethod<dynamic>('listCandidates', {'limit': 1000});
-    return (list ?? const []).map((v) => CaptureCandidate.fromMap(v as Map)).toList(growable: false);
+    final list = await channel.invokeListMethod<dynamic>('listCandidates', {'limit': 1000})
+        .timeout(const Duration(seconds: 5));
+    if (list == null) throw const FormatException('Missing capture inbox');
+    return list.map((v) => CaptureCandidate.fromMap(v as Map)).toList(growable: false);
   }
   Future<void> acknowledge(String id, int transactionId) => _completeCandidate(id, transactionId);
   Future<void> dismiss(String id) => _completeCandidate(id, null);

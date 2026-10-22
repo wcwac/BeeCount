@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/capture_candidate.dart';
 import '../../providers.dart';
@@ -21,6 +24,7 @@ class _CaptureSettingsPageState extends ConsumerState<CaptureSettingsPage> with 
   bool _busy = false;
   bool _stopPending = false;
   bool _stopConfirmed = false;
+  DateTime? _statusReadAt;
   String? _error;
 
   @override
@@ -42,7 +46,8 @@ class _CaptureSettingsPageState extends ConsumerState<CaptureSettingsPage> with 
     try {
       final value = await _service.status().timeout(const Duration(seconds: 5));
       if (mounted && revision == _statusRevision) {
-        setState(() { _status = value; _statusKnown = true; _stopConfirmed = false; _error = operationError; });
+        setState(() { _status = value; _statusKnown = true; _stopConfirmed = false;
+          _statusReadAt = DateTime.now(); _error = operationError; });
       }
     } catch (_) {
       if (mounted && revision == _statusRevision) {
@@ -124,11 +129,165 @@ class _CaptureSettingsPageState extends ConsumerState<CaptureSettingsPage> with 
     await _write((_) => _service.acknowledgeOverflow(shown.overflowCursor));
   }
 
+  Future<void> _copyDiagnostics(CaptureStatus status, bool? targetAvailable) async {
+    final text = CaptureText(context);
+    // Keep an explicit allowlist. Ledger names/keys, candidate payloads and
+    // unknown bridge fields must never be included in a diagnostic report.
+    final report = <String, Object?>{
+      'statusKnown': _statusKnown,
+      'statusReadAt': _statusReadAt?.millisecondsSinceEpoch,
+      'supported': status.supported,
+      'enabled': _stopConfirmed ? false : _statusKnown ? status.enabled : null,
+      'stopConfirmed': _stopConfirmed,
+      'targetLedgerSelected': _statusKnown ? status.ledgerId != null : null,
+      'targetLedgerAvailable': _statusKnown ? targetAvailable : null,
+      'selectedPackages': _statusKnown ? (status.packages.toList()..sort()) : null,
+      'accessibilityGranted': _statusKnown ? status.permissionGranted : null,
+      'accessibilityConnected': _statusKnown ? status.connected : null,
+      'notificationAssistance': _statusKnown ? status.notifications : null,
+      'notificationAccessGranted': _statusKnown ? status.notificationsGranted : null,
+      'notificationListenerConnected': _statusKnown ? status.notificationsConnected : null,
+      'pendingCount': _statusKnown ? status.pendingCount : null,
+      'skippedObservations': _statusKnown ? status.skippedObservations : null,
+      'lastError': _statusKnown ? CaptureDiagnostics.code(status.lastError) : null,
+      'diagnostics': status.diagnostics?.toMetadata(),
+    };
+    try {
+      await Clipboard.setData(ClipboardData(text: const JsonEncoder.withIndent('  ').convert(report)));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text.diagnosticsCopied)));
+    } catch (_) {
+      if (mounted) setState(() => _error = text.diagnosticsCopyFailed);
+    }
+  }
+
+  Widget _captureConditions(CaptureStatus status, {required bool ledgerKnown,
+      required bool targetAvailable}) {
+    final text = CaptureText(context);
+    final enabled = !_stopConfirmed && status.enabled;
+    final screenReady = status.permissionGranted && status.connected;
+    final notificationsReady = status.notifications && status.notificationsGranted && status.notificationsConnected;
+    final String summary;
+    if (!_statusKnown) {
+      summary = _stopConfirmed
+          ? text.t('采集已停止，其余条件待确认。', 'Capture is stopped; other conditions are unconfirmed.')
+          : text.connectionUnknown;
+    } else if (!enabled) {
+      summary = text.t('采集开关已关闭；已有草稿仍可处理。', 'Capture is turned off. Existing drafts remain available.');
+    } else if (!ledgerKnown) {
+      summary = text.t('目标账本状态待确认。', 'The target ledger is not confirmed.');
+    } else if (!targetAvailable) {
+      summary = text.t('请先选择有效的采集目标账本。', 'Select an available target ledger before capturing.');
+    } else if (status.packages.isEmpty) {
+      summary = text.noAppsSelected;
+    } else if (screenReady) {
+      summary = text.t('界面采集条件已就绪；请在所选应用打开交易页面。',
+          'Screen capture is ready; open a transaction page in a selected app.');
+    } else if (notificationsReady) {
+      summary = text.t('仅通知采集已就绪；界面采集尚未连接。',
+          'Only notification capture is ready; screen capture is not connected.');
+    } else {
+      summary = text.t('尚无可用采集来源，请检查授权和服务连接。',
+          'No capture source is ready. Check permissions and connections.');
+    }
+    final unconfirmed = text.t('待确认', 'Unconfirmed');
+    return Card(margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), child: ExpansionTile(
+      key: const ValueKey('capture-conditions'),
+      title: Text(text.captureConditions), subtitle: Text(summary),
+      children: [
+        ListTile(title: Text(text.t('采集开关', 'Capture switch')),
+          subtitle: Text(_stopConfirmed ? text.t('已关闭', 'Off') : !_statusKnown ? unconfirmed
+              : enabled ? text.t('已开启', 'On') : text.t('已关闭', 'Off'))),
+        ListTile(title: Text(text.t('目标账本', 'Target ledger')),
+          subtitle: Text(!_statusKnown || !ledgerKnown ? unconfirmed : targetAvailable
+              ? text.t('已选择且可用', 'Selected and available') : text.t('尚未选择或已不可用', 'Not selected or unavailable'))),
+        ListTile(title: Text(text.t('所选应用', 'Selected apps')),
+          subtitle: Text(!_statusKnown ? unconfirmed : status.packages.isEmpty
+              ? text.noAppsSelected : text.t('已勾选 ${status.packages.length} 个应用', '${status.packages.length} apps selected'))),
+        ListTile(title: Text(text.t('界面采集来源', 'Screen capture source')),
+          subtitle: Text(text.connection(status.permissionGranted, status.connected, known: _statusKnown))),
+        ListTile(title: Text(text.t('通知采集来源', 'Notification capture source')),
+          subtitle: Text(!_statusKnown ? unconfirmed : !status.notifications ? text.t('未启用', 'Not enabled')
+              : text.connection(status.notificationsGranted, status.notificationsConnected))),
+      ],
+    ));
+  }
+
+  Widget _captureDiagnostics(CaptureStatus status, bool? targetAvailable) {
+    final text = CaptureText(context), diagnostics = status.diagnostics;
+    String time(int? value) => value == null ? text.noDiagnosticRecord
+        : DateTime.fromMillisecondsSinceEpoch(value).toLocal().toString();
+    String observation(int? at, String? packageName, String? source) =>
+        '${time(at)}\n${packageName ?? text.noDiagnosticRecord} · ${text.diagnosticSource(source)}';
+    final waiting = text.t('已收到采集事件，等待后续读取或处理。',
+        'Capture events received; waiting for a read or processing result.');
+    final String summary;
+    if (!_statusKnown) {
+      summary = text.diagnosticSnapshotUnknown;
+    } else if (diagnostics == null) {
+      summary = text.diagnosticsUnavailable;
+    } else {
+      final eventAt = diagnostics.lastEventAt ?? 0;
+      final readAt = diagnostics.lastReadAt ?? 0;
+      final processedAt = diagnostics.lastProcessedAt ?? 0;
+      // Compare stages: an older successful draft must not hide a newer
+      // unreadable page or an event that has not reached the reader yet.
+      if (eventAt > readAt && eventAt > processedAt) {
+        summary = waiting;
+      } else if (readAt > processedAt && readAt >= eventAt) {
+        summary = diagnostics.lastReadResult != null
+            ? text.diagnosticReadResult(diagnostics.lastReadResult) : waiting;
+      } else if (diagnostics.lastOutcome != null) {
+        summary = text.diagnosticOutcome(diagnostics.lastOutcome);
+      } else if (diagnostics.lastReadResult != null) {
+        summary = text.diagnosticReadResult(diagnostics.lastReadResult);
+      } else if (diagnostics.eventCount == 0 && diagnostics.readCount == 0 &&
+          diagnostics.processedCount == 0 && eventAt == 0 && readAt == 0 && processedAt == 0) {
+        summary = text.noCaptureEvents;
+      } else {
+        summary = waiting;
+      }
+    }
+    return Card(margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), child: ExpansionTile(
+      key: const ValueKey('capture-diagnostics'),
+      title: Text(text.diagnosticsTitle), subtitle: Text(summary),
+      children: [
+        Padding(padding: const EdgeInsets.all(16), child: Text(text.diagnosticsScope)),
+        ListTile(title: Text(text.t('状态读取时间', 'Status read at')),
+          subtitle: Text(_statusReadAt?.toLocal().toString() ?? text.noDiagnosticRecord)),
+        if (diagnostics != null) ...[
+          ListTile(title: Text(text.t('本次诊断开始', 'Diagnostics started at')),
+            subtitle: Text(time(diagnostics.startedAt))),
+          ListTile(title: Text(text.t('本次诊断计数', 'Diagnostic counts')),
+            subtitle: Text(text.t(
+              '事件 ${diagnostics.eventCount} · 读取 ${diagnostics.readCount} · 处理 ${diagnostics.processedCount} · 新增草稿 ${diagnostics.savedCount}',
+              'Events ${diagnostics.eventCount} · Reads ${diagnostics.readCount} · Processed ${diagnostics.processedCount} · New drafts ${diagnostics.savedCount}'))),
+          ListTile(title: Text(text.t('最近采集事件', 'Last capture event')),
+            subtitle: Text(observation(diagnostics.lastEventAt, diagnostics.lastEventPackage, diagnostics.lastEventSource))),
+          ListTile(title: Text(text.t('最近页面或通知读取', 'Last screen or notification read')),
+            subtitle: Text(observation(diagnostics.lastReadAt, diagnostics.lastReadPackage, diagnostics.lastReadSource))),
+          ListTile(title: Text(text.t('读取结果', 'Read result')),
+            subtitle: Text(text.diagnosticReadResult(diagnostics.lastReadResult))),
+          ListTile(title: Text(text.t('节点与文字计数', 'Node and text counts')),
+            subtitle: Text(text.t('节点 ${diagnostics.lastNodeCount ?? '—'} · 文字 ${diagnostics.lastTextCount ?? '—'}',
+              'Nodes ${diagnostics.lastNodeCount ?? '—'} · Text ${diagnostics.lastTextCount ?? '—'}'))),
+          ListTile(title: Text(text.t('最近规则处理', 'Last rule processing')),
+            subtitle: Text(observation(diagnostics.lastProcessedAt, diagnostics.lastProcessedPackage, diagnostics.lastProcessedSource))),
+          ListTile(title: Text(text.t('处理结果', 'Processing result')),
+            subtitle: Text(text.diagnosticOutcome(diagnostics.lastOutcome))),
+        ],
+        Padding(padding: const EdgeInsets.all(16), child: OutlinedButton.icon(
+          key: const ValueKey('capture-copy-diagnostics'), onPressed: () => _copyDiagnostics(status, targetAvailable),
+          icon: const Icon(Icons.copy_outlined), label: Text(text.copyDiagnostics))),
+      ],
+    ));
+  }
+
   @override
   Widget build(BuildContext context) {
     final text = CaptureText(context), status = _status;
     final ledgersState = ref.watch(ledgersStreamProvider);
-    final ledgers = ledgersState.value ?? [];
+    final currentLedgers = ledgersState.unwrapPrevious();
+    final ledgers = currentLedgers.value ?? [];
     final selected = status?.ledgerId;
     final targetAvailable = status != null && ledgers.any((l) =>
         l.id == selected && CaptureCommitService.ledgerKey(l) == status.ledgerKey);
@@ -154,9 +313,10 @@ class _CaptureSettingsPageState extends ConsumerState<CaptureSettingsPage> with 
           SwitchListTile(title: Text(text.t('启用本地采集', 'Enable local capture')),
             subtitle: Text(text.t('关闭后停止采集，已采集的待确认交易保留。', 'Turning off capture retains existing drafts.')),
             value: _stopConfirmed ? false : status.enabled, onChanged: !canEdit ? null : (v) => _save(enabled: v)),
+          _captureConditions(status, ledgerKnown: currentLedgers.hasValue, targetAvailable: targetAvailable),
           ListTile(
             title: Text(text.t('无障碍服务', 'Accessibility service')),
-            subtitle: Text(text.connection(status.permissionGranted, status.connected)),
+            subtitle: Text(text.connection(status.permissionGranted, status.connected, known: _statusKnown)),
             trailing: const Icon(Icons.open_in_new),
             onTap: () async { try { await _service.openSettings(); } catch (_) { if (mounted) setState(() => _error = text.failed); } },
           ),
@@ -165,7 +325,7 @@ class _CaptureSettingsPageState extends ConsumerState<CaptureSettingsPage> with 
             value: status.notifications, onChanged: !canEdit ? null : (v) => _save(notifications: v)),
           if (status.notifications) ListTile(
             title: Text(text.t('通知访问权限', 'Notification access')),
-            subtitle: Text('${text.connection(status.notificationsGranted, status.notificationsConnected)}\n${text.t(
+            subtitle: Text('${text.connection(status.notificationsGranted, status.notificationsConnected, known: _statusKnown)}\n${text.t(
               '通知访问用于读取交易通知；本应用的待处理提醒另受发送通知权限控制。',
               'Notification access reads transaction notifications. Review reminders also depend on this app’s permission to send notifications.')}'),
             trailing: const Icon(Icons.open_in_new),
@@ -193,6 +353,7 @@ class _CaptureSettingsPageState extends ConsumerState<CaptureSettingsPage> with 
               ? status.pendingCount >= 1000
                 ? text.t('待处理采集记录已达上限，请先处理列表。', 'Your capture inbox is full; process pending records first.')
                 : text.t('采集记录曾达上限，部分交易可能遗漏。请对照支付记录核对。', 'The capture inbox was full and may have missed transactions. Check your payment records.')
+              : status.lastError == 'CAPTURE_PROCESSING_FAILED' ? text.processingFailed
               : text.t('采集存储失败，可能有遗漏，请核对交易。', 'Capture storage failed. Check for missed transactions.'))),
           if (status.skippedObservations > 0) ListTile(leading: const Icon(Icons.warning_amber),
             title: Text(status.importantObservationsSkipped
@@ -200,6 +361,7 @@ class _CaptureSettingsPageState extends ConsumerState<CaptureSettingsPage> with 
               : text.t('采集曾繁忙，部分页面信息未处理。请核对待确认交易是否完整。', 'Capture was busy and skipped some page updates. Check that your drafts are complete.')),
             trailing: TextButton(onPressed: !canEdit ? null : () => _acknowledgeOverflow(status),
               child: Text(text.t('已知晓', 'Dismiss warning')))),
+          _captureDiagnostics(status, currentLedgers.hasValue ? targetAvailable : null),
           const Divider(),
           Padding(padding: const EdgeInsets.all(16), child: Text(text.t(
             '以下均为实验性适配，需按客户端版本验证。淘宝和抖音系部分页面可能无法读取。',

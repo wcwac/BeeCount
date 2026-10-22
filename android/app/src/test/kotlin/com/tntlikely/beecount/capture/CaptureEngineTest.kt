@@ -11,6 +11,84 @@ class CaptureEngineTest {
     )
     private val wechat = "com.tencent.mm"
 
+    @Test fun aWeChatReceivedPaymentCreatesAnIncomeDraftFromItsExactState() {
+        for (source in listOf("accessibility", "notification")) {
+            val evaluation = CaptureEngine().evaluate(snapshot(wechat, "已收款", "收款金额", "￥10.00")
+                .copy(source = source, sourceEventId = if (source == "notification") "received-payment" else null), 1)
+            assertEquals(source, CapturePage.SUCCESS, evaluation.page)
+            val candidate = requireNotNull(evaluation.candidate)
+            assertEquals(1000L, candidate.amountMinor)
+            assertEquals("income", candidate.direction)
+            assertEquals("incoming-label", candidate.evidence["direction"])
+            assertFalse("AMOUNT_MISSING" in candidate.issues)
+        }
+        // A payment instruction mentioning the later state is not a receipt.
+        assertNull(CaptureEngine().accept(snapshot(wechat, "已收款后请核对", "￥10.00"), 1))
+    }
+
+    @Test fun evaluationReportsStatesAndSharesCheckoutWithTheCompatibilityApi() {
+        val engine = CaptureEngine()
+        val unknown = engine.evaluate(snapshot(wechat, "普通页面", "￥20.00"), 1)
+        assertEquals(CapturePage.NONE, unknown.page)
+        assertNull(unknown.candidate)
+        val checkout = engine.evaluate(snapshot(wechat, "确认付款", "支付金额", "￥20.00"), 1)
+        assertEquals(CapturePage.CHECKOUT, checkout.page)
+        assertNull(checkout.candidate)
+        val result = engine.evaluate(snapshot(wechat, "支付成功", elapsed = 2000), 1)
+        assertEquals(CapturePage.SUCCESS, result.page)
+        val candidate = requireNotNull(result.candidate)
+        assertEquals(2000L, candidate.amountMinor)
+        // The compatibility API shares the same session and candidate identity.
+        val repeated = engine.accept(snapshot(wechat, "支付成功", elapsed = 2500), 1)!!
+        assertEquals(candidate.id, repeated.id)
+        assertEquals(2000L, repeated.amountMinor)
+        val failed = engine.evaluate(snapshot(wechat, "支付失败", elapsed = 3000), 1)
+        assertEquals(CapturePage.FAILURE, failed.page)
+        assertNull(failed.candidate)
+        assertNull(engine.accept(snapshot(wechat, "支付成功", elapsed = 3500), 1)!!.amountMinor)
+        val refund = engine.evaluate(snapshot(wechat, "退款成功", "退款金额", "￥5.00", elapsed = 4000), 1)
+        assertEquals(CapturePage.REFUND, refund.page)
+        assertEquals(500L, refund.candidate!!.amountMinor)
+        val unsupported = engine.evaluate(snapshot("unsupported.package", "支付成功", "￥99.00", elapsed = 5000), 1)
+        assertEquals(CapturePage.NONE, unsupported.page)
+        assertNull(unsupported.candidate)
+    }
+
+    @Test fun notificationInlineFieldsFollowTheSeparatedLabelLengthLimit() {
+        for (length in listOf(160, 161, 600)) {
+            val value = "x".repeat(length)
+            val candidate = CaptureEngine().accept(snapshot(wechat, "支付成功", "支付金额", "￥12.50",
+                "收款方", "Fixture shop", "商品说明：$value", "付款方式:$value")
+                .copy(source = "notification", sourceEventId = "inline-$length"), 1)!!
+            assertEquals(1250L, candidate.amountMinor)
+            assertEquals("expense", candidate.direction)
+            assertEquals(if (length <= 160) value else null, candidate.remark)
+            assertEquals(if (length <= 160) value else null, candidate.paymentMethod)
+            assertTrue(candidate.asMap().values.filterIsInstance<String>().all { it.length <= 512 })
+        }
+        // An unusable preferred label must not hide a valid alternative field.
+        val longValue = "x".repeat(600)
+        val shortValue = "y".repeat(12)
+        val fallback = CaptureEngine().accept(snapshot(wechat, "支付成功", "支付金额", "￥12.50",
+            "商品说明：$longValue", "交易说明：$shortValue", "付款方式:$longValue", "支付方式:$shortValue")
+            .copy(source = "notification", sourceEventId = "inline-fallback"), 1)!!
+        assertEquals(shortValue, fallback.remark)
+        assertEquals(shortValue, fallback.paymentMethod)
+    }
+
+    @Test fun meituanNotificationLayoutCannotBypassThePaymentMethodLengthLimit() {
+        for (length in listOf(160, 161, 600)) {
+            val value = "x".repeat(length)
+            val candidate = CaptureEngine().accept(snapshot("com.sankuai.meituan",
+                "交易成功 ¥36.50", "${value}已优惠¥3.00")
+                .copy(source = "notification", sourceEventId = "layout-$length"), 1)!!
+            assertEquals(3650L, candidate.amountMinor)
+            assertEquals(300L, candidate.discountMinor)
+            assertEquals(if (length <= 160) value else null, candidate.paymentMethod)
+            assertTrue(candidate.asMap().values.filterIsInstance<String>().all { it.length <= 512 })
+        }
+    }
+
     @Test fun transactionTimeRequiresTheWholeLabelValueToBeValid() {
         fun read(time: String) = CaptureReader(snapshot(wechat, "支付时间", time)).transactionTime()
         assertNotNull(read("2020-06-15 12:34:56"))

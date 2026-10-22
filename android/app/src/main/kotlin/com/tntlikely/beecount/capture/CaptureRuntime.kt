@@ -54,20 +54,39 @@ object CaptureRuntime {
         val observation = synchronized(this) {
             pending.poll().also { if (it == null) drainScheduled = false }
         } ?: return
+        var writing = false
         try {
             val (context, snapshot, capturedSettings) = observation
             val settings = CaptureSettings.read(context)
             if (settings.consentGeneration == capturedSettings.consentGeneration &&
                 settings.accepts(snapshot.packageName) && (snapshot.source != "notification" || settings.notifications)) {
-                val candidate = engine.accept(snapshot, capturedSettings.ledgerId!!, capturedSettings.ledgerKey,
+                val evaluation = engine.evaluate(snapshot, capturedSettings.ledgerId!!, capturedSettings.ledgerKey,
                     observation.sessionRevision, capturedSettings.consentGeneration)
+                val candidate = evaluation.candidate
                 if (candidate != null) {
-                    if (inbox(context).put(candidate)) notifyPending(context)
+                    writing = true
+                    val saved = inbox(context).put(candidate)
+                    CaptureDiagnostics.recordProcessed(snapshot.packageName, snapshot.source,
+                        if (saved) "DRAFT_SAVED" else "DUPLICATE")
+                    if (saved) notifyPending(context)
                     storageError = null // Successful work does not erase the loss cursor.
+                } else {
+                    CaptureDiagnostics.recordProcessed(snapshot.packageName, snapshot.source, when (evaluation.page) {
+                        CapturePage.CHECKOUT -> "WAITING_RESULT"
+                        CapturePage.FAILURE -> "PAYMENT_FAILED"
+                        else -> "UNRECOGNIZED"
+                    })
                 }
+            } else {
+                CaptureDiagnostics.recordProcessed(snapshot.packageName, snapshot.source, "CONSENT_CHANGED")
             }
         } catch (error: Exception) {
-            storageError = if (error.message == "INBOX_FULL") "INBOX_FULL" else "CAPTURE_STORE_FAILED"
+            storageError = when {
+                error.message == "INBOX_FULL" -> "INBOX_FULL"
+                writing -> "CAPTURE_STORE_FAILED"
+                else -> "CAPTURE_PROCESSING_FAILED"
+            }
+            CaptureDiagnostics.recordProcessed(observation.snapshot.packageName, observation.snapshot.source, "PROCESSING_FAILED")
             // A later successful write cannot prove that the failed candidate
             // was recovered. Retain that possible loss until user acknowledgement.
             recordSkipped(observation.context, important = true)

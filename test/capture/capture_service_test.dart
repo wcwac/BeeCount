@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:beecount/services/capture/capture_service.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -8,6 +9,36 @@ void main() {
   final binding = TestWidgetsFlutterBinding.ensureInitialized();
   tearDown(() => binding.defaultBinaryMessenger
       .setMockMethodCallHandler(CaptureService.channel, null));
+
+  testWidgets('an unresponsive inbox read times out and a fresh read can recover', (tester) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.android;
+    final delayedReply = Completer<List<Object?>>();
+    addTearDown(() {
+      if (!delayedReply.isCompleted) delayedReply.complete([]);
+      debugDefaultTargetPlatformOverride = null;
+    });
+    var calls = 0;
+    binding.defaultBinaryMessenger.setMockMethodCallHandler(CaptureService.channel, (call) async {
+      expect(call.method, 'listCandidates');
+      calls++;
+      return calls == 1 ? delayedReply.future : <Object?>[];
+    });
+    final failedRead = expectLater(CaptureService().pending(), throwsA(isA<TimeoutException>()));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 5));
+    await failedRead;
+    expect(await CaptureService().pending(), isEmpty);
+    expect(calls, 2);
+    delayedReply.complete([]);
+    await tester.pump();
+  });
+
+  testWidgets('a missing inbox response is reported instead of showing an empty inbox', (tester) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.android;
+    addTearDown(() { debugDefaultTargetPlatformOverride = null; });
+    binding.defaultBinaryMessenger.setMockMethodCallHandler(CaptureService.channel, (call) async => null);
+    await expectLater(CaptureService().pending(), throwsFormatException);
+  });
 
   test('repeated acknowledgements share one bridge call and clear after success', () async {
     final reply = Completer<void>();

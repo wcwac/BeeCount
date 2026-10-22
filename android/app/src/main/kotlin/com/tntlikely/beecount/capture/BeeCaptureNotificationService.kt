@@ -31,15 +31,27 @@ class BeeCaptureNotificationService : NotificationListenerService() {
         sbn ?: return
         val settings = CaptureSettings.read(this)
         if (!settings.notifications || !settings.accepts(sbn.packageName)) return
-        val extras = sbn.notification.extras ?: return
+        CaptureDiagnostics.recordEvent(sbn.packageName, "notification")
+        try { readNotification(sbn) }
+        catch (_: RuntimeException) {
+            CaptureDiagnostics.recordRead(sbn.packageName, 0, 0, "READ_FAILED", "notification")
+        }
+    }
+
+    private fun readNotification(sbn: StatusBarNotification) {
+        val extras = sbn.notification.extras
         val texts = buildList {
-            for (key in listOf(Notification.EXTRA_TITLE, Notification.EXTRA_TEXT, Notification.EXTRA_BIG_TEXT)) {
-                extras.getCharSequence(key)?.toString()?.trim()?.take(1000)?.takeIf { it.isNotEmpty() }?.let(::add)
-            }
-            extras.getCharSequenceArray(Notification.EXTRA_TEXT_LINES)?.take(8)?.forEach {
-                it?.toString()?.trim()?.take(300)?.takeIf(String::isNotEmpty)?.let(::add)
+            if (extras != null) {
+                for (key in listOf(Notification.EXTRA_TITLE, Notification.EXTRA_TEXT, Notification.EXTRA_BIG_TEXT)) {
+                    extras.getCharSequence(key)?.toString()?.trim()?.take(1000)?.takeIf { it.isNotEmpty() }?.let(::add)
+                }
+                extras.getCharSequenceArray(Notification.EXTRA_TEXT_LINES)?.take(8)?.forEach {
+                    it?.toString()?.trim()?.take(300)?.takeIf(String::isNotEmpty)?.let(::add)
+                }
             }
         }.distinct()
+        CaptureDiagnostics.recordRead(sbn.packageName, texts.size, texts.size,
+            if (texts.isEmpty()) "EMPTY" else "READABLE", "notification")
         if (texts.isEmpty()) return
         val identity = captureHash("${sbn.key}|${sbn.postTime}|${captureHash(texts.joinToString("|"))}")
         CaptureRuntime.submit(applicationContext, CaptureSnapshot(

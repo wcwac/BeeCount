@@ -508,8 +508,8 @@ jobs:
           git -c core.hooksPath=/dev/null push origin HEAD:feat/flutter-stable-upgrade
 
   release:
-    if: inputs.create_release
-    needs: [android, ios]
+    if: ${{ !cancelled() && inputs.create_release && needs.android.result == 'success' && needs.ios.result == 'success' && (!inputs.run_device_tests || needs.capture-device-tests.result == 'success') }}
+    needs: [android, ios, capture-device-tests]
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:

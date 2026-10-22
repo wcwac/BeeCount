@@ -2,6 +2,9 @@ package com.tntlikely.beecount.capture
 
 import java.util.UUID
 
+/** The observed page and its optional draft come from the same parser pass. */
+data class CaptureEvaluation(val page: CapturePage, val candidate: CaptureCandidate?)
+
 /** Access only on the capture worker. Each package owns an expiring transaction session. */
 class CaptureEngine(private val adapters: CaptureAdapterRegistry = CaptureAdapterRegistry()) {
     private data class Session(
@@ -15,26 +18,31 @@ class CaptureEngine(private val adapters: CaptureAdapterRegistry = CaptureAdapte
     fun clear() = sessions.clear()
 
     fun accept(snapshot: CaptureSnapshot, ledgerId: Long, ledgerKey: String? = null,
-        sessionRevision: Long = 0, consentGeneration: Long = 0): CaptureCandidate? {
-        val app = CaptureApps.byPackage[snapshot.packageName] ?: return null
+        sessionRevision: Long = 0, consentGeneration: Long = 0): CaptureCandidate? =
+        evaluate(snapshot, ledgerId, ledgerKey, sessionRevision, consentGeneration).candidate
+
+    fun evaluate(snapshot: CaptureSnapshot, ledgerId: Long, ledgerKey: String? = null,
+        sessionRevision: Long = 0, consentGeneration: Long = 0): CaptureEvaluation {
+        val app = CaptureApps.byPackage[snapshot.packageName]
+            ?: return CaptureEvaluation(CapturePage.NONE, null)
         val observedEpoch = Epoch(sessionRevision, consentGeneration)
         if (epoch != observedEpoch) { clear(); epoch = observedEpoch }
         val fields = adapters.parse(app, snapshot)
         sessions.entries.removeAll { snapshot.elapsedAt - it.value.lastAt !in 0..SESSION_TTL }
         if (fields.page == CapturePage.NONE) {
             if (fields.resetSession) sessions.remove(snapshot.packageName)
-            return null
+            return CaptureEvaluation(fields.page, null)
         }
         if (fields.page == CapturePage.FAILURE) {
             if (snapshot.source == "accessibility") sessions.remove(snapshot.packageName)
-            return null
+            return CaptureEvaluation(fields.page, null)
         }
         if (snapshot.source == "notification") {
             // A notification must carry its own amount and evidence. Never
             // borrow an unrelated checkout session merely because it is recent.
-            if (fields.page == CapturePage.CHECKOUT) return null
-            val identity = snapshot.sourceEventId ?: return null
-            return CaptureCandidate(
+            if (fields.page == CapturePage.CHECKOUT) return CaptureEvaluation(fields.page, null)
+            val identity = snapshot.sourceEventId ?: return CaptureEvaluation(fields.page, null)
+            return CaptureEvaluation(fields.page, CaptureCandidate(
                 id = captureHash("notification:$identity"), sourcePackage = app.packageName,
                 appName = app.name, adapterId = app.adapter, sessionId = identity,
                 ledgerId = ledgerId, ledgerKey = ledgerKey, observedAt = snapshot.observedAt,
@@ -45,7 +53,7 @@ class CaptureEngine(private val adapters: CaptureAdapterRegistry = CaptureAdapte
                 issues = fields.issues + if (fields.amountMinor == null) setOf("AMOUNT_MISSING") else emptySet(),
                 source = "notification",
                 transactionIdentity = transactionIdentity(app, fields),
-            )
+            ))
         }
         var session = sessions[snapshot.packageName]?.takeIf { it.ledgerId == ledgerId && it.ledgerKey == ledgerKey }
         val prior = session
@@ -116,9 +124,9 @@ class CaptureEngine(private val adapters: CaptureAdapterRegistry = CaptureAdapte
         )
         session.lastAt = snapshot.elapsedAt
         session.fields = merged
-        if (checkout) return null
+        if (checkout) return CaptureEvaluation(fields.page, null)
         session.finalized = true
-        return CaptureCandidate(
+        return CaptureEvaluation(fields.page, CaptureCandidate(
             // The ID remains stable when a later snapshot enriches the session
             // with a transaction reference. The inbox resolves durable aliases.
             id = session.id, sourcePackage = app.packageName, appName = app.name, adapterId = app.adapter,
@@ -130,7 +138,7 @@ class CaptureEngine(private val adapters: CaptureAdapterRegistry = CaptureAdapte
             issues = merged.issues + if (merged.amountMinor == null) setOf("AMOUNT_MISSING") else emptySet(),
             ledgerKey = ledgerKey,
             transactionIdentity = transactionIdentity(app, merged),
-        )
+        ))
     }
 
     private fun transactionIdentity(app: CaptureApp, fields: CaptureFields): String? {

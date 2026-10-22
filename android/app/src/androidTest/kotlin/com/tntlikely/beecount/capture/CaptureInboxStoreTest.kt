@@ -42,6 +42,47 @@ class CaptureInboxStoreTest {
         assertEquals("fixture-one", store.pending().single()["id"])
     }
 
+    @Test fun legacyLongTextIsAdaptedWithoutHidingOtherDraftsOrRewritingStoredPayloads() {
+        val legacy = candidate().copy(id = "legacy-long-text", remark = "r".repeat(600),
+            paymentMethod = "p".repeat(600), referenceHash = "legacy-reference",
+            transactionIdentity = "legacy-trade")
+        val normal = candidate(2500).copy(id = "normal-text", remark = "r".repeat(512),
+            paymentMethod = "p".repeat(12), referenceHash = "normal-reference",
+            transactionIdentity = "normal-trade")
+        assertTrue(store.put(legacy))
+        assertTrue(store.put(normal))
+        fun stored(id: String) = store.readableDatabase.rawQuery(
+            "SELECT state,payload FROM candidates WHERE id=?", arrayOf(id),
+        ).use {
+            assertTrue(it.moveToFirst())
+            it.getString(0) to it.getString(1)
+        }
+        val legacyBefore = stored(legacy.id)
+        val normalBefore = stored(normal.id)
+        assertEquals("READY", legacyBefore.first)
+        store.close()
+        store = CaptureInboxStore(context)
+
+        val pending = store.pending()
+        assertEquals(2, pending.size)
+        assertEquals(2, store.count())
+        val adapted = pending.single { it["id"] == legacy.id }
+        assertEquals("r".repeat(512), adapted["remark"])
+        assertEquals("p".repeat(512), adapted["paymentMethod"])
+        assertEquals("NEEDS_REVIEW", adapted["state"])
+        assertEquals(listOf("TEXT_TRUNCATED"), adapted["issues"])
+        assertEquals(legacy.ledgerId, (adapted["ledgerId"] as Number).toLong())
+        assertEquals(legacy.amountMinor, (adapted["amountMinor"] as Number).toLong())
+        assertEquals(legacy.referenceHash, adapted["referenceHash"])
+        assertEquals(legacy.transactionIdentity, adapted["transactionIdentity"])
+        assertEquals(CaptureInboxStore.jsonMap(JSONObject(normalBefore.second)),
+            pending.single { it["id"] == normal.id })
+        assertEquals(listOf("TEXT_TRUNCATED"), store.pending().single { it["id"] == legacy.id }["issues"])
+        assertEquals(legacyBefore, stored(legacy.id))
+        assertEquals(normalBefore, stored(normal.id))
+        assertEquals(600, JSONObject(stored(legacy.id).second).getString("remark").length)
+    }
+
     @Test fun replayRacingWithCommitAcrossDatabaseConnectionsCannotReopenThePayment() {
         store.put(candidate().copy(transactionIdentity = "trade-one"))
         val other = CaptureInboxStore(captureTestContext())

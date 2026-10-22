@@ -85,6 +85,7 @@ class CaptureStatus {
   final Set<String> packages;
   final List<CaptureAppInfo> apps;
   final String? lastError;
+  final CaptureDiagnostics? diagnostics;
   CaptureStatus.fromMap(Map<dynamic, dynamic> map)
       : supported = map['supported'] == true,
         permissionGranted = map['permissionGranted'] == true,
@@ -102,5 +103,65 @@ class CaptureStatus {
         packages = Set<String>.unmodifiable((((map['settings'] as Map?)?['packages']) as List? ?? const []).cast<String>()),
         apps = List<CaptureAppInfo>.unmodifiable((map['apps'] as List? ?? const [])
             .map((a) => CaptureAppInfo.fromMap(a as Map))),
-        lastError = map['lastError'] as String?;
+        lastError = map['lastError'] as String?,
+        diagnostics = map['diagnostics'] is Map
+            ? CaptureDiagnostics.fromMap(map['diagnostics'] as Map) : null;
+}
+
+/// Optional, in-memory capture metadata. Never accepts page text or draft data.
+class CaptureDiagnostics {
+  final int? startedAt, lastEventAt, lastReadAt, lastProcessedAt;
+  final int eventCount, readCount, processedCount, savedCount;
+  final int? lastNodeCount, lastTextCount;
+  final String? lastEventPackage, lastReadPackage, lastProcessedPackage;
+  final String? lastEventSource, lastReadSource, lastProcessedSource;
+  final String? lastReadResult, lastOutcome;
+
+  CaptureDiagnostics.fromMap(Map<dynamic, dynamic> map)
+      : startedAt = _timestamp(map['startedAt']),
+        eventCount = _count(map['eventCount']) ?? 0,
+        readCount = _count(map['readCount']) ?? 0,
+        processedCount = _count(map['processedCount']) ?? 0,
+        savedCount = _count(map['savedCount']) ?? 0,
+        lastEventAt = _timestamp(map['lastEventAt']),
+        lastEventPackage = _package(map['lastEventPackage']),
+        lastEventSource = _source(map['lastEventSource']),
+        lastReadAt = _timestamp(map['lastReadAt']),
+        lastReadPackage = _package(map['lastReadPackage']),
+        lastReadSource = _source(map['lastReadSource']),
+        lastReadResult = code(map['lastReadResult']),
+        lastNodeCount = _count(map['lastNodeCount']),
+        lastTextCount = _count(map['lastTextCount']),
+        lastProcessedAt = _timestamp(map['lastProcessedAt']),
+        lastProcessedPackage = _package(map['lastProcessedPackage']),
+        lastProcessedSource = _source(map['lastProcessedSource']),
+        lastOutcome = code(map['lastOutcome']);
+
+  static int? _count(Object? value) =>
+      value is int && value >= 0 ? value : null;
+  static int? _timestamp(Object? value) => value is int && value > 0 &&
+      value <= 8640000000000000 ? value : null;
+  static String? _package(Object? value) => value is String &&
+      value.length <= 255 && _packagePattern.hasMatch(value) ? value : null;
+  static String? _source(Object? value) =>
+      value == 'accessibility' || value == 'notification' ? value as String : null;
+  static String? code(Object? value) => value is String &&
+      value.length <= 80 && _codePattern.hasMatch(value) ? value : null;
+  static final _packagePattern = RegExp(r'^[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)+$');
+  static final _codePattern = RegExp(r'^[A-Z][A-Z0-9_]*$');
+
+  /// Explicit allowlist used for copying diagnostics. Unknown native fields,
+  /// including any future transaction payloads, cannot enter the clipboard.
+  Map<String, Object?> toMetadata() => {
+    'startedAt': startedAt,
+    'eventCount': eventCount, 'readCount': readCount,
+    'processedCount': processedCount, 'savedCount': savedCount,
+    'lastEventAt': lastEventAt, 'lastEventPackage': lastEventPackage,
+    'lastEventSource': lastEventSource,
+    'lastReadAt': lastReadAt, 'lastReadPackage': lastReadPackage,
+    'lastReadSource': lastReadSource, 'lastReadResult': lastReadResult,
+    'lastNodeCount': lastNodeCount, 'lastTextCount': lastTextCount,
+    'lastProcessedAt': lastProcessedAt, 'lastProcessedPackage': lastProcessedPackage,
+    'lastProcessedSource': lastProcessedSource, 'lastOutcome': lastOutcome,
+  };
 }

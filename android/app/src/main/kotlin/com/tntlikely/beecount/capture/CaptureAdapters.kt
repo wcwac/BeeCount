@@ -22,7 +22,8 @@ internal class CaptureReader(val snapshot: CaptureSnapshot) {
             if (text == label || text == "$label：" || text == "$label:") {
                 texts.getOrNull(index + 1)?.takeIf { it.length <= 160 }?.let { return it }
             } else if (text.startsWith("$label：") || text.startsWith("$label:")) {
-                return text.substring(label.length + 1).trim().takeIf { it.isNotEmpty() }
+                text.substring(label.length + 1).trim()
+                    .takeIf { it.isNotEmpty() && it.length <= 160 }?.let { return it }
             }
         }
         return null
@@ -117,7 +118,7 @@ data class CaptureProfile(
 /** One family per real application group; no downloaded or executable rule scripts. */
 class CaptureAdapterRegistry {
     private val profiles = listOf(
-        CaptureProfile("wechat", successWords = listOf("支付成功", "付款成功", "交易成功", "收款成功", "收款到账", "已收到", "已支付"),
+        CaptureProfile("wechat", successWords = listOf("支付成功", "付款成功", "交易成功", "收款成功", "收款到账", "已收款", "已收到", "已支付"),
             merchantLabels = listOf("商户全称", "商户名称", "收款方", "收款人")),
         CaptureProfile("alipay", successWords = listOf("支付成功", "付款成功", "交易成功", "自动扣款成功", "代付成功", "免密支付成功"),
             merchantLabels = listOf("收款方", "商家", "商户名称", "交易对方")),
@@ -147,7 +148,11 @@ class CaptureAdapterRegistry {
 
     /** Cheap conservative gate only; the serial parser still decides page/state. */
     fun mayAffectSession(snapshot: CaptureSnapshot): Boolean = isResetPage(snapshot.pageClass) ||
-        snapshot.nodes.any { node -> importantLabels.any(node.text::contains) }
+        hasCaptureContext(snapshot.nodes)
+
+    /** Window/source selection uses the same vocabulary as the registered adapters. */
+    fun hasCaptureContext(nodes: List<CaptureNode>): Boolean =
+        nodes.any { node -> importantLabels.any(node.text::contains) }
 
     fun parse(app: CaptureApp, snapshot: CaptureSnapshot): CaptureFields {
         val profile = profiles.getValue(app.adapter)
@@ -279,7 +284,8 @@ class CaptureAdapterRegistry {
                 if (app.adapter == "meituan") {
                     val inline = r.texts.indexOfFirst { it.startsWith("交易成功 ¥") }
                     if (!refund && inline >= 0) r.texts.getOrNull(inline + 1)?.let { value ->
-                        if (method == null) method = value.substringBefore("已优惠").trim().takeIf(String::isNotEmpty)
+                        if (method == null) method = value.substringBefore("已优惠").trim()
+                            .takeIf { it.isNotEmpty() && it.length <= 160 }
                         Regex("已优惠[¥￥]\\s*[0-9]+(?:\\.[0-9]{1,2})?").find(value)?.value
                             ?.removePrefix("已优惠")?.let(::captureMoney)?.let { inlineDiscount = it }
                     }

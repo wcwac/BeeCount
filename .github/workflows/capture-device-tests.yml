@@ -139,13 +139,31 @@ jobs:
                   classes.add(case.get('classname', ''))
                   cases.add((case.get('classname', ''), case.get('name', '')))
           prefix = 'com.tntlikely.beecount.capture.'
-          required = {prefix + name for name in ('CaptureBridgeTest', 'CaptureInboxStoreTest', 'CaptureSettingsTest')}
+          required = {prefix + name for name in (
+              'CaptureBridgeTest', 'CaptureInboxStoreTest', 'CaptureSettingsTest',
+              'CaptureSourceReadTest', 'SnapshotCollectorBudgetTest',
+          )}
           required_bridge_cases = {
               (prefix + 'CaptureBridgeTest', name) for name in (
                   'disablingCaptureAcknowledgesOnlyAfterOldWritesAndRejectsRemainingQueuedWork',
                   'feedbackInterruptPreservesCheckoutFieldsForTheFollowingResult',
                   'stopCaptureReadsTheLatestWorkerSettingsAndPreservesTheirTargetAndOptions',
               )
+          }
+          required_source_cases = {
+              (prefix + 'CaptureSourceReadTest', name) for name in (
+                  'aNonurgentContentEventCanReadItsSourceBehindAnOpaqueWindowRoot',
+                  'aProfileReceiptStatusCanSelectTheDelayedSourceBehindAnOpaqueRoot',
+                  'anUnrefreshableDelayedSourceIsNotUsedAsPaymentEvidence',
+                  'settingsRefreshCancelsThePendingReadBeforeItCanPublish',
+              )
+          } | {
+              (prefix + 'SnapshotCollectorBudgetTest', name) for name in (
+                  'aSourceTreeCanStillBeReadAfterTheRootTimeSliceWasConsumed',
+                  'sourceTimeReservationDoesNotGrantExtraNodeOrCharacterCapacity',
+              )
+          } | {
+              (prefix + 'CaptureInboxStoreTest', 'legacyLongTextIsAdaptedWithoutHidingOtherDraftsOrRewritingStoredPayloads')
           }
           summary = f'Capture device tests: {totals}; classes: {sorted(classes)}'
           print(summary)
@@ -155,6 +173,8 @@ jobs:
               raise SystemExit('Capture instrumentation did not discover all required test classes')
           if not required_bridge_cases.issubset(cases):
               raise SystemExit(f'Missing bridge regressions: {sorted(required_bridge_cases - cases)}')
+          if not required_source_cases.issubset(cases):
+              raise SystemExit(f'Missing accessibility regressions: {sorted(required_source_cases - cases)}')
           if any(not name.startswith(prefix) for name in classes):
               raise SystemExit('An instrumentation class outside the capture package ran')
           if totals['failures'] or totals['errors'] or totals['skipped']:

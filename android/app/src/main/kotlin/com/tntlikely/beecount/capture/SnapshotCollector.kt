@@ -7,10 +7,24 @@ import android.view.accessibility.AccessibilityNodeInfo
 internal data class CollectedCaptureNodes(val nodes: List<CaptureNode>, val truncated: Boolean)
 
 /** Shared by window/source attempts in the same observation. */
-internal class CaptureReadBudget {
-    val started = SystemClock.elapsedRealtime()
+internal class CaptureReadBudget(private val clock: () -> Long = SystemClock::elapsedRealtime) {
+    val started = clock()
+    private var attemptStarted = started
+    private var attemptMillis = 24L
     var visited = 0
     var characters = 0
+
+    fun beginSourceAttempt() {
+        attemptStarted = clock()
+        attemptMillis = 12L
+    }
+
+    // IPC itself cannot be preempted. These are nominal read deadlines, while
+    // node/character limits remain shared and hard across both tree attempts.
+    fun timeExhausted(): Boolean {
+        val now = clock()
+        return now - started >= 36L || now - attemptStarted >= attemptMillis
+    }
 }
 
 /** Reads one owned tree, with a shared budget for every descendant. */
@@ -19,7 +33,7 @@ internal class SnapshotCollector {
         val nodes = mutableListOf<CaptureNode>()
         var truncated = false
         fun exhausted() = budget.visited >= MAX_NODES || budget.characters >= MAX_CHARACTERS ||
-            SystemClock.elapsedRealtime() - budget.started >= MAX_MILLIS
+            budget.timeExhausted()
 
         fun addText(value: String, parent: Int, depth: Int, viewId: String?): Int {
             val index = nodes.size
@@ -61,7 +75,6 @@ internal class SnapshotCollector {
         private const val MAX_CHARACTERS = 6000
         private const val MAX_NODE_CHARACTERS = 240
         private const val MAX_DEPTH = 16
-        private const val MAX_MILLIS = 24L
     }
 }
 
