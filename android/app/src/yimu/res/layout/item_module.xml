@@ -1,0 +1,8 @@
+<?xml version='1.0' encoding='utf-8'?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/resize_layout" android:layout_width="100dp" android:layout_height="88dp" android:layout_marginEnd="7dp">
+    <LinearLayout android:gravity="center" android:orientation="horizontal" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:layout_marginStart="10dp">
+        <ImageView android:layout_width="20dp" android:layout_height="20dp" android:src="@mipmap/color_ic_parent_other" />
+        <TextView android:textSize="13sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="日常消费" android:singleLine="true" android:layout_marginStart="10dp" />
+    </LinearLayout>
+    <TextView android:textSize="14sp" android:textStyle="bold" android:textColor="@color/moneyPay" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginBottom="18dp" android:text="555.66" android:singleLine="true" android:layout_alignParentBottom="true" android:layout_marginEnd="18dp" android:layout_alignParentEnd="true" />
+</FrameLayout>

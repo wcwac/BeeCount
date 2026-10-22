@@ -1,0 +1,72 @@
+<?xml version='1.0' encoding='utf-8'?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android" android:background="@color/backgroundLight" android:layout_width="match_parent" android:layout_height="match_parent">
+    <LinearLayout android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content">
+        <LinearLayout android:orientation="vertical" android:background="@drawable/shape_bg_setting" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_margin="15dp">
+            <RelativeLayout android:id="@+id/default_asset_layout" android:background="?android:attr/selectableItemBackground" android:layout_width="match_parent" android:layout_height="60dp" android:paddingStart="15dp" android:paddingEnd="15dp">
+                <ImageView android:id="@+id/default_asset_more" android:layout_width="18dp" android:layout_height="18dp" android:src="@mipmap/ic_more" android:tint="@color/grey" android:layout_centerVertical="true" android:layout_alignParentEnd="true" />
+                <LinearLayout android:orientation="vertical" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_centerVertical="true">
+                    <TextView android:textSize="15sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="默认账户" />
+                    <TextView android:textSize="12sp" android:textColor="@color/grey" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="3dp" android:text="当无法匹配账户时，默认选取当前账户" android:singleLine="true" />
+                </LinearLayout>
+                <TextView android:textSize="13sp" android:textColor="@color/grey" android:id="@+id/default_asset" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="不设置" android:layout_centerVertical="true" android:layout_marginEnd="6dp" android:layout_toStartOf="@+id/default_asset_more" />
+            </RelativeLayout>
+            <RelativeLayout android:id="@+id/choice_book_layout" android:layout_width="match_parent" android:layout_height="60dp" android:paddingStart="15dp" android:paddingEnd="15dp">
+                <LinearLayout android:orientation="vertical" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_centerVertical="true">
+                    <TextView android:textSize="15sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="账本修正" />
+                    <TextView android:textSize="12sp" android:textColor="@color/grey" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="3dp" android:text="同一商户自动选取上一次选择的账本" android:singleLine="true" />
+                </LinearLayout>
+                <Switch android:id="@+id/switch_choice_book" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_centerVertical="true" android:layout_alignParentEnd="true" />
+            </RelativeLayout>
+            <RelativeLayout android:id="@+id/choice_shop_layout" android:layout_width="match_parent" android:layout_height="60dp" android:paddingStart="15dp" android:paddingEnd="15dp">
+                <LinearLayout android:orientation="vertical" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_centerVertical="true">
+                    <TextView android:textSize="15sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="平台标签" />
+                    <TextView android:textSize="12sp" android:textColor="@color/grey" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="3dp" android:text="为不同的消费平台自动设置标签" android:singleLine="true" />
+                </LinearLayout>
+                <ImageView android:layout_width="18dp" android:layout_height="18dp" android:src="@mipmap/ic_more" android:tint="@color/grey" android:layout_centerVertical="true" android:layout_alignParentEnd="true" />
+            </RelativeLayout>
+            <RelativeLayout android:id="@+id/add_remark_layout" android:layout_width="match_parent" android:layout_height="60dp" android:paddingStart="15dp" android:paddingEnd="15dp">
+                <LinearLayout android:orientation="vertical" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_centerVertical="true">
+                    <TextView android:textSize="15sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="备注填充" />
+                    <TextView android:textSize="12sp" android:textColor="@color/grey" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="3dp" android:text="关闭后默认备注将设置为空" android:singleLine="true" />
+                </LinearLayout>
+                <Switch android:id="@+id/switch_add_remark" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_centerVertical="true" android:layout_alignParentEnd="true" />
+            </RelativeLayout>
+            <RelativeLayout android:id="@+id/auto_add_layout" android:layout_width="match_parent" android:layout_height="60dp" android:paddingStart="15dp" android:paddingEnd="15dp">
+                <LinearLayout android:orientation="vertical" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_centerVertical="true">
+                    <TextView android:textSize="15sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="自动新增" />
+                    <TextView android:textSize="12sp" android:textColor="@color/grey" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="3dp" android:text="弹窗显示5秒后自动新增账单" android:singleLine="true" />
+                </LinearLayout>
+                <Switch android:id="@+id/switch_auto_add" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_centerVertical="true" android:layout_alignParentEnd="true" />
+            </RelativeLayout>
+            <RelativeLayout android:id="@+id/window_style_layout" android:background="?android:attr/selectableItemBackground" android:layout_width="match_parent" android:layout_height="60dp" android:paddingStart="15dp" android:paddingEnd="15dp">
+                <ImageView android:id="@+id/window_style_more" android:layout_width="18dp" android:layout_height="18dp" android:src="@mipmap/ic_more" android:tint="@color/grey" android:layout_centerVertical="true" android:layout_alignParentEnd="true" />
+                <LinearLayout android:orientation="vertical" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_centerVertical="true">
+                    <TextView android:textSize="15sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="弹窗风格" android:layout_centerVertical="true" />
+                    <TextView android:textSize="12sp" android:textColor="@color/grey" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="3dp" android:text="设置弹窗风格，建议您使用「详细」" android:singleLine="true" />
+                </LinearLayout>
+                <TextView android:textSize="13sp" android:textColor="@color/grey" android:id="@+id/window_style" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="详细" android:layout_centerVertical="true" android:layout_marginEnd="6dp" android:layout_toStartOf="@+id/window_style_more" />
+            </RelativeLayout>
+            <RelativeLayout android:id="@+id/close_total_layout" android:layout_width="match_parent" android:layout_height="60dp" android:paddingStart="15dp" android:paddingEnd="15dp">
+                <LinearLayout android:orientation="vertical" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_centerVertical="true">
+                    <TextView android:textSize="15sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="显示「不计入收支」" />
+                    <TextView android:textSize="12sp" android:textColor="@color/grey" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="3dp" android:text="仅在「详细」弹窗中生效" android:singleLine="true" />
+                </LinearLayout>
+                <Switch android:id="@+id/switch_close_total" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_centerVertical="true" android:layout_alignParentEnd="true" />
+            </RelativeLayout>
+            <RelativeLayout android:id="@+id/close_budget_layout" android:layout_width="match_parent" android:layout_height="60dp" android:paddingStart="15dp" android:paddingEnd="15dp">
+                <LinearLayout android:orientation="vertical" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_centerVertical="true">
+                    <TextView android:textSize="15sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="显示「不计入预算」" />
+                    <TextView android:textSize="12sp" android:textColor="@color/grey" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="3dp" android:text="仅在「详细」弹窗中生效" android:singleLine="true" />
+                </LinearLayout>
+                <Switch android:id="@+id/switch_close_budget" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_centerVertical="true" android:layout_alignParentEnd="true" />
+            </RelativeLayout>
+            <RelativeLayout android:id="@+id/repeat_check_layout" android:visibility="gone" android:layout_width="match_parent" android:layout_height="60dp" android:paddingStart="15dp" android:paddingEnd="15dp">
+                <LinearLayout android:orientation="vertical" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_centerVertical="true">
+                    <TextView android:textSize="15sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="重复账单二次确认" />
+                    <TextView android:textSize="12sp" android:textColor="@color/grey" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="3dp" android:text="添加重复账单时需要二次确认" android:singleLine="true" />
+                </LinearLayout>
+                <Switch android:id="@+id/switch_repeat_check" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_centerVertical="true" android:layout_alignParentEnd="true" />
+            </RelativeLayout>
+        </LinearLayout>
+    </LinearLayout>
+</ScrollView>

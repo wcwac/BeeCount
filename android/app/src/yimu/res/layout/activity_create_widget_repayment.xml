@@ -1,0 +1,30 @@
+<?xml version='1.0' encoding='utf-8'?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:orientation="vertical" android:layout_width="match_parent" android:layout_height="match_parent">
+    <RelativeLayout android:background="@color/white" android:layout_width="match_parent" android:layout_height="wrap_content">
+        <RelativeLayout android:id="@+id/tool_bar" android:background="@color/white" android:layout_width="match_parent" android:layout_height="50dp">
+            <ImageView android:id="@+id/btn_complete" android:background="@drawable/selectable_item_circle" android:padding="12dp" android:layout_width="50dp" android:layout_height="50dp" android:src="@mipmap/ic_tick" android:scaleType="fitCenter" android:layout_centerVertical="true" />
+            <TextView android:textSize="18sp" android:textStyle="bold" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:maxWidth="180dp" android:text="编辑桌面小部件" android:singleLine="true" android:layout_centerVertical="true" android:layout_toEndOf="@+id/btn_complete" />
+        </RelativeLayout>
+    </RelativeLayout>
+    <RelativeLayout android:layout_width="match_parent" android:layout_height="180dp">
+        <include android:layout_width="200dp" android:layout_height="120dp" android:layout_centerInParent="true" android:layout_marginStart="50dp" android:layout_marginEnd="50dp" layout="@layout/layout_app_widget_repayment" />
+    </RelativeLayout>
+    <LinearLayout android:orientation="vertical" android:background="@color/white" android:layout_width="match_parent" android:layout_height="match_parent">
+        <LinearLayout android:gravity="center_vertical" android:orientation="vertical" android:id="@+id/color_choice" android:background="@drawable/selectable_item_expand" android:layout_width="match_parent" android:layout_height="60dp" android:paddingStart="15dp">
+            <TextView android:textSize="15sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="主题颜色" />
+            <TextView android:textSize="13sp" android:textColor="@color/grey" android:id="@+id/color_text" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="3dp" android:text="白色" />
+        </LinearLayout>
+        <RelativeLayout android:layout_width="match_parent" android:layout_height="60dp" android:paddingStart="15dp" android:paddingEnd="15dp">
+            <TextView android:textSize="15sp" android:textColor="@color/black" android:id="@+id/trans_title" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="不透明度" android:layout_centerVertical="true" />
+            <FrameLayout android:id="@+id/seek_bar" android:layout_width="match_parent" android:layout_height="wrap_content" android:progress="90" android:layout_centerVertical="true" android:layout_marginStart="15dp" android:layout_marginEnd="15dp" android:layout_toStartOf="@+id/trans_num" android:layout_toEndOf="@+id/trans_title" />
+            <TextView android:textSize="14sp" android:textColor="@color/grey" android:id="@+id/trans_num" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="3dp" android:text="90%" android:layout_centerVertical="true" android:layout_alignParentEnd="true" />
+        </RelativeLayout>
+        <RelativeLayout android:id="@+id/add_bill_type_layout" android:background="@drawable/selectable_item_expand" android:layout_width="match_parent" android:layout_height="60dp" android:paddingStart="15dp" android:paddingEnd="15dp">
+            <LinearLayout android:orientation="vertical" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_centerVertical="true">
+                <TextView android:textSize="15sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="点击记账方式" />
+                <TextView android:textSize="12sp" android:textColor="@color/grey" android:id="@+id/add_bill_type" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="3dp" android:text="桌面小窗快捷记账" />
+            </LinearLayout>
+            <ImageView android:layout_width="18dp" android:layout_height="18dp" android:src="@mipmap/ic_more" android:tint="@color/grey" android:layout_centerVertical="true" android:layout_alignParentEnd="true" />
+        </RelativeLayout>
+    </LinearLayout>
+</LinearLayout>

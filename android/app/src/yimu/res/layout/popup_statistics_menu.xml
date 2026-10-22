@@ -1,0 +1,19 @@
+<?xml version='1.0' encoding='utf-8'?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:orientation="vertical" android:id="@+id/parent_layout" android:background="@drawable/background_home_popup" android:layout_width="200dp" android:layout_height="wrap_content">
+    <LinearLayout android:gravity="center_vertical" android:orientation="horizontal" android:id="@+id/btn_year_info" android:background="@drawable/selectable_item_expand_mask" android:visibility="gone" android:layout_width="200dp" android:layout_height="50dp" android:paddingStart="12dp" android:paddingEnd="15sp">
+        <ImageView android:padding="3dp" android:layout_width="25dp" android:layout_height="25dp" android:src="@mipmap/ic_vip_statistics" android:tint="@color/black" />
+        <TextView android:textSize="15sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="年度账单" android:layout_marginStart="6dp" />
+    </LinearLayout>
+    <LinearLayout android:gravity="center_vertical" android:orientation="horizontal" android:id="@+id/btn_show_account" android:background="@drawable/selectable_item_expand_mask" android:layout_width="200dp" android:layout_height="50dp" android:paddingStart="12dp" android:paddingEnd="15sp">
+        <ImageView android:layout_width="25dp" android:layout_height="25dp" android:src="@mipmap/ic_calendar_book" android:tint="@color/black" />
+        <TextView android:textSize="15sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="多选账本" android:layout_marginStart="6dp" />
+    </LinearLayout>
+    <LinearLayout android:gravity="center_vertical" android:orientation="horizontal" android:id="@+id/btn_setting" android:background="@drawable/selectable_item_expand_mask" android:layout_width="200dp" android:layout_height="50dp" android:paddingStart="12dp" android:paddingEnd="15sp">
+        <ImageView android:padding="4dp" android:layout_width="25dp" android:layout_height="25dp" android:src="@mipmap/ic_setting" android:tint="@color/black" />
+        <TextView android:textSize="15sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="模块设置" android:layout_marginStart="6dp" />
+    </LinearLayout>
+    <LinearLayout android:gravity="center_vertical" android:orientation="horizontal" android:id="@+id/btn_bill_mode" android:background="@drawable/selectable_item_expand_mask" android:layout_width="200dp" android:layout_height="50dp" android:paddingStart="12dp" android:paddingEnd="15sp">
+        <ImageView android:layout_width="25dp" android:layout_height="25dp" android:src="@mipmap/ic_calendar_mode" android:tint="@color/black" />
+        <TextView android:textSize="15sp" android:textColor="@color/black" android:id="@+id/bill_mode" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="消费分析" android:layout_marginStart="6dp" />
+    </LinearLayout>
+</LinearLayout>

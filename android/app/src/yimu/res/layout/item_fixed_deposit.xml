@@ -1,0 +1,42 @@
+<?xml version='1.0' encoding='utf-8'?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:orientation="vertical" android:background="@drawable/shape_bg_setting" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="15dp" android:layout_marginStart="15dp" android:layout_marginEnd="15dp">
+    <RelativeLayout android:id="@+id/fixed_deposit_layout" android:background="@drawable/selectable_item_expand_mask" android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingStart="15dp" android:paddingEnd="15dp">
+        <LinearLayout android:gravity="center_vertical" android:orientation="vertical" android:layout_width="match_parent" android:layout_height="60dp" android:layout_centerVertical="true" android:layout_marginEnd="10dp" android:layout_toStartOf="@+id/cost_layout">
+            <LinearLayout android:gravity="center" android:orientation="horizontal" android:layout_width="wrap_content" android:layout_height="wrap_content">
+                <TextView android:textSize="15sp" android:textStyle="bold" android:textColor="@color/black" android:id="@+id/fixed_deposit_num" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="1000" android:singleLine="true" />
+                <TextView android:textSize="13sp" android:textColor="@color/black" android:id="@+id/fixed_deposit_time" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="[3年]" android:singleLine="true" android:layout_marginStart="10dp" />
+            </LinearLayout>
+            <LinearLayout android:gravity="center_vertical" android:orientation="horizontal" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="5dp">
+                <TextView android:textSize="11sp" android:textColor="@color/darkGrey" android:ellipsize="end" android:id="@+id/date_info" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="2023.5.6到期" android:singleLine="true" />
+                <TextView android:textSize="11sp" android:textColor="@color/darkGrey" android:ellipsize="end" android:id="@+id/fixed_remark" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="" android:singleLine="true" android:layout_marginStart="10dp" />
+            </LinearLayout>
+        </LinearLayout>
+        <LinearLayout android:gravity="end|center_vertical" android:orientation="vertical" android:id="@+id/cost_layout" android:layout_width="wrap_content" android:layout_height="60dp" android:layout_centerVertical="true" android:layout_alignParentEnd="true">
+            <LinearLayout android:gravity="bottom" android:orientation="horizontal" android:layout_width="wrap_content" android:layout_height="wrap_content">
+                <TextView android:textSize="13sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="年利率" />
+                <TextView android:textSize="14sp" android:textColor="@color/black" android:id="@+id/rate_info" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="3.28%" />
+            </LinearLayout>
+            <TextView android:textSize="11sp" android:textColor="@color/darkGrey" android:id="@+id/income_info" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="5dp" android:text="预计收益566元" />
+        </LinearLayout>
+    </RelativeLayout>
+    <RelativeLayout android:id="@+id/bill_layout" android:background="@drawable/selectable_item_expand_mask" android:layout_width="match_parent" android:layout_height="55dp" android:paddingEnd="15dp">
+        <View android:background="@drawable/line_stroke" android:layout_width="match_parent" android:layout_height="1dp" android:layerType="software" android:layout_marginStart="15dp" />
+        <RelativeLayout android:id="@+id/start_layout" android:layout_width="wrap_content" android:layout_height="match_parent" android:layout_centerVertical="true">
+            <ImageView android:id="@+id/icon" android:layout_width="20dp" android:layout_height="20dp" android:layout_centerVertical="true" android:layout_marginStart="15dp" android:layout_marginEnd="10dp" />
+        </RelativeLayout>
+        <LinearLayout android:gravity="center_vertical" android:orientation="vertical" android:layout_width="wrap_content" android:layout_height="55dp" android:layout_centerVertical="true" android:layout_marginEnd="10dp" android:layout_toStartOf="@+id/asset_cost_layout" android:layout_toEndOf="@+id/start_layout">
+            <TextView android:textSize="14sp" android:textColor="@color/black" android:id="@+id/category" android:layout_width="wrap_content" android:layout_height="wrap_content" android:singleLine="true" />
+            <LinearLayout android:gravity="center_vertical" android:orientation="horizontal" android:id="@+id/second_layout" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="5dp">
+                <ImageView android:id="@+id/has_file_tag" android:visibility="gone" android:layout_width="12dp" android:layout_height="12dp" android:src="@mipmap/ic_bill_has_file" android:tint="@color/darkGrey" android:layout_marginEnd="5dp" />
+                <TextView android:textSize="9sp" android:ellipsize="end" android:gravity="center" android:id="@+id/tag_one" android:visibility="gone" android:layout_width="wrap_content" android:layout_height="16dp" android:maxWidth="60dp" android:text="旅游账单" android:singleLine="true" android:paddingStart="5dp" android:paddingEnd="5dp" android:layout_marginEnd="5dp" />
+                <TextView android:textSize="9sp" android:ellipsize="end" android:gravity="center" android:id="@+id/tag_two" android:visibility="gone" android:layout_width="wrap_content" android:layout_height="16dp" android:maxWidth="60dp" android:text="旅游账单" android:singleLine="true" android:paddingStart="5dp" android:paddingEnd="5dp" android:layout_marginEnd="5dp" />
+                <TextView android:textSize="9sp" android:ellipsize="end" android:gravity="center" android:id="@+id/tag_three" android:visibility="gone" android:layout_width="wrap_content" android:layout_height="16dp" android:maxWidth="60dp" android:text="旅游账单" android:singleLine="true" android:paddingStart="5dp" android:paddingEnd="5dp" android:layout_marginEnd="5dp" />
+                <TextView android:textSize="11sp" android:textColor="@color/darkGrey" android:ellipsize="end" android:id="@+id/remark" android:layout_width="wrap_content" android:layout_height="wrap_content" android:singleLine="true" />
+            </LinearLayout>
+        </LinearLayout>
+        <LinearLayout android:gravity="end" android:orientation="vertical" android:id="@+id/asset_cost_layout" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_centerVertical="true" android:layout_alignParentEnd="true">
+            <TextView android:textSize="15sp" android:id="@+id/cost" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+            <TextView android:textSize="10sp" android:textColor="@color/darkGrey" android:id="@+id/asset" android:visibility="gone" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:maxWidth="100dp" android:text="支付宝" android:singleLine="true" />
+        </LinearLayout>
+    </RelativeLayout>
+</LinearLayout>

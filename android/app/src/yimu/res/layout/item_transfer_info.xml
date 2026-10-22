@@ -1,0 +1,15 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/total_layout" android:background="@drawable/selectable_item_expand_mask" android:layout_width="match_parent" android:layout_height="55dp" android:paddingStart="15dp" android:paddingEnd="15dp">
+    <LinearLayout android:gravity="center_vertical" android:orientation="vertical" android:layout_width="match_parent" android:layout_height="55dp" android:layout_centerVertical="true" android:layout_marginEnd="10dp" android:layout_toStartOf="@+id/cost_layout">
+        <TextView android:textSize="14sp" android:textColor="@color/black" android:id="@+id/transfer_info" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="支付宝-&gt;现金" android:singleLine="true" />
+        <LinearLayout android:gravity="center_vertical" android:orientation="horizontal" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="4dp">
+            <ImageView android:id="@+id/has_file_tag" android:visibility="gone" android:layout_width="12dp" android:layout_height="12dp" android:src="@mipmap/ic_bill_has_file" android:tint="@color/darkGrey" android:layout_marginEnd="5dp" />
+            <TextView android:textSize="12sp" android:textColor="@color/darkGrey" android:ellipsize="end" android:id="@+id/date" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="今日" android:singleLine="true" />
+            <TextView android:textSize="12sp" android:textColor="@color/darkGrey" android:ellipsize="end" android:id="@+id/remark" android:layout_width="wrap_content" android:layout_height="wrap_content" android:singleLine="true" android:layout_marginStart="10dp" />
+        </LinearLayout>
+    </LinearLayout>
+    <LinearLayout android:gravity="end" android:orientation="vertical" android:id="@+id/cost_layout" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_centerVertical="true" android:layout_alignParentEnd="true">
+        <TextView android:textSize="15sp" android:textColor="@color/black" android:id="@+id/cost" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0.00" />
+        <TextView android:textSize="12sp" android:textColor="@color/grey" android:id="@+id/service_charge" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="3dp" android:text="手续费：0.00" />
+    </LinearLayout>
+</RelativeLayout>

@@ -1,0 +1,86 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android" android:background="@color/backgroundLight" android:layout_width="match_parent" android:layout_height="match_parent">
+    <RelativeLayout android:id="@+id/tool_bar" android:background="@color/white" android:layout_width="match_parent" android:layout_height="50dp">
+        <ImageView android:id="@+id/btn_back" android:background="@drawable/selectable_item_circle" android:padding="16dp" android:layout_width="50dp" android:layout_height="50dp" android:src="@mipmap/ic_back" android:scaleType="fitCenter" android:tint="@color/black" />
+        <TextView android:textSize="18sp" android:textStyle="bold" android:textColor="@color/black" android:gravity="center" android:id="@+id/title" android:layout_width="wrap_content" android:layout_height="50dp" android:maxWidth="180dp" android:text="小票导出" android:singleLine="true" android:layout_toEndOf="@+id/btn_back" />
+        <ImageView android:id="@+id/download" android:background="@drawable/selectable_item_circle" android:padding="16dp" android:layout_width="50dp" android:layout_height="50dp" android:src="@mipmap/ic_download" android:scaleType="fitXY" android:tint="@color/black" android:layout_toStartOf="@+id/right_text" />
+        <TextView android:textSize="15sp" android:textColor="@color/black" android:gravity="center_vertical" android:id="@+id/right_text" android:background="@drawable/selectable_item_circle" android:layout_width="wrap_content" android:layout_height="50dp" android:text="导出" android:singleLine="true" android:paddingStart="10dp" android:paddingEnd="10dp" android:layout_marginEnd="5dp" android:layout_alignParentEnd="true" />
+    </RelativeLayout>
+    <androidx.core.widget.NestedScrollView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_below="@+id/tool_bar">
+        <LinearLayout android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content">
+            <FrameLayout android:id="@+id/share_layout" android:background="@color/white" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="15dp" android:layout_marginBottom="15dp" android:layout_marginStart="30dp" android:layout_marginEnd="30dp">
+                <ImageView android:id="@+id/background" android:layout_width="match_parent" android:layout_height="wrap_content" android:scaleType="centerCrop" android:layout_alignBottom="@+id/content_layout" />
+                <LinearLayout android:orientation="vertical" android:id="@+id/content_layout" android:paddingTop="20dp" android:paddingBottom="20dp" android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingStart="20dp" android:paddingEnd="20dp">
+                    <RelativeLayout android:layout_width="match_parent" android:layout_height="wrap_content">
+                        <LinearLayout android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content">
+                            <TextView android:textSize="15sp" android:textStyle="bold" android:textColor="@color/blackNoChange" android:id="@+id/nick_name" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="一木川川" />
+                            <TextView android:textSize="30sp" android:textStyle="bold" android:textColor="@color/blackNoChange" android:id="@+id/title_info" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:text="1127" />
+                            <LinearLayout android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp">
+                                <TextView android:textSize="13sp" android:textColor="@color/blackNoChange" android:id="@+id/book_info" android:layout_width="0dp" android:layout_height="wrap_content" android:text="日常账本" android:layout_weight="1" />
+                                <TextView android:textSize="13sp" android:textColor="@color/blackNoChange" android:gravity="end" android:id="@+id/time_info" android:layout_width="0dp" android:layout_height="wrap_content" android:text="2025-11-27 20:14:48" android:layout_weight="1" />
+                            </LinearLayout>
+                        </LinearLayout>
+                        <ImageView android:id="@+id/logo" android:layout_width="60dp" android:layout_height="60dp" android:src="@mipmap/ic_receipt_logo" android:layout_alignParentEnd="true" />
+                    </RelativeLayout>
+                    <View android:background="@color/blackNoChange" android:layout_width="match_parent" android:layout_height="1dp" android:layout_marginTop="15dp" android:layerType="software" />
+                    <LinearLayout android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="15dp">
+                        <TextView android:textSize="13sp" android:textStyle="bold" android:textColor="@color/blackNoChange" android:layout_width="0dp" android:layout_height="wrap_content" android:text="分类" android:layout_weight="1" />
+                        <TextView android:textSize="13sp" android:textStyle="bold" android:textColor="@color/blackNoChange" android:gravity="center_horizontal" android:layout_width="0dp" android:layout_height="wrap_content" android:text="笔数" android:layout_weight="1" />
+                        <TextView android:textSize="13sp" android:textStyle="bold" android:textColor="@color/blackNoChange" android:gravity="end" android:layout_width="0dp" android:layout_height="wrap_content" android:text="金额" android:layout_weight="1" />
+                    </LinearLayout>
+                    <View android:background="@drawable/receipt_line_stroke" android:layout_width="match_parent" android:layout_height="2dp" android:layout_marginTop="15dp" android:layerType="software" />
+                    <androidx.recyclerview.widget.RecyclerView android:id="@+id/data_list" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" />
+                    <View android:background="@drawable/receipt_line_stroke" android:layout_width="match_parent" android:layout_height="2dp" android:layout_marginTop="10dp" android:layerType="software" />
+                    <RelativeLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="15dp">
+                        <TextView android:textSize="13sp" android:textColor="@color/blackNoChange" android:gravity="end" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="笔数" />
+                        <TextView android:textSize="13sp" android:textStyle="bold" android:textColor="@color/blackNoChange" android:gravity="end" android:id="@+id/total_num" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="3" android:layout_alignParentEnd="true" />
+                    </RelativeLayout>
+                    <RelativeLayout android:id="@+id/income_layout" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="10dp">
+                        <TextView android:textSize="13sp" android:textColor="@color/blackNoChange" android:gravity="end" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="收入合计" />
+                        <TextView android:textSize="13sp" android:textStyle="bold" android:textColor="@color/blackNoChange" android:gravity="end" android:id="@+id/total_income" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="+13.33" android:layout_alignParentEnd="true" />
+                    </RelativeLayout>
+                    <RelativeLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="10dp">
+                        <TextView android:textSize="13sp" android:textColor="@color/blackNoChange" android:gravity="end" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="支出合计" />
+                        <TextView android:textSize="13sp" android:textStyle="bold" android:textColor="@color/blackNoChange" android:gravity="end" android:id="@+id/total_pay" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="-13.33" android:layout_alignParentEnd="true" />
+                    </RelativeLayout>
+                    <RelativeLayout android:id="@+id/balance_layout" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="10dp">
+                        <TextView android:textSize="13sp" android:textColor="@color/blackNoChange" android:gravity="end" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="结余" />
+                        <TextView android:textSize="13sp" android:textStyle="bold" android:textColor="@color/blackNoChange" android:gravity="end" android:id="@+id/total_balance" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="13.33" android:layout_alignParentEnd="true" />
+                    </RelativeLayout>
+                    <View android:background="@color/blackNoChange" android:layout_width="match_parent" android:layout_height="1dp" android:layout_marginTop="15dp" android:layerType="software" />
+                    <RelativeLayout android:layout_width="match_parent" android:layout_height="60dp" android:layout_marginTop="15dp">
+                        <ImageView android:id="@+id/qr_code" android:layout_width="60dp" android:layout_height="60dp" android:layout_alignParentEnd="true" />
+                        <LinearLayout android:orientation="vertical" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_alignParentBottom="true">
+                            <TextView android:textSize="14sp" android:textStyle="bold" android:textColor="@color/blackNoChange" android:gravity="end" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="「一木记账」" />
+                            <TextView android:textSize="12sp" android:textColor="@color/grey" android:gravity="end" android:id="@+id/slogan" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="5dp" android:text="给未来存一点“底气”" />
+                        </LinearLayout>
+                    </RelativeLayout>
+                </LinearLayout>
+            </FrameLayout>
+            <LinearLayout android:orientation="vertical" android:background="@drawable/shape_bg_setting" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="60dp" android:layout_marginStart="15dp" android:layout_marginEnd="15dp">
+                <RelativeLayout android:id="@+id/book_layout" android:layout_width="match_parent" android:layout_height="55dp" android:paddingStart="15dp" android:paddingEnd="15dp">
+                    <TextView android:textSize="15sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="选择账本" android:layout_centerVertical="true" />
+                    <TextView android:textSize="13sp" android:textColor="@color/black" android:id="@+id/book_name" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="日常账本" android:layout_centerVertical="true" android:layout_alignParentEnd="true" />
+                </RelativeLayout>
+                <RelativeLayout android:id="@+id/date_layout" android:layout_width="match_parent" android:layout_height="55dp" android:paddingStart="15dp" android:paddingEnd="15dp">
+                    <TextView android:textSize="15sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="选择日期" android:layout_centerVertical="true" />
+                    <TextView android:textSize="13sp" android:textColor="@color/black" android:id="@+id/date_info" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="今天" android:layout_centerVertical="true" android:layout_alignParentEnd="true" />
+                </RelativeLayout>
+                <RelativeLayout android:background="?android:attr/selectableItemBackground" android:layout_width="match_parent" android:layout_height="55dp" android:paddingStart="15dp" android:paddingEnd="15dp">
+                    <LinearLayout android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_centerVertical="true">
+                        <TextView android:textSize="15sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="显示收入" />
+                    </LinearLayout>
+                    <Switch android:id="@+id/switch_show_income" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_centerVertical="true" android:layout_alignParentEnd="true" />
+                </RelativeLayout>
+                <RelativeLayout android:id="@+id/background_layout" android:layout_width="match_parent" android:layout_height="55dp" android:paddingStart="15dp" android:paddingEnd="15dp">
+                    <TextView android:textSize="15sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="选择背景" android:layout_centerVertical="true" />
+                    <ImageView android:id="@+id/more" android:layout_width="15dp" android:layout_height="15dp" android:src="@mipmap/ic_more" android:tint="@color/grey" android:layout_centerVertical="true" android:layout_alignParentEnd="true" />
+                </RelativeLayout>
+                <RelativeLayout android:id="@+id/alpha_layout" android:layout_width="match_parent" android:layout_height="55dp" android:paddingStart="15dp">
+                    <TextView android:textSize="15sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="背景透明度" android:layout_centerVertical="true" />
+                    <SeekBar android:id="@+id/background_seek_bar" android:layout_width="200dp" android:layout_height="wrap_content" android:progress="100" android:layout_centerVertical="true" android:layout_alignParentEnd="true" style="@style/CustomSeekbarStyle" />
+                </RelativeLayout>
+            </LinearLayout>
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+</RelativeLayout>

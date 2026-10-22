@@ -1,0 +1,22 @@
+<?xml version='1.0' encoding='utf-8'?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android" android:background="@color/backgroundLight" android:layout_width="match_parent" android:layout_height="match_parent">
+    <LinearLayout android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content">
+        <LinearLayout android:orientation="vertical" android:background="@color/white" android:layout_width="match_parent" android:layout_height="wrap_content">
+            <RelativeLayout android:id="@+id/night_theme_auto" android:background="?android:attr/selectableItemBackground" android:layout_width="match_parent" android:layout_height="60dp" android:paddingStart="15dp" android:paddingEnd="15dp">
+                <TextView android:textSize="15sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="夜间模式自动开启" android:layout_centerVertical="true" />
+                <TextView android:textSize="13sp" android:textColor="@color/grey" android:id="@+id/night_theme_status" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="关闭" android:layout_centerVertical="true" android:layout_marginEnd="10dp" android:layout_toStartOf="@+id/ic_more" />
+                <ImageView android:id="@+id/ic_more" android:layout_width="18dp" android:layout_height="18dp" android:src="@mipmap/ic_more" android:tint="@color/grey" android:layout_centerVertical="true" android:layout_alignParentEnd="true" />
+            </RelativeLayout>
+            <RelativeLayout android:id="@+id/start_time" android:background="?android:attr/selectableItemBackground" android:visibility="gone" android:layout_width="match_parent" android:layout_height="60dp" android:paddingStart="15dp" android:paddingEnd="15dp">
+                <TextView android:textSize="15sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="开始时间" android:layout_centerVertical="true" />
+                <TextView android:textSize="13sp" android:textColor="@color/grey" android:id="@+id/start_time_status" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="下午8点" android:layout_centerVertical="true" android:layout_marginEnd="10dp" android:layout_toStartOf="@+id/start_time_more" />
+                <ImageView android:id="@+id/start_time_more" android:layout_width="18dp" android:layout_height="18dp" android:src="@mipmap/ic_more" android:tint="@color/grey" android:layout_centerVertical="true" android:layout_alignParentEnd="true" />
+            </RelativeLayout>
+            <RelativeLayout android:id="@+id/end_time" android:background="?android:attr/selectableItemBackground" android:visibility="gone" android:layout_width="match_parent" android:layout_height="60dp" android:paddingStart="15dp" android:paddingEnd="15dp">
+                <TextView android:textSize="15sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="结束时间" android:layout_centerVertical="true" />
+                <TextView android:textSize="13sp" android:textColor="@color/grey" android:id="@+id/end_time_status" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="早上7点" android:layout_centerVertical="true" android:layout_marginEnd="10dp" android:layout_toStartOf="@+id/end_time_more" />
+                <ImageView android:id="@+id/end_time_more" android:layout_width="18dp" android:layout_height="18dp" android:src="@mipmap/ic_more" android:tint="@color/grey" android:layout_centerVertical="true" android:layout_alignParentEnd="true" />
+            </RelativeLayout>
+        </LinearLayout>
+    </LinearLayout>
+</ScrollView>

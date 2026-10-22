@@ -1,0 +1,57 @@
+<?xml version='1.0' encoding='utf-8'?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:orientation="vertical" android:background="@color/backgroundLight" android:layout_width="match_parent" android:layout_height="match_parent">
+    <RelativeLayout android:id="@+id/tool_bar" android:background="@color/white" android:layout_width="match_parent" android:layout_height="50dp">
+        <ImageView android:id="@+id/btn_back" android:background="@drawable/selectable_item_circle" android:padding="17dp" android:layout_width="50dp" android:layout_height="50dp" android:src="@mipmap/ic_close" android:scaleType="fitCenter" android:tint="@color/black" android:layout_centerVertical="true" />
+        <ImageView android:id="@+id/btn_delete" android:background="@drawable/selectable_item_circle" android:padding="14dp" android:visibility="gone" android:layout_width="50dp" android:layout_height="50dp" android:src="@mipmap/ic_delete" android:scaleType="fitCenter" android:tint="@color/black" android:layout_centerVertical="true" android:layout_toStartOf="@+id/btn_complete" />
+        <ImageView android:id="@+id/btn_complete" android:background="@drawable/selectable_item_circle" android:padding="12dp" android:layout_width="50dp" android:layout_height="50dp" android:src="@mipmap/ic_tick" android:scaleType="fitCenter" android:tint="@color/black" android:layout_centerVertical="true" android:layout_alignParentEnd="true" />
+        <TextView android:textSize="18sp" android:textStyle="bold" android:textColor="@color/black" android:id="@+id/title" android:layout_width="wrap_content" android:layout_height="wrap_content" android:maxWidth="180dp" android:text="定期存款" android:singleLine="true" android:layout_centerVertical="true" android:layout_toEndOf="@+id/btn_back" />
+    </RelativeLayout>
+    <ScrollView android:layout_width="match_parent" android:layout_height="match_parent" android:overScrollMode="never">
+        <LinearLayout android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content">
+            <LinearLayout android:orientation="vertical" android:background="@drawable/shape_bg_setting" android:visibility="gone" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="15dp" android:layout_marginStart="15dp" android:layout_marginEnd="15dp">
+                <RelativeLayout android:id="@+id/deposit_type_layout" android:background="@drawable/selectable_item_expand_mask" android:layout_width="match_parent" android:layout_height="50dp" android:paddingEnd="10dp">
+                    <ImageView android:id="@+id/deposit_type_more" android:layout_width="18dp" android:layout_height="18dp" android:src="@mipmap/ic_more" android:tint="@color/grey" android:layout_centerVertical="true" android:layout_alignParentEnd="true" />
+                    <TextView android:textSize="14sp" android:textColor="@color/black" android:id="@+id/deposit_type_title" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="定存类型" android:layout_centerVertical="true" android:layout_marginStart="15dp" android:layout_marginEnd="15dp" />
+                    <TextView android:textSize="13sp" android:textColor="@color/black" android:textColorHint="@color/grey" android:gravity="center" android:id="@+id/deposit_type" android:layout_width="wrap_content" android:layout_height="50dp" android:text="整存整取" android:singleLine="true" android:layout_marginEnd="5dp" android:layout_toStartOf="@+id/deposit_type_more" />
+                </RelativeLayout>
+            </LinearLayout>
+            <LinearLayout android:orientation="horizontal" android:background="@drawable/shape_bg_setting" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_margin="15dp">
+                <LinearLayout android:orientation="vertical" android:layout_width="wrap_content" android:layout_height="wrap_content" android:paddingStart="15dp" android:layout_marginEnd="15dp">
+                    <TextView android:textSize="14sp" android:textColor="@color/black" android:gravity="end|center_vertical" android:layout_width="match_parent" android:layout_height="50dp" android:text="存入金额" />
+                    <TextView android:textSize="14sp" android:textColor="@color/black" android:gravity="end|center_vertical" android:layout_width="match_parent" android:layout_height="50dp" android:text="年利率" />
+                    <TextView android:textSize="14sp" android:textColor="@color/black" android:gravity="end|center_vertical" android:layout_width="match_parent" android:layout_height="50dp" android:text="存期" />
+                    <TextView android:textSize="14sp" android:textColor="@color/black" android:gravity="end|center_vertical" android:layout_width="match_parent" android:layout_height="50dp" android:text="备注" />
+                </LinearLayout>
+                <LinearLayout android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content">
+                    <RelativeLayout android:layout_width="match_parent" android:layout_height="50dp" android:layout_marginEnd="15dp">
+                        <EditText android:textSize="14sp" android:textColor="@color/black" android:textColorHint="@color/grey" android:id="@+id/deposit_num" android:background="@color/translate" android:layout_width="match_parent" android:layout_height="50dp" android:hint="输入存入金额" android:singleLine="true" android:inputType="numberDecimal" />
+                    </RelativeLayout>
+                    <RelativeLayout android:id="@+id/type_code_layout" android:layout_width="match_parent" android:layout_height="50dp" android:layout_marginEnd="15dp">
+                        <EditText android:textSize="14sp" android:textColor="@color/black" android:textColorHint="@color/grey" android:id="@+id/deposit_rate" android:background="@color/translate" android:layout_width="match_parent" android:layout_height="50dp" android:hint="输入年利率" android:singleLine="true" android:inputType="numberDecimal" />
+                        <TextView android:textSize="14sp" android:textColor="@color/black" android:gravity="center" android:layout_width="40dp" android:layout_height="match_parent" android:text="%" android:layout_alignParentEnd="true" />
+                    </RelativeLayout>
+                    <RelativeLayout android:layout_width="match_parent" android:layout_height="50dp" android:layout_marginEnd="15dp">
+                        <EditText android:textSize="14sp" android:textColor="@color/black" android:textColorHint="@color/grey" android:id="@+id/deposit_term" android:background="@color/translate" android:layout_width="match_parent" android:layout_height="50dp" android:hint="输入存期" android:singleLine="true" android:inputType="number" />
+                        <ImageView android:layout_width="8dp" android:layout_height="8dp" android:layout_marginBottom="8dp" android:src="@mipmap/ic_bottom_more" android:tint="@color/colorPrimary" android:layout_alignParentBottom="true" android:layout_marginEnd="8dp" android:layout_alignParentEnd="true" />
+                        <TextView android:textSize="14sp" android:textColor="@color/black" android:gravity="center" android:id="@+id/term_type" android:layout_width="40dp" android:layout_height="match_parent" android:text="年" android:layout_alignParentEnd="true" />
+                    </RelativeLayout>
+                    <RelativeLayout android:layout_width="match_parent" android:layout_height="50dp" android:layout_marginEnd="15dp">
+                        <EditText android:textSize="14sp" android:textColor="@color/black" android:textColorHint="@color/grey" android:id="@+id/remark" android:background="@color/translate" android:layout_width="match_parent" android:layout_height="50dp" android:hint="输入备注" android:singleLine="true" />
+                    </RelativeLayout>
+                </LinearLayout>
+            </LinearLayout>
+            <LinearLayout android:orientation="vertical" android:background="@drawable/shape_bg_setting" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="15dp" android:layout_marginStart="15dp" android:layout_marginEnd="15dp">
+                <RelativeLayout android:id="@+id/start_time_layout" android:background="@drawable/selectable_item_expand_mask" android:layout_width="match_parent" android:layout_height="50dp" android:paddingEnd="10dp">
+                    <ImageView android:id="@+id/start_time_more" android:layout_width="18dp" android:layout_height="18dp" android:src="@mipmap/ic_more" android:tint="@color/grey" android:layout_centerVertical="true" android:layout_alignParentEnd="true" />
+                    <TextView android:textSize="14sp" android:textColor="@color/black" android:id="@+id/start_time_title" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="存入日期" android:layout_centerVertical="true" android:layout_marginStart="15dp" android:layout_marginEnd="15dp" />
+                    <TextView android:textSize="13sp" android:textColor="@color/black" android:textColorHint="@color/grey" android:gravity="center" android:id="@+id/start_time" android:layout_width="wrap_content" android:layout_height="50dp" android:text="2023年03月14日" android:singleLine="true" android:layout_toStartOf="@+id/start_time_more" />
+                </RelativeLayout>
+                <RelativeLayout android:background="@drawable/selectable_item_expand_mask" android:layout_width="match_parent" android:layout_height="50dp" android:paddingEnd="10dp">
+                    <TextView android:textSize="14sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="预计收益" android:layout_centerVertical="true" android:layout_marginStart="15dp" android:layout_marginEnd="15dp" />
+                    <TextView android:textSize="13sp" android:textColor="@color/black" android:textColorHint="@color/grey" android:gravity="center" android:id="@+id/projected_revenue" android:layout_width="wrap_content" android:layout_height="50dp" android:text="0" android:singleLine="true" android:layout_marginEnd="10dp" android:layout_alignParentEnd="true" />
+                </RelativeLayout>
+            </LinearLayout>
+            <TextView android:textSize="12sp" android:textColor="@color/grey" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="提示：\10定存不会影响当前账户金额，到期后将自动生成一笔收益账单\10如要计入总资产，可手动将定存金额加入账户余额中" android:lineSpacingExtra="5dp" android:layout_marginStart="15dp" android:layout_marginEnd="15dp" />
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/icon_type"
+        android:title="图标风格"/>
+    <item
+        android:id="@+id/hide_category"
+        android:title="按账本显示/隐藏"/>
+    <item
+        android:id="@+id/show_book_category"
+        android:title="仅显示当前账本分类"/>
+    <item
+        android:id="@+id/delete_category"
+        android:title="快捷删除分类"/>
+    <item
+        android:id="@+id/restore_system"
+        android:title="恢复系统分类"/>
+</menu>

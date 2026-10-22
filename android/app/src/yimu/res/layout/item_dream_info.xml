@@ -1,0 +1,29 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="15dp" android:layout_marginStart="15dp" android:layout_marginEnd="15dp">
+    <LinearLayout android:orientation="vertical" android:id="@+id/total_layout" android:background="@drawable/shape_bg_setting" android:padding="15dp" android:layout_width="match_parent" android:layout_height="wrap_content">
+        <LinearLayout android:gravity="center" android:orientation="horizontal" android:layout_width="wrap_content" android:layout_height="wrap_content">
+            <RelativeLayout android:layout_width="35dp" android:layout_height="35dp">
+                <ImageView android:id="@+id/dream_image_night" android:visibility="gone" android:layout_width="match_parent" android:layout_height="match_parent" />
+                <ImageView android:id="@+id/dream_image" android:layout_width="35dp" android:layout_height="35dp" android:src="@mipmap/ic_launcher_no_color" app:oval="true" />
+            </RelativeLayout>
+            <LinearLayout android:orientation="vertical" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="10dp">
+                <TextView android:textSize="15dp" android:textColor="@color/black" android:id="@+id/dream_name" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="日常账本" />
+                <TextView android:textSize="12dp" android:textColor="@color/grey" android:id="@+id/dream_remark" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="3dp" android:text="我是备注" />
+            </LinearLayout>
+        </LinearLayout>
+        <RelativeLayout android:id="@+id/num_progress" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="15dp">
+            <FrameLayout android:id="@+id/num_progress_one" android:layout_width="match_parent" android:layout_height="5dp" />
+            <FrameLayout android:id="@+id/num_progress_two" android:layout_width="match_parent" android:layout_height="5dp" />
+        </RelativeLayout>
+        <RelativeLayout android:id="@+id/num_info" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="5dp">
+            <TextView android:textSize="12dp" android:textColor="@color/textColorPrimary" android:id="@+id/total_num" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="10000 / 490000" android:singleLine="true" />
+            <TextView android:textSize="12dp" android:textColor="@color/textColorPrimary" android:id="@+id/progress_num" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="30%" android:singleLine="true" android:layout_alignParentEnd="true" />
+        </RelativeLayout>
+        <TextView android:textSize="12dp" android:textColor="@color/darkGrey" android:id="@+id/time_info" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:text="剩余212天" android:singleLine="true" />
+    </LinearLayout>
+    <LinearLayout android:orientation="horizontal" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_alignParentEnd="true">
+        <ImageView android:id="@+id/dream_add_info" android:background="@drawable/selectable_item_circle" android:padding="9dp" android:layout_width="40dp" android:layout_height="40dp" android:src="@mipmap/ic_log" android:tint="@color/iconTint" />
+        <ImageView android:id="@+id/dream_add_num" android:background="@drawable/selectable_item_circle" android:padding="10dp" android:layout_width="40dp" android:layout_height="40dp" android:src="@mipmap/ic_add_asset" android:tint="@color/iconTint" />
+    </LinearLayout>
+    <ImageView android:id="@+id/dream_finish" android:visibility="gone" android:layout_width="wrap_content" android:layout_height="wrap_content" android:src="@mipmap/ic_dream_finish" android:tint="@color/textColorPrimary" android:layout_alignParentEnd="true" />
+</RelativeLayout>

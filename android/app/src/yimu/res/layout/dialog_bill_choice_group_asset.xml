@@ -1,0 +1,21 @@
+<?xml version='1.0' encoding='utf-8'?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:orientation="vertical" android:background="@drawable/bg_add_bill_dialog" android:layout_width="match_parent" android:layout_height="wrap_content">
+    <RelativeLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:layout_marginBottom="10dp" android:paddingStart="15dp">
+        <TextView android:textSize="15sp" android:textStyle="bold" android:textColor="@color/black" android:id="@+id/title" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:text="选择多个账户" />
+        <ImageView android:id="@+id/change_mode" android:background="@drawable/selectable_item_circle" android:padding="12dp" android:layout_width="40dp" android:layout_height="40dp" android:src="@mipmap/ic_asset_choice_one" android:tint="@color/black" android:layout_toStartOf="@+id/btn_complete" />
+        <ImageView android:id="@+id/btn_complete" android:background="@drawable/selectable_item_circle" android:padding="7dp" android:layout_width="40dp" android:layout_height="40dp" android:src="@mipmap/ic_tick" android:tint="@color/black" android:layout_marginEnd="10dp" android:layout_alignParentEnd="true" />
+    </RelativeLayout>
+    <androidx.core.widget.NestedScrollView android:layout_width="match_parent" android:layout_height="wrap_content">
+        <LinearLayout android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content">
+            <RelativeLayout android:id="@+id/group_list_layout" android:visibility="gone" android:layout_width="match_parent" android:layout_height="wrap_content">
+                <View android:background="@color/divider" android:layout_width="match_parent" android:layout_height="1px" />
+                <LinearLayout android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="400dp">
+                    <androidx.recyclerview.widget.RecyclerView android:id="@+id/group_list" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="3" android:overScrollMode="never" />
+                    <View android:background="@color/divider" android:layout_width="1px" android:layout_height="match_parent" />
+                    <androidx.recyclerview.widget.RecyclerView android:id="@+id/asset_list" android:padding="5dp" android:layout_width="0dp" android:layout_height="wrap_content" android:minHeight="150dp" android:layout_weight="7" android:overScrollMode="never" android:paddingStart="5dp" />
+                </LinearLayout>
+            </RelativeLayout>
+            <androidx.recyclerview.widget.RecyclerView android:id="@+id/data_list" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="400dp" android:overScrollMode="never" android:paddingStart="5dp" android:paddingEnd="5dp" />
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+</LinearLayout>

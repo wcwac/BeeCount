@@ -1,0 +1,25 @@
+<?xml version='1.0' encoding='utf-8'?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:orientation="vertical" android:background="@drawable/shape_bg_setting" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="15dp">
+    <RelativeLayout android:id="@+id/category_layout" android:background="@drawable/selectable_item_expand_mask" android:layout_width="match_parent" android:layout_height="40dp" android:paddingStart="15dp" android:paddingEnd="15dp">
+        <TextView android:textSize="14sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="分类" android:layout_centerVertical="true" />
+        <ImageView android:id="@+id/category_icon" android:layout_width="16dp" android:layout_height="16dp" android:src="@mipmap/ic_parent_other" android:layout_centerVertical="true" android:layout_marginEnd="6dp" android:layout_toStartOf="@+id/category" />
+        <TextView android:textSize="13sp" android:textColor="@color/black" android:id="@+id/category" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="其他" android:layout_centerVertical="true" android:layout_alignParentEnd="true" />
+    </RelativeLayout>
+    <RelativeLayout android:id="@+id/num_layout" android:background="@drawable/selectable_item_expand_mask" android:layout_width="match_parent" android:layout_height="40dp" android:paddingStart="15dp" android:paddingEnd="15dp">
+        <TextView android:textSize="14sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="金额" android:layout_centerVertical="true" />
+        <EditText android:textSize="14sp" android:textColor="@color/black" android:textColorHint="@color/grey" android:gravity="end|center_vertical" android:id="@+id/num" android:background="@color/transparent" android:layout_width="wrap_content" android:layout_height="match_parent" android:minWidth="100dp" android:hint="0.00" android:selectAllOnFocus="true" android:layout_centerVertical="true" android:inputType="numberDecimal" android:imeOptions="actionDone" android:layout_alignParentEnd="true" />
+    </RelativeLayout>
+    <RelativeLayout android:id="@+id/asset_layout" android:background="@drawable/selectable_item_expand_mask" android:layout_width="match_parent" android:layout_height="40dp" android:paddingStart="15dp" android:paddingEnd="15dp">
+        <TextView android:textSize="14sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="账户" android:layout_centerVertical="true" />
+        <ImageView android:id="@+id/asset_icon" android:layout_width="16dp" android:layout_height="16dp" android:src="@mipmap/ic_no_asset" android:layout_centerVertical="true" android:layout_marginEnd="6dp" android:layout_toStartOf="@+id/asset" />
+        <TextView android:textSize="13sp" android:textColor="@color/black" android:id="@+id/asset" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="无账户" android:layout_centerVertical="true" android:layout_alignParentEnd="true" />
+    </RelativeLayout>
+    <RelativeLayout android:id="@+id/remark_layout" android:background="@drawable/selectable_item_expand_mask" android:layout_width="match_parent" android:layout_height="40dp" android:paddingStart="15dp" android:paddingEnd="15dp">
+        <TextView android:textSize="14sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="备注" android:layout_centerVertical="true" />
+        <EditText android:textSize="13sp" android:textColor="@color/black" android:textColorHint="@color/grey" android:gravity="end|center_vertical" android:id="@+id/remark" android:background="@color/transparent" android:layout_width="wrap_content" android:layout_height="match_parent" android:minWidth="200dp" android:hint="输入备注" android:singleLine="true" android:layout_centerVertical="true" android:imeOptions="actionDone" android:layout_alignParentEnd="true" />
+    </RelativeLayout>
+    <LinearLayout android:gravity="center" android:orientation="horizontal" android:id="@+id/delete_layout" android:background="@drawable/selectable_item_expand_mask" android:layout_width="match_parent" android:layout_height="40dp">
+        <ImageView android:layout_width="20dp" android:layout_height="20dp" android:src="@mipmap/ic_delete" android:tint="@color/red" />
+        <TextView android:textSize="14sp" android:textColor="@color/red" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="删除" android:layout_marginStart="10dp" />
+    </LinearLayout>
+</LinearLayout>

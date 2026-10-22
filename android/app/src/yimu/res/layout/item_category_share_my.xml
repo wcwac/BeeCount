@@ -1,0 +1,16 @@
+<?xml version='1.0' encoding='utf-8'?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:gravity="center_horizontal" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="20dp">
+    <LinearLayout android:gravity="center" android:orientation="vertical" android:id="@+id/total_layout" android:background="@drawable/shape_bg_setting" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginStart="10dp" android:layout_marginEnd="10dp">
+        <RelativeLayout android:layout_width="match_parent" android:layout_height="wrap_content">
+            <FrameLayout android:id="@+id/share_cover" android:layout_width="wrap_content" android:layout_height="wrap_content" android:src="@mipmap/ic_temp" android:layout_centerHorizontal="true" />
+            <ImageView android:id="@+id/btn_menu" android:background="@drawable/selectable_item_circle" android:padding="5dp" android:layout_width="30dp" android:layout_height="30dp" android:layout_marginTop="10dp" android:src="@mipmap/ic_bar_more" android:tint="@color/textColorBlack" android:layout_alignParentEnd="true" />
+        </RelativeLayout>
+        <RelativeLayout android:layout_width="match_parent" android:layout_height="wrap_content">
+            <TextView android:textSize="13sp" android:textColor="@color/black" android:gravity="center_horizontal" android:id="@+id/share_name" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="15dp" android:layout_marginBottom="15dp" android:maxWidth="130dp" android:text="日常账本分类" android:singleLine="true" android:layout_marginStart="30dp" android:layout_marginEnd="30dp" />
+            <LinearLayout android:gravity="center" android:orientation="horizontal" android:layout_width="wrap_content" android:layout_height="50dp" android:layout_centerVertical="true" android:paddingEnd="10dp" android:layout_alignParentEnd="true">
+                <ImageView android:layout_width="12dp" android:layout_height="12dp" android:src="@mipmap/ic_not_collect" android:tint="@color/iconTint" />
+                <TextView android:textSize="10dp" android:typeface="monospace" android:textColor="@color/iconTint" android:id="@+id/collect_num" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="9" android:includeFontPadding="false" android:layout_marginStart="3dp" />
+            </LinearLayout>
+        </RelativeLayout>
+    </LinearLayout>
+</LinearLayout>

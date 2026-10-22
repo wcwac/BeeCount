@@ -1,0 +1,40 @@
+<?xml version='1.0' encoding='utf-8'?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:orientation="vertical" android:background="@color/backgroundLight" android:layout_width="match_parent" android:layout_height="match_parent">
+    <RelativeLayout android:id="@+id/tool_bar" android:background="@color/white" android:layout_width="match_parent" android:layout_height="50dp">
+        <ImageView android:id="@+id/btn_back" android:background="@drawable/selectable_item_circle" android:padding="17dp" android:layout_width="50dp" android:layout_height="50dp" android:src="@mipmap/ic_close" android:scaleType="fitCenter" android:tint="@color/black" android:layout_centerVertical="true" />
+        <TextView android:textSize="18sp" android:textStyle="bold" android:textColor="@color/black" android:id="@+id/title" android:layout_width="wrap_content" android:layout_height="wrap_content" android:maxWidth="180dp" android:text="转账编辑" android:singleLine="true" android:layout_centerVertical="true" android:layout_toEndOf="@+id/btn_back" />
+        <ImageView android:id="@+id/btn_complete" android:background="@drawable/selectable_item_circle" android:padding="12dp" android:layout_width="50dp" android:layout_height="50dp" android:src="@mipmap/ic_tick" android:scaleType="fitCenter" android:tint="@color/black" android:layout_centerVertical="true" android:layout_alignParentEnd="true" />
+    </RelativeLayout>
+    <LinearLayout android:orientation="vertical" android:background="@drawable/shape_bg_setting" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_margin="15dp">
+        <RelativeLayout android:id="@+id/choice_asset_from_layout" android:background="@drawable/selectable_item_expand_mask" android:layout_width="match_parent" android:layout_height="55dp">
+            <TextView android:textSize="14sp" android:textColor="@color/black" android:id="@+id/from_title" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="转出账户" android:layout_centerVertical="true" android:layout_marginStart="15dp" />
+            <TextView android:textSize="13sp" android:textColor="@color/black" android:gravity="end|center_vertical" android:id="@+id/asset_from_name" android:layout_width="match_parent" android:layout_height="50dp" android:text="未选择" android:singleLine="true" android:layout_centerVertical="true" android:layout_marginStart="10dp" android:layout_marginEnd="15dp" android:layout_toEndOf="@+id/from_title" android:layout_alignParentEnd="true" />
+        </RelativeLayout>
+        <RelativeLayout android:id="@+id/choice_asset_to_layout" android:background="@drawable/selectable_item_expand_mask" android:layout_width="match_parent" android:layout_height="55dp">
+            <TextView android:textSize="14sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="转入账户" android:layout_centerVertical="true" android:layout_marginStart="15dp" />
+            <TextView android:textSize="13sp" android:textColor="@color/black" android:gravity="end" android:id="@+id/to_asset_name" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="未选择" android:singleLine="true" android:layout_centerVertical="true" android:layout_marginStart="15dp" android:layout_marginEnd="15dp" android:layout_alignParentEnd="true" />
+        </RelativeLayout>
+    </LinearLayout>
+    <LinearLayout android:orientation="horizontal" android:background="@drawable/shape_bg_setting" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="15dp" android:layout_marginStart="15dp" android:layout_marginEnd="15dp">
+        <LinearLayout android:orientation="vertical" android:layout_width="wrap_content" android:layout_height="wrap_content" android:paddingStart="15dp" android:layout_marginEnd="15dp">
+            <TextView android:textSize="14sp" android:textColor="@color/black" android:gravity="end|center_vertical" android:id="@+id/type_title" android:layout_width="match_parent" android:layout_height="50dp" android:text="金额" />
+            <TextView android:textSize="14sp" android:textColor="@color/black" android:gravity="end|center_vertical" android:id="@+id/interest_title" android:layout_width="match_parent" android:layout_height="50dp" android:text="手续费" />
+            <TextView android:textSize="14sp" android:textColor="@color/black" android:gravity="end|center_vertical" android:id="@+id/date_title" android:layout_width="match_parent" android:layout_height="50dp" android:text="日期" />
+            <TextView android:textSize="14sp" android:textColor="@color/black" android:gravity="end|center_vertical" android:id="@+id/remark_title" android:layout_width="match_parent" android:layout_height="50dp" android:text="备注" />
+        </LinearLayout>
+        <LinearLayout android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content">
+            <RelativeLayout android:layout_width="match_parent" android:layout_height="50dp" android:layout_marginEnd="15dp">
+                <EditText android:textSize="14sp" android:textColor="@color/black" android:textColorHint="@color/grey" android:gravity="end|center_vertical" android:id="@+id/type_number" android:background="@color/translate" android:layout_width="match_parent" android:layout_height="50dp" android:hint="请输入转账金额" android:singleLine="true" android:inputType="numberDecimal" />
+            </RelativeLayout>
+            <RelativeLayout android:layout_width="match_parent" android:layout_height="50dp" android:layout_marginEnd="15dp">
+                <EditText android:textSize="14sp" android:textColor="@color/black" android:textColorHint="@color/grey" android:gravity="end|center_vertical" android:id="@+id/type_interest" android:background="@color/translate" android:layout_width="match_parent" android:layout_height="50dp" android:hint="手续费输入正数，优惠输入负数" android:singleLine="true" android:inputType="numberDecimal" />
+            </RelativeLayout>
+            <RelativeLayout android:layout_width="match_parent" android:layout_height="50dp" android:layout_marginEnd="15dp">
+                <TextView android:textSize="14sp" android:textColor="@color/black" android:textColorHint="@color/grey" android:gravity="end|center_vertical" android:id="@+id/type_date" android:background="@drawable/selectable_item_expand_mask" android:layout_width="match_parent" android:layout_height="50dp" android:text="今日" android:singleLine="true" />
+            </RelativeLayout>
+            <RelativeLayout android:layout_width="match_parent" android:layout_height="50dp" android:layout_marginEnd="15dp">
+                <EditText android:textSize="14sp" android:textColor="@color/black" android:textColorHint="@color/grey" android:gravity="end|center_vertical" android:id="@+id/type_remark" android:background="@color/translate" android:layout_width="match_parent" android:layout_height="50dp" android:hint="请输入备注" android:singleLine="true" />
+            </RelativeLayout>
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>

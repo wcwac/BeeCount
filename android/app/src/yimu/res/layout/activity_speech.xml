@@ -1,0 +1,14 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:id="@+id/parent_layout" android:background="@color/blackAlpha25" android:layout_width="match_parent" android:layout_height="match_parent">
+    <LinearLayout android:orientation="vertical" android:id="@+id/content_layout" android:background="@drawable/shape_bg_main_bill_one" android:padding="15dp" android:focusable="true" android:clickable="true" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="40dp" android:layout_alignParentBottom="true" android:layout_marginStart="20dp" android:layout_marginEnd="20dp">
+        <RelativeLayout android:gravity="center_vertical" android:layout_width="wrap_content" android:layout_height="45dp">
+            <RelativeLayout android:id="@+id/icon_layout" android:layout_width="wrap_content" android:layout_height="wrap_content">
+                <ProgressBar android:id="@+id/spin_kit" android:padding="10dp" android:layout_width="45dp" android:layout_height="45dp" android:layout_centerInParent="true" app:SpinKit_Color="@color/colorPrimary" />
+                <ImageView android:id="@+id/btn_expand" android:background="@drawable/selectable_item_circle" android:padding="12dp" android:visibility="gone" android:layout_width="45dp" android:layout_height="45dp" android:src="@mipmap/ic_expand" android:tint="@color/black" android:layout_centerInParent="true" />
+            </RelativeLayout>
+            <TextView android:textSize="16sp" android:textColor="@color/textColorPrimary" android:gravity="center_vertical" android:id="@+id/speech_text" android:layout_width="wrap_content" android:layout_height="match_parent" android:text="说出你要记录的账单" android:singleLine="true" android:layout_centerVertical="true" android:layout_marginStart="10dp" android:layout_toStartOf="@+id/send_btn" android:layout_toEndOf="@+id/icon_layout" />
+            <ImageView android:id="@+id/send_btn" android:background="@drawable/selectable_item_circle" android:padding="11dp" android:clickable="false" android:layout_width="45dp" android:layout_height="45dp" android:src="@mipmap/ic_send" android:layout_alignParentEnd="true" />
+        </RelativeLayout>
+        <TextView android:textSize="13sp" android:textColor="@color/black" android:textColorHint="@color/grey" android:id="@+id/analysis_info" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="15dp" android:layout_marginBottom="10dp" android:text="“支付宝打车花了15元”，“昨天晚饭20元”\10“支付宝转入微信钱包15元”" android:lineSpacingExtra="5dp" android:layout_marginStart="20dp" android:layout_marginEnd="20dp" />
+    </LinearLayout>
+</RelativeLayout>

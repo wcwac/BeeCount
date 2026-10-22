@@ -1,0 +1,19 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="15dp" android:layout_marginStart="15dp" android:layout_marginEnd="15dp">
+    <LinearLayout android:orientation="vertical" android:id="@+id/total_layout" android:background="@drawable/shape_bg_setting" android:padding="15dp" android:layout_width="match_parent" android:layout_height="wrap_content">
+        <LinearLayout android:gravity="center" android:orientation="horizontal" android:layout_width="wrap_content" android:layout_height="wrap_content">
+            <ImageView android:id="@+id/book_icon" android:layout_width="18dp" android:layout_height="18dp" android:layout_marginStart="5dp" android:layout_marginEnd="5dp" />
+            <TextView android:textSize="15sp" android:id="@+id/asset_book_name" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="日常账本" android:layout_marginStart="5dp" />
+            <TextView android:textSize="12sp" android:textColor="@color/grey" android:id="@+id/system_book" android:visibility="gone" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="(系统账本)" android:layout_marginStart="5dp" />
+        </LinearLayout>
+        <LinearLayout android:orientation="horizontal" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="8dp">
+            <TextView android:textSize="12sp" android:textColor="@color/grey" android:id="@+id/pay" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="总支出：" />
+            <TextView android:textSize="12sp" android:textColor="@color/grey" android:id="@+id/income" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="总收入：" android:layout_marginStart="15dp" />
+        </LinearLayout>
+        <LinearLayout android:orientation="horizontal" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="8dp">
+            <TextView android:textSize="12sp" android:textColor="@color/grey" android:id="@+id/num" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="共123条数据" />
+            <TextView android:textSize="12sp" android:textColor="@color/grey" android:id="@+id/time" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="创建于2020.7.16 12.33" android:layout_marginStart="15dp" />
+        </LinearLayout>
+    </LinearLayout>
+    <ImageView android:id="@+id/book_edit" android:background="@drawable/selectable_item_circle" android:padding="11dp" android:layout_width="40dp" android:layout_height="40dp" android:layout_margin="5dp" android:src="@mipmap/ic_book_menu" android:tint="@color/iconTint" android:layout_alignParentEnd="true" />
+</RelativeLayout>

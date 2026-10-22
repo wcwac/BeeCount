@@ -1,0 +1,24 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent">
+    <LinearLayout android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_below="@+id/tool_bar">
+        <RelativeLayout android:layout_width="match_parent" android:layout_height="120dp" android:layout_marginEnd="15dp">
+            <TextView android:textSize="15sp" android:textColor="@color/black" android:gravity="end" android:id="@+id/content_title" android:layout_width="75dp" android:layout_height="wrap_content" android:layout_marginTop="15dp" android:text="关键词" android:layout_marginEnd="15dp" />
+            <EditText android:textSize="15sp" android:textColor="@color/black" android:textColorHint="@color/grey" android:gravity="start|top" android:id="@+id/type_content" android:background="@color/translate" android:paddingTop="15dp" android:paddingBottom="15dp" android:layout_width="match_parent" android:layout_height="120dp" android:hint="多个关键词请用空格分隔" android:layout_marginStart="10dp" android:layout_toEndOf="@+id/content_title" />
+            <View android:background="@color/divider" android:layout_width="match_parent" android:layout_height="1px" android:layout_alignParentBottom="true" android:layout_alignStart="@+id/type_content" />
+        </RelativeLayout>
+        <RelativeLayout android:layout_width="match_parent" android:layout_height="50dp" android:layout_marginEnd="15dp">
+            <TextView android:textSize="15sp" android:textColor="@color/black" android:gravity="end" android:id="@+id/type_title" android:layout_width="75dp" android:layout_height="wrap_content" android:text="类别" android:layout_centerVertical="true" android:layout_marginEnd="15dp" />
+            <LinearLayout android:gravity="center_vertical" android:orientation="horizontal" android:id="@+id/choice_type" android:background="?android:attr/selectableItemBackground" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginStart="10dp" android:layout_toEndOf="@+id/type_title">
+                <ImageView android:id="@+id/type_icon" android:visibility="gone" android:layout_width="20dp" android:layout_height="20dp" android:layout_marginEnd="10dp" />
+                <TextView android:textSize="15sp" android:textColor="@color/black" android:textColorHint="@color/grey" android:gravity="center_vertical" android:id="@+id/type" android:background="@color/translate" android:layout_width="match_parent" android:layout_height="50dp" android:hint="点击选择类别" />
+            </LinearLayout>
+            <View android:background="@color/divider" android:layout_width="match_parent" android:layout_height="1px" android:layout_alignParentBottom="true" android:layout_alignStart="@+id/choice_type" />
+        </RelativeLayout>
+    </LinearLayout>
+    <RelativeLayout android:id="@+id/tool_bar" android:layout_width="match_parent" android:layout_height="50dp">
+        <ImageView android:id="@+id/btn_back" android:background="@drawable/selectable_item_circle" android:padding="17dp" android:layout_width="50dp" android:layout_height="50dp" android:src="@mipmap/ic_close" android:scaleType="fitCenter" android:tint="@color/black" android:layout_centerVertical="true" />
+        <TextView android:textSize="18sp" android:textStyle="bold" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:maxWidth="180dp" android:text="新增智能分类" android:singleLine="true" android:layout_centerVertical="true" android:layout_toEndOf="@+id/btn_back" />
+        <ImageView android:id="@+id/btn_delete" android:background="@drawable/selectable_item_circle" android:padding="14dp" android:layout_width="50dp" android:layout_height="50dp" android:src="@mipmap/ic_delete" android:scaleType="fitCenter" android:tint="@color/black" android:layout_centerVertical="true" android:layout_toStartOf="@+id/btn_complete" />
+        <ImageView android:id="@+id/btn_complete" android:background="@drawable/selectable_item_circle" android:padding="12dp" android:layout_width="50dp" android:layout_height="50dp" android:src="@mipmap/ic_tick" android:scaleType="fitCenter" android:tint="@color/black" android:layout_centerVertical="true" android:layout_alignParentEnd="true" />
+    </RelativeLayout>
+</RelativeLayout>

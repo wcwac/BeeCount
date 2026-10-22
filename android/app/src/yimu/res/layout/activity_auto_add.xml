@@ -1,0 +1,37 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android" android:background="@color/backgroundLight" android:layout_width="match_parent" android:layout_height="match_parent">
+    <LinearLayout android:orientation="vertical" android:background="@drawable/shape_bg_setting" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_margin="15dp" android:layout_below="@+id/tool_bar">
+        <RelativeLayout android:layout_width="match_parent" android:layout_height="55dp" android:paddingStart="15dp" android:paddingEnd="15dp">
+            <TextView android:textSize="14sp" android:textColor="@color/darkGrey" android:id="@+id/remark_title" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="识别内容" android:layout_centerVertical="true" />
+            <EditText android:textSize="14sp" android:textColor="@color/black" android:textColorHint="@color/grey" android:gravity="end|center_vertical" android:id="@+id/remark" android:background="@color/transparent" android:layout_width="wrap_content" android:layout_height="match_parent" android:hint="输入文字识别内容" android:singleLine="true" android:layout_centerVertical="true" android:layout_marginStart="20dp" android:layout_toEndOf="@+id/remark_title" android:layout_alignParentEnd="true" />
+        </RelativeLayout>
+        <RelativeLayout android:id="@+id/category_layout" android:background="@drawable/selectable_item_expand_mask" android:layout_width="match_parent" android:layout_height="55dp" android:paddingStart="15dp" android:paddingEnd="15dp">
+            <TextView android:textSize="14sp" android:textColor="@color/darkGrey" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="分类" android:layout_centerVertical="true" />
+            <ImageView android:id="@+id/category_icon" android:layout_width="18dp" android:layout_height="18dp" android:src="@mipmap/ic_parent_other" android:layout_centerVertical="true" android:layout_marginEnd="6dp" android:layout_toStartOf="@+id/category" />
+            <TextView android:textSize="13sp" android:textColor="@color/darkGrey" android:id="@+id/category" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="其他" android:layout_centerVertical="true" android:layout_alignParentEnd="true" />
+        </RelativeLayout>
+        <RelativeLayout android:id="@+id/account_book_layout" android:background="@drawable/selectable_item_expand_mask" android:layout_width="match_parent" android:layout_height="55dp" android:paddingStart="15dp" android:paddingEnd="15dp">
+            <TextView android:textSize="14sp" android:textColor="@color/darkGrey" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="账本" android:layout_centerVertical="true" />
+            <TextView android:textSize="13sp" android:textColor="@color/darkGrey" android:id="@+id/account_book" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_centerVertical="true" android:layout_alignParentEnd="true" />
+        </RelativeLayout>
+        <RelativeLayout android:id="@+id/asset_layout" android:background="@drawable/selectable_item_expand_mask" android:layout_width="match_parent" android:layout_height="55dp" android:paddingStart="15dp" android:paddingEnd="15dp">
+            <TextView android:textSize="14sp" android:textColor="@color/darkGrey" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="账户" android:layout_centerVertical="true" />
+            <ImageView android:id="@+id/asset_icon" android:layout_width="18dp" android:layout_height="18dp" android:src="@mipmap/ic_no_asset" android:layout_centerVertical="true" android:layout_marginEnd="6dp" android:layout_toStartOf="@+id/asset" />
+            <TextView android:textSize="13sp" android:textColor="@color/darkGrey" android:id="@+id/asset" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="无账户" android:layout_centerVertical="true" android:layout_alignParentEnd="true" />
+        </RelativeLayout>
+        <RelativeLayout android:id="@+id/reimbursement_layout" android:background="@drawable/selectable_item_expand_mask" android:layout_width="match_parent" android:layout_height="55dp" android:paddingStart="15dp" android:paddingEnd="15dp">
+            <TextView android:textSize="14sp" android:textColor="@color/darkGrey" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="报销" android:layout_centerVertical="true" />
+            <ImageView android:id="@+id/reimbursement_icon" android:layout_width="18dp" android:layout_height="18dp" android:src="@mipmap/ic_data_no_baoxiao" android:layout_centerVertical="true" android:layout_marginEnd="6dp" android:layout_toStartOf="@+id/reimbursement" />
+            <TextView android:textSize="13sp" android:textColor="@color/darkGrey" android:id="@+id/reimbursement" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="不报销" android:layout_centerVertical="true" android:layout_alignParentEnd="true" />
+        </RelativeLayout>
+        <RelativeLayout android:id="@+id/tag_layout" android:background="@drawable/selectable_item_expand_mask" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="55dp" android:paddingStart="15dp" android:paddingEnd="15dp">
+            <TextView android:textSize="14sp" android:textColor="@color/darkGrey" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="15dp" android:text="标签" />
+            <androidx.recyclerview.widget.RecyclerView android:id="@+id/tag_list" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:layout_centerVertical="true" android:layout_marginStart="100dp" android:layout_alignParentEnd="true" />
+        </RelativeLayout>
+    </LinearLayout>
+    <RelativeLayout android:id="@+id/tool_bar" android:background="@color/white" android:layout_width="match_parent" android:layout_height="50dp">
+        <ImageView android:id="@+id/btn_back" android:background="@drawable/selectable_item_circle" android:padding="17dp" android:layout_width="50dp" android:layout_height="50dp" android:src="@mipmap/ic_close" android:scaleType="fitCenter" android:tint="@color/black" android:layout_centerVertical="true" />
+        <TextView android:textSize="18sp" android:textStyle="bold" android:textColor="@color/black" android:id="@+id/title" android:layout_width="wrap_content" android:layout_height="wrap_content" android:maxWidth="180dp" android:text="新增识别数据" android:singleLine="true" android:layout_centerVertical="true" android:layout_marginEnd="20dp" android:layout_toEndOf="@+id/btn_back" />
+        <ImageView android:id="@+id/btn_complete" android:background="@drawable/selectable_item_circle" android:padding="12dp" android:layout_width="50dp" android:layout_height="50dp" android:src="@mipmap/ic_tick" android:scaleType="fitCenter" android:tint="@color/black" android:layout_centerVertical="true" android:layout_alignParentEnd="true" />
+    </RelativeLayout>
+</RelativeLayout>

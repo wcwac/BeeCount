@@ -1,0 +1,6 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:background="@color/backgroundLight" android:layout_width="match_parent" android:layout_height="match_parent">
+    <ImageView android:id="@+id/background_image" android:layout_width="match_parent" android:layout_height="match_parent" android:scaleType="centerCrop" />
+    <com.wangc.bill.reference.ui.ReferenceBottomBar android:id="@+id/bottom_nav_view" android:background="@color/white" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_alignParentBottom="true" app:itemIconSize="24dp" app:itemTextAppearanceActive="@style/bottom_tab_title_active" app:itemTextAppearanceInactive="@style/bottom_tab_title_inactive" app:labelVisibilityMode="unlabeled" />
+    <FrameLayout android:id="@+id/fragment_layout" android:layout_width="match_parent" android:layout_height="match_parent" android:layout_above="@+id/bottom_nav_view" />
+    </RelativeLayout>

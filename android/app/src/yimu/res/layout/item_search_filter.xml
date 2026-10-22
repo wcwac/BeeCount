@@ -1,0 +1,4 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/total_layout" android:background="@drawable/bg_search_filter" android:layout_width="wrap_content" android:layout_height="35dp" android:layout_marginBottom="8dp" android:paddingStart="10dp" android:paddingEnd="10dp" android:layout_marginEnd="8dp">
+    <TextView android:textSize="13sp" android:textColor="@color/black" android:id="@+id/name" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="日常账本" android:layout_centerInParent="true" />
+</RelativeLayout>

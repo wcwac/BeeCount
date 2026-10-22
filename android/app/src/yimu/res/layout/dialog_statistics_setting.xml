@@ -1,0 +1,10 @@
+<?xml version='1.0' encoding='utf-8'?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:orientation="vertical" android:background="@drawable/dialog_user_agreement_bg" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginStart="20dp" android:layout_marginEnd="20dp">
+    <TextView android:textSize="16sp" android:textStyle="bold" android:textColor="@color/black" android:layout_gravity="center_horizontal" android:id="@+id/title" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="20dp" android:text="月统计设置" />
+    <TextView android:textSize="12sp" android:textColor="@color/grey" android:layout_gravity="center_horizontal" android:id="@+id/desc" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_margin="20dp" android:text="设置月统计中模块的显示/隐藏，长按可排序" />
+    <androidx.recyclerview.widget.RecyclerView android:id="@+id/data_list" android:scrollbars="vertical" android:layout_width="match_parent" android:layout_height="wrap_content" app:maxHeight="400dp" />
+    <LinearLayout android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="50dp" android:layout_marginTop="10dp">
+        <TextView android:textSize="15sp" android:textColor="@color/textGray" android:gravity="center" android:id="@+id/cancel" android:background="@drawable/selectable_item_expand_mask" android:layout_width="0dp" android:layout_height="match_parent" android:text="@string/cancel" android:layout_weight="1" />
+        <TextView android:textSize="15sp" android:textColor="@color/colorPrimaryText" android:gravity="center" android:id="@+id/confirm" android:background="@drawable/selectable_item_expand_mask" android:layout_width="0dp" android:layout_height="match_parent" android:text="@string/confirm" android:layout_weight="1" />
+    </LinearLayout>
+</LinearLayout>

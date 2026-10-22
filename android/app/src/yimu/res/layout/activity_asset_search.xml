@@ -1,0 +1,29 @@
+<?xml version='1.0' encoding='utf-8'?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:orientation="vertical" android:background="@color/white" android:layout_width="match_parent" android:layout_height="match_parent">
+    <RelativeLayout android:layout_width="match_parent" android:layout_height="50dp">
+        <EditText android:textSize="15sp" android:textColor="@color/black" android:textColorHint="@color/grey" android:id="@+id/search_input" android:background="@color/white" android:layout_width="match_parent" android:layout_height="match_parent" android:hint="输入账户名称或简称" android:singleLine="true" android:imeOptions="actionDone" android:layout_marginStart="0dp" android:layout_marginEnd="-1dp" android:layout_toStartOf="@+id/btn_layout" android:layout_toEndOf="@+id/btn_back" />
+        <LinearLayout android:orientation="horizontal" android:id="@+id/btn_layout" android:layout_width="wrap_content" android:layout_height="match_parent" android:layout_alignParentEnd="true">
+            <ImageView android:id="@+id/btn_clear" android:background="@drawable/selectable_item_circle" android:padding="17dp" android:visibility="gone" android:layout_width="50dp" android:layout_height="50dp" android:src="@mipmap/ic_close" android:scaleType="fitCenter" android:tint="@color/black" />
+        </LinearLayout>
+        <ImageView android:id="@+id/btn_back" android:background="@drawable/selectable_item_circle" android:padding="16dp" android:layout_width="50dp" android:layout_height="50dp" android:src="@mipmap/ic_search_back" android:scaleType="fitCenter" android:tint="@color/black" />
+    </RelativeLayout>
+    <RelativeLayout android:layout_width="match_parent" android:layout_height="match_parent">
+        <RelativeLayout android:layout_width="match_parent" android:layout_height="match_parent">
+            <LinearLayout android:orientation="vertical" android:id="@+id/search_result_layout" android:background="@color/backgroundLight" android:visibility="invisible" android:layout_width="match_parent" android:layout_height="match_parent">
+                <androidx.recyclerview.widget.RecyclerView android:id="@+id/search_result_list" android:paddingBottom="80dp" android:clipChildren="false" android:clipToPadding="false" android:layout_width="match_parent" android:layout_height="wrap_content" android:overScrollMode="never" />
+            </LinearLayout>
+        </RelativeLayout>
+        <RelativeLayout android:id="@+id/search_no_tip_layout" android:visibility="gone" android:layout_width="match_parent" android:layout_height="match_parent">
+            <RelativeLayout android:layout_width="match_parent" android:layout_height="match_parent">
+                <include android:layout_width="150dp" android:layout_height="150dp" android:layout_marginBottom="10dp" android:layout_above="@+id/search_no_tip" android:layout_centerHorizontal="true" layout="@layout/layout_common_tip" />
+                <TextView android:textSize="14sp" android:textColor="@color/textGray" android:id="@+id/search_no_tip" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="没有找到你想要的" android:layout_centerInParent="true" />
+            </RelativeLayout>
+        </RelativeLayout>
+        <RelativeLayout android:id="@+id/search_tip_layout" android:fitsSystemWindows="true" android:layout_width="match_parent" android:layout_height="match_parent">
+            <RelativeLayout android:layout_width="match_parent" android:layout_height="match_parent">
+                <include android:layout_width="150dp" android:layout_height="150dp" android:layout_marginBottom="20dp" android:layout_above="@+id/search_tip" android:layout_centerHorizontal="true" layout="@layout/layout_search_tip" />
+                <TextView android:textSize="15sp" android:textColor="@color/textGray" android:id="@+id/search_tip" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="输入账户，搜索一下" android:layout_centerInParent="true" />
+            </RelativeLayout>
+        </RelativeLayout>
+    </RelativeLayout>
+</LinearLayout>

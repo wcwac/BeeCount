@@ -1,0 +1,70 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:layout_width="match_parent" android:layout_height="match_parent">
+    <FrameLayout android:id="@+id/my_preview_layout" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginStart="20dp" android:layout_marginEnd="60dp" app:shadow_color="@color/grey" app:touch_level="3" app:z_depth="depth2">
+        <RelativeLayout android:background="@drawable/shape_bg_setting" android:paddingBottom="10dp" android:layout_width="match_parent" android:layout_height="wrap_content">
+            <ImageView android:id="@+id/second_background" android:layout_width="match_parent" android:layout_height="120dp" android:scaleType="centerCrop" />
+            <androidx.constraintlayout.widget.ConstraintLayout android:id="@+id/user_info_layout" android:clipChildren="false" android:clipToPadding="false" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="60dp">
+                <androidx.cardview.widget.CardView android:layout_width="match_parent" android:layout_height="0dp" android:layout_margin="10dp" app:cardCornerRadius="9dp" app:cardElevation="3dp" app:layout_constraintDimensionRatio="980:376" app:layout_constraintLeft_toLeftOf="parent" app:layout_constraintRight_toRightOf="parent">
+                    <RelativeLayout android:layout_width="match_parent" android:layout_height="match_parent">
+                        <ImageView android:id="@+id/my_background" android:layout_width="match_parent" android:layout_height="match_parent" android:scaleType="fitXY" />
+                        <TextView android:textSize="13sp" android:textStyle="bold" android:id="@+id/nick_name" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="40dp" android:text="一木川川" android:singleLine="true" android:layout_centerHorizontal="true" android:layout_marginStart="20dp" android:layout_marginEnd="20dp" />
+                        <TextView android:textSize="10sp" android:id="@+id/record_day_num" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="坚持记账的第21天" android:singleLine="true" android:layout_below="@+id/nick_name" android:layout_centerHorizontal="true" android:layout_marginStart="20dp" android:layout_marginEnd="20dp" />
+                    </RelativeLayout>
+                </androidx.cardview.widget.CardView>
+            </androidx.constraintlayout.widget.ConstraintLayout>
+            <androidx.cardview.widget.CardView android:id="@+id/photo_image_layout" android:layout_width="55dp" android:layout_height="55dp" android:layout_marginTop="35dp" android:layout_centerHorizontal="true" app:cardCornerRadius="35dp" app:cardElevation="5dp">
+                <ImageView android:id="@+id/photo_image" android:layout_width="match_parent" android:layout_height="match_parent" android:src="@mipmap/ic_launcher_no_color" app:oval="true" />
+            </androidx.cardview.widget.CardView>
+        </RelativeLayout>
+    </FrameLayout>
+    <FrameLayout android:id="@+id/asset_preview_layout" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="-40dp" android:layout_below="@+id/my_preview_layout" android:layout_marginStart="80dp" android:layout_alignParentEnd="true" app:shadow_color="@color/grey" app:touch_level="3" app:z_depth="depth2">
+        <LinearLayout android:orientation="vertical" android:background="@drawable/shape_bg_setting" android:padding="10dp" android:layout_width="match_parent" android:layout_height="wrap_content">
+            <androidx.constraintlayout.widget.ConstraintLayout android:layout_width="match_parent" android:layout_height="wrap_content">
+                <LinearLayout android:orientation="horizontal" android:id="@+id/asset_background" android:layout_width="match_parent" android:layout_height="0dp" android:paddingStart="15dp" android:paddingEnd="15dp" app:layout_constraintDimensionRatio="980:264" app:layout_constraintLeft_toLeftOf="parent" app:layout_constraintRight_toRightOf="parent">
+                    <RelativeLayout android:layout_gravity="center_vertical" android:layout_width="0dp" android:layout_height="50dp" android:layout_weight="1">
+                        <TextView android:textSize="11sp" android:id="@+id/net_assets_title" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="净资产(元)" />
+                        <TextView android:textSize="18sp" android:textStyle="bold" android:id="@+id/net_assets" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:text="0.00" android:singleLine="true" android:includeFontPadding="false" android:layout_alignParentBottom="true" />
+                    </RelativeLayout>
+                    <RelativeLayout android:layout_gravity="center_vertical" android:layout_width="0dp" android:layout_height="50dp" android:layout_weight="1" android:paddingStart="15dp">
+                        <LinearLayout android:orientation="horizontal" android:layout_width="wrap_content" android:layout_height="wrap_content">
+                            <TextView android:textSize="10sp" android:id="@+id/deposit_title" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="总资产" />
+                            <TextView android:textSize="12sp" android:textStyle="bold" android:id="@+id/deposit" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0.00" android:singleLine="true" android:layout_marginStart="10dp" />
+                        </LinearLayout>
+                        <LinearLayout android:orientation="horizontal" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_alignParentBottom="true">
+                            <TextView android:textSize="10sp" android:id="@+id/liabilities_title" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="负资产" />
+                            <TextView android:textSize="12sp" android:textStyle="bold" android:id="@+id/liabilities" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0.00" android:singleLine="true" android:layout_marginStart="10dp" />
+                        </LinearLayout>
+                    </RelativeLayout>
+                </LinearLayout>
+            </androidx.constraintlayout.widget.ConstraintLayout>
+        </LinearLayout>
+    </FrameLayout>
+    <FrameLayout android:id="@+id/home_preview_layout" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="-40dp" android:layout_below="@+id/asset_preview_layout" android:layout_marginEnd="70dp" app:shadow_color="@color/grey" app:touch_level="3" app:z_depth="depth2">
+        <LinearLayout android:orientation="vertical" android:background="@drawable/shape_bg_setting" android:padding="10dp" android:layout_width="match_parent" android:layout_height="wrap_content">
+            <androidx.constraintlayout.widget.ConstraintLayout android:id="@+id/banner_layout" android:layout_width="match_parent" android:layout_height="wrap_content">
+                <LinearLayout android:gravity="center_vertical" android:orientation="vertical" android:id="@+id/home_background" android:layout_width="match_parent" android:layout_height="0dp" android:paddingStart="15dp" android:paddingEnd="15dp" app:layout_constraintDimensionRatio="980:376" app:layout_constraintLeft_toLeftOf="parent" app:layout_constraintRight_toRightOf="parent">
+                    <LinearLayout android:orientation="horizontal" android:layout_width="wrap_content" android:layout_height="wrap_content">
+                        <LinearLayout android:orientation="vertical" android:layout_width="wrap_content" android:layout_height="wrap_content">
+                            <TextView android:textSize="10sp" android:id="@+id/month_income_title" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="本月收入" android:singleLine="true" />
+                            <TextView android:textSize="12sp" android:textStyle="bold" android:id="@+id/month_income" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="3dp" android:text="0.00" android:singleLine="true" />
+                        </LinearLayout>
+                        <LinearLayout android:orientation="vertical" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="25dp">
+                            <TextView android:textSize="10sp" android:id="@+id/month_balance_title" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="本月结余" android:singleLine="true" />
+                            <TextView android:textSize="12sp" android:textStyle="bold" android:id="@+id/month_balance" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="3dp" android:text="0.00" android:singleLine="true" />
+                        </LinearLayout>
+                        <LinearLayout android:orientation="vertical" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="25dp">
+                            <TextView android:textSize="10sp" android:id="@+id/month_budget_title" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="剩余预算" android:singleLine="true" />
+                            <TextView android:textSize="10sp" android:id="@+id/month_budget" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="3dp" android:text="@string/click_to_setting" android:singleLine="true" />
+                        </LinearLayout>
+                    </LinearLayout>
+                    <TextView android:textSize="10sp" android:id="@+id/month_pay_title" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:text="本月支出(元)" />
+                    <TextView android:textSize="20sp" android:textStyle="bold" android:id="@+id/month_pay" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="3dp" android:text="0.00" android:singleLine="true" android:includeFontPadding="false" />
+                </LinearLayout>
+            </androidx.constraintlayout.widget.ConstraintLayout>
+            <LinearLayout android:gravity="center" android:orientation="horizontal" android:id="@+id/choice_primary_color" android:layout_width="match_parent" android:layout_height="35dp" android:layout_marginTop="10dp">
+                <ImageView android:layout_width="15dp" android:layout_height="15dp" android:src="@mipmap/ic_add_bill" />
+                <TextView android:textSize="11sp" android:textColor="@color/textColorLight" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="添加一条新账单" android:layout_marginStart="10dp" />
+            </LinearLayout>
+        </LinearLayout>
+    </FrameLayout>
+</RelativeLayout>

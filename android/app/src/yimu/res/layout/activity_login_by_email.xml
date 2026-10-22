@@ -1,0 +1,26 @@
+<?xml version='1.0' encoding='utf-8'?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:orientation="vertical" android:background="@color/white" android:layout_width="match_parent" android:layout_height="match_parent">
+    <LinearLayout android:background="@drawable/shape_edit_frame" android:layout_width="match_parent" android:layout_height="50dp" android:layout_marginTop="30dp" android:layout_marginStart="30dp" android:layout_marginEnd="30dp">
+        <ImageView android:layout_gravity="center_vertical" android:padding="3dp" android:layout_width="22dp" android:layout_height="22dp" android:src="@mipmap/ic_email" android:tint="@color/black" android:layout_marginStart="10dp" />
+        <View android:background="@color/divider" android:layout_width="1px" android:layout_height="match_parent" android:layout_marginTop="15dp" android:layout_marginBottom="15dp" android:layout_marginStart="10dp" android:layout_marginEnd="10dp" />
+        <EditText android:textSize="14sp" android:textColor="@color/black" android:textColorHint="@color/grey" android:id="@+id/email" android:background="@color/transparent" android:layout_width="match_parent" android:layout_height="match_parent" android:hint="请输入邮箱" android:inputType="textEmailAddress" android:layout_marginStart="10dp" android:layout_marginEnd="10dp" />
+    </LinearLayout>
+    <LinearLayout android:background="@drawable/shape_edit_frame" android:layout_width="match_parent" android:layout_height="50dp" android:layout_marginTop="15dp" android:layout_marginStart="30dp" android:layout_marginEnd="30dp">
+        <ImageView android:layout_gravity="center_vertical" android:padding="3dp" android:layout_width="22dp" android:layout_height="22dp" android:src="@mipmap/ic_login_password" android:tint="@color/black" android:layout_marginStart="10dp" />
+        <View android:background="@color/divider" android:layout_width="1px" android:layout_height="match_parent" android:layout_marginTop="15dp" android:layout_marginBottom="15dp" android:layout_marginStart="10dp" android:layout_marginEnd="10dp" />
+        <EditText android:textSize="14sp" android:textColor="@color/black" android:textColorHint="@color/grey" android:id="@+id/password" android:background="@color/transparent" android:layout_width="match_parent" android:layout_height="match_parent" android:hint="请输入密码" android:inputType="textPassword" android:layout_marginStart="10dp" android:layout_marginEnd="10dp" />
+    </LinearLayout>
+    <RelativeLayout android:layout_width="wrap_content" android:layout_height="wrap_content">
+        <LinearLayout android:orientation="vertical" android:id="@+id/login_layout" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="20dp" android:layout_marginStart="30dp" android:layout_marginEnd="30dp">
+            <TextView android:textSize="15sp" android:textColor="@color/textColorLight" android:gravity="center" android:id="@+id/login" android:background="@drawable/selectable_item_primary_background" android:layout_width="match_parent" android:layout_height="45dp" android:text="登录" />
+            <RelativeLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp">
+                <TextView android:textSize="13sp" android:textColor="@color/grey" android:id="@+id/forget_password" android:background="@drawable/selectable_item_expand" android:padding="5dp" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="忘记密码" />
+                <TextView android:textSize="13sp" android:textColor="@color/grey" android:id="@+id/register_btn" android:background="@drawable/selectable_item_expand" android:padding="5dp" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="邮箱注册" android:layout_alignParentEnd="true" />
+            </RelativeLayout>
+        </LinearLayout>
+    </RelativeLayout>
+    <LinearLayout android:gravity="center" android:layout_gravity="center_horizontal" android:orientation="horizontal" android:id="@+id/agreement_layout" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="30dp">
+        <ImageView android:id="@+id/agreement_check" android:layout_width="18dp" android:layout_height="18dp" android:src="@mipmap/ic_not_check" android:tint="@color/colorPrimary" android:layout_marginEnd="5dp" />
+        <TextView android:textSize="12sp" android:textColor="@color/darkGrey" android:id="@+id/agreement_text" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="阅读并同意《用户协议》与《隐私政策》" />
+    </LinearLayout>
+</LinearLayout>

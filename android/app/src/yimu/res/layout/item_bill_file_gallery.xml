@@ -1,0 +1,8 @@
+<?xml version='1.0' encoding='utf-8'?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content">
+    <LinearLayout android:gravity="center_vertical" android:orientation="horizontal" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:layout_marginBottom="10dp" android:layout_marginStart="20dp">
+        <TextView android:textSize="14sp" android:textColor="@color/black" android:id="@+id/date_info" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="7月26日" />
+        <TextView android:textSize="12sp" android:textColor="@color/grey" android:id="@+id/week_info" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="周一" android:layout_marginStart="10dp" />
+    </LinearLayout>
+    <androidx.recyclerview.widget.RecyclerView android:id="@+id/file_list" android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingStart="10dp" android:paddingEnd="10dp" />
+</LinearLayout>

@@ -1,0 +1,54 @@
+<?xml version='1.0' encoding='utf-8'?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content">
+    <RelativeLayout android:id="@+id/text_tip_layout" android:background="@drawable/selectable_item_light_primary_background" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="15dp">
+        <TextView android:textSize="12sp" android:textColor="@color/colorPrimaryDark" android:paddingTop="5dp" android:paddingBottom="5dp" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="如提前还款或还款金额错误，点击对应期数的「还款金额」可自定义，点击「利率与本金」可中途变更利率" android:layout_centerVertical="true" android:lineSpacingExtra="3dp" android:layout_marginStart="10dp" android:layout_marginEnd="30dp" />
+        <ImageView android:id="@+id/tip_close" android:padding="3dp" android:layout_width="30dp" android:layout_height="30dp" android:src="@mipmap/ic_tip_close" android:layout_alignParentEnd="true" />
+    </RelativeLayout>
+    <LinearLayout android:orientation="vertical" android:background="@drawable/shape_bg_asset_header" android:padding="15dp" android:layout_width="match_parent" android:layout_height="wrap_content">
+        <TextView android:textSize="13sp" android:textColor="@color/textColorLight" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="剩余本金" />
+        <TextView android:textSize="22sp" android:textStyle="bold" android:textColor="@color/textColorLight" android:id="@+id/remainder_number" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0.00" />
+        <LinearLayout android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp">
+            <LinearLayout android:gravity="center_vertical" android:orientation="horizontal" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1">
+                <TextView android:textSize="13sp" android:textColor="@color/textColorLight" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="已还本金：" />
+                <TextView android:textSize="13sp" android:textStyle="bold" android:textColor="@color/textColorLight" android:id="@+id/pay_num" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0.00" />
+            </LinearLayout>
+            <LinearLayout android:gravity="center_vertical" android:orientation="horizontal" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1">
+                <TextView android:textSize="13sp" android:textColor="@color/textColorLight" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="已还利息：" />
+                <TextView android:textSize="13sp" android:textStyle="bold" android:textColor="@color/textColorLight" android:id="@+id/pay_interest" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0.00" />
+            </LinearLayout>
+        </LinearLayout>
+        <LinearLayout android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp">
+            <LinearLayout android:gravity="center_vertical" android:orientation="horizontal" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1">
+                <TextView android:textSize="13sp" android:textColor="@color/textColorLight" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="已还期数：" />
+                <TextView android:textSize="13sp" android:textStyle="bold" android:textColor="@color/textColorLight" android:id="@+id/remainder_periods" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="-/-" />
+            </LinearLayout>
+            <LinearLayout android:gravity="center_vertical" android:orientation="horizontal" android:id="@+id/interest_layout" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1">
+                <TextView android:textSize="13sp" android:textColor="@color/textColorLight" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="当前利率：" />
+                <TextView android:textSize="13sp" android:textStyle="bold" android:textColor="@color/textColorLight" android:id="@+id/current_interest" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0.00" />
+            </LinearLayout>
+        </LinearLayout>
+        <LinearLayout android:orientation="horizontal" android:id="@+id/repayment_layout" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp">
+            <LinearLayout android:gravity="center_vertical" android:orientation="horizontal" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1">
+                <TextView android:textSize="13sp" android:textColor="@color/textColorLight" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="下次还款：" />
+                <TextView android:textSize="13sp" android:textStyle="bold" android:textColor="@color/textColorLight" android:id="@+id/repayment_time" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="--" />
+            </LinearLayout>
+            <LinearLayout android:gravity="center_vertical" android:orientation="horizontal" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1">
+                <TextView android:textSize="13sp" android:textColor="@color/textColorLight" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="还款金额：" />
+                <TextView android:textSize="13sp" android:textStyle="bold" android:textColor="@color/textColorLight" android:id="@+id/repayment_num" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0.00" />
+            </LinearLayout>
+        </LinearLayout>
+        <LinearLayout android:gravity="center" android:orientation="horizontal" android:id="@+id/card_code_layout" android:visibility="gone" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="5dp">
+            <TextView android:textSize="13sp" android:textColor="@color/textColorLight" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="卡号：" />
+            <TextView android:textSize="13sp" android:textColor="@color/textColorLight" android:id="@+id/card_code" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="" android:singleLine="true" />
+            <ImageView android:id="@+id/copy_btn" android:background="@drawable/selectable_item_circle" android:padding="5dp" android:layout_width="30dp" android:layout_height="30dp" android:src="@mipmap/ic_copy" android:tint="@color/textColorLight" />
+        </LinearLayout>
+    </LinearLayout>
+    <LinearLayout android:gravity="center" android:orientation="horizontal" android:background="@drawable/shape_bg_main_bill_top" android:layout_width="match_parent" android:layout_height="50dp" android:layout_marginTop="15dp">
+        <LinearLayout android:gravity="center" android:orientation="vertical" android:id="@+id/jump_current" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1">
+            <TextView android:textSize="14sp" android:textColor="@color/black" android:gravity="center" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="期数" android:singleLine="true" />
+            <TextView android:textSize="11sp" android:textColor="@color/textColorPrimary" android:gravity="center" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="3dp" android:text="跳转至当期" android:singleLine="true" />
+        </LinearLayout>
+        <TextView android:textSize="14sp" android:textColor="@color/black" android:gravity="center" android:layout_width="0dp" android:layout_height="match_parent" android:text="还款金额" android:singleLine="true" android:layout_weight="1" />
+        <TextView android:textSize="14sp" android:textColor="@color/black" android:gravity="center" android:layout_width="0dp" android:layout_height="match_parent" android:text="利率与本金" android:singleLine="true" android:layout_weight="1" />
+    </LinearLayout>
+</LinearLayout>

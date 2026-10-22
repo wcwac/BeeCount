@@ -1,0 +1,19 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android" android:background="@color/white" android:layout_width="match_parent" android:layout_height="match_parent">
+    <RelativeLayout android:layout_width="match_parent" android:layout_height="match_parent" android:layout_above="@+id/share_qr_code">
+        <LinearLayout android:gravity="center_horizontal" android:orientation="vertical" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_centerInParent="true">
+            <LinearLayout android:gravity="center_horizontal" android:orientation="vertical" android:id="@+id/qr_code_layout" android:background="@color/white" android:layout_width="wrap_content" android:layout_height="wrap_content">
+                <TextView android:textSize="13sp" android:textColor="@color/darkGrey" android:id="@+id/tip" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="15dp" android:text="进入“账本管理”，扫描二维码加入" android:lineSpacingExtra="3dp" />
+                <ImageView android:id="@+id/qr_code" android:layout_width="250dp" android:layout_height="250dp" android:layout_marginTop="15dp" />
+            </LinearLayout>
+            <LinearLayout android:orientation="horizontal" android:layout_width="wrap_content" android:layout_height="wrap_content">
+                <TextView android:textSize="14sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="10分钟内有效" />
+                <TextView android:textSize="13sp" android:textColor="@color/colorPrimary" android:id="@+id/init_qr_code" android:background="@drawable/selectable_item_circle" android:padding="15dp" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="重置" />
+            </LinearLayout>
+        </LinearLayout>
+    </RelativeLayout>
+    <LinearLayout android:gravity="center" android:orientation="horizontal" android:id="@+id/share_qr_code" android:background="@drawable/selectable_item_primary_background" android:layout_width="match_parent" android:layout_height="45dp" android:layout_margin="20dp" android:layout_alignParentBottom="true">
+        <ImageView android:layout_width="wrap_content" android:layout_height="wrap_content" android:src="@mipmap/ic_file_share" android:tint="@color/textColorLight" />
+        <TextView android:textSize="15sp" android:textColor="@color/textColorLight" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="分享二维码" android:layout_marginStart="10dp" />
+    </LinearLayout>
+</RelativeLayout>

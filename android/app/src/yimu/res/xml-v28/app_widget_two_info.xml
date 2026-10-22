@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="294dp"
+    android:minHeight="180dp"
+    android:updatePeriodMillis="3600000"
+    android:initialLayout="@layout/layout_app_widget_two"
+    android:configure="com.wangc.bill.activity.widget.CreateWidgetTwoActivity"
+    android:previewImage="@mipmap/ic_widget_preview_two"
+    android:resizeMode="vertical|horizontal"
+    android:minResizeWidth="110dp"
+    android:minResizeHeight="110dp"
+    android:initialKeyguardLayout="@layout/layout_app_widget_two"
+    android:widgetCategory="keyguard|home_screen"
+    android:widgetFeatures="reconfigurable"/>

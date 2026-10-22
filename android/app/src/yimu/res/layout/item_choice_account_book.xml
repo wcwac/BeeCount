@@ -1,0 +1,6 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="50dp">
+    <ImageView android:id="@+id/book_icon" android:padding="5dp" android:layout_width="30dp" android:layout_height="30dp" android:layout_centerVertical="true" android:layout_marginStart="10dp" />
+    <TextView android:textSize="15sp" android:textColor="@color/black" android:gravity="center_vertical" android:id="@+id/name" android:background="@drawable/selectable_item_expand_mask" android:layout_width="match_parent" android:layout_height="50dp" android:singleLine="true" android:paddingStart="5dp" android:paddingEnd="15dp" android:layout_toEndOf="@+id/book_icon" />
+    <ImageView android:id="@+id/tick" android:visibility="gone" android:layout_width="23dp" android:layout_height="23dp" android:src="@mipmap/ic_tick" android:tint="@color/iconTint" android:layout_centerVertical="true" android:layout_marginEnd="15dp" android:layout_alignParentEnd="true" />
+</RelativeLayout>

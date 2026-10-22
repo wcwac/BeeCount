@@ -1,0 +1,300 @@
+package com.wangc.bill.reference;
+
+import android.content.ContentValues;
+import android.content.Context;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteOpenHelper;
+import org.json.JSONArray;
+import org.json.JSONObject;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
+/** Local experimental schema. Does not open or modify any BeeCount database. */
+public final class ReferenceStore extends SQLiteOpenHelper {
+    public ReferenceStore(Context context) { super(context.getApplicationContext(), "yimu_reference.sqlite", null, 1); }
+    @Override public void onConfigure(SQLiteDatabase db) { db.setForeignKeyConstraintsEnabled(true); }
+    @Override public void onCreate(SQLiteDatabase db) {
+        db.execSQL("CREATE TABLE books(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT NOT NULL,currency TEXT NOT NULL DEFAULT 'CNY',budget INTEGER NOT NULL DEFAULT 0,archived INTEGER NOT NULL DEFAULT 0,created INTEGER NOT NULL)");
+        db.execSQL("CREATE TABLE accounts(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT NOT NULL,type TEXT NOT NULL DEFAULT 'cash',currency TEXT NOT NULL DEFAULT 'CNY',opening INTEGER NOT NULL DEFAULT 0,archived INTEGER NOT NULL DEFAULT 0)");
+        db.execSQL("CREATE TABLE categories(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT NOT NULL,kind TEXT NOT NULL,icon TEXT NOT NULL,archived INTEGER NOT NULL DEFAULT 0)");
+        db.execSQL("CREATE TABLE tags(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT NOT NULL UNIQUE)");
+        db.execSQL("CREATE TABLE candidates(id TEXT PRIMARY KEY,payload TEXT NOT NULL,package_name TEXT NOT NULL,book_id INTEGER NOT NULL REFERENCES books(id),created INTEGER NOT NULL,state TEXT NOT NULL DEFAULT 'PENDING',transaction_id INTEGER)");
+        db.execSQL("CREATE TABLE transactions(id INTEGER PRIMARY KEY AUTOINCREMENT,book_id INTEGER NOT NULL REFERENCES books(id),kind TEXT NOT NULL CHECK(kind IN ('expense','income','transfer')),amount INTEGER NOT NULL CHECK(amount>0),currency TEXT NOT NULL,category_id INTEGER REFERENCES categories(id),account_id INTEGER REFERENCES accounts(id),to_account_id INTEGER REFERENCES accounts(id),remark TEXT NOT NULL DEFAULT '',merchant TEXT NOT NULL DEFAULT '',origin TEXT NOT NULL DEFAULT '',asset_text TEXT NOT NULL DEFAULT '',discount INTEGER NOT NULL DEFAULT 0 CHECK(discount>=0),fee INTEGER NOT NULL DEFAULT 0 CHECK(fee>=0),time INTEGER NOT NULL,created INTEGER NOT NULL,not_total INTEGER NOT NULL DEFAULT 0,not_budget INTEGER NOT NULL DEFAULT 0,deleted INTEGER NOT NULL DEFAULT 0,financial_type TEXT NOT NULL DEFAULT '',settled INTEGER NOT NULL DEFAULT 0,attachments TEXT NOT NULL DEFAULT '[]',candidate_id TEXT UNIQUE REFERENCES candidates(id))");
+        db.execSQL("CREATE INDEX transactions_book_time ON transactions(book_id,deleted,time)");
+        db.execSQL("ALTER TABLE transactions ADD COLUMN related_id INTEGER REFERENCES transactions(id)");
+        db.execSQL("ALTER TABLE transactions ADD COLUMN import_key TEXT");
+        db.execSQL("CREATE UNIQUE INDEX transactions_import_key ON transactions(import_key) WHERE import_key IS NOT NULL");
+        db.execSQL("CREATE INDEX candidates_state ON candidates(state,created)");
+        db.execSQL("CREATE TABLE transaction_tags(transaction_id INTEGER REFERENCES transactions(id) ON DELETE CASCADE,tag_id INTEGER REFERENCES tags(id),PRIMARY KEY(transaction_id,tag_id))");
+        db.execSQL("CREATE TABLE rules(id INTEGER PRIMARY KEY AUTOINCREMENT,merchant TEXT NOT NULL UNIQUE,category_id INTEGER REFERENCES categories(id),book_id INTEGER REFERENCES books(id),account_id INTEGER REFERENCES accounts(id))");
+        db.execSQL("CREATE TABLE plans(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT NOT NULL,interval TEXT NOT NULL,payload TEXT NOT NULL,next_due INTEGER NOT NULL,enabled INTEGER NOT NULL DEFAULT 1)");
+        db.execSQL("CREATE TABLE goals(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT NOT NULL,target INTEGER NOT NULL CHECK(target>0),saved INTEGER NOT NULL DEFAULT 0,created INTEGER NOT NULL)");
+        db.execSQL("INSERT INTO books(name,created) VALUES('日常账本',?)", new Object[]{System.currentTimeMillis()});
+        String[][] expense = {{"餐饮","ic_parent_restaurant"},{"购物","ic_parent_shopping"},{"交通","ic_parent_traffic"},{"日用","ic_shopping_home"},{"娱乐","ic_parent_game"},{"住房","ic_parent_home"},{"通讯","ic_home_telephone_bill"},{"医疗","ic_parent_medical"},{"教育","ic_parent_education"},{"人情","ic_parent_gift"},{"其他支出","ic_parent_other"}};
+        for (String[] c : expense) db.execSQL("INSERT INTO categories(name,kind,icon) VALUES(?,'expense',?)", c);
+        String[][] income = {{"工资","ic_income_wages"},{"奖金","ic_income_bonus"},{"理财","ic_income_manager_money"},{"退款","ic_refund"},{"其他收入","ic_parent_other"}};
+        for (String[] c : income) db.execSQL("INSERT INTO categories(name,kind,icon) VALUES(?,'income',?)", c);
+        db.execSQL("INSERT INTO accounts(name,type) VALUES('现金','cash'),('支付宝','wallet'),('微信','wallet')");
+    }
+    @Override public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) { throw new IllegalStateException("未知数据版本"); }
+
+    public synchronized List<JSONObject> query(String sql, String... args) {
+        try (Cursor cursor = getReadableDatabase().rawQuery(sql, args)) {
+            List<JSONObject> result = new ArrayList<>();
+            while (cursor.moveToNext()) {
+                JSONObject row = new JSONObject();
+                for (int i = 0; i < cursor.getColumnCount(); i++) {
+                    Object value = switch (cursor.getType(i)) {
+                        case Cursor.FIELD_TYPE_NULL -> null;
+                        case Cursor.FIELD_TYPE_INTEGER -> cursor.getLong(i);
+                        case Cursor.FIELD_TYPE_FLOAT -> cursor.getDouble(i);
+                        default -> cursor.getString(i);
+                    };
+                    Json.put(row, cursor.getColumnName(i), value);
+                }
+                result.add(row);
+            }
+            return result;
+        }
+    }
+    public synchronized JSONObject one(String sql, String... args) { List<JSONObject> rows = query(sql, args); return rows.isEmpty() ? null : rows.get(0); }
+    public synchronized long scalar(String sql, String... args) { JSONObject row = one(sql, args); return row == null ? 0 : row.optLong("n"); }
+    public List<JSONObject> books() { return query("SELECT * FROM books WHERE archived=0 ORDER BY id"); }
+    public JSONObject book(long id) { return one("SELECT * FROM books WHERE id=?", "" + id); }
+    public List<JSONObject> accounts() {
+        List<JSONObject> result = query("SELECT * FROM accounts WHERE archived=0 ORDER BY id");
+        for (JSONObject row : result) Json.put(row, "balance", accountBalance(row.optLong("id")));
+        return result;
+    }
+    public synchronized long accountBalance(long id) {
+        JSONObject row = one("SELECT opening FROM accounts WHERE id=?", "" + id);
+        if (row == null) return 0;
+        return row.optLong("opening") + scalar("SELECT COALESCE(SUM(CASE WHEN account_id=? THEN CASE WHEN kind='income' THEN amount-fee ELSE -amount-fee END ELSE 0 END + CASE WHEN kind='transfer' AND to_account_id=? THEN amount ELSE 0 END),0) n FROM transactions WHERE deleted=0", "" + id, "" + id);
+    }
+    public List<JSONObject> categories(String kind) { return query("SELECT * FROM categories WHERE kind=? AND archived=0 ORDER BY id", kind); }
+    public long defaultCategory(String kind) { JSONObject c = one("SELECT id FROM categories WHERE kind=? AND archived=0 ORDER BY CASE WHEN name LIKE '其他%' THEN 0 ELSE 1 END,id LIMIT 1", kind); return c == null ? 0 : c.optLong("id"); }
+    public JSONObject transaction(long id) { return one("SELECT t.*,c.name category,c.icon category_icon,a.name account,b.name book_name FROM transactions t LEFT JOIN categories c ON c.id=t.category_id LEFT JOIN accounts a ON a.id=t.account_id JOIN books b ON b.id=t.book_id WHERE t.id=?", "" + id); }
+    public List<JSONObject> transactions(long book, long start, long end, String search, boolean trash) {
+        String filter = " WHERE t.book_id=? AND t.deleted=? AND t.time>=? AND t.time<?";
+        List<String> args = new ArrayList<>(java.util.Arrays.asList("" + book, trash ? "1" : "0", "" + start, "" + end));
+        if (search != null && !search.trim().isEmpty()) { filter += " AND (t.remark LIKE ? ESCAPE '\\' OR t.merchant LIKE ? ESCAPE '\\' OR c.name LIKE ? ESCAPE '\\')"; String value = "%" + search.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"; args.add(value); args.add(value); args.add(value); }
+        return query("SELECT t.*,c.name category,c.icon category_icon,a.name account FROM transactions t LEFT JOIN categories c ON c.id=t.category_id LEFT JOIN accounts a ON a.id=t.account_id" + filter + " ORDER BY t.time DESC,t.id DESC LIMIT 2000", args.toArray(new String[0]));
+    }
+    public JSONObject totals(long book, long start, long end) {
+        return one("SELECT COALESCE(SUM(CASE WHEN kind='income' AND not_total=0 THEN amount ELSE 0 END),0) income,COALESCE(SUM(CASE WHEN not_total=0 THEN CASE WHEN kind='expense' THEN amount+fee ELSE fee END ELSE 0 END),0) pay,COALESCE(SUM(CASE WHEN not_budget=0 THEN CASE WHEN kind='expense' THEN amount+fee ELSE fee END ELSE 0 END),0) budget_pay,COUNT(*) count FROM transactions WHERE book_id=? AND deleted=0 AND time>=? AND time<?", "" + book, "" + start, "" + end);
+    }
+    public List<JSONObject> categoryTotals(long book, long start, long end, String kind) {
+        return query("SELECT COALESCE(c.name,'其他') name,COALESCE(c.icon,'ic_other') icon,SUM(t.amount) amount,COUNT(*) count FROM transactions t LEFT JOIN categories c ON c.id=t.category_id WHERE t.book_id=? AND t.deleted=0 AND t.not_total=0 AND t.kind=? AND t.time>=? AND t.time<? GROUP BY t.category_id ORDER BY amount DESC", "" + book, kind, "" + start, "" + end);
+    }
+
+    public synchronized long saveTransaction(JSONObject input, long editingId, String candidateId) {
+        SQLiteDatabase db = getWritableDatabase(); db.beginTransaction();
+        try {
+            JSONObject candidate = candidateId == null ? null : candidate(candidateId);
+            String importKey=input.optString("import_key");
+            if(!importKey.isEmpty()){
+                if(!importKey.matches("[a-f0-9]{64}"))throw new IllegalArgumentException("导入标识无效");
+                JSONObject previous=one("SELECT id FROM transactions WHERE import_key=?",importKey);
+                if(previous!=null){db.setTransactionSuccessful();return previous.optLong("id");}
+            }
+            if (candidateId != null) {
+                if (candidate == null) throw new IllegalArgumentException("采集记录不存在");
+                if ("SAVED".equals(candidate.optString("state"))) { db.setTransactionSuccessful(); return candidate.optLong("transaction_id"); }
+                if (!"PENDING".equals(candidate.optString("state"))) throw new IllegalArgumentException("采集记录已忽略");
+            }
+            long bookId = input.optLong("book_id"); JSONObject book = book(bookId);
+            if (book == null || book.optInt("archived") != 0) throw new IllegalArgumentException("请选择有效账本");
+            if (candidate != null && candidate.optLong("book_id") != bookId) throw new IllegalArgumentException("请使用采集时的目标账本");
+            String currency = book.optString("currency"), kind = input.optString("kind");
+            if (!java.util.Arrays.asList("expense", "income", "transfer").contains(kind)) throw new IllegalArgumentException("记账类型无效");
+            long amount = input.optLong("amount"), fee = input.optLong("fee"), discount = input.optLong("discount");
+            if (amount <= 0 || amount > 999_999_999_999_99L || fee < 0 || fee>999_999_999_999_99L || discount < 0 || discount>999_999_999_999_99L) throw new IllegalArgumentException("请输入有效金额");
+            long account = input.optLong("account_id"), destination = input.optLong("to_account_id"), category = input.optLong("category_id");
+            validateAccount(account, currency); validateAccount(destination, currency);
+            if (kind.equals("transfer") && (account <= 0 || destination <= 0 || account == destination)) throw new IllegalArgumentException("请选择两个不同的转账账户");
+            if (!kind.equals("transfer")) {
+                JSONObject c = one("SELECT * FROM categories WHERE id=? AND archived=0", "" + category);
+                if (c == null || !kind.equals(c.optString("kind"))) throw new IllegalArgumentException("请选择对应收支类型的分类");
+            }
+            long time = input.optLong("time"); if (time <= 0 || time > 8640000000000000L) throw new IllegalArgumentException("记账时间无效");
+            long related=input.optLong("related_id");
+            if(related>0){JSONObject parent=transaction(related);if(parent==null||parent.optInt("deleted")!=0||parent.optLong("book_id")!=bookId||parent.optString("kind").equals(kind)||kind.equals("transfer"))throw new IllegalArgumentException("关联回款的账本或收支方向无效");long returned=scalar("SELECT COALESCE(SUM(amount),0) n FROM transactions WHERE related_id=? AND deleted=0 AND id<>?",""+related,""+editingId);if(amount>parent.optLong("amount")-returned)throw new IllegalArgumentException("回款超过原账单剩余金额");}
+            if(editingId>0){JSONObject old=transaction(editingId);if(old!=null){long returned=scalar("SELECT COALESCE(SUM(amount),0) n FROM transactions WHERE related_id=? AND deleted=0",""+editingId);if(returned>amount||(returned>0&&(bookId!=old.optLong("book_id")||!kind.equals(old.optString("kind")))))throw new IllegalArgumentException("已有回款的原账单不能改变账本、收支方向或小于已回款金额");}}
+            ContentValues values = new ContentValues();
+            values.put("book_id", bookId); values.put("kind", kind); values.put("amount", amount); values.put("currency", currency);
+            if (kind.equals("transfer")) values.putNull("category_id"); else values.put("category_id", category);
+            if (account <= 0) values.putNull("account_id"); else values.put("account_id", account);
+            if (!kind.equals("transfer")) values.putNull("to_account_id"); else values.put("to_account_id", destination);
+            for (String field : java.util.Arrays.asList("remark", "merchant", "origin", "asset_text", "financial_type")) values.put(field, bounded(input.optString(field), 2000));
+            values.put("discount", discount); values.put("fee", fee); values.put("time", time);
+            values.put("not_total", input.optBoolean("not_total") ? 1 : 0); values.put("not_budget", input.optBoolean("not_budget") ? 1 : 0);
+            values.put("settled", input.optInt("settled")); values.put("attachments", input.optString("attachments", "[]"));
+            if(input.optLong("related_id")>0)values.put("related_id",input.optLong("related_id"));
+            if(!importKey.isEmpty())values.put("import_key",importKey);
+            long id;
+            if (editingId > 0) {
+                JSONObject old = transaction(editingId); if (old == null || old.optInt("deleted") != 0) throw new IllegalArgumentException("账单已删除或不存在");
+                if (candidateId != null) throw new IllegalArgumentException("采集记录不能覆盖已有账单");
+                db.update("transactions", values, "id=?", new String[]{"" + editingId}); id = editingId;
+            } else {
+                values.put("created", System.currentTimeMillis()); if (candidateId != null) values.put("candidate_id", candidateId);
+                id = db.insertOrThrow("transactions", null, values);
+            }
+            JSONArray tags = input.optJSONArray("tag_ids");
+            if (tags != null) {
+                db.delete("transaction_tags", "transaction_id=?", new String[]{"" + id});
+                for (int i = 0; i < tags.length(); i++) {
+                    long tag = tags.optLong(i); if (one("SELECT id FROM tags WHERE id=?", "" + tag) == null) throw new IllegalArgumentException("标签已不存在");
+                    db.execSQL("INSERT OR IGNORE INTO transaction_tags(transaction_id,tag_id) VALUES(?,?)", new Object[]{id, tag});
+                }
+            }
+            if (candidate != null) db.execSQL("UPDATE candidates SET state='SAVED',transaction_id=? WHERE id=?", new Object[]{id, candidateId});
+            if (!kind.equals("transfer") && input.optBoolean("remember_rule") && !input.optString("merchant").trim().isEmpty()) {
+                ContentValues rule = new ContentValues(); rule.put("merchant", bounded(input.optString("merchant"), 2000)); rule.put("category_id", category); rule.put("book_id", bookId); if (account > 0) rule.put("account_id", account);
+                JSONObject old = one("SELECT id FROM rules WHERE merchant=?", input.optString("merchant"));
+                if (old == null) db.insertOrThrow("rules", null, rule); else db.update("rules", rule, "id=?", new String[]{"" + old.optLong("id")});
+            }
+            db.setTransactionSuccessful(); return id;
+        } finally { db.endTransaction(); }
+    }
+    private void validateAccount(long id, String currency) {
+        if (id <= 0) return;
+        JSONObject account = one("SELECT * FROM accounts WHERE id=? AND archived=0", "" + id);
+        if (account == null || !currency.equals(account.optString("currency"))) throw new IllegalArgumentException("账户不存在或币种与账本不同");
+    }
+    public synchronized void trash(long id, boolean deleted) { getWritableDatabase().execSQL("UPDATE transactions SET deleted=? WHERE id=?", new Object[]{deleted ? 1 : 0, id}); }
+    public synchronized void purge(long id){SQLiteDatabase db=getWritableDatabase();db.beginTransaction();try{JSONObject row=transaction(id);if(row==null||row.optInt("deleted")!=1)throw new IllegalArgumentException("只能永久删除回收站中的账单");if(scalar("SELECT COUNT(*) n FROM transactions WHERE related_id=?",""+id)>0)throw new IllegalArgumentException("请先删除关联的回款账单");String candidate=row.optString("candidate_id");if(!candidate.isEmpty()&&!candidate.equals("null"))db.execSQL("UPDATE candidates SET state='DISMISSED',transaction_id=NULL WHERE id=?",new Object[]{candidate});db.delete("transactions","id=?",new String[]{""+id});db.setTransactionSuccessful();}finally{db.endTransaction();}}
+    public synchronized void dismiss(String id) { getWritableDatabase().execSQL("UPDATE candidates SET state='DISMISSED' WHERE id=? AND state='PENDING'", new Object[]{id}); }
+    public synchronized void settle(long id, boolean settled) { getWritableDatabase().execSQL("UPDATE transactions SET settled=? WHERE id=?", new Object[]{settled ? 1 : 0, id}); }
+    public synchronized long outstanding(long id){JSONObject t=transaction(id);if(t==null)return 0;long returned=scalar("SELECT COALESCE(SUM(amount),0) n FROM transactions WHERE related_id=? AND deleted=0",""+id);return Math.max(0,t.optLong("amount")-returned);}
+    public synchronized long financialReturn(long id,long amount,long account,long time){
+        SQLiteDatabase db=getWritableDatabase();db.beginTransaction();try{
+            JSONObject original=transaction(id);if(original==null||original.optInt("deleted")!=0)throw new IllegalArgumentException("原账单不存在");
+            if(amount<=0||amount>outstanding(id))throw new IllegalArgumentException("回款金额超过剩余金额");
+            String type=original.optString("financial_type"),kind=type.equals("borrow")?"expense":"income";
+            String next=type.equals("lend")?"lend_return":type.equals("borrow")?"borrow_repay":type.equals("reimbursement")?"reimbursement_return":"refund";
+            JSONObject value=Json.object("book_id",original.optLong("book_id"),"kind",kind,"amount",amount,"category_id",defaultCategory(kind),"account_id",account,"remark",(kind.equals("income")?"回款·":"还款·")+original.optString("remark"),"merchant",original.optString("merchant"),"time",time,"financial_type",next,"related_id",id);
+            long saved=saveTransaction(value,0,null);if(outstanding(id)==0)db.execSQL("UPDATE transactions SET settled=1 WHERE id=?",new Object[]{id});db.setTransactionSuccessful();return saved;
+        }finally{db.endTransaction();}
+    }
+    public JSONObject candidate(String id) { return one("SELECT * FROM candidates WHERE id=?", id); }
+    public List<JSONObject> candidates() { return query("SELECT * FROM candidates WHERE state='PENDING' ORDER BY created DESC LIMIT 1000"); }
+    public synchronized String addCandidate(JSONObject payload, String packageName, long book) {
+        if (book(book) == null) throw new IllegalArgumentException("采集目标账本不存在");
+        if (scalar("SELECT COUNT(*) n FROM candidates WHERE state='PENDING'") >= 1000) throw new IllegalStateException("待确认列表已满");
+        String id = UUID.randomUUID().toString();
+        ContentValues values = new ContentValues(); values.put("id", id); values.put("payload", payload.toString()); values.put("package_name", packageName); values.put("book_id", book); values.put("created", System.currentTimeMillis());
+        getWritableDatabase().insertOrThrow("candidates", null, values); return id;
+    }
+    public synchronized void updateCandidateRemark(String id, String remark) {
+        JSONObject row = candidate(id); if (row == null || !"PENDING".equals(row.optString("state"))) return;
+        JSONObject data = Json.parse(row.optString("payload")); Json.put(data, "remark", bounded(remark, 2000));
+        getWritableDatabase().execSQL("UPDATE candidates SET payload=? WHERE id=? AND state='PENDING'", new Object[]{data.toString(), id});
+    }
+    public synchronized long saveBook(long id, String name, String currency, long budget) {
+        Money.scale(currency); name = requiredName(name); if (budget < 0) throw new IllegalArgumentException("预算不能小于零");
+        JSONObject old = book(id);
+        if (old != null && !currency.equals(old.optString("currency")) && scalar("SELECT COUNT(*) n FROM transactions WHERE book_id=?", "" + id) > 0) throw new IllegalArgumentException("已有账单的账本不能更换币种");
+        ContentValues v = new ContentValues(); v.put("name", name); v.put("currency", currency); v.put("budget", budget);
+        if (id > 0) { if (old == null) throw new IllegalArgumentException("账本不存在"); getWritableDatabase().update("books", v, "id=?", new String[]{"" + id}); return id; }
+        v.put("created", System.currentTimeMillis()); return getWritableDatabase().insertOrThrow("books", null, v);
+    }
+    public synchronized void removeBook(long id) {
+        if (books().size() <= 1) throw new IllegalArgumentException("至少保留一个账本");
+        if (scalar("SELECT COUNT(*) n FROM transactions WHERE book_id=?", "" + id) > 0 || scalar("SELECT COUNT(*) n FROM candidates WHERE book_id=?", "" + id) > 0) throw new IllegalArgumentException("账本内还有账单或采集记录，请保留或先迁移数据");
+        getWritableDatabase().delete("rules", "book_id=?", new String[]{"" + id});
+        getWritableDatabase().delete("books", "id=?", new String[]{"" + id});
+    }
+    public synchronized long saveAccount(long id, String name, String type, String currency, long opening) {
+        Money.scale(currency); ContentValues v = new ContentValues(); v.put("name", requiredName(name)); v.put("type", type); v.put("currency", currency); v.put("opening", opening);
+        if (id > 0) {
+            JSONObject old = one("SELECT * FROM accounts WHERE id=?", "" + id); if (old == null) throw new IllegalArgumentException("账户不存在");
+            if (!currency.equals(old.optString("currency")) && scalar("SELECT COUNT(*) n FROM transactions WHERE account_id=? OR to_account_id=?", "" + id, "" + id) > 0) throw new IllegalArgumentException("已有账单的账户不能更换币种");
+            getWritableDatabase().update("accounts", v, "id=?", new String[]{"" + id}); return id;
+        }
+        return getWritableDatabase().insertOrThrow("accounts", null, v);
+    }
+    public synchronized void archiveAccount(long id) { getWritableDatabase().execSQL("UPDATE accounts SET archived=1 WHERE id=?", new Object[]{id}); }
+    public synchronized long saveCategory(long id, String name, String kind, String icon) {
+        if (!java.util.Arrays.asList("expense", "income").contains(kind)) throw new IllegalArgumentException("分类类型无效");
+        ContentValues v = new ContentValues(); v.put("name", requiredName(name)); v.put("kind", kind); v.put("icon", icon);
+        if (id > 0) { JSONObject old = one("SELECT kind FROM categories WHERE id=?", "" + id); if (old == null || !kind.equals(old.optString("kind"))) throw new IllegalArgumentException("不能改变已建分类的收支类型"); getWritableDatabase().update("categories", v, "id=?", new String[]{"" + id}); return id; }
+        return getWritableDatabase().insertOrThrow("categories", null, v);
+    }
+    public synchronized void archiveCategory(long id) { getWritableDatabase().execSQL("UPDATE categories SET archived=1 WHERE id=?", new Object[]{id}); }
+    public synchronized long saveTag(String name) { ContentValues v = new ContentValues(); v.put("name", requiredName(name)); return getWritableDatabase().insertOrThrow("tags", null, v); }
+    public synchronized void deleteTag(long id) { SQLiteDatabase db = getWritableDatabase(); db.beginTransaction(); try { db.delete("transaction_tags", "tag_id=?", new String[]{"" + id}); db.delete("tags", "id=?", new String[]{"" + id}); db.setTransactionSuccessful(); } finally { db.endTransaction(); } }
+    public synchronized long saveGoal(long id, String name, long target, long saved) {
+        if (target <= 0 || saved < 0) throw new IllegalArgumentException("目标金额必须大于零，已存金额不能小于零");
+        ContentValues v = new ContentValues(); v.put("name", requiredName(name)); v.put("target", target); v.put("saved", saved);
+        if (id > 0) { getWritableDatabase().update("goals", v, "id=?", new String[]{"" + id}); return id; }
+        v.put("created", System.currentTimeMillis()); return getWritableDatabase().insertOrThrow("goals", null, v);
+    }
+    public synchronized long savePlan(long id,String name,String interval,JSONObject payload,long due){
+        if(!java.util.Arrays.asList("daily","weekly","monthly","yearly").contains(interval)||due<=0)throw new IllegalArgumentException("周期设置无效");
+        if(book(payload.optLong("book_id"))==null||payload.optLong("amount")<=0)throw new IllegalArgumentException("周期账单缺少有效账本或金额");
+        ContentValues v=new ContentValues();v.put("name",requiredName(name));v.put("interval",interval);v.put("payload",payload.toString());v.put("next_due",due);
+        if(id>0){getWritableDatabase().update("plans",v,"id=?",new String[]{""+id});return id;}return getWritableDatabase().insertOrThrow("plans",null,v);
+    }
+    public synchronized void enablePlan(long id,boolean enabled){getWritableDatabase().execSQL("UPDATE plans SET enabled=? WHERE id=?",new Object[]{enabled?1:0,id});}
+    public synchronized int processPlans(long now){
+        SQLiteDatabase db=getWritableDatabase();db.beginTransaction();int count=0;try{
+            for(JSONObject plan:query("SELECT * FROM plans WHERE enabled=1 AND next_due<=? ORDER BY next_due",""+now)){
+                JSONObject payload=Json.parse(plan.optString("payload"));long due=plan.optLong("next_due");int generated=0;
+                while(due<=now&&generated++<12){JSONObject draft=Json.copy(payload);Json.put(draft,"time",due);Json.put(draft,"origin","周期记账");addCandidate(draft,"local.plan",payload.optLong("book_id"));count++;java.util.Calendar c=java.util.Calendar.getInstance();c.setTimeInMillis(due);String interval=plan.optString("interval");if(interval.equals("monthly")||interval.equals("yearly")){int day=payload.optInt("anchor_day",c.get(java.util.Calendar.DAY_OF_MONTH));c.set(java.util.Calendar.DAY_OF_MONTH,1);c.add(interval.equals("monthly")?java.util.Calendar.MONTH:java.util.Calendar.YEAR,1);c.set(java.util.Calendar.DAY_OF_MONTH,Math.min(day,c.getActualMaximum(java.util.Calendar.DAY_OF_MONTH)));}else c.add(java.util.Calendar.DATE,interval.equals("weekly")?7:1);due=c.getTimeInMillis();}
+                db.execSQL("UPDATE plans SET next_due=? WHERE id=?",new Object[]{due,plan.optLong("id")});
+            }
+            db.setTransactionSuccessful();return count;
+        }finally{db.endTransaction();}
+    }
+    public synchronized void deleteSimple(String table, long id) { if (!java.util.Arrays.asList("goals", "plans", "rules").contains(table)) throw new IllegalArgumentException(); getWritableDatabase().delete(table, "id=?", new String[]{"" + id}); }
+    private static String requiredName(String value) { String name = value == null ? "" : value.trim(); if (name.isEmpty() || name.length() > 100) throw new IllegalArgumentException("名称需要1至100个字符"); return name; }
+    private static String bounded(String value, int max) { return value == null ? "" : value.substring(0, Math.min(value.length(), max)); }
+
+    private static final String[] BACKUP_TABLES = {"books", "accounts", "categories", "tags", "candidates", "transactions", "transaction_tags", "rules", "plans", "goals"};
+    public synchronized JSONObject backup() {
+        SQLiteDatabase db = getWritableDatabase(); db.beginTransaction();
+        try {
+            JSONObject tables = new JSONObject(); for (String table : BACKUP_TABLES) Json.put(tables, table, new JSONArray(query("SELECT * FROM " + table)));
+            JSONObject result = Json.object("format", "YimuReferenceBackup", "version", 1, "created", System.currentTimeMillis(), "tables", tables);
+            db.setTransactionSuccessful(); return result;
+        } finally { db.endTransaction(); }
+    }
+    public synchronized void restore(JSONObject backup) {
+        if (!"YimuReferenceBackup".equals(backup.optString("format")) || backup.optInt("version") != 1) throw new IllegalArgumentException("请选择本实验版的完整备份");
+        JSONObject tables = backup.optJSONObject("tables"); if (tables == null || tables.optJSONArray("books") == null || tables.optJSONArray("books").length() == 0) throw new IllegalArgumentException("备份缺少账本");
+        SQLiteDatabase db = getWritableDatabase(); db.beginTransaction();
+        try {
+            db.execSQL("PRAGMA defer_foreign_keys=ON");
+            for (int i = BACKUP_TABLES.length - 1; i >= 0; i--) db.delete(BACKUP_TABLES[i], null, null);
+            for (String table : BACKUP_TABLES) {
+                JSONArray rows = tables.optJSONArray(table); if (rows == null || rows.length() > 100000) throw new IllegalArgumentException("备份表缺失或过大：" + table);
+                List<String> allowed = new ArrayList<>(); try (Cursor c = db.rawQuery("PRAGMA table_info(" + table + ")", null)) { while (c.moveToNext()) allowed.add(c.getString(c.getColumnIndexOrThrow("name"))); }
+                for (int i = 0; i < rows.length(); i++) {
+                    JSONObject row = rows.optJSONObject(i); if (row == null) throw new IllegalArgumentException("备份记录格式错误");
+                    ContentValues values = new ContentValues();
+                    for (String column : allowed) if (row.has(column)) {
+                        Object value = row.opt(column);
+                        if (value == JSONObject.NULL) values.putNull(column);
+                        else if (value instanceof Long || value instanceof Integer) values.put(column, ((Number)value).longValue());
+                        else if (value instanceof String text && text.length() <= 200000) values.put(column, text);
+                        else throw new IllegalArgumentException("备份字段格式错误：" + column);
+                    }
+                    db.insertOrThrow(table, null, values);
+                }
+            }
+            try (Cursor c = db.rawQuery("PRAGMA foreign_key_check", null)) { if (c.moveToFirst()) throw new IllegalArgumentException("备份的账本或账户关联损坏"); }
+            for (JSONObject book : query("SELECT * FROM books")) Money.scale(book.optString("currency"));
+            if(scalar("SELECT COUNT(*) n FROM books WHERE archived=0")==0)throw new IllegalArgumentException("备份中没有可用账本");
+            if(scalar("SELECT COUNT(*) n FROM transactions t JOIN books b ON b.id=t.book_id LEFT JOIN accounts a ON a.id=t.account_id LEFT JOIN accounts z ON z.id=t.to_account_id WHERE t.currency<>b.currency OR (a.id IS NOT NULL AND a.currency<>t.currency) OR (z.id IS NOT NULL AND z.currency<>t.currency) OR t.amount>99999999999999 OR t.not_total NOT IN(0,1) OR t.not_budget NOT IN(0,1) OR t.deleted NOT IN(0,1)")>0)throw new IllegalArgumentException("备份账单的币种或数值无效");
+            for(JSONObject candidate:query("SELECT * FROM candidates")){
+                if(!java.util.Arrays.asList("PENDING","SAVED","DISMISSED").contains(candidate.optString("state")))throw new IllegalArgumentException("备份采集状态无效");
+                JSONObject payload=Json.parse(candidate.optString("payload"));if(payload.optLong("book_id")!=candidate.optLong("book_id"))throw new IllegalArgumentException("备份采集账本不匹配");
+                if(candidate.optString("state").equals("SAVED")){JSONObject t=one("SELECT candidate_id FROM transactions WHERE id=?",""+candidate.optLong("transaction_id"));if(t==null||!candidate.optString("id").equals(t.optString("candidate_id")))throw new IllegalArgumentException("备份采集关联无效");}
+            }
+            db.setTransactionSuccessful();
+        } finally { db.endTransaction(); }
+    }
+}

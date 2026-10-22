@@ -1,0 +1,17 @@
+<?xml version='1.0' encoding='utf-8'?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:orientation="vertical" android:background="@drawable/dialog_user_agreement_bg" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginStart="20dp" android:layout_marginEnd="20dp">
+    <TextView android:textSize="16sp" android:textStyle="bold" android:textColor="@color/black" android:layout_gravity="center_horizontal" android:id="@+id/title" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="20dp" android:text="年度账单" />
+    <TextView android:textSize="14sp" android:textColor="@color/black" android:id="@+id/content" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_margin="20dp" android:text="年度账单有效期至2025年1月31日，生成后，您可在：统计—右上角年度账单中再次查看" android:lineSpacingExtra="5dp" />
+    <RelativeLayout android:id="@+id/choice_book_layout" android:background="@drawable/shape_background_light_10" android:layout_width="match_parent" android:layout_height="50dp" android:layout_marginBottom="20dp" android:layout_marginStart="20dp" android:layout_marginEnd="20dp">
+        <TextView android:textSize="14sp" android:textColor="@color/black" android:layout_gravity="center_horizontal" android:id="@+id/book_info" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="统计所有账本" android:layout_centerVertical="true" android:layout_marginStart="20dp" />
+        <ImageView android:layout_width="14dp" android:layout_height="14dp" android:src="@mipmap/ic_more" android:layout_centerVertical="true" android:layout_marginEnd="10dp" android:layout_alignParentEnd="true" />
+    </RelativeLayout>
+    <LinearLayout android:gravity="center" android:orientation="horizontal" android:id="@+id/check_layout" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginBottom="20dp" android:layout_marginStart="20dp">
+        <ImageView android:id="@+id/check_image" android:layout_width="18dp" android:layout_height="18dp" android:src="@mipmap/ic_check" android:tint="@color/colorPrimary" />
+        <TextView android:textSize="12sp" android:textColor="@color/darkGrey" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="授权一木使用账单数据生成年度账单" android:layout_marginStart="5dp" />
+    </LinearLayout>
+    <LinearLayout android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="50dp" android:layout_marginTop="20dp">
+        <TextView android:textSize="15sp" android:textColor="@color/textGray" android:gravity="center" android:id="@+id/cancel" android:background="@drawable/selectable_item_expand_mask" android:layout_width="0dp" android:layout_height="match_parent" android:text="取消" android:layout_weight="1" />
+        <TextView android:textSize="15sp" android:textColor="@color/colorPrimaryText" android:gravity="center" android:id="@+id/confirm" android:background="@drawable/selectable_item_expand_mask" android:layout_width="0dp" android:layout_height="match_parent" android:text="生成" android:layout_weight="1" />
+    </LinearLayout>
+</LinearLayout>

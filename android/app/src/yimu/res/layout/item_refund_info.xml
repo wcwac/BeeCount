@@ -1,0 +1,14 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/total_layout" android:background="@drawable/shape_bg_setting" android:layout_width="match_parent" android:layout_height="60dp" android:layout_marginTop="15dp" android:paddingStart="15dp" android:paddingEnd="15dp" android:layout_marginStart="15dp" android:layout_marginEnd="15dp">
+    <LinearLayout android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_centerVertical="true" android:layout_marginEnd="10dp" android:layout_toStartOf="@+id/num_layout">
+        <TextView android:textSize="15sp" android:textColor="@color/darkGrey" android:id="@+id/content" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="退款到：支付宝" android:singleLine="true" />
+        <LinearLayout android:orientation="horizontal" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="5dp">
+            <TextView android:textSize="13sp" android:textColor="@color/grey" android:id="@+id/time" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="8月7日" />
+            <TextView android:textSize="13sp" android:textColor="@color/grey" android:id="@+id/remark" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="我是备注" android:singleLine="true" android:layout_marginStart="12dp" />
+        </LinearLayout>
+    </LinearLayout>
+    <LinearLayout android:gravity="end" android:orientation="vertical" android:id="@+id/num_layout" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_centerVertical="true" android:layout_alignParentEnd="true">
+        <TextView android:textSize="18sp" android:textColor="@color/black" android:id="@+id/change_num" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="-1.00" android:singleLine="true" />
+        <TextView android:textSize="13sp" android:textColor="@color/grey" android:id="@+id/bill_number" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="5dp" android:text="2483.62" />
+    </LinearLayout>
+</RelativeLayout>

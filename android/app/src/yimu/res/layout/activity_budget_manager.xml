@@ -1,0 +1,88 @@
+<?xml version='1.0' encoding='utf-8'?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:orientation="vertical" android:background="@color/backgroundLight" android:layout_width="match_parent" android:layout_height="match_parent">
+    <RelativeLayout android:id="@+id/tool_bar" android:background="@color/white" android:layout_width="match_parent" android:layout_height="50dp">
+        <ImageView android:id="@+id/btn_back" android:background="@drawable/selectable_item_circle" android:padding="17dp" android:layout_width="50dp" android:layout_height="50dp" android:src="@mipmap/ic_back" android:scaleType="fitCenter" android:tint="@color/black" android:layout_centerVertical="true" />
+        <TextView android:textSize="18sp" android:textStyle="bold" android:textColor="@color/black" android:id="@+id/title" android:layout_width="wrap_content" android:layout_height="wrap_content" android:maxWidth="180dp" android:text="预算管理" android:singleLine="true" android:layout_centerVertical="true" android:layout_toEndOf="@+id/btn_back" />
+        <ImageView android:id="@+id/right_icon" android:background="@drawable/selectable_item_circle" android:layout_width="50dp" android:layout_height="50dp" android:src="@mipmap/ic_bar_more" android:scaleType="centerInside" android:tint="@color/black" android:layout_centerVertical="true" android:layout_alignParentEnd="true" />
+        <RelativeLayout android:id="@+id/date_layout" android:layout_width="wrap_content" android:layout_height="match_parent" android:layout_toStartOf="@+id/right_icon">
+            <TextView android:textSize="15sp" android:textColor="@color/black" android:gravity="center_vertical" android:id="@+id/month" android:layout_width="wrap_content" android:layout_height="match_parent" android:text="4月, 2020年" />
+            <LinearLayout android:orientation="vertical" android:id="@+id/self_date_layout" android:visibility="gone" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_centerVertical="true">
+                <TextView android:textSize="12sp" android:textColor="@color/black" android:gravity="center_vertical" android:id="@+id/start_time" android:layout_width="wrap_content" android:layout_height="match_parent" android:text="2020年4月1号" />
+                <TextView android:textSize="12sp" android:textColor="@color/black" android:gravity="center_vertical" android:id="@+id/end_time" android:layout_width="wrap_content" android:layout_height="match_parent" android:layout_marginTop="5dp" android:text="2020年5月1号" />
+            </LinearLayout>
+        </RelativeLayout>
+    </RelativeLayout>
+    <FrameLayout android:id="@+id/pull_layout" android:layout_width="match_parent" android:layout_height="match_parent" app:headerHeight="56dp" app:pullHeight="128dp" app:triggerHeight="96dp">
+        <androidx.core.widget.NestedScrollView android:layout_width="match_parent" android:layout_height="match_parent">
+            <LinearLayout android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content">
+                <RelativeLayout android:background="@drawable/shape_bg_setting" android:paddingTop="15dp" android:paddingBottom="10dp" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_margin="15dp">
+                    <LinearLayout android:orientation="vertical" android:id="@+id/month_budget_layout" android:layout_width="wrap_content" android:layout_height="wrap_content" android:paddingStart="15dp">
+                        <LinearLayout android:gravity="center" android:orientation="horizontal" android:layout_width="wrap_content" android:layout_height="wrap_content">
+                            <TextView android:textSize="15sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="总预算" />
+                            <ImageView android:layout_width="14dp" android:layout_height="14dp" android:src="@mipmap/ic_edit" android:tint="@color/black" android:layout_marginStart="6dp" />
+                        </LinearLayout>
+                        <TextView android:textSize="15sp" android:textStyle="bold" android:textColor="@color/textColorPrimary" android:id="@+id/month_budget" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="5dp" android:text="546.00" />
+                    </LinearLayout>
+                    <RelativeLayout android:id="@+id/budget_progress" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:layout_marginBottom="10dp" android:layout_below="@+id/month_budget_layout" android:layout_marginStart="13dp" android:layout_marginEnd="13dp">
+                        <FrameLayout android:id="@+id/progress_view_one" android:layout_width="match_parent" android:layout_height="5dp" />
+                        <FrameLayout android:id="@+id/progress_view_two" android:layout_width="match_parent" android:layout_height="5dp" />
+                    </RelativeLayout>
+                    <LinearLayout android:orientation="horizontal" android:id="@+id/data_layout" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_below="@+id/budget_progress" android:paddingStart="15dp" android:paddingEnd="15dp">
+                        <LinearLayout android:orientation="horizontal" android:id="@+id/month_pay_layout" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1">
+                            <TextView android:textSize="12sp" android:textColor="@color/grey" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="支出：" />
+                            <TextView android:textSize="13sp" android:textColor="@color/grey" android:id="@+id/month_pay" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="4265.36" />
+                        </LinearLayout>
+                        <LinearLayout android:orientation="horizontal" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1">
+                            <TextView android:textSize="12sp" android:textColor="@color/grey" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="日均：" />
+                            <TextView android:textSize="13sp" android:textColor="@color/grey" android:id="@+id/day_pay" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="4265.36" />
+                        </LinearLayout>
+                    </LinearLayout>
+                    <LinearLayout android:orientation="horizontal" android:id="@+id/day_data_layout" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:layout_below="@+id/data_layout" android:paddingStart="15dp" android:paddingEnd="15dp">
+                        <LinearLayout android:orientation="horizontal" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1">
+                            <TextView android:textSize="12sp" android:textColor="@color/grey" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="日预算：" />
+                            <TextView android:textSize="13sp" android:textColor="@color/grey" android:id="@+id/budget_day_surplus" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="4265.36" />
+                        </LinearLayout>
+                        <LinearLayout android:orientation="horizontal" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1">
+                            <TextView android:textSize="12sp" android:textColor="@color/grey" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="今日剩余：" />
+                            <TextView android:textSize="13sp" android:textColor="@color/grey" android:id="@+id/budget_day_remain" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="4265.36" />
+                        </LinearLayout>
+                    </LinearLayout>
+                    <LinearLayout android:orientation="horizontal" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_above="@+id/budget_progress" android:layout_marginEnd="15dp" android:layout_alignParentEnd="true">
+                        <TextView android:textSize="13sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="剩余：" />
+                        <TextView android:textSize="13sp" android:textColor="@color/black" android:id="@+id/budget_surplus" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0.00" />
+                    </LinearLayout>
+                    <RelativeLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="15dp" android:layout_below="@+id/day_data_layout">
+                        <LinearLayout android:orientation="horizontal" android:id="@+id/bill_line_title" android:layout_width="wrap_content" android:layout_height="wrap_content">
+                            <TextView android:textSize="12sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="预算趋势" android:layout_marginStart="15dp" />
+                        </LinearLayout>
+                        <LinearLayout android:gravity="center_vertical" android:orientation="horizontal" android:id="@+id/line_menu" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginEnd="20dp" android:layout_alignParentEnd="true">
+                            <View android:background="@color/moneyPay" android:layout_width="12dp" android:layout_height="3dp" android:layout_marginStart="15dp" />
+                            <TextView android:textSize="11sp" android:textColor="@color/grey" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="支出" android:layout_marginStart="6dp" />
+                            <View android:background="@color/moneyIncome" android:layout_width="12dp" android:layout_height="3dp" android:layout_marginStart="15dp" />
+                            <TextView android:textSize="11sp" android:textColor="@color/grey" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="剩余" android:layout_marginStart="6dp" />
+                        </LinearLayout>
+                        <FrameLayout android:id="@+id/budget_line_chart" android:layout_width="match_parent" android:layout_height="120dp" android:layout_below="@+id/bill_line_title" />
+                        <RelativeLayout android:id="@+id/budget_line_time_layout" android:visibility="gone" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_below="@+id/budget_line_chart">
+                            <TextView android:textSize="10sp" android:textColor="@color/darkGrey" android:id="@+id/budget_line_start_time" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="2021.5.12" android:layout_marginStart="15dp" />
+                            <TextView android:textSize="10sp" android:textColor="@color/darkGrey" android:id="@+id/budget_line_end_time" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="2021.5.12" android:layout_marginEnd="15dp" android:layout_alignParentEnd="true" />
+                        </RelativeLayout>
+                    </RelativeLayout>
+                </RelativeLayout>
+                <LinearLayout android:gravity="center" android:orientation="horizontal" android:id="@+id/add_category_budget" android:background="@drawable/shape_bg_setting" android:layout_width="match_parent" android:layout_height="45dp" android:layout_marginBottom="15dp" android:layout_marginStart="15dp" android:layout_marginEnd="15dp">
+                    <ImageView android:layout_width="25dp" android:layout_height="25dp" android:src="@mipmap/ic_add_bill" android:tint="@color/black" />
+                    <TextView android:textSize="15sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="添加分类预算" android:layout_marginStart="10dp" />
+                    <ImageView android:id="@+id/tip" android:background="@drawable/selectable_item_circle" android:padding="11dp" android:layout_width="40dp" android:layout_height="40dp" android:src="@mipmap/ic_tip" android:tint="@color/grey" />
+                </LinearLayout>
+                <LinearLayout android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="15dp" android:layout_marginStart="15dp" android:layout_marginEnd="15dp">
+                    <RelativeLayout android:layout_width="match_parent" android:layout_height="wrap_content">
+                        <LinearLayout android:gravity="center" android:orientation="vertical" android:id="@+id/tip_layout" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="50dp" android:layout_centerHorizontal="true">
+                            <include android:layout_width="150dp" android:layout_height="150dp" layout="@layout/layout_common_tip" />
+                            <TextView android:textSize="13sp" android:textColor="@color/textGray" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginBottom="50dp" android:text="你还没有任何分类预算" />
+                        </LinearLayout>
+                        <androidx.recyclerview.widget.RecyclerView android:id="@+id/category_budget_list" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="10dp" android:overScrollMode="never" />
+                    </RelativeLayout>
+                </LinearLayout>
+            </LinearLayout>
+        </androidx.core.widget.NestedScrollView>
+    </FrameLayout>
+</LinearLayout>

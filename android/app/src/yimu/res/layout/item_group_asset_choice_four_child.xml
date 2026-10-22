@@ -1,0 +1,6 @@
+<?xml version='1.0' encoding='utf-8'?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:gravity="center" android:orientation="vertical" android:id="@+id/total_layout" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_margin="5dp">
+    <ImageView android:id="@+id/asset_icon" android:layout_width="20dp" android:layout_height="20dp" android:layout_marginBottom="5dp" android:src="@mipmap/ic_asset_huabei" />
+    <TextView android:textSize="13sp" android:textColor="@color/textColorBlack" android:id="@+id/asset_name" android:layout_width="wrap_content" android:layout_height="wrap_content" android:singleLine="true" />
+    <TextView android:textSize="11sp" android:textColor="@color/darkGrey" android:id="@+id/asset_num" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="3dp" android:singleLine="true" />
+</LinearLayout>

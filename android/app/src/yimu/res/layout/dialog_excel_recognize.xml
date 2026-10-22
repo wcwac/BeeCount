@@ -1,0 +1,12 @@
+<?xml version='1.0' encoding='utf-8'?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:orientation="vertical" android:background="@drawable/dialog_user_agreement_bg" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginStart="40dp" android:layout_marginEnd="40dp">
+    <RelativeLayout android:layout_gravity="center_horizontal" android:layout_width="160dp" android:layout_height="160dp" android:layout_marginTop="15dp">
+        <ImageView android:layout_width="160dp" android:layout_height="160dp" android:src="@mipmap/ic_excel_recognize_bg" android:scaleType="centerCrop" android:adjustViewBounds="true" />
+        <ImageView android:id="@+id/icon" android:layout_width="30dp" android:layout_height="30dp" android:layout_margin="8dp" android:src="@mipmap/ic_excel_recognize_null" android:scaleType="fitXY" android:adjustViewBounds="true" android:layout_alignParentBottom="true" android:layout_alignParentEnd="true" />
+    </RelativeLayout>
+    <TextView android:textSize="15sp" android:textColor="@color/black" android:layout_gravity="center_horizontal" android:id="@+id/content" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_margin="15dp" android:text="当然账单来源为：支付宝" />
+    <LinearLayout android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="50dp" android:layout_marginTop="20dp">
+        <TextView android:textSize="15sp" android:textColor="@color/textGray" android:gravity="center" android:id="@+id/left_btn" android:background="@drawable/selectable_item_expand_mask" android:layout_width="0dp" android:layout_height="match_parent" android:text="自定义导入" android:layout_weight="1" />
+        <TextView android:textSize="15sp" android:textColor="@color/colorPrimaryText" android:gravity="center" android:id="@+id/confirm" android:background="@drawable/selectable_item_expand_mask" android:layout_width="0dp" android:layout_height="match_parent" android:text="直接导入" android:layout_weight="1" />
+    </LinearLayout>
+</LinearLayout>

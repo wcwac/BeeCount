@@ -1,0 +1,29 @@
+<?xml version='1.0' encoding='utf-8'?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content">
+    <LinearLayout android:gravity="center_vertical" android:orientation="horizontal" android:background="@drawable/shape_bg_budget" android:paddingTop="10dp" android:paddingBottom="10dp" android:layout_width="match_parent" android:layout_height="wrap_content">
+        <LinearLayout android:gravity="center" android:orientation="vertical" android:id="@+id/pay_layout" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1">
+            <TextView android:textSize="13sp" android:textColor="@color/textColorLight" android:id="@+id/pay_num_title" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="共支出" />
+            <TextView android:textSize="18sp" android:textStyle="bold" android:textColor="@color/textColorLight" android:id="@+id/pay_num" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="3dp" android:text="0.00" android:shadowColor="@color/colorPrimaryDark" />
+        </LinearLayout>
+        <LinearLayout android:gravity="center" android:orientation="vertical" android:id="@+id/income_layout" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1">
+            <TextView android:textSize="13sp" android:textColor="@color/textColorLight" android:id="@+id/income_num_title" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="共收入" />
+            <TextView android:textSize="18sp" android:textStyle="bold" android:textColor="@color/textColorLight" android:id="@+id/income_num" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="3dp" android:text="0.00" android:shadowColor="@color/colorPrimaryDark" />
+        </LinearLayout>
+        <LinearLayout android:gravity="center" android:orientation="vertical" android:id="@+id/bill_count_layout" android:visibility="gone" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1">
+            <TextView android:textSize="13sp" android:textColor="@color/textColorLight" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="账单数量" />
+            <TextView android:textSize="18sp" android:textStyle="bold" android:textColor="@color/textColorLight" android:id="@+id/bill_count" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="3dp" android:text="0.00" android:shadowColor="@color/colorPrimaryDark" />
+        </LinearLayout>
+    </LinearLayout>
+    <RelativeLayout android:id="@+id/bar_layout" android:background="@drawable/shape_bg_setting" android:paddingTop="10dp" android:paddingBottom="10dp" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="15dp">
+        <TextView android:textSize="15sp" android:textStyle="bold" android:textColor="@color/black" android:id="@+id/bar_title" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="支出统计" android:layout_marginStart="10dp" />
+        <FrameLayout android:id="@+id/bar_chart" android:layout_width="match_parent" android:layout_height="150dp" android:layout_marginTop="10dp" android:layout_below="@+id/bar_title" />
+    </RelativeLayout>
+    <LinearLayout android:orientation="vertical" android:id="@+id/member_layout" android:background="@drawable/shape_bg_theme_content_5" android:paddingTop="10dp" android:paddingBottom="10dp" android:visibility="gone" android:layout_width="match_parent" android:layout_height="255dp" android:layout_marginTop="15dp">
+        <RelativeLayout android:layout_width="match_parent" android:layout_height="wrap_content">
+            <TextView android:textSize="15sp" android:textStyle="bold" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="成员收支" android:layout_marginStart="10dp" />
+        </RelativeLayout>
+        <RelativeLayout android:layout_width="match_parent" android:layout_height="200dp">
+            <FrameLayout android:id="@+id/pie_member_chart" android:layout_width="match_parent" android:layout_height="200dp" />
+        </RelativeLayout>
+    </LinearLayout>
+</LinearLayout>

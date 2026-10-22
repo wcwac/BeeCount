@@ -1,0 +1,9 @@
+<?xml version='1.0' encoding='utf-8'?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:orientation="vertical" android:id="@+id/total_layout" android:layout_width="match_parent" android:layout_height="40dp">
+    <RelativeLayout android:background="?android:attr/selectableItemBackground" android:layout_width="match_parent" android:layout_height="40dp">
+        <Switch android:id="@+id/check_box" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_centerVertical="true" android:layout_marginStart="20dp" />
+        <TextView android:textSize="14sp" android:textColor="@color/black" android:id="@+id/category_name" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="哦哦哦" android:singleLine="true" android:layout_centerVertical="true" android:layout_marginStart="3dp" android:layout_toEndOf="@+id/check_box" />
+        <ImageView android:id="@+id/arrow" android:padding="3dp" android:layout_width="18dp" android:layout_height="18dp" android:src="@mipmap/ic_more" android:tint="@color/grey" android:layout_centerVertical="true" android:layout_marginStart="15dp" android:layout_marginEnd="20dp" android:layout_alignParentEnd="true" />
+    </RelativeLayout>
+    <androidx.recyclerview.widget.RecyclerView android:id="@+id/child_list" android:layout_width="match_parent" android:layout_height="wrap_content" android:overScrollMode="never" android:paddingStart="15dp" />
+</LinearLayout>

@@ -1,0 +1,8 @@
+<?xml version='1.0' encoding='utf-8'?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:orientation="vertical" android:id="@+id/total_layout" android:layout_width="match_parent" android:layout_height="40dp" android:layout_marginEnd="20dp">
+    <RelativeLayout android:background="?android:attr/selectableItemBackground" android:layout_width="match_parent" android:layout_height="40dp">
+        <ImageView android:id="@+id/check_box" android:padding="10dp" android:layout_width="40dp" android:layout_height="40dp" android:src="@mipmap/ic_not_check" android:tint="@color/textColorPrimary" />
+        <ImageView android:id="@+id/asset_icon" android:layout_width="18dp" android:layout_height="18dp" android:src="@mipmap/ic_asset_stock" android:layout_centerVertical="true" android:layout_toEndOf="@+id/check_box" />
+        <TextView android:textSize="14sp" android:textColor="@color/black" android:id="@+id/asset_name" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="哦哦哦" android:singleLine="true" android:layout_centerVertical="true" android:layout_marginStart="5dp" android:layout_marginEnd="15dp" android:layout_toEndOf="@+id/asset_icon" />
+    </RelativeLayout>
+</LinearLayout>

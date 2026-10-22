@@ -1,0 +1,25 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/parent_layout" android:layout_width="match_parent" android:layout_height="match_parent">
+    <LinearLayout android:orientation="vertical" android:background="@drawable/dialog_user_agreement_bg" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_centerInParent="true" android:layout_marginStart="40dp" android:layout_marginEnd="40dp">
+        <TextView android:textSize="16sp" android:textStyle="bold" android:textColor="@color/black" android:layout_gravity="center_horizontal" android:id="@+id/title" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="20dp" android:text="记账方式" />
+        <TextView android:textSize="12sp" android:textColor="@color/black" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="20dp" android:layout_marginBottom="15dp" android:text="请选择一个你想要的记账方式，后续可在更多设置中再次设置" android:lineSpacingExtra="5dp" android:layout_marginStart="20dp" android:layout_marginEnd="20dp" />
+        <LinearLayout android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="20dp" android:paddingStart="20dp" android:paddingEnd="20dp">
+            <LinearLayout android:gravity="center_vertical" android:id="@+id/type_add" android:layout_width="match_parent" android:layout_height="50dp">
+                <ImageView android:layout_width="22dp" android:layout_height="22dp" android:src="@mipmap/ic_shortcut_menu_add" />
+                <TextView android:textSize="14sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="手动记账" android:layout_marginStart="10dp" />
+            </LinearLayout>
+            <LinearLayout android:gravity="center_vertical" android:id="@+id/type_ai" android:layout_width="match_parent" android:layout_height="50dp">
+                <ImageView android:layout_width="22dp" android:layout_height="22dp" android:src="@mipmap/ic_shortcut_menu_ai" />
+                <TextView android:textSize="14sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="智能记账" android:layout_marginStart="10dp" />
+            </LinearLayout>
+            <LinearLayout android:gravity="center_vertical" android:id="@+id/type_module" android:layout_width="match_parent" android:layout_height="50dp">
+                <ImageView android:layout_width="22dp" android:layout_height="22dp" android:src="@mipmap/ic_shortcut_menu_module" />
+                <TextView android:textSize="14sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="模板记账" android:layout_marginStart="10dp" />
+            </LinearLayout>
+            <LinearLayout android:gravity="center_vertical" android:id="@+id/type_speech" android:layout_width="match_parent" android:layout_height="50dp">
+                <ImageView android:layout_width="22dp" android:layout_height="22dp" android:src="@mipmap/ic_shortcut_menu_speech" />
+                <TextView android:textSize="14sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="语音记账" android:layout_marginStart="10dp" />
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+</RelativeLayout>

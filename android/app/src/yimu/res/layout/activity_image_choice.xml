@@ -1,0 +1,16 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent">
+    <FrameLayout android:id="@+id/photo_view" android:layout_width="match_parent" android:layout_height="match_parent" />
+    <RelativeLayout android:id="@+id/bottom_layout" android:background="@color/blackAlpha65" android:layout_width="match_parent" android:layout_height="60dp" android:layout_alignParentBottom="true">
+        <LinearLayout android:gravity="center" android:orientation="horizontal" android:id="@+id/btn_back" android:layout_width="wrap_content" android:layout_height="match_parent" android:paddingStart="8dp" android:paddingEnd="10dp">
+            <ImageView android:padding="7dp" android:layout_width="30dp" android:layout_height="30dp" android:src="@mipmap/ic_back" android:tint="@color/white" />
+            <TextView android:textSize="14sp" android:textColor="@color/textColorWhite" android:gravity="center" android:layout_width="wrap_content" android:layout_height="match_parent" android:text="返回" />
+        </LinearLayout>
+        <TextView android:textSize="14sp" android:textColor="@color/textColorWhite" android:gravity="center" android:id="@+id/btn_edit" android:layout_width="wrap_content" android:layout_height="match_parent" android:text="编辑" android:paddingStart="15dp" android:paddingEnd="15dp" android:layout_toEndOf="@+id/btn_back" />
+        <LinearLayout android:gravity="center" android:orientation="horizontal" android:id="@+id/choice_layout" android:layout_width="wrap_content" android:layout_height="match_parent" android:layout_centerHorizontal="true" android:paddingStart="5dp" android:paddingEnd="10dp">
+            <ImageView android:id="@+id/choice_icon" android:padding="5dp" android:layout_width="30dp" android:layout_height="30dp" android:src="@mipmap/ic_check" android:tint="@color/white" />
+            <TextView android:textSize="14sp" android:textColor="@color/textColorWhite" android:gravity="center" android:layout_width="wrap_content" android:layout_height="match_parent" android:text="选择" />
+        </LinearLayout>
+        <TextView android:textSize="14sp" android:textColor="@color/textColorWhite" android:gravity="center" android:id="@+id/btn_upload" android:background="@drawable/shape_bg_primary" android:layout_width="wrap_content" android:layout_height="35dp" android:text="上传" android:layout_centerVertical="true" android:paddingStart="15dp" android:paddingEnd="15dp" android:layout_marginEnd="15dp" android:layout_alignParentEnd="true" />
+    </RelativeLayout>
+</RelativeLayout>

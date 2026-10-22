@@ -1,0 +1,15 @@
+<?xml version='1.0' encoding='utf-8'?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:orientation="vertical" android:id="@+id/parent_layout" android:clipChildren="false" android:clipToPadding="false" android:layout_width="match_parent" android:layout_height="match_parent">
+    <RelativeLayout android:id="@+id/top_layout" android:background="@color/white" android:layout_width="match_parent" android:layout_height="wrap_content">
+        <HorizontalScrollView android:scrollbars="none" android:layout_width="match_parent" android:layout_height="50dp" android:overScrollMode="never" android:layout_toStartOf="@+id/btn_more">
+            <LinearLayout android:gravity="center_vertical" android:orientation="horizontal" android:background="@color/white" android:layout_width="match_parent" android:layout_height="50dp" android:paddingStart="5dp">
+                <TextView android:textSize="14sp" android:gravity="center" android:id="@+id/normal_bill_btn" android:layout_width="wrap_content" android:layout_height="35dp" android:text="日常" android:paddingStart="12dp" android:paddingEnd="12dp" />
+                <TextView android:textSize="14sp" android:gravity="center" android:id="@+id/month_bill_btn" android:layout_width="wrap_content" android:layout_height="35dp" android:text="月统计" android:paddingStart="12dp" android:paddingEnd="12dp" />
+                <TextView android:textSize="14sp" android:gravity="center" android:id="@+id/year_bill_btn" android:layout_width="wrap_content" android:layout_height="35dp" android:text="年统计" android:paddingStart="12dp" android:paddingEnd="12dp" />
+                <TextView android:textSize="14sp" android:gravity="center" android:id="@+id/self_bill_btn" android:layout_width="wrap_content" android:layout_height="35dp" android:text="自定义" android:singleLine="true" android:paddingStart="12dp" android:paddingEnd="12dp" />
+            </LinearLayout>
+        </HorizontalScrollView>
+        <ImageView android:id="@+id/btn_more" android:background="@drawable/selectable_item_circle" android:padding="15dp" android:layout_width="50dp" android:layout_height="50dp" android:src="@mipmap/ic_menu" android:tint="@color/textColorPrimary" android:layout_alignParentEnd="true" />
+    </RelativeLayout>
+    <FrameLayout android:id="@+id/statistics_pager" android:layout_width="match_parent" android:layout_height="match_parent" />
+</LinearLayout>

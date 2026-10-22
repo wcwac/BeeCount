@@ -1,0 +1,16 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="42dp">
+    <RelativeLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_centerVertical="true" android:layout_toStartOf="@+id/btn_layout">
+        <ImageView android:id="@+id/icon" android:layout_width="25dp" android:layout_height="25dp" android:src="@mipmap/ic_init" android:layout_alignTop="@+id/mode_layout" android:layout_marginEnd="10dp" />
+        <LinearLayout android:orientation="vertical" android:id="@+id/mode_layout" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_centerVertical="true" android:layout_toEndOf="@+id/icon">
+            <TextView android:textAppearance="@android:style/TextAppearance.Material.Notification.Title" android:textStyle="bold" android:id="@+id/mode_status" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="等待确认无障碍状态" android:singleLine="true" />
+            <TextView android:textSize="12dp" android:textColor="@color/notify_grey_color" android:id="@+id/content" android:visibility="visible" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="3dp" android:text="打开微信或支付宝进行确认" android:singleLine="true" />
+        </LinearLayout>
+    </RelativeLayout>
+    <LinearLayout android:orientation="horizontal" android:id="@+id/btn_layout" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_centerVertical="true" android:layout_alignParentEnd="true">
+        <ImageView android:id="@+id/btn_ai" android:background="@drawable/selectable_item_circle" android:padding="4dp" android:layout_width="38dp" android:layout_height="38dp" android:src="@mipmap/ic_notify_ai" android:tint="@color/notify_color" />
+        <ImageView android:id="@+id/btn_speech" android:background="@drawable/selectable_item_circle" android:padding="3dp" android:layout_width="38dp" android:layout_height="38dp" android:src="@mipmap/ic_notify_speech" android:tint="@color/notify_color" />
+        <ImageView android:id="@+id/btn_add" android:background="@drawable/selectable_item_circle" android:padding="3dp" android:layout_width="38dp" android:layout_height="38dp" android:src="@mipmap/ic_notify_add" android:tint="@color/notify_color" />
+        <ImageView android:id="@+id/btn_module" android:background="@drawable/selectable_item_circle" android:padding="8dp" android:visibility="gone" android:layout_width="38dp" android:layout_height="38dp" android:src="@mipmap/ic_home_module" android:tint="@color/notify_color" />
+    </LinearLayout>
+</RelativeLayout>

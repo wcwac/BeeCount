@@ -1,0 +1,15 @@
+<?xml version='1.0' encoding='utf-8'?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingStart="20dp" android:paddingEnd="20dp">
+    <RelativeLayout android:layout_width="wrap_content" android:layout_height="30dp">
+        <ImageView android:id="@+id/asset_icon" android:layout_width="15dp" android:layout_height="15dp" android:src="@mipmap/ic_asset_jdjinrong" android:layout_centerVertical="true" />
+        <TextView android:textSize="12sp" android:textColor="@color/black" android:id="@+id/asset_name" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="支付宝" android:layout_centerVertical="true" android:layout_marginStart="10dp" android:layout_toEndOf="@+id/asset_icon" />
+        <ImageView android:id="@+id/btn_delete_asset" android:background="@drawable/selectable_item_circle" android:padding="10dp" android:layout_width="30dp" android:layout_height="30dp" android:src="@mipmap/ic_close" android:tint="@color/black" android:layout_centerVertical="true" android:layout_alignParentEnd="true" />
+    </RelativeLayout>
+    <LinearLayout android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="10dp">
+        <EditText android:textSize="14sp" android:textColor="@color/black" android:textColorHint="@color/grey" android:id="@+id/number_asset" android:background="@drawable/shape_edit_frame" android:layout_width="match_parent" android:layout_height="40dp" android:hint="请输入金额" android:inputType="numberDecimal" android:paddingStart="10dp" android:paddingEnd="10dp" />
+        <LinearLayout android:orientation="horizontal" android:id="@+id/cny_layout" android:background="@drawable/shape_edit_frame" android:visibility="gone" android:layout_width="match_parent" android:layout_height="40dp" android:layout_marginTop="10dp" android:paddingStart="10dp" android:paddingEnd="10dp">
+            <TextView android:textSize="12sp" android:textColor="@color/black" android:layout_gravity="center_vertical" android:id="@+id/symbol" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="≈" />
+            <EditText android:textSize="14sp" android:textColor="@color/black" android:textColorHint="@color/grey" android:id="@+id/number_cny" android:background="@color/translate" android:layout_width="match_parent" android:layout_height="40dp" android:hint="请输入人民币金额" android:inputType="numberDecimal" android:layout_marginStart="10dp" />
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>

@@ -1,0 +1,41 @@
+<?xml version='1.0' encoding='utf-8'?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:orientation="vertical" android:background="@color/backgroundLight" android:layout_width="match_parent" android:layout_height="match_parent">
+    <RelativeLayout android:id="@+id/tool_bar" android:background="@color/white" android:layout_width="match_parent" android:layout_height="50dp">
+        <ImageView android:id="@+id/btn_back" android:background="@drawable/selectable_item_circle" android:padding="17dp" android:layout_width="50dp" android:layout_height="50dp" android:src="@mipmap/ic_close" android:scaleType="fitCenter" android:tint="@color/black" android:layout_centerVertical="true" />
+        <TextView android:textSize="18sp" android:textStyle="bold" android:textColor="@color/black" android:id="@+id/title" android:layout_width="wrap_content" android:layout_height="wrap_content" android:maxWidth="180dp" android:text="分期设置" android:singleLine="true" android:layout_centerVertical="true" android:layout_toEndOf="@+id/btn_back" />
+        <ImageView android:id="@+id/btn_complete" android:background="@drawable/selectable_item_circle" android:padding="12dp" android:layout_width="50dp" android:layout_height="50dp" android:src="@mipmap/ic_tick" android:scaleType="fitCenter" android:tint="@color/black" android:layout_marginEnd="-1dp" android:layout_alignParentEnd="true" />
+    </RelativeLayout>
+    <LinearLayout android:orientation="horizontal" android:background="@drawable/shape_bg_setting" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_margin="15dp">
+        <LinearLayout android:orientation="vertical" android:layout_width="wrap_content" android:layout_height="wrap_content" android:paddingStart="15dp" android:layout_marginEnd="15dp">
+            <TextView android:textSize="14sp" android:textColor="@color/black" android:gravity="end|center_vertical" android:id="@+id/number_title" android:layout_width="match_parent" android:layout_height="50dp" android:text="分期金额" />
+            <TextView android:textSize="14sp" android:textColor="@color/black" android:gravity="end|center_vertical" android:id="@+id/periods_title" android:layout_width="match_parent" android:layout_height="50dp" android:text="分期数" />
+            <TextView android:textSize="14sp" android:textColor="@color/black" android:gravity="end|center_vertical" android:id="@+id/service_title" android:layout_width="match_parent" android:layout_height="50dp" android:text="服务费" />
+            <TextView android:textSize="14sp" android:textColor="@color/black" android:gravity="end|center_vertical" android:id="@+id/type_title" android:layout_width="match_parent" android:layout_height="50dp" android:text="收取方式" />
+            <TextView android:textSize="14sp" android:textColor="@color/black" android:gravity="end|center_vertical" android:id="@+id/date_title" android:layout_width="match_parent" android:layout_height="50dp" android:text="入账日期" />
+            <TextView android:textSize="14sp" android:textColor="@color/black" android:gravity="end|center_vertical" android:id="@+id/remainder_title" android:layout_width="match_parent" android:layout_height="50dp" android:text="余数计入" />
+        </LinearLayout>
+        <LinearLayout android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content">
+            <RelativeLayout android:layout_width="match_parent" android:layout_height="50dp" android:layout_marginEnd="15dp">
+                <EditText android:textSize="14sp" android:textColor="@color/black" android:textColorHint="@color/grey" android:id="@+id/number" android:background="@color/translate" android:layout_width="match_parent" android:layout_height="50dp" android:hint="请输入分期金额" android:singleLine="true" android:inputType="numberDecimal" />
+            </RelativeLayout>
+            <RelativeLayout android:layout_width="match_parent" android:layout_height="50dp" android:layout_marginEnd="15dp">
+                <EditText android:textSize="14sp" android:textColor="@color/black" android:textColorHint="@color/grey" android:id="@+id/periods" android:background="@color/translate" android:layout_width="match_parent" android:layout_height="50dp" android:hint="请输入分期数" android:singleLine="true" android:inputType="number" />
+            </RelativeLayout>
+            <RelativeLayout android:layout_width="match_parent" android:layout_height="50dp" android:layout_marginEnd="15dp">
+                <EditText android:textSize="14sp" android:textColor="@color/black" android:textColorHint="@color/grey" android:id="@+id/service" android:background="@color/translate" android:layout_width="match_parent" android:layout_height="50dp" android:hint="请输入服务费" android:singleLine="true" android:inputType="numberDecimal" android:layout_toStartOf="@+id/service_percent" />
+                <TextView android:textSize="14sp" android:textColor="@color/black" android:id="@+id/service_percent" android:visibility="invisible" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="%" android:layout_centerVertical="true" android:layout_marginEnd="20dp" android:layout_toStartOf="@+id/service_mode_check" />
+                <TextView android:textSize="12sp" android:textColor="@color/textColorPrimary" android:gravity="center_vertical" android:id="@+id/service_mode_check" android:layout_width="wrap_content" android:layout_height="match_parent" android:text="切换到百分比" android:layout_centerVertical="true" android:layout_alignParentEnd="true" />
+            </RelativeLayout>
+            <RelativeLayout android:layout_width="match_parent" android:layout_height="50dp" android:layout_marginEnd="15dp">
+                <TextView android:textSize="14sp" android:textColor="@color/black" android:textColorHint="@color/grey" android:gravity="center_vertical" android:id="@+id/type" android:background="@drawable/selectable_item_expand_mask" android:layout_width="match_parent" android:layout_height="50dp" android:text="按月均摊" android:singleLine="true" />
+            </RelativeLayout>
+            <RelativeLayout android:layout_width="match_parent" android:layout_height="50dp" android:layout_marginEnd="15dp">
+                <TextView android:textSize="14sp" android:textColor="@color/black" android:gravity="center_vertical" android:id="@+id/date" android:background="@drawable/selectable_item_expand_mask" android:layout_width="match_parent" android:layout_height="50dp" android:singleLine="true" />
+            </RelativeLayout>
+            <RelativeLayout android:layout_width="match_parent" android:layout_height="50dp" android:layout_marginEnd="15dp">
+                <TextView android:textSize="14sp" android:textColor="@color/black" android:textColorHint="@color/grey" android:gravity="center_vertical" android:id="@+id/remainder" android:background="@drawable/selectable_item_expand_mask" android:layout_width="match_parent" android:layout_height="50dp" android:text="首期" android:singleLine="true" />
+            </RelativeLayout>
+        </LinearLayout>
+    </LinearLayout>
+    <TextView android:textSize="13sp" android:textColor="@color/black" android:id="@+id/tip" android:layout_width="match_parent" android:layout_height="wrap_content" android:lineSpacingExtra="5dp" android:layout_marginStart="15dp" android:layout_marginEnd="15dp" />
+</LinearLayout>

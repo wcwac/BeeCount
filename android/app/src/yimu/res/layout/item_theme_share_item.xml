@@ -1,0 +1,17 @@
+<?xml version='1.0' encoding='utf-8'?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:gravity="center_horizontal" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="15dp">
+    <LinearLayout android:orientation="vertical" android:id="@+id/total_layout" android:background="@drawable/shape_bg_setting" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginStart="7.5dp" android:layout_marginEnd="7.5dp">
+        <ImageView android:layout_gravity="center_horizontal" android:id="@+id/share_cover" android:layout_width="150dp" android:layout_height="58dp" android:layout_marginTop="10dp" />
+        <RelativeLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginStart="10dp">
+            <ImageView android:id="@+id/photo_image" android:visibility="gone" android:layout_width="20dp" android:layout_height="20dp" android:layout_marginTop="15dp" android:src="@mipmap/ic_launcher_no_color" app:oval="true" />
+            <LinearLayout android:orientation="vertical" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="15dp" android:layout_marginBottom="15dp" android:layout_centerVertical="true" android:layout_marginStart="5dp" android:layout_toEndOf="@+id/photo_image">
+                <TextView android:textSize="11dp" android:textColor="@color/black" android:id="@+id/share_name" android:layout_width="wrap_content" android:layout_height="wrap_content" android:maxWidth="80dp" android:text="日常账本asdasdasd分类" android:singleLine="true" />
+                <TextView android:textSize="9dp" android:textColor="@color/grey" android:id="@+id/user_name" android:visibility="gone" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="5dp" android:maxWidth="80dp" android:text="XXXds的分享" android:singleLine="true" />
+            </LinearLayout>
+            <LinearLayout android:gravity="center" android:orientation="horizontal" android:id="@+id/collect_layout" android:layout_width="wrap_content" android:layout_height="50dp" android:layout_centerVertical="true" android:paddingEnd="10dp" android:layout_alignParentEnd="true">
+                <ImageView android:id="@+id/collect_icon" android:layout_width="12dp" android:layout_height="12dp" android:src="@mipmap/ic_not_collect" android:tint="@color/iconTint" />
+                <TextView android:textSize="10dp" android:typeface="monospace" android:textColor="@color/iconTint" android:id="@+id/collect_num" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="9" android:includeFontPadding="false" android:layout_marginStart="3dp" />
+            </LinearLayout>
+        </RelativeLayout>
+    </LinearLayout>
+</LinearLayout>

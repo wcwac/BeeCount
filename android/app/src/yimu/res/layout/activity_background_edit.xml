@@ -1,0 +1,19 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android" android:background="@color/backgroundLight" android:layout_width="match_parent" android:layout_height="match_parent">
+    <LinearLayout android:orientation="vertical" android:id="@+id/progress_layout" android:background="@color/white" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_alignParentBottom="true">
+        <RelativeLayout android:id="@+id/background_alpha_layout" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="20dp" android:layout_marginBottom="10dp" android:layout_marginStart="15dp" android:layout_marginEnd="15dp">
+            <TextView android:textSize="13dp" android:textColor="@color/black" android:id="@+id/background_alpha_name" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="背景透明度" android:layout_centerVertical="true" />
+            <SeekBar android:id="@+id/background_seek_bar" android:layout_width="match_parent" android:layout_height="wrap_content" android:progress="50" android:layout_toStartOf="@+id/background_alpha_text" android:layout_toEndOf="@+id/background_alpha_name" style="@style/CustomSeekbarStyle" />
+            <TextView android:textSize="14dp" android:textColor="@color/colorPrimary" android:id="@+id/background_alpha_text" android:layout_width="wrap_content" android:layout_height="wrap_content" android:minWidth="35dp" android:text="50%" android:layout_centerVertical="true" android:layout_alignParentEnd="true" />
+        </RelativeLayout>
+        <RelativeLayout android:id="@+id/content_alpha_layout" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="5dp" android:layout_marginBottom="20dp" android:layout_marginStart="15dp" android:layout_marginEnd="15dp">
+            <TextView android:textSize="13dp" android:textColor="@color/black" android:id="@+id/content_alpha_name" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="内容透明度" android:layout_centerVertical="true" />
+            <SeekBar android:id="@+id/content_seek_bar" android:layout_width="match_parent" android:layout_height="wrap_content" android:progress="50" android:layout_toStartOf="@+id/content_alpha_text" android:layout_toEndOf="@+id/content_alpha_name" style="@style/CustomSeekbarStyle" />
+            <TextView android:textSize="14dp" android:textColor="@color/colorPrimary" android:id="@+id/content_alpha_text" android:layout_width="wrap_content" android:layout_height="wrap_content" android:minWidth="35dp" android:text="50%" android:layout_centerVertical="true" android:layout_alignParentEnd="true" />
+        </RelativeLayout>
+    </LinearLayout>
+    <RelativeLayout android:layout_width="match_parent" android:layout_height="match_parent" android:layout_margin="15dp" android:layout_above="@+id/progress_layout">
+        <ImageView android:id="@+id/background_image" android:layout_width="match_parent" android:layout_height="match_parent" android:scaleType="centerCrop" />
+        <androidx.recyclerview.widget.RecyclerView android:id="@+id/bill_list" android:background="@drawable/shape_bg_setting" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_margin="15dp" android:minHeight="150dp" />
+    </RelativeLayout>
+</RelativeLayout>

@@ -1,0 +1,22 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/total_layout" android:background="@drawable/shape_bg_setting" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="15dp" android:minHeight="55dp" android:paddingStart="15dp" android:paddingEnd="15dp" android:layout_marginStart="15dp" android:layout_marginEnd="15dp">
+    <ImageView android:id="@+id/icon" android:layout_width="20dp" android:layout_height="20dp" android:layout_centerVertical="true" android:layout_marginEnd="15dp" />
+    <LinearLayout android:gravity="center_vertical" android:orientation="vertical" android:paddingTop="10dp" android:paddingBottom="10dp" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="55dp" android:layout_centerVertical="true" android:layout_marginEnd="10dp" android:layout_toStartOf="@+id/cost_layout" android:layout_toEndOf="@+id/icon">
+        <TextView android:textSize="14sp" android:textColor="@color/black" android:id="@+id/name" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="11111" android:singleLine="true" />
+        <LinearLayout android:orientation="horizontal" android:id="@+id/stock_info" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="5dp">
+            <LinearLayout android:gravity="center_vertical" android:orientation="horizontal" android:layout_width="wrap_content" android:layout_height="wrap_content">
+                <TextView android:textSize="9sp" android:textColor="@color/grey" android:id="@+id/last_day_income_title" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="昨日收益：" />
+                <TextView android:textSize="11sp" android:id="@+id/last_day_income" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="+888.88" />
+            </LinearLayout>
+            <LinearLayout android:gravity="center_vertical" android:orientation="horizontal" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="15dp">
+                <TextView android:textSize="9sp" android:textColor="@color/grey" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="累计盈亏：" />
+                <TextView android:textSize="11sp" android:id="@+id/up_down_num" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="+888.88" />
+            </LinearLayout>
+        </LinearLayout>
+        <TextView android:textSize="12sp" android:textColor="@color/grey" android:ellipsize="end" android:id="@+id/remark" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="5dp" android:singleLine="true" />
+    </LinearLayout>
+    <LinearLayout android:gravity="end" android:orientation="vertical" android:id="@+id/cost_layout" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_centerVertical="true" android:layout_alignParentEnd="true">
+        <TextView android:textSize="14sp" android:id="@+id/cost" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0.00" />
+        <TextView android:textSize="11sp" android:textColor="@color/grey" android:id="@+id/credit_quota" android:visibility="gone" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:text="剩余：1235.00" />
+    </LinearLayout>
+</RelativeLayout>

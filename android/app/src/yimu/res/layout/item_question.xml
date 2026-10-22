@@ -1,0 +1,9 @@
+<?xml version='1.0' encoding='utf-8'?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:orientation="vertical" android:paddingBottom="20dp" android:layout_width="match_parent" android:layout_height="wrap_content">
+    <TextView android:textSize="20sp" android:textStyle="bold" android:textColor="@color/blackNoChange" android:id="@+id/question" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="常见问题" android:lineSpacingExtra="5dp" />
+    <TextView android:textSize="14sp" android:textColor="@color/blackNoChange" android:autoLink="web" android:id="@+id/answer" android:paddingBottom="10dp" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:text="自动记账基于Android「无障碍」服务" android:lineSpacingExtra="5dp" />
+    <LinearLayout android:gravity="center_vertical" android:orientation="horizontal" android:id="@+id/click_layout" android:paddingTop="10dp" android:paddingBottom="10dp" android:layout_width="wrap_content" android:layout_height="wrap_content">
+        <ImageView android:layout_width="20dp" android:layout_height="20dp" android:src="@mipmap/ic_click" />
+        <TextView android:textSize="14sp" android:textStyle="bold" android:textColor="@color/colorPrimary" android:id="@+id/click_info" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="点击此处查看" android:layout_marginStart="5dp" />
+    </LinearLayout>
+</LinearLayout>

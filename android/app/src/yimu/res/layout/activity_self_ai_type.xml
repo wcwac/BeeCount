@@ -1,0 +1,9 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent">
+    <RelativeLayout android:id="@+id/tip_layout" android:visibility="gone" android:layout_width="match_parent" android:layout_height="match_parent" android:layout_marginTop="50dp">
+        <ImageView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="30dp" android:src="@mipmap/ic_ai_bill_self_tip" android:layout_below="@+id/tip_text" android:layout_centerHorizontal="true" />
+        <TextView android:textSize="14sp" android:textColor="@color/darkGrey" android:id="@+id/tip_text" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="对于您常用的记账内容，智能记账又暂时无法正确识别的时候，您可以尝试使用自定义分类来支持您的记账内容" android:lineSpacingExtra="5dp" android:layout_marginStart="50dp" android:layout_marginEnd="50dp" />
+        <TextView android:textSize="15sp" android:textColor="@color/textColorLight" android:gravity="center" android:id="@+id/add_ai_self_type" android:background="@drawable/selectable_item_primary_background" android:layout_width="match_parent" android:layout_height="45dp" android:layout_marginBottom="50dp" android:text="开始添加" android:layout_alignParentBottom="true" android:layout_marginStart="20dp" android:layout_marginEnd="20dp" />
+    </RelativeLayout>
+    <androidx.recyclerview.widget.RecyclerView android:id="@+id/ai_type_list" android:layout_width="match_parent" android:layout_height="wrap_content" android:overScrollMode="never" />
+</RelativeLayout>

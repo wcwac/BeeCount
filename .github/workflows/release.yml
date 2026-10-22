@@ -1,30 +1,19 @@
-name: Offline Android
+name: Yimu reference Android (manual)
 
-# User-authorized capture and SDK upgrade CI; other branches remain manual-only.
 on:
-  push:
-    branches: [feat/local-transaction-capture, feat/flutter-stable-upgrade]
   workflow_dispatch:
     inputs:
       version:
-        description: "版本号，例如 0.1.0"
+        description: "实验版版本号"
         type: string
         default: "0.1.0"
         required: true
-      refresh_dependencies:
-        description: "重新解析兼容范围内的依赖；关闭时按锁文件构建"
-        type: boolean
-        default: false
       sign_apk:
-        description: "使用仓库 Secrets 中的固定密钥签名（安装需要签名）"
+        description: "使用仓库固定密钥签名"
         type: boolean
-        default: false
+        default: true
       create_release:
-        description: "发布 GitHub 预发行版（必须同时开启签名）"
-        type: boolean
-        default: false
-      run_device_tests:
-        description: "仅在明确获授权后开启：Android/iOS 成功后下载官方镜像并运行采集测试 APK"
+        description: "全部检查通过后发布实验预发行版"
         type: boolean
         default: false
 
@@ -32,521 +21,139 @@ permissions:
   contents: read
 
 concurrency:
-  group: offline-android-${{ github.ref }}
-  cancel-in-progress: ${{ github.ref == 'refs/heads/feat/local-transaction-capture' || github.ref == 'refs/heads/feat/flutter-stable-upgrade' }}
-
-env:
-  FLUTTER_VERSION: "3.47.7"
-  REFRESH_DEPENDENCIES: ${{ inputs.refresh_dependencies || false }}
+  group: yimu-reference-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   android:
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    timeout-minutes: 50
     outputs:
       tag: ${{ steps.metadata.outputs.tag }}
     env:
-      BUILD_VERSION: ${{ inputs.version || '0.4.0' }}
-      SIGN_APK: ${{ inputs.sign_apk || false }}
-      CREATE_RELEASE: ${{ inputs.create_release || false }}
+      BUILD_VERSION: ${{ inputs.version }}
+      BUILD_NUMBER: ${{ github.run_number }}
+      SIGN_APK: ${{ inputs.sign_apk }}
+      CREATE_RELEASE: ${{ inputs.create_release }}
     steps:
-      - name: Validate inputs
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Validate scope and source boundaries
         id: metadata
         shell: bash
         run: |
           set -euo pipefail
-          [[ "$BUILD_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || {
-            echo "::error::Version must have the form 0.1.0"
-            exit 1
-          }
+          [[ "$GITHUB_REF" == refs/heads/feat/yimu-reference-rebuild ]]
+          [[ "$BUILD_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
           if [[ "$CREATE_RELEASE" == true && "$SIGN_APK" != true ]]; then
-            echo "::error::Publishing requires a stable signing key; enable sign_apk."
+            echo "::error::Publishing requires the stable signing key"
             exit 1
           fi
-          echo "tag=offline-v${BUILD_VERSION}-${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
-
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+          echo "tag=yimu-reference-v${BUILD_VERSION}-${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
+          python3 .github/scripts/reference_security.py
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad
         with:
           distribution: temurin
           java-version: "17"
-
-      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
-        with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
-          channel: stable
-          cache: true
-
-      - name: Install Android SDK components
+      - name: Prepare official build tools on cloud runner
         shell: bash
         run: |
           set -euo pipefail
-          python3 .github/scripts/run_checked.py "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" \
-            "platforms;android-36" "build-tools;36.0.0" "ndk;28.2.13676358"
-
-      - name: Report SDK versions
-        run: python3 .github/scripts/run_checked.py flutter --version
-
-      - name: Resolve dependencies
-        shell: bash
-        run: |
-          if [[ "$REFRESH_DEPENDENCIES" == true ]]; then
-            python3 .github/scripts/run_checked.py flutter pub upgrade
-          else
-            python3 .github/scripts/run_checked.py flutter pub get
-          fi
-
-      - name: Regenerate database sources
-        id: codegen
-        continue-on-error: true
-        timeout-minutes: 10
-        run: python3 .github/scripts/run_checked.py dart run build_runner build --delete-conflicting-outputs
-
-      - name: Regenerate localizations
-        id: l10n
-        continue-on-error: true
-        run: python3 .github/scripts/run_checked.py flutter gen-l10n
-
-      - name: Save upgrade generated sources
-        if: ${{ !cancelled() && steps.codegen.outcome == 'success' && steps.l10n.outcome == 'success' }}
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: upgrade-generated-${{ github.run_number }}
-          path: |
-            pubspec.lock
-            lib/data/db.g.dart
-            lib/l10n/app_localizations*.dart
-          if-no-files-found: error
-          retention-days: 14
-
-      - name: Save resolved dependency locks
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: dependency-locks-${{ github.run_number }}
-          path: pubspec.lock
-          retention-days: 14
-
-      - name: Format financial feature sources
-        run: >-
-          dart format lib/theme.dart lib/models/finance.dart lib/data/finance_schema.dart
-          lib/data/repositories/finance_repository.dart lib/providers/finance_providers.dart
-          lib/pages/finance lib/services/backup test/finance
-          lib/pages/auth/welcome_page.dart test/offline/welcome_flow_test.dart
-
-      - name: Save normalized feature sources
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: finance-sources-${{ github.run_number }}
-          path: |
-            lib/models/finance.dart
-            lib/data/finance_schema.dart
-            lib/data/repositories/finance_repository.dart
-            lib/providers/finance_providers.dart
-            lib/pages/finance/
-            lib/services/backup/
-            lib/l10n/app_localizations*.dart
-            test/finance/
-            lib/pages/auth/welcome_page.dart
-            test/offline/welcome_flow_test.dart
-          retention-days: 14
-
-      - name: Analyze source
-        id: analyze
-        continue-on-error: true
-        run: python3 .github/scripts/run_checked.py flutter analyze --no-pub --no-fatal-infos --no-fatal-warnings
-
-      - name: Test capture review and atomic commits
-        id: capture_tests
-        continue-on-error: true
-        timeout-minutes: 5
-        run: >-
-          python3 .github/scripts/run_checked.py flutter test --no-pub
-          test/capture test/widgets/amount_editor_currency_test.dart
-          --reporter expanded --timeout 2m
-
-      - name: Test local features and offline boundaries
-        id: flutter_tests
-        continue-on-error: true
-        timeout-minutes: 10
-        run: python3 .github/scripts/run_checked.py flutter test --no-pub --reporter expanded --timeout 2m
-
-      - name: Configure stable signing key
+          sdkmanager "platforms;android-36" "build-tools;36.0.0"
+          curl --fail --location --retry 3 https://services.gradle.org/distributions/gradle-9.4.1-bin.zip -o "$RUNNER_TEMP/gradle.zip"
+          echo "2ab2958f2a1e51120c326cad6f385153bb11ee93b3c216c5fccebfdfbb7ec6cb  $RUNNER_TEMP/gradle.zip" | sha256sum --check
+          unzip -q "$RUNNER_TEMP/gradle.zip" -d "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/gradle-9.4.1/bin" >> "$GITHUB_PATH"
+      - name: Prepare stable release signing
         if: inputs.sign_apk
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          umask 077
-          python3 - <<'PY'
-          import base64
-          import os
-          from pathlib import Path
-
-          names = (
-              "ANDROID_KEYSTORE_BASE64", "ANDROID_KEYSTORE_PASSWORD",
-              "ANDROID_KEY_ALIAS", "ANDROID_KEY_PASSWORD",
-          )
-          if any(not os.environ.get(name) for name in names):
-              raise SystemExit("Configure all four Android signing Secrets first.")
-
-          # Java Properties escaping preserves punctuation and Unicode passwords.
-          def escaped(name):
-              value = os.environ[name].encode("utf-16-be")
-              return "".join("\\u%04x" % int.from_bytes(value[i:i+2], "big")
-                             for i in range(0, len(value), 2))
-
-          Path("android/app/offline-release.keystore").write_bytes(
-              base64.b64decode(os.environ["ANDROID_KEYSTORE_BASE64"], validate=True))
-          Path("android/key.properties").write_text(
-              "storeFile=offline-release.keystore\n"
-              f"storePassword={escaped('ANDROID_KEYSTORE_PASSWORD')}\n"
-              f"keyAlias={escaped('ANDROID_KEY_ALIAS')}\n"
-              f"keyPassword={escaped('ANDROID_KEY_PASSWORD')}\n")
-          PY
-
-      - name: Build APKs
-        id: apk_build
+        run: python3 .github/scripts/reference_signing.py
+      - name: Compile app and device tests, run unit tests and lint
+        id: validation
         continue-on-error: true
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 .github/scripts/run_checked.py flutter build apk --release --flavor prod --no-pub \
-            --build-name="$BUILD_VERSION" --build-number="$GITHUB_RUN_NUMBER" \
-            --dart-define="CI_VERSION=$BUILD_VERSION" \
-            --dart-define="GIT_COMMIT=$GITHUB_SHA"
-
-      # Flutter's APK build above prepares the Gradle wrapper/local.properties.
-      # flutter test alone does not execute Kotlin capture rules and sessions.
-      - name: Test Android capture rules and sessions
-        id: native_unit
-        continue-on-error: true
-        working-directory: android
-        shell: bash
         run: >-
-          python3 ../.github/scripts/run_checked.py ./gradlew
-          :app:testDevDebugUnitTest --continue --no-daemon --console=plain
-
-      - name: Compile Android instrumentation tests
-        id: instrumentation_build
-        continue-on-error: true
-        working-directory: android
-        shell: bash
-        run: >-
-          python3 ../.github/scripts/run_checked.py ./gradlew
-          :app:assembleDevDebugAndroidTest --continue --no-daemon --console=plain
-
-      - name: Summarize Android unit tests
-        id: native_summary
-        continue-on-error: true
-        if: always()
-        env:
-          UNIT_OUTCOME: ${{ steps.native_unit.outcome }}
-        shell: bash
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          import os
-          import xml.etree.ElementTree as ET
-          def escape(value):
-              return value.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
-          totals = dict(tests=0, failures=0, errors=0, skipped=0)
-          reports = list(Path('build/app/test-results/testDevDebugUnitTest').glob('TEST-*.xml'))
-          for report in reports:
-              root = ET.parse(report).getroot()
-              for key in totals:
-                  totals[key] += int(root.get(key, '0'))
-              for case in root.iter('testcase'):
-                  for failure in list(case.findall('failure')) + list(case.findall('error')):
-                      message = f"{case.get('classname')}.{case.get('name')}\n{failure.text or failure.get('message', '')}"
-                      print(f'::error title=Android unit test failed::{escape(message[:6000])}')
-          if reports:
-              print(f'::notice title=Android unit test totals::{totals}')
-          if os.environ['UNIT_OUTCOME'] == 'success' and totals['tests'] == 0:
-              raise SystemExit('Android unit task succeeded without a test report or discovered tests')
-          PY
-
-      - name: Save Android unit test reports
-        if: always()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: android-unit-tests-${{ github.run_number }}
-          path: |
-            build/app/test-results/testDevDebugUnitTest/
-            build/app/reports/tests/testDevDebugUnitTest/
-          if-no-files-found: warn
-          retention-days: 14
-
-      - name: Save full validation logs
-        if: always()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: validation-logs-${{ github.run_number }}
-          path: ${{ runner.temp }}/validation-logs/
-          if-no-files-found: warn
-          retention-days: 14
-
-      - name: Verify APK permissions and signatures
-        id: verify_apks
-        if: ${{ !cancelled() && steps.apk_build.outcome == 'success' }}
+          python3 .github/scripts/run_checked.py gradle -p android
+          :app:assembleRelease :app:assembleDebug :app:assembleDebugAndroidTest
+          :app:testDebugUnitTest :app:lintRelease --continue --no-daemon --console=plain
+      - name: Require discovered tests and inspect packaged app
+        id: packaged
+        if: ${{ !cancelled() }}
         continue-on-error: true
         shell: bash
         run: |
           set -euo pipefail
-          shopt -s nullglob
-          apks=(build/app/outputs/apk/prod/release/*.apk)
-          (( ${#apks[@]} > 0 )) || { echo "::error::No APKs found"; exit 1; }
+          python3 .github/scripts/reference_reports.py
+          apk=build/app/outputs/apk/release/app-release.apk
+          if [[ "$SIGN_APK" != true ]]; then apk=build/app/outputs/apk/release/app-release-unsigned.apk; fi
+          "$ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer" manifest print "$apk" > "$RUNNER_TEMP/reference-manifest.xml"
+          python3 .github/scripts/reference_security.py --manifest "$RUNNER_TEMP/reference-manifest.xml" --apk "$apk"
           mkdir -p dist
-          for apk in "${apks[@]}"; do
-            permissions=$("$ANDROID_HOME/build-tools/36.0.0/aapt2" dump permissions "$apk")
-            if grep -Eq 'android\.permission\.(INTERNET|ACCESS_NETWORK_STATE|RECORD_AUDIO|REQUEST_INSTALL_PACKAGES)' <<< "$permissions"; then
-              echo "::error::Forbidden permission in $apk"
-              exit 1
-            fi
-            manifest=$("$ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer" manifest print "$apk")
-            manifest_path="$RUNNER_TEMP/offline-manifest.xml"
-            printf '%s\n' "$manifest" > "$manifest_path"
-            python3 - "$manifest_path" "$apk" <<'PY'
-          import sys
-          import zipfile
-          import xml.etree.ElementTree as ET
-          root = ET.parse(sys.argv[1]).getroot()
-          assert root.attrib["package"] == "io.github.wcwac.beecount.offline"
-          app = root.find("application")
-          assert app is not None
-          assert app.attrib.get("{http://schemas.android.com/apk/res/android}allowBackup") == "false"
-          with zipfile.ZipFile(sys.argv[2]) as apk:
-              names = set(apk.namelist())
-              flutter_libs = [name for name in names if name.endswith('/libflutter.so')]
-              assert flutter_libs, 'APK has no Flutter native libraries'
-              for flutter_lib in flutter_libs:
-                  sqlite_lib = flutter_lib.rsplit('/', 1)[0] + '/libsqlite3.so'
-                  assert sqlite_lib in names, f'SQLite native asset missing: {sqlite_lib}'
-                  assert apk.getinfo(sqlite_lib).file_size > 0
-              print(f'::notice::SQLite native assets verified for {len(flutter_libs)} ABIs')
-          PY
-            asset_name="${apk##*/}"
-            asset_name="${asset_name//\(/.}"
-            asset_name="${asset_name//\)/}"
-            if [[ "$SIGN_APK" == true ]]; then
-              "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose "$apk"
-              cp "$apk" "dist/$asset_name"
-            else
-              cp "$apk" "dist/UNSIGNED-$asset_name"
-            fi
-          done
-          cp pubspec.lock dist/pubspec.lock
-          cp LICENSE LICENSE_EN THIRD-PARTY-NOTICES.md dist/
-          printf 'Commit: %s\nVersion: %s\nBuild: %s\nSigned: %s\n' \
-            "$GITHUB_SHA" "$BUILD_VERSION" "$GITHUB_RUN_NUMBER" "$SIGN_APK" > dist/BUILD.txt
-          (cd dist && sha256sum -- *.apk pubspec.lock LICENSE LICENSE_EN THIRD-PARTY-NOTICES.md BUILD.txt > SHA256SUMS)
-
+          if [[ "$SIGN_APK" == true ]]; then
+            "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose "$apk"
+            cp "$apk" "dist/yimu-reference-v${BUILD_VERSION}-${GITHUB_RUN_NUMBER}.apk"
+          else
+            cp "$apk" "dist/UNSIGNED-yimu-reference-v${BUILD_VERSION}-${GITHUB_RUN_NUMBER}.apk"
+          fi
       - name: Remove signing material
         if: always()
-        shell: bash
         run: rm -f android/key.properties android/app/offline-release.keystore
-
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        if: ${{ !cancelled() && steps.verify_apks.outcome == 'success' }}
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        if: always()
         with:
-          name: offline-android-${{ github.run_number }}
-          path: dist/
+          name: reference-validation-${{ github.run_number }}
+          path: |
+            build/app/reports/
+            build/app/test-results/
+            ${{ runner.temp }}/validation-logs/
+          if-no-files-found: warn
+          retention-days: 14
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        if: ${{ steps.validation.outcome == 'success' && steps.packaged.outcome == 'success' }}
+        with:
+          name: yimu-reference-${{ github.run_number }}
+          path: dist/*.apk
           if-no-files-found: error
           retention-days: 14
-
-      # Each check reports its own outcome; none of the required checks can be
-      # hidden by continue-on-error. Publishing still requires the whole job.
-      - name: Require every validation check to pass
-        if: always() && !cancelled()
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        if: ${{ steps.validation.outcome == 'success' }}
+        with:
+          name: reference-device-test-apks-${{ github.run_number }}
+          path: |
+            build/app/outputs/apk/debug/*.apk
+            build/app/outputs/apk/androidTest/debug/*.apk
+          if-no-files-found: error
+          retention-days: 14
+      - name: Require all checks to pass
+        if: ${{ always() && !cancelled() }}
         env:
-          CODEGEN: ${{ steps.codegen.outcome }}
-          L10N: ${{ steps.l10n.outcome }}
-          ANALYZE: ${{ steps.analyze.outcome }}
-          CAPTURE_TESTS: ${{ steps.capture_tests.outcome }}
-          FLUTTER_TESTS: ${{ steps.flutter_tests.outcome }}
-          APK_BUILD: ${{ steps.apk_build.outcome }}
-          NATIVE_UNIT: ${{ steps.native_unit.outcome }}
-          INSTRUMENTATION_BUILD: ${{ steps.instrumentation_build.outcome }}
-          NATIVE_SUMMARY: ${{ steps.native_summary.outcome }}
-          VERIFY_APKS: ${{ steps.verify_apks.outcome }}
-        shell: bash
+          VALIDATION: ${{ steps.validation.outcome }}
+          PACKAGED: ${{ steps.packaged.outcome }}
         run: |
           python3 - <<'PY'
           import os
-          checks = ['CODEGEN', 'L10N', 'ANALYZE', 'CAPTURE_TESTS', 'FLUTTER_TESTS', 'APK_BUILD',
-                    'NATIVE_UNIT', 'INSTRUMENTATION_BUILD', 'NATIVE_SUMMARY', 'VERIFY_APKS']
-          failures = []
-          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as summary:
-              summary.write('| Check | Outcome |\n| --- | --- |\n')
-              for check in checks:
-                  outcome = os.environ.get(check) or 'not run'
-                  summary.write(f'| {check} | {outcome} |\n')
-                  if outcome != 'success':
-                      failures.append(check)
-                      print(f'::error::{check}: {outcome}')
-          if failures:
-              raise SystemExit(f"Required checks failed: {', '.join(failures)}")
-          print('::notice::All required validation checks passed')
+          assert os.environ['VALIDATION'] == 'success', 'Compile, unit test or lint failed'
+          assert os.environ['PACKAGED'] == 'success', 'Packaged APK/security/signature verification failed'
           PY
-
-  ios:
-    runs-on: macos-26
-    timeout-minutes: 45
-    env:
-      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
-      BUILD_VERSION: ${{ inputs.version || '0.4.0' }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
-        with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
-          channel: stable
-          cache: true
-      - name: Report Apple toolchain versions
-        run: |
-          xcodebuild -version
-          flutter --version
-          pod --version
-      - name: Resolve iOS dependencies
-        shell: bash
-        run: |
-          if [[ "$REFRESH_DEPENDENCIES" == true ]]; then
-            python3 .github/scripts/run_checked.py flutter pub upgrade
-          else
-            python3 .github/scripts/run_checked.py flutter pub get
-          fi
-      - name: Regenerate iOS database sources
-        id: codegen
-        continue-on-error: true
-        timeout-minutes: 10
-        run: python3 .github/scripts/run_checked.py dart run build_runner build --delete-conflicting-outputs
-      - name: Re-resolve the previous plugin Pod locks
-        run: rm -f ios/Podfile.lock
-      - name: Compile iOS and widget extension without signing
-        id: ios_build
-        continue-on-error: true
-        timeout-minutes: 25
-        shell: bash
-        run: |
-          python3 .github/scripts/run_checked.py flutter build ios --release --no-codesign --no-pub \
-            --build-name="$BUILD_VERSION" --build-number="$GITHUB_RUN_NUMBER"
-      - name: Save iOS dependency locks
-        if: ${{ !cancelled() && steps.ios_build.outcome == 'success' }}
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: ios-locks-${{ github.run_number }}
-          path: |
-            pubspec.lock
-            ios/Podfile.lock
-          if-no-files-found: error
-          retention-days: 14
-      - name: Save iOS validation logs
-        if: always()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: ios-validation-logs-${{ github.run_number }}
-          path: ${{ runner.temp }}/validation-logs/
-          if-no-files-found: warn
-          retention-days: 14
-      - name: Require iOS code generation and compilation
-        if: always() && !cancelled()
-        env:
-          CODEGEN: ${{ steps.codegen.outcome }}
-          IOS_BUILD: ${{ steps.ios_build.outcome }}
-        run: |
-          test "$CODEGEN" = success
-          test "$IOS_BUILD" = success
-
-  persist-generated:
-    if: ${{ github.ref == 'refs/heads/feat/flutter-stable-upgrade' }}
-    needs: [android, ios]
+  publish:
+    needs: android
+    if: ${{ inputs.create_release }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 5
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
         with:
-          ref: ${{ github.ref_name }}
-      - name: Reject a superseded source revision
-        env:
-          VALIDATED_SHA: ${{ github.sha }}
-        run: test "$(git rev-parse HEAD)" = "$VALIDATED_SHA"
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          name: upgrade-generated-${{ github.run_number }}
-          path: .
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          name: ios-locks-${{ github.run_number }}
-          path: ${{ runner.temp }}/ios-locks
-      - name: Verify both platforms used the same Dart dependency graph
-        run: |
-          cmp pubspec.lock "$RUNNER_TEMP/ios-locks/pubspec.lock"
-          cp "$RUNNER_TEMP/ios-locks/ios/Podfile.lock" ios/Podfile.lock
-      - name: Commit the validated dependency lock and generated sources
-        env:
-          VALIDATED_SHA: ${{ github.sha }}
-        run: |
-          set -euo pipefail
-          git -c core.hooksPath=/dev/null add -- pubspec.lock ios/Podfile.lock lib/data/db.g.dart lib/l10n/app_localizations*.dart
-          if git diff --cached --quiet; then
-            echo "Generated sources already match the validated build."
-            exit 0
-          fi
-          git -c core.hooksPath=/dev/null -c user.name='github-actions[bot]' \
-            -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
-            commit -m "Update generated sources validated at ${VALIDATED_SHA} [skip ci]"
-          git -c core.hooksPath=/dev/null push origin HEAD:feat/flutter-stable-upgrade
-
-  release:
-    if: ${{ !cancelled() && inputs.create_release && needs.android.result == 'success' && needs.ios.result == 'success' && (!inputs.run_device_tests || needs.capture-device-tests.result == 'success') }}
-    needs: [android, ios, capture-device-tests]
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          name: offline-android-${{ github.run_number }}
+          name: yimu-reference-${{ github.run_number }}
           path: dist
-
-      - name: Publish signed APKs as a prerelease
+      - name: Publish experimental prerelease
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-          RELEASE_TAG: ${{ needs.android.outputs.tag }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          cat > "$RUNNER_TEMP/release-notes.md" <<'EOF'
-          BeeCount 离线修改版，基于 sunxiao / TNT-Likely 的 BeeCount。
-          云同步、AI 上传、在线更新和外部链接已禁用。
-
-          使用独立 Android 包名，不会覆盖原版；迁移数据请使用本地导出/导入。
-          此预发行版通过 CI 检查，不代表已完成真机功能和网络抓包验证。
-          APK、依赖锁定文件及 SHA-256 校验值见附件。版权与许可见仓库和附件。
-          EOF
-          gh release create "$RELEASE_TAG" dist/* \
-            --repo "$GH_REPO" --target "$GITHUB_SHA" \
-            --title "BeeCount Offline $RELEASE_TAG" \
-            --notes-file "$RUNNER_TEMP/release-notes.md" \
-            --prerelease --latest=false
-
-  capture-device-tests:
-    if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_device_tests == true && needs.android.result == 'success' && needs.ios.result == 'success' }}
-    needs: [android, ios]
-    permissions:
-      contents: read
-    uses: ./.github/workflows/capture-device-tests.yml
-    with:
-      run_device_tests: ${{ inputs.run_device_tests }}
+          TAG: ${{ needs.android.outputs.tag }}
+          COMMIT: ${{ github.sha }}
+        run: gh release create "$TAG" dist/*.apk --target "$COMMIT" --prerelease --title "$TAG" --notes "Android 本地采集对比实验。跳过云同步、广告、会员及联网 SDK。"

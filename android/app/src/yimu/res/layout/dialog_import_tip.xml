@@ -1,0 +1,10 @@
+<?xml version='1.0' encoding='utf-8'?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:orientation="vertical" android:background="@drawable/dialog_user_agreement_bg" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginStart="20dp" android:layout_marginEnd="20dp">
+    <TextView android:textSize="16sp" android:textStyle="bold" android:textColor="@color/black" android:layout_gravity="center_horizontal" android:id="@+id/title" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="20dp" android:text="授权提示" />
+    <TextView android:textSize="13sp" android:textColor="@color/black" android:id="@+id/content" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="20dp" android:text="检测到本机系统大于Android 10，由于系统限制，你需要在接下来的页面中直接点击“使用此文件夹”（请勿选择其他路径），以允许应用访问部分文件路径" android:lineSpacingExtra="5dp" android:layout_marginStart="20dp" android:layout_marginEnd="20dp" />
+    <ImageView android:layout_width="match_parent" android:layout_height="wrap_content" android:src="@mipmap/import_tip" android:scaleType="centerInside" android:layout_marginStart="15dp" android:layout_marginEnd="15dp" />
+    <LinearLayout android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="50dp" android:layout_marginTop="20dp">
+        <TextView android:textSize="15sp" android:textColor="@color/textGray" android:gravity="center" android:id="@+id/cancel" android:background="@drawable/selectable_item_expand_mask" android:layout_width="0dp" android:layout_height="match_parent" android:text="@string/cancel" android:layout_weight="1" />
+        <TextView android:textSize="15sp" android:textColor="@color/colorPrimaryText" android:gravity="center" android:id="@+id/confirm" android:background="@drawable/selectable_item_expand_mask" android:layout_width="0dp" android:layout_height="match_parent" android:text="@string/confirm" android:layout_weight="1" />
+    </LinearLayout>
+</LinearLayout>

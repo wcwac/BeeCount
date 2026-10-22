@@ -1,0 +1,11 @@
+<?xml version='1.0' encoding='utf-8'?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:background="@drawable/dialog_user_agreement_bg" android:layout_width="match_parent" android:layout_height="wrap_content">
+    <LinearLayout android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content">
+        <androidx.constraintlayout.widget.ConstraintLayout android:clipChildren="false" android:clipToPadding="false" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_margin="20dp">
+            <ImageView android:id="@+id/tip_image" android:layout_width="match_parent" android:layout_height="0dp" android:scaleType="fitXY" app:layout_constraintDimensionRatio="720:1133" app:layout_constraintLeft_toLeftOf="parent" app:layout_constraintRight_toRightOf="parent" />
+        </androidx.constraintlayout.widget.ConstraintLayout>
+        <LinearLayout android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="50dp">
+            <TextView android:textSize="15sp" android:textColor="@color/colorPrimaryText" android:gravity="center" android:id="@+id/confirm_btn" android:background="@drawable/selectable_item_expand_mask" android:layout_width="match_parent" android:layout_height="match_parent" android:text="我知道了" />
+        </LinearLayout>
+    </LinearLayout>
+</FrameLayout>

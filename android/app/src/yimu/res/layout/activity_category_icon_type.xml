@@ -1,0 +1,21 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android" android:background="@color/backgroundLight" android:layout_width="match_parent" android:layout_height="match_parent">
+    <androidx.core.widget.NestedScrollView android:layout_width="match_parent" android:layout_height="match_parent">
+        <LinearLayout android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content">
+            <RelativeLayout android:id="@+id/text_tip_layout" android:background="@drawable/selectable_item_light_primary_background" android:visibility="visible" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="15dp" android:layout_marginStart="15dp" android:layout_marginEnd="15dp">
+                <TextView android:textSize="12sp" android:textColor="@color/colorPrimaryDark" android:id="@+id/tip_text" android:paddingTop="5dp" android:paddingBottom="5dp" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="对于使用系统图标的分类，您可以方便地在「线条」或「多彩」风格中进行切换。已自定义图标的系统分类可点击此处进行恢复。对于转账、还款等通用图标，您可前往「更多设置」或点击此处进行设置" android:layout_centerVertical="true" android:lineSpacingExtra="3dp" android:layout_marginStart="10dp" android:layout_marginEnd="30dp" />
+            </RelativeLayout>
+            <LinearLayout android:orientation="horizontal" android:paddingTop="15dp" android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingStart="15dp" android:paddingEnd="15dp">
+                <LinearLayout android:gravity="center" android:id="@+id/type_line_layout" android:background="@drawable/shape_bg_primary_light_15" android:layout_width="0dp" android:layout_height="50dp" android:layout_weight="1">
+                    <ImageView android:layout_width="25dp" android:layout_height="25dp" android:src="@mipmap/ic_parent_shopping" android:tint="@color/black" />
+                    <TextView android:textSize="14sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="线条风格" android:layout_marginStart="10dp" />
+                </LinearLayout>
+                <LinearLayout android:gravity="center" android:id="@+id/type_color_layout" android:background="@drawable/shape_bg_white_15" android:layout_width="0dp" android:layout_height="50dp" android:layout_weight="1" android:layout_marginStart="15dp">
+                    <ImageView android:layout_width="25dp" android:layout_height="25dp" android:src="@mipmap/color_ic_parent_shopping" />
+                    <TextView android:textSize="14sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="多彩风格" android:layout_marginStart="10dp" />
+                </LinearLayout>
+            </LinearLayout>
+            <androidx.recyclerview.widget.RecyclerView android:id="@+id/data_list" android:paddingTop="15dp" android:paddingBottom="15dp" android:clipChildren="false" android:clipToPadding="false" android:layout_width="match_parent" android:layout_height="wrap_content" />
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+</RelativeLayout>

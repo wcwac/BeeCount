@@ -1,0 +1,17 @@
+<?xml version='1.0' encoding='utf-8'?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:orientation="vertical" android:background="@color/backgroundLight" android:layout_width="match_parent" android:layout_height="match_parent">
+    <LinearLayout android:orientation="vertical" android:background="@color/white" android:layout_width="match_parent" android:layout_height="wrap_content">
+        <RelativeLayout android:id="@+id/tool_bar" android:layout_width="match_parent" android:layout_height="50dp">
+            <ImageView android:id="@+id/btn_back" android:background="@drawable/selectable_item_circle" android:padding="17dp" android:layout_width="50dp" android:layout_height="50dp" android:src="@mipmap/ic_back" android:scaleType="fitCenter" android:tint="@color/black" android:layout_centerVertical="true" />
+            <TextView android:textSize="18sp" android:textStyle="bold" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:maxWidth="180dp" android:text="账户统计" android:singleLine="true" android:layout_centerVertical="true" android:layout_toEndOf="@+id/btn_back" />
+            <TextView android:textSize="14sp" android:textColor="@color/black" android:gravity="center_vertical" android:id="@+id/self_date" android:layout_width="wrap_content" android:layout_height="50dp" android:text="自定义" android:singleLine="true" android:layout_centerVertical="true" android:layout_marginEnd="20dp" android:layout_alignParentEnd="true" />
+        </RelativeLayout>
+        <LinearLayout android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="wrap_content">
+            <LinearLayout android:orientation="horizontal" android:id="@+id/current_year_layout" android:layout_width="wrap_content" android:layout_height="40dp" android:layout_marginTop="6dp" android:layout_marginStart="20dp">
+                <TextView android:textSize="14sp" android:textStyle="bold" android:textColor="@color/black" android:id="@+id/current_year" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="2020年" />
+            </LinearLayout>
+            <androidx.recyclerview.widget.RecyclerView android:id="@+id/month_list" android:layout_width="match_parent" android:layout_height="wrap_content" android:overScrollMode="never" android:layout_marginStart="8dp" />
+        </LinearLayout>
+    </LinearLayout>
+    <androidx.recyclerview.widget.RecyclerView android:id="@+id/bill_list" android:paddingTop="15dp" android:paddingBottom="60dp" android:clipChildren="false" android:clipToPadding="false" android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingStart="15dp" android:paddingEnd="15dp" />
+</LinearLayout>

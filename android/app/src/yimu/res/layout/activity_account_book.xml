@@ -1,0 +1,22 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:background="@color/backgroundLight" android:layout_width="match_parent" android:layout_height="match_parent">
+    <RelativeLayout android:id="@+id/tool_bar" android:background="@color/white" android:layout_width="match_parent" android:layout_height="50dp">
+        <ImageView android:id="@+id/btn_back" android:background="@drawable/selectable_item_circle" android:padding="16dp" android:layout_width="50dp" android:layout_height="50dp" android:src="@mipmap/ic_back" android:scaleType="fitCenter" android:tint="@color/black" />
+        <TextView android:textSize="18sp" android:textStyle="bold" android:textColor="@color/black" android:gravity="center" android:id="@+id/title" android:layout_width="wrap_content" android:layout_height="50dp" android:maxWidth="180dp" android:text="账本管理" android:singleLine="true" android:layout_toEndOf="@+id/btn_back" />
+        <ImageView android:id="@+id/right_icon" android:background="@drawable/selectable_item_circle" android:layout_width="50dp" android:layout_height="50dp" android:src="@mipmap/ic_scan" android:scaleType="centerInside" android:tint="@color/black" android:layout_toStartOf="@+id/right_text" />
+        <TextView android:textSize="15sp" android:textColor="@color/black" android:gravity="center_vertical" android:id="@+id/right_text" android:background="@drawable/selectable_item_circle" android:layout_width="wrap_content" android:layout_height="50dp" android:text="新增" android:singleLine="true" android:paddingStart="10dp" android:paddingEnd="15dp" android:layout_alignParentEnd="true" />
+    </RelativeLayout>
+    <FrameLayout android:id="@+id/pull_layout" android:layout_width="match_parent" android:layout_height="match_parent" android:layout_below="@+id/tool_bar" app:headerHeight="56dp" app:pullHeight="128dp" app:triggerHeight="96dp">
+        <androidx.core.widget.NestedScrollView android:layout_width="match_parent" android:layout_height="match_parent" android:layout_below="@+id/tool_bar">
+            <LinearLayout android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content">
+                <LinearLayout android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content">
+                    <RelativeLayout android:id="@+id/text_tip_layout" android:background="@drawable/selectable_item_light_primary_background" android:visibility="gone" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="15dp" android:layout_marginStart="15dp" android:layout_marginEnd="15dp">
+                        <TextView android:textSize="12sp" android:textColor="@color/colorPrimaryDark" android:paddingTop="5dp" android:paddingBottom="5dp" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="下拉可进入账本隐藏页，新建账本可分享他人（仅支持账单共享，不支持账户分类等共享，如需共享，可多设备登录同一账号，添加智能标签自动区分记账成员）" android:layout_centerVertical="true" android:lineSpacingExtra="3dp" android:layout_marginStart="10dp" android:layout_marginEnd="30dp" />
+                        <ImageView android:id="@+id/tip_close" android:padding="3dp" android:layout_width="30dp" android:layout_height="30dp" android:src="@mipmap/ic_tip_close" android:layout_alignParentEnd="true" />
+                    </RelativeLayout>
+                    <androidx.recyclerview.widget.RecyclerView android:id="@+id/account_book_list" android:paddingBottom="15dp" android:layout_width="match_parent" android:layout_height="match_parent" android:layout_marginTop="15dp" android:overScrollMode="never" />
+                </LinearLayout>
+            </LinearLayout>
+        </androidx.core.widget.NestedScrollView>
+    </FrameLayout>
+</RelativeLayout>

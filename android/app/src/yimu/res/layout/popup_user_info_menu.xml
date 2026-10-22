@@ -1,0 +1,4 @@
+<?xml version='1.0' encoding='utf-8'?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:orientation="vertical" android:id="@+id/parent_layout" android:background="@drawable/background_translate_view" android:layout_width="200dp" android:layout_height="wrap_content">
+    <TextView android:textSize="15sp" android:textColor="@color/black" android:gravity="center_vertical" android:id="@+id/btn_cancellation" android:background="@drawable/selectable_item_expand_mask" android:layout_width="200dp" android:layout_height="56dp" android:text="账户注销" android:singleLine="true" android:paddingStart="15dp" android:paddingEnd="15sp" />
+</LinearLayout>

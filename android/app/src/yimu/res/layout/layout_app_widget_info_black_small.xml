@@ -1,0 +1,22 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/total_layout" android:background="@color/translate" android:focusable="true" android:clickable="true" android:layout_width="match_parent" android:layout_height="match_parent">
+    <ImageView android:id="@+id/background" android:clickable="false" android:layout_width="match_parent" android:layout_height="wrap_content" android:scaleType="fitXY" android:adjustViewBounds="true" />
+    <RelativeLayout android:id="@+id/content_layout" android:clickable="false" android:layout_width="match_parent" android:layout_height="match_parent" android:layout_alignBottom="@+id/background">
+        <LinearLayout android:orientation="vertical" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:src="@mipmap/ic_launcher" android:layout_marginStart="10dp">
+            <TextView android:textSize="11dp" android:textColor="@color/white" android:id="@+id/one_title" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="今日支出" android:singleLine="true" />
+            <TextView android:textSize="18dp" android:textStyle="bold" android:textColor="@color/white" android:id="@+id/one_num" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="5dp" android:text="9.99" android:singleLine="true" />
+        </LinearLayout>
+        <RelativeLayout android:id="@+id/two_layout" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="10dp" android:src="@mipmap/ic_launcher" android:layout_alignParentBottom="true" android:layout_marginStart="10dp" android:layout_marginEnd="10dp">
+            <TextView android:textSize="10dp" android:textColor="@color/white" android:id="@+id/three_title" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="本月支出" android:singleLine="true" android:layout_centerVertical="true" />
+            <TextView android:textSize="13dp" android:textColor="@color/white" android:id="@+id/three_num" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0.00" android:singleLine="true" android:layout_alignParentEnd="true" />
+        </RelativeLayout>
+        <RelativeLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="5dp" android:src="@mipmap/ic_launcher" android:layout_above="@+id/two_layout" android:layout_marginStart="10dp" android:layout_marginEnd="10dp">
+            <TextView android:textSize="10dp" android:textColor="@color/white" android:id="@+id/two_title" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="本月支出" android:singleLine="true" android:layout_centerVertical="true" />
+            <TextView android:textSize="13dp" android:textColor="@color/white" android:id="@+id/two_num" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0.00" android:singleLine="true" android:layout_alignParentEnd="true" />
+        </RelativeLayout>
+        <ImageView android:id="@+id/btn_add" android:background="@drawable/selectable_item_circle" android:padding="11dp" android:layout_width="40dp" android:layout_height="40dp" android:src="@mipmap/ic_widget_add" android:tint="@color/white" android:layout_alignParentEnd="true" />
+    </RelativeLayout>
+    <RelativeLayout android:id="@+id/open_vip_layout" android:background="@drawable/shape_bg_black25_15" android:visibility="gone" android:layout_width="match_parent" android:layout_height="match_parent">
+        <TextView android:textSize="15sp" android:textColor="@color/white" android:gravity="center" android:id="@+id/open_vip" android:background="@drawable/shape_bg_open_vip_btn" android:layout_width="150dp" android:layout_height="50dp" android:layout_marginBottom="30dp" android:text="立即开通" android:layout_alignParentBottom="true" android:layout_centerHorizontal="true" />
+    </RelativeLayout>
+</RelativeLayout>

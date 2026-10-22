@@ -1,0 +1,12 @@
+<?xml version='1.0' encoding='utf-8'?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:orientation="vertical" android:background="@drawable/dialog_user_agreement_bg" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginStart="20dp" android:layout_marginEnd="20dp">
+    <RelativeLayout android:layout_width="match_parent" android:layout_height="wrap_content">
+        <ImageView android:layout_width="match_parent" android:layout_height="wrap_content" android:src="@mipmap/bg_dialog_user_agreement" android:scaleType="centerCrop" android:adjustViewBounds="true" />
+        <TextView android:textSize="20sp" android:textColor="@color/colorPrimaryDark" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="35dp" android:text="用户协议与隐私政策" android:layout_centerHorizontal="true" />
+    </RelativeLayout>
+    <TextView android:textSize="14sp" android:textColor="@color/black" android:id="@+id/content" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_margin="15dp" android:text="感谢您使用一木记账。为了保护您的个人信息安全，我们将依据《用户协议》与《隐私政策》来帮助您了解：我们如何收集个人信息，如何使用及存储个人信息，以及您享有的相关权利。在您使用一木记账的服务前，请务必仔细阅读《用户协议》和《隐私政策》以了解详细内容。如果您同意，请点击“同意并继续”开始使用我们的服务。" android:lineSpacingExtra="8dp" />
+    <LinearLayout android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="50dp" android:layout_marginTop="20dp">
+        <TextView android:textSize="15sp" android:textColor="@color/textGray" android:gravity="center" android:id="@+id/cancel" android:background="@drawable/selectable_item_expand_mask" android:layout_width="0dp" android:layout_height="match_parent" android:text="不同意" android:layout_weight="1" />
+        <TextView android:textSize="15sp" android:textColor="@color/colorPrimaryText" android:gravity="center" android:id="@+id/confirm" android:background="@drawable/selectable_item_expand_mask" android:layout_width="0dp" android:layout_height="match_parent" android:text="同意并继续" android:layout_weight="1" />
+    </LinearLayout>
+</LinearLayout>

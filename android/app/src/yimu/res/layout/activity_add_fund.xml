@@ -1,0 +1,66 @@
+<?xml version='1.0' encoding='utf-8'?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:orientation="vertical" android:background="@color/backgroundLight" android:layout_width="match_parent" android:layout_height="match_parent">
+    <RelativeLayout android:id="@+id/tool_bar" android:background="@color/white" android:layout_width="match_parent" android:layout_height="50dp">
+        <ImageView android:id="@+id/btn_back" android:background="@drawable/selectable_item_circle" android:padding="17dp" android:layout_width="50dp" android:layout_height="50dp" android:src="@mipmap/ic_close" android:scaleType="fitCenter" android:tint="@color/black" android:layout_centerVertical="true" />
+        <TextView android:textSize="18sp" android:textStyle="bold" android:textColor="@color/black" android:id="@+id/title" android:layout_width="wrap_content" android:layout_height="wrap_content" android:maxWidth="180dp" android:text="新增基金" android:singleLine="true" android:layout_centerVertical="true" android:layout_toEndOf="@+id/btn_back" />
+        <ImageView android:id="@+id/btn_complete" android:background="@drawable/selectable_item_circle" android:padding="12dp" android:layout_width="50dp" android:layout_height="50dp" android:src="@mipmap/ic_tick" android:scaleType="fitCenter" android:tint="@color/black" android:layout_centerVertical="true" android:layout_alignParentEnd="true" />
+    </RelativeLayout>
+    <ScrollView android:layout_width="match_parent" android:layout_height="match_parent" android:overScrollMode="never">
+        <LinearLayout android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content">
+            <LinearLayout android:orientation="horizontal" android:background="@drawable/shape_bg_setting" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_margin="15dp">
+                <LinearLayout android:orientation="vertical" android:layout_width="wrap_content" android:layout_height="wrap_content" android:paddingStart="15dp" android:layout_marginEnd="15dp">
+                    <TextView android:textSize="14sp" android:textColor="@color/black" android:gravity="end|center_vertical" android:id="@+id/type_title" android:layout_width="match_parent" android:layout_height="50dp" android:text="基金名称" />
+                    <TextView android:textSize="14sp" android:textColor="@color/black" android:gravity="end|center_vertical" android:id="@+id/type_code_title" android:layout_width="match_parent" android:layout_height="50dp" android:text="基金代码" />
+                    <TextView android:textSize="14sp" android:textColor="@color/black" android:gravity="end|center_vertical" android:id="@+id/prime_cost_title" android:layout_width="match_parent" android:layout_height="50dp" android:text="持仓成本" />
+                    <TextView android:textSize="14sp" android:textColor="@color/black" android:gravity="end|center_vertical" android:id="@+id/prime_num_title" android:layout_width="match_parent" android:layout_height="50dp" android:text="持仓份额" />
+                    <TextView android:textSize="14sp" android:textColor="@color/black" android:gravity="end|center_vertical" android:id="@+id/offset_title" android:layout_width="match_parent" android:layout_height="50dp" android:text="盈亏偏差" />
+                    <TextView android:textSize="14sp" android:textColor="@color/black" android:gravity="end|center_vertical" android:id="@+id/remark_title" android:layout_width="match_parent" android:layout_height="50dp" android:text="备注" />
+                </LinearLayout>
+                <LinearLayout android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content">
+                    <RelativeLayout android:layout_width="match_parent" android:layout_height="50dp" android:layout_marginEnd="15dp">
+                        <EditText android:textSize="14sp" android:textColor="@color/black" android:textColorHint="@color/grey" android:id="@+id/type_name" android:background="@color/translate" android:layout_width="match_parent" android:layout_height="50dp" android:hint="输入名称进行查询" android:singleLine="true" />
+                    </RelativeLayout>
+                    <RelativeLayout android:id="@+id/type_code_layout" android:layout_width="match_parent" android:layout_height="50dp" android:layout_marginEnd="15dp">
+                        <EditText android:textSize="14sp" android:textColor="@color/black" android:textColorHint="@color/grey" android:id="@+id/type_code" android:background="@color/translate" android:layout_width="match_parent" android:layout_height="50dp" android:hint="输入代码进行查询" android:singleLine="true" />
+                    </RelativeLayout>
+                    <RelativeLayout android:id="@+id/prime_cost_layout" android:layout_width="match_parent" android:layout_height="50dp" android:layout_marginEnd="15dp">
+                        <EditText android:textSize="14sp" android:textColor="@color/black" android:textColorHint="@color/grey" android:id="@+id/prime_cost" android:background="@color/translate" android:layout_width="match_parent" android:layout_height="50dp" android:hint="请输入每份额的持仓成本价" android:singleLine="true" android:inputType="numberDecimal" />
+                    </RelativeLayout>
+                    <RelativeLayout android:layout_width="match_parent" android:layout_height="50dp" android:layout_marginEnd="15dp">
+                        <EditText android:textSize="14sp" android:textColor="@color/black" android:textColorHint="@color/grey" android:id="@+id/prime_num" android:background="@color/translate" android:layout_width="match_parent" android:layout_height="50dp" android:hint="请输入持仓份额" android:singleLine="true" android:inputType="numberDecimal" />
+                    </RelativeLayout>
+                    <RelativeLayout android:layout_width="match_parent" android:layout_height="50dp" android:layout_marginEnd="15dp">
+                        <EditText android:textSize="14sp" android:textColor="@color/black" android:textColorHint="@color/grey" android:id="@+id/offset" android:background="@color/translate" android:layout_width="match_parent" android:layout_height="50dp" android:hint="默认为0，当持有收益存在偏差时设置" android:singleLine="true" android:inputType="numberDecimal" />
+                    </RelativeLayout>
+                    <RelativeLayout android:layout_width="match_parent" android:layout_height="50dp" android:layout_marginEnd="15dp">
+                        <EditText android:textSize="14sp" android:textColor="@color/black" android:textColorHint="@color/grey" android:id="@+id/remark" android:background="@color/translate" android:layout_width="match_parent" android:layout_height="50dp" android:hint="请输入备注" android:singleLine="true" />
+                    </RelativeLayout>
+                </LinearLayout>
+            </LinearLayout>
+            <LinearLayout android:orientation="vertical" android:background="@drawable/shape_bg_setting" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="15dp" android:layout_marginStart="15dp" android:layout_marginEnd="15dp">
+                <RelativeLayout android:id="@+id/group_name_layout" android:background="@drawable/selectable_item_expand_mask" android:layout_width="match_parent" android:layout_height="56dp" android:paddingStart="15dp">
+                    <TextView android:textSize="14sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="所属分组" android:layout_centerVertical="true" />
+                    <TextView android:textSize="13sp" android:textColor="@color/black" android:gravity="end" android:id="@+id/group_name" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="无账户" android:singleLine="true" android:layout_centerVertical="true" android:layout_marginStart="15dp" android:layout_marginEnd="10dp" android:layout_toStartOf="@+id/ic_more" />
+                    <ImageView android:id="@+id/ic_more" android:layout_width="18dp" android:layout_height="18dp" android:src="@mipmap/ic_more" android:tint="@color/grey" android:layout_centerVertical="true" android:layout_marginEnd="10dp" android:layout_alignParentEnd="true" />
+                </RelativeLayout>
+                <RelativeLayout android:background="@drawable/selectable_item_expand_mask" android:layout_width="match_parent" android:layout_height="56dp" android:paddingStart="15dp" android:paddingEnd="15dp">
+                    <TextView android:textSize="14sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="计入总资产" android:layout_centerVertical="true" />
+                    <Switch android:id="@+id/switch_add_total" android:layout_width="wrap_content" android:layout_height="wrap_content" android:checked="true" android:layout_centerVertical="true" android:layout_alignParentEnd="true" />
+                </RelativeLayout>
+                <RelativeLayout android:background="@drawable/selectable_item_expand_mask" android:layout_width="match_parent" android:layout_height="56dp" android:paddingStart="15dp" android:paddingEnd="15dp">
+                    <TextView android:textSize="14sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="盈亏计入总资产" android:layout_centerVertical="true" />
+                    <Switch android:id="@+id/switch_up_down_to_total" android:layout_width="wrap_content" android:layout_height="wrap_content" android:checked="true" android:layout_centerVertical="true" android:layout_alignParentEnd="true" />
+                </RelativeLayout>
+                <RelativeLayout android:id="@+id/account_book_layout" android:background="@drawable/selectable_item_expand_mask" android:layout_width="match_parent" android:layout_height="56dp" android:paddingStart="15dp">
+                    <LinearLayout android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_centerVertical="true" android:layout_marginEnd="20dp" android:layout_toStartOf="@+id/show_book">
+                        <TextView android:textSize="14sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="选择生效账本" />
+                        <TextView android:textSize="12sp" android:textColor="@color/grey" android:id="@+id/account_book_info" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="3dp" android:text="账户仅显示在指定账本" android:singleLine="true" />
+                    </LinearLayout>
+                    <TextView android:textSize="13sp" android:textColor="@color/black" android:gravity="end" android:id="@+id/show_book" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="全部账本" android:singleLine="true" android:layout_centerVertical="true" android:layout_marginStart="15dp" android:layout_marginEnd="10dp" android:layout_toStartOf="@+id/ic_book_more" />
+                    <ImageView android:id="@+id/ic_book_more" android:layout_width="18dp" android:layout_height="18dp" android:src="@mipmap/ic_more" android:tint="@color/grey" android:layout_centerVertical="true" android:layout_marginEnd="10dp" android:layout_alignParentEnd="true" />
+                </RelativeLayout>
+            </LinearLayout>
+            <TextView android:textSize="12sp" android:textColor="@color/grey" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="提示：\10盈亏偏差：部分平台会将分红或手续费计入盈亏，设置该数值使累计盈亏与三方平台相同\10初次创建理财账户不会生成交易记录，如要生成，可将持仓份额设为0，再添加买入卖出记录" android:lineSpacingExtra="5dp" android:layout_marginStart="15dp" android:layout_marginEnd="15dp" />
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

@@ -1,0 +1,27 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:id="@+id/parent_layout" android:layout_width="320dp" android:layout_height="490dp">
+    <FrameLayout android:layout_width="wrap_content" android:layout_height="wrap_content">
+        <ImageView android:id="@+id/btn_edit" android:focusable="true" android:clickable="true" android:layout_width="45dp" android:layout_height="45dp" android:src="@mipmap/ic_float" />
+        <RelativeLayout android:id="@+id/content_layout" android:visibility="invisible" android:layout_width="250dp" android:layout_height="380dp">
+            <androidx.cardview.widget.CardView android:layout_width="300dp" android:layout_height="470dp" android:layout_margin="10dp" android:elevation="10dp" app:cardCornerRadius="10dp">
+                <LinearLayout android:orientation="vertical" android:background="@color/backgroundLight" android:focusable="true" android:clickable="true" android:layout_width="match_parent" android:layout_height="match_parent">
+                    <RelativeLayout android:id="@+id/top_menu" android:background="@color/white" android:layout_width="match_parent" android:layout_height="38dp">
+                        <ImageView android:id="@+id/btn_close" android:background="@drawable/selectable_item_circle" android:padding="11dp" android:layout_width="35dp" android:layout_height="35dp" android:src="@mipmap/ic_close" android:scaleType="fitCenter" android:tint="@color/black" android:layout_centerVertical="true" android:layout_alignParentEnd="true" />
+                        <ImageView android:id="@+id/btn_back" android:background="@drawable/selectable_item_circle" android:padding="10dp" android:layout_width="35dp" android:layout_height="35dp" android:src="@mipmap/ic_float_small" android:scaleType="fitCenter" android:tint="@color/black" android:layout_centerVertical="true" android:layout_toStartOf="@+id/btn_close" />
+                        <ImageView android:id="@+id/btn_add" android:background="@drawable/selectable_item_circle" android:padding="2dp" android:layout_width="35dp" android:layout_height="35dp" android:src="@mipmap/ic_notify_add" android:scaleType="fitCenter" android:tint="@color/black" android:layout_centerVertical="true" android:layout_toStartOf="@+id/btn_back" />
+                        <ImageView android:id="@+id/btn_date" android:background="@drawable/selectable_item_circle" android:padding="9dp" android:layout_width="35dp" android:layout_height="35dp" android:src="@mipmap/ic_date_small" android:scaleType="fitCenter" android:tint="@color/black" android:layout_centerVertical="true" android:layout_toStartOf="@+id/btn_add" />
+                        <TextView android:textSize="12sp" android:textStyle="bold" android:textColor="@color/textColorBlack" android:gravity="center_vertical" android:id="@+id/asset_name" android:layout_width="match_parent" android:layout_height="match_parent" android:text="账户名" android:singleLine="true" android:layout_marginStart="10dp" android:layout_marginEnd="10dp" android:layout_toStartOf="@+id/btn_date" />
+                        <View android:background="@color/divider" android:layout_width="match_parent" android:layout_height="1px" android:layout_marginBottom="1px" android:layout_alignParentBottom="true" />
+                    </RelativeLayout>
+                    <RelativeLayout android:layout_width="match_parent" android:layout_height="match_parent">
+                        <LinearLayout android:gravity="center" android:orientation="vertical" android:id="@+id/tip_layout" android:visibility="gone" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_centerInParent="true">
+                            <include android:layout_width="100dp" android:layout_height="100dp" android:layout_marginBottom="10dp" layout="@layout/layout_home_tip" />
+                            <TextView android:textSize="13sp" android:textColor="@color/textGray" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="没有任何流水记录" />
+                        </LinearLayout>
+                        <androidx.recyclerview.widget.RecyclerView android:id="@+id/data_list" android:paddingBottom="10dp" android:focusable="true" android:clickable="true" android:layout_width="match_parent" android:layout_height="wrap_content" android:overScrollMode="never" android:layout_marginStart="8dp" android:layout_marginEnd="8dp" />
+                    </RelativeLayout>
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+        </RelativeLayout>
+    </FrameLayout>
+</RelativeLayout>

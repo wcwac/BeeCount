@@ -1,0 +1,19 @@
+<?xml version='1.0' encoding='utf-8'?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android" android:gravity="center_horizontal" android:orientation="vertical" android:layout_width="match_parent" android:layout_height="match_parent" android:overScrollMode="never">
+    <LinearLayout android:gravity="center_horizontal" android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content">
+        <LinearLayout android:orientation="vertical" android:background="@drawable/shape_bg_setting" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="15dp" android:layout_marginStart="15dp" android:layout_marginEnd="15dp">
+            <RelativeLayout android:id="@+id/user_info" android:background="?android:attr/selectableItemBackground" android:layout_width="match_parent" android:layout_height="50dp" android:paddingStart="15dp" android:paddingEnd="15dp">
+                <ImageView android:layout_width="18dp" android:layout_height="18dp" android:src="@mipmap/ic_more" android:tint="@color/grey" android:layout_centerVertical="true" android:layout_alignParentEnd="true" />
+                <TextView android:textSize="15sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="账号信息" android:layout_centerVertical="true" />
+            </RelativeLayout>
+            <RelativeLayout android:id="@+id/pay_order_info" android:background="?android:attr/selectableItemBackground" android:layout_width="match_parent" android:layout_height="50dp" android:paddingStart="15dp" android:paddingEnd="15dp">
+                <ImageView android:layout_width="18dp" android:layout_height="18dp" android:src="@mipmap/ic_more" android:tint="@color/grey" android:layout_centerVertical="true" android:layout_alignParentEnd="true" />
+                <TextView android:textSize="15sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="订单信息" android:layout_centerVertical="true" />
+            </RelativeLayout>
+            <RelativeLayout android:id="@+id/content_info" android:background="?android:attr/selectableItemBackground" android:layout_width="match_parent" android:layout_height="50dp" android:paddingStart="15dp" android:paddingEnd="15dp">
+                <ImageView android:layout_width="18dp" android:layout_height="18dp" android:src="@mipmap/ic_more" android:tint="@color/grey" android:layout_centerVertical="true" android:layout_alignParentEnd="true" />
+                <TextView android:textSize="15sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="服务内容信息" android:layout_centerVertical="true" />
+            </RelativeLayout>
+        </LinearLayout>
+    </LinearLayout>
+</ScrollView>

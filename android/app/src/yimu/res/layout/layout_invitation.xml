@@ -1,0 +1,75 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:id="@+id/parent_layout" android:background="@color/backgroundLight" android:layout_width="match_parent" android:layout_height="match_parent">
+    <RelativeLayout android:id="@+id/tool_bar" android:background="@color/white" android:layout_width="match_parent" android:layout_height="50dp">
+        <ImageView android:id="@+id/btn_back" android:background="@drawable/selectable_item_circle" android:padding="16dp" android:layout_width="50dp" android:layout_height="50dp" android:src="@mipmap/ic_back" android:scaleType="fitCenter" android:tint="@color/black" android:layout_centerVertical="true" />
+        <TextView android:textSize="18sp" android:textStyle="bold" android:textColor="@color/black" android:id="@+id/title" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="邀请好友" android:layout_centerVertical="true" android:layout_toEndOf="@+id/btn_back" />
+        <TextView android:textSize="15sp" android:textStyle="bold" android:textColor="@color/black" android:gravity="center" android:id="@+id/history" android:layout_width="wrap_content" android:layout_height="40dp" android:text="邀请记录" android:layout_centerVertical="true" android:layout_marginEnd="15dp" android:layout_alignParentEnd="true" />
+    </RelativeLayout>
+    <ScrollView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_below="@+id/tool_bar" android:overScrollMode="never">
+        <LinearLayout android:orientation="vertical" android:paddingTop="15dp" android:paddingBottom="130dp" android:layout_width="match_parent" android:layout_height="wrap_content">
+            <RelativeLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="10dp" android:layout_marginEnd="10dp">
+                <ImageView android:background="@mipmap/bg_open_vip_banner" android:layout_width="match_parent" android:layout_height="wrap_content" />
+                <TextView android:textSize="17sp" android:textStyle="bold" android:textColor="@color/textColorLight" android:id="@+id/code_msg" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="我的邀请码：" android:layout_centerVertical="true" android:lineSpacingExtra="5dp" android:layout_marginStart="30dp" android:layout_marginEnd="10dp" />
+                <ImageView android:id="@+id/code_btn" android:background="@drawable/selectable_item_circle" android:padding="12dp" android:layout_width="50dp" android:layout_height="50dp" android:src="@mipmap/ic_copy" android:layout_centerVertical="true" android:layout_toEndOf="@+id/code_msg" />
+            </RelativeLayout>
+            <LinearLayout android:orientation="vertical" android:background="@drawable/shape_bg_setting" android:padding="15dp" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:layout_marginStart="15dp" android:layout_marginEnd="15dp">
+                <TextView android:textSize="14sp" android:textStyle="bold" android:textColor="@color/colorPrimary" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginBottom="10dp" android:text="邀请规则" />
+                <LinearLayout android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="wrap_content">
+                    <ImageView android:padding="4dp" android:layout_width="20dp" android:layout_height="20dp" android:src="@mipmap/ic_point" android:tint="@color/textColorPrimary" android:layout_marginEnd="10dp" />
+                    <TextView android:textSize="13sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="每邀请一名好友，好友填写邀请码并绑定微信，邀请者即可获得7天会员" android:lineSpacingExtra="5dp" />
+                </LinearLayout>
+                <LinearLayout android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp">
+                    <ImageView android:padding="4dp" android:layout_width="20dp" android:layout_height="20dp" android:src="@mipmap/ic_point" android:tint="@color/textColorPrimary" android:layout_marginEnd="10dp" />
+                    <TextView android:textSize="13sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="被邀好友开通任意会员，邀请者即可额外获得24天会员，如果已是永久会员，将转换成月兑换码" android:lineSpacingExtra="5dp" />
+                </LinearLayout>
+                <LinearLayout android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp">
+                    <ImageView android:padding="4dp" android:layout_width="20dp" android:layout_height="20dp" android:src="@mipmap/ic_point" android:tint="@color/textColorPrimary" android:layout_marginEnd="10dp" />
+                    <TextView android:textSize="13sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="被邀好友开通永久会员，邀请者即可获得永久会员88折优惠（非永久会员有效）" android:lineSpacingExtra="5dp" />
+                </LinearLayout>
+            </LinearLayout>
+            <LinearLayout android:orientation="vertical" android:background="@drawable/shape_bg_setting" android:padding="15dp" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="15dp" android:layout_marginStart="15dp" android:layout_marginEnd="15dp">
+                <TextView android:textSize="14sp" android:textStyle="bold" android:textColor="@color/colorPrimary" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="注意事项" />
+                <LinearLayout android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp">
+                    <ImageView android:padding="4dp" android:layout_width="20dp" android:layout_height="20dp" android:src="@mipmap/ic_point" android:tint="@color/textColorPrimary" android:layout_marginEnd="10dp" />
+                    <TextView android:textSize="13sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="新注册三天内的用户可填写邀请码，过期无效" android:lineSpacingExtra="5dp" />
+                </LinearLayout>
+                <LinearLayout android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp">
+                    <ImageView android:padding="4dp" android:layout_width="20dp" android:layout_height="20dp" android:src="@mipmap/ic_point" android:tint="@color/textColorPrimary" android:layout_marginEnd="10dp" />
+                    <TextView android:textSize="13sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="通过兑换码开通会员的，无法触发邀请奖励" android:lineSpacingExtra="5dp" />
+                </LinearLayout>
+                <LinearLayout android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp">
+                    <ImageView android:padding="4dp" android:layout_width="20dp" android:layout_height="20dp" android:src="@mipmap/ic_point" android:tint="@color/textColorPrimary" android:layout_marginEnd="10dp" />
+                    <TextView android:textSize="13sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="仅安卓用户可触发邀请奖励" android:lineSpacingExtra="5dp" />
+                </LinearLayout>
+                <LinearLayout android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp">
+                    <ImageView android:padding="4dp" android:layout_width="20dp" android:layout_height="20dp" android:src="@mipmap/ic_point" android:tint="@color/textColorPrimary" android:layout_marginEnd="10dp" />
+                    <TextView android:textSize="13sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="会员、兑换码获取无上限，永久会员折扣只能获得一次" android:lineSpacingExtra="5dp" />
+                </LinearLayout>
+                <LinearLayout android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp">
+                    <ImageView android:padding="4dp" android:layout_width="20dp" android:layout_height="20dp" android:src="@mipmap/ic_point" android:tint="@color/textColorPrimary" android:layout_marginEnd="10dp" />
+                    <TextView android:textSize="13sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="需要先填写邀请码，再开通会员，活动才会生效" android:lineSpacingExtra="5dp" />
+                </LinearLayout>
+                <LinearLayout android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp">
+                    <ImageView android:padding="4dp" android:layout_width="20dp" android:layout_height="20dp" android:src="@mipmap/ic_point" android:tint="@color/textColorPrimary" android:layout_marginEnd="10dp" />
+                    <TextView android:textSize="13sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="填写邀请码后购买的会员无法作退款处理" android:lineSpacingExtra="5dp" />
+                </LinearLayout>
+                <LinearLayout android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp">
+                    <ImageView android:padding="4dp" android:layout_width="20dp" android:layout_height="20dp" android:src="@mipmap/ic_point" android:tint="@color/textColorPrimary" android:layout_marginEnd="10dp" />
+                    <TextView android:textSize="13sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="如发现恶意刷邀请，则会清空所有会员期限并封禁账号" android:lineSpacingExtra="5dp" />
+                </LinearLayout>
+            </LinearLayout>
+        </LinearLayout>
+    </ScrollView>
+    <androidx.cardview.widget.CardView android:id="@+id/open_vip_layout" android:layout_width="match_parent" android:layout_height="60dp" android:layout_alignParentBottom="true" app:cardBackgroundColor="@color/white" app:cardCornerRadius="8dp" app:cardElevation="25dp">
+        <LinearLayout android:orientation="vertical" android:layout_width="match_parent" android:layout_height="match_parent">
+            <LinearLayout android:gravity="center" android:orientation="horizontal" android:visibility="gone" android:layout_width="match_parent" android:layout_height="50dp" android:layout_marginTop="10dp">
+                <FrameLayout android:textSize="15sp" android:textColor="@color/white" android:id="@+id/show_wechat" android:background="@drawable/shape_button_login_wechat" android:layout_width="150dp" android:layout_height="40dp" android:text="微信分享" />
+                <FrameLayout android:textSize="15sp" android:textColor="@color/white" android:id="@+id/show_more" android:background="@drawable/shape_button_login_qq" android:layout_width="150dp" android:layout_height="40dp" android:text="朋友圈分享" android:layout_marginStart="30dp" />
+            </LinearLayout>
+            <LinearLayout android:gravity="center" android:orientation="horizontal" android:id="@+id/bottom_layout" android:layout_width="match_parent" android:layout_height="60dp">
+                <TextView android:textSize="14sp" android:textStyle="bold" android:textColor="@color/textBlue" android:gravity="center" android:id="@+id/input_invitation_code" android:layout_width="150dp" android:layout_height="50dp" android:text="输入邀请码" />
+                <TextView android:textSize="14sp" android:textStyle="bold" android:textColor="@color/textBlue" android:gravity="center" android:id="@+id/invitation_history" android:layout_width="150dp" android:layout_height="50dp" android:text="邀请奖励查看" />
+            </LinearLayout>
+        </LinearLayout>
+    </androidx.cardview.widget.CardView>
+</RelativeLayout>

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/auto_add"
+        android:title="智能添加"/>
+    <item
+        android:id="@+id/statistics"
+        android:title="统计"/>
+    <item
+        android:id="@+id/edit"
+        android:title="编辑"/>
+    <item
+        android:id="@+id/info"
+        android:title="概览"/>
+    <item
+        android:id="@+id/show_bill"
+        android:title="查看账单"/>
+    <item
+        android:id="@+id/show_bill_contain_child"
+        android:title="查看账单(含二级标签)"/>
+    <item
+        android:id="@+id/hide_tag"
+        android:title="隐藏标签"/>
+    <item
+        android:id="@+id/delete"
+        android:title="删除"/>
+</menu>

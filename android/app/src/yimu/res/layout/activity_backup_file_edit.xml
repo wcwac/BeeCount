@@ -1,0 +1,14 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android" android:background="@color/backgroundLight" android:layout_width="match_parent" android:layout_height="match_parent">
+    <RelativeLayout android:id="@+id/tool_bar" android:background="@color/white" android:layout_width="match_parent" android:layout_height="50dp">
+        <ImageView android:id="@+id/btn_back" android:background="@drawable/selectable_item_circle" android:padding="17dp" android:layout_width="50dp" android:layout_height="50dp" android:src="@mipmap/ic_back" android:scaleType="fitCenter" android:tint="@color/black" android:layout_centerVertical="true" />
+        <TextView android:textSize="18sp" android:textStyle="bold" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:maxWidth="180dp" android:text="文件管理" android:singleLine="true" android:layout_centerVertical="true" android:layout_toEndOf="@+id/btn_back" />
+        <TextView android:textSize="15sp" android:textColor="@color/black" android:gravity="center_vertical" android:id="@+id/choice_all" android:background="@drawable/selectable_item_expand" android:layout_width="wrap_content" android:layout_height="50dp" android:text="全选" android:singleLine="true" android:paddingStart="10dp" android:paddingEnd="15dp" android:layout_toStartOf="@+id/btn_delete" />
+        <ImageView android:id="@+id/btn_delete" android:background="@drawable/selectable_item_circle" android:padding="14dp" android:layout_width="50dp" android:layout_height="50dp" android:src="@mipmap/ic_delete" android:scaleType="fitCenter" android:tint="@color/black" android:layout_centerVertical="true" android:layout_alignParentEnd="true" />
+    </RelativeLayout>
+    <androidx.recyclerview.widget.RecyclerView android:id="@+id/file_list" android:paddingBottom="15dp" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_below="@+id/tool_bar" android:overScrollMode="never" />
+    <LinearLayout android:gravity="center" android:orientation="vertical" android:id="@+id/no_data_layout" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_centerInParent="true">
+        <include android:layout_width="150dp" android:layout_height="150dp" android:layout_marginBottom="10dp" layout="@layout/layout_common_tip" />
+        <TextView android:textSize="14sp" android:textColor="@color/textGray" android:id="@+id/search_tip" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="没有任何数据" />
+    </LinearLayout>
+</RelativeLayout>

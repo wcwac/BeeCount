@@ -1,0 +1,38 @@
+<?xml version='1.0' encoding='utf-8'?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:orientation="vertical" android:layout_width="match_parent" android:layout_height="match_parent">
+    <androidx.constraintlayout.widget.ConstraintLayout android:id="@+id/category_type_tip" android:clipChildren="false" android:clipToPadding="false" android:layout_width="match_parent" android:layout_height="wrap_content">
+        <ImageView android:layout_width="match_parent" android:layout_height="0dp" android:src="@mipmap/ic_login_illustration" app:layout_constraintDimensionRatio="1440:1498" app:layout_constraintLeft_toLeftOf="parent" app:layout_constraintRight_toRightOf="parent" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
+    <RelativeLayout android:layout_width="match_parent" android:layout_height="match_parent">
+        <LinearLayout android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_centerInParent="true">
+            <LinearLayout android:gravity="center" android:orientation="horizontal" android:id="@+id/login_wechat" android:background="@drawable/selectable_item_primary_background" android:layout_width="match_parent" android:layout_height="50dp" android:layout_marginStart="40dp" android:layout_marginEnd="40dp">
+                <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@mipmap/ic_wechat_simple" android:tint="@color/textColorLight" />
+                <TextView android:textSize="15sp" android:textColor="@color/textColorLight" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="微信登录" android:layout_marginStart="15dp" />
+            </LinearLayout>
+            <LinearLayout android:gravity="center" android:layout_gravity="center_horizontal" android:orientation="horizontal" android:id="@+id/agreement_layout" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="10dp">
+                <ImageView android:id="@+id/agreement_check" android:padding="6dp" android:layout_width="30dp" android:layout_height="30dp" android:src="@mipmap/ic_not_check" android:tint="@color/colorPrimary" />
+                <TextView android:textSize="12sp" android:textColor="@color/darkGrey" android:id="@+id/agreement_text" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="阅读并同意《用户协议》与《隐私政策》" />
+            </LinearLayout>
+            <LinearLayout android:gravity="center" android:orientation="horizontal" android:visibility="gone" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="25dp">
+                <View android:background="@color/darkGrey" android:layout_width="100dp" android:layout_height="1px" />
+                <TextView android:textSize="13sp" android:textColor="@color/darkGrey" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="其他方式登录" android:layout_marginStart="10dp" android:layout_marginEnd="10dp" />
+                <View android:background="@color/darkGrey" android:layout_width="100dp" android:layout_height="1px" />
+            </LinearLayout>
+            <LinearLayout android:gravity="center" android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="40dp" android:layout_marginStart="20dp" android:layout_marginEnd="20dp">
+                <LinearLayout android:gravity="center" android:orientation="vertical" android:id="@+id/login_qq" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1">
+                    <ImageView android:layout_width="35dp" android:layout_height="35dp" android:src="@mipmap/ic_login_qq" />
+                    <TextView android:textSize="13sp" android:textColor="@color/darkGrey" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="5dp" android:text="QQ登录" />
+                </LinearLayout>
+                <LinearLayout android:gravity="center" android:orientation="vertical" android:id="@+id/login_sina" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1">
+                    <ImageView android:layout_width="35dp" android:layout_height="35dp" android:src="@mipmap/ic_login_weibo" />
+                    <TextView android:textSize="13sp" android:textColor="@color/darkGrey" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="5dp" android:text="微博登录" />
+                </LinearLayout>
+                <LinearLayout android:gravity="center" android:orientation="vertical" android:id="@+id/login_by_email" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1">
+                    <ImageView android:layout_width="35dp" android:layout_height="35dp" android:src="@mipmap/ic_login_email" />
+                    <TextView android:textSize="13sp" android:textColor="@color/darkGrey" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="5dp" android:text="邮箱登录" />
+                </LinearLayout>
+            </LinearLayout>
+            <TextView android:textSize="14sp" android:textColor="@color/colorPrimary" android:id="@+id/login_temp" android:visibility="gone" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="50dp" android:text="评测apk临时登录" />
+        </LinearLayout>
+    </RelativeLayout>
+</LinearLayout>

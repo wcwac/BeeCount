@@ -1,0 +1,63 @@
+<?xml version='1.0' encoding='utf-8'?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:orientation="vertical" android:id="@+id/parent_layout" android:background="@color/backgroundLight" android:layout_width="match_parent" android:layout_height="match_parent">
+    <RelativeLayout android:id="@+id/tool_bar" android:background="@color/white" android:layout_width="match_parent" android:layout_height="50dp">
+        <ImageView android:id="@+id/btn_back" android:background="@drawable/selectable_item_circle" android:padding="17dp" android:layout_width="50dp" android:layout_height="50dp" android:src="@mipmap/ic_close" android:scaleType="fitCenter" android:tint="@color/black" android:layout_centerVertical="true" />
+        <TextView android:textSize="18sp" android:textStyle="bold" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:maxWidth="180dp" android:text="设置模板" android:singleLine="true" android:layout_centerVertical="true" android:layout_toEndOf="@+id/btn_back" />
+        <ImageView android:id="@+id/btn_delete" android:background="@drawable/selectable_item_circle" android:padding="14dp" android:layout_width="50dp" android:layout_height="50dp" android:src="@mipmap/ic_delete" android:scaleType="fitCenter" android:tint="@color/black" android:layout_centerVertical="true" android:layout_toStartOf="@+id/btn_complete" />
+        <ImageView android:id="@+id/btn_complete" android:background="@drawable/selectable_item_circle" android:padding="12dp" android:layout_width="50dp" android:layout_height="50dp" android:src="@mipmap/ic_tick" android:scaleType="fitCenter" android:tint="@color/black" android:layout_centerVertical="true" android:layout_alignParentEnd="true" />
+    </RelativeLayout>
+    <ScrollView android:layout_width="match_parent" android:layout_height="match_parent">
+        <LinearLayout android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content">
+            <LinearLayout android:orientation="vertical" android:background="@drawable/shape_bg_setting" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_margin="15dp">
+                <RelativeLayout android:id="@+id/category_layout" android:background="@drawable/selectable_item_expand_mask" android:layout_width="match_parent" android:layout_height="50dp" android:paddingStart="15dp" android:paddingEnd="15dp">
+                    <TextView android:textSize="14sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="分类" android:layout_centerVertical="true" />
+                    <ImageView android:id="@+id/category_icon" android:layout_width="16dp" android:layout_height="16dp" android:src="@mipmap/ic_parent_other" android:layout_centerVertical="true" android:layout_marginEnd="6dp" android:layout_toStartOf="@+id/category" />
+                    <TextView android:textSize="13sp" android:textColor="@color/black" android:id="@+id/category" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="其他" android:layout_centerVertical="true" android:layout_alignParentEnd="true" />
+                </RelativeLayout>
+                <RelativeLayout android:id="@+id/num_layout" android:background="@drawable/selectable_item_expand_mask" android:layout_width="match_parent" android:layout_height="50dp" android:paddingStart="15dp" android:paddingEnd="15dp">
+                    <TextView android:textSize="14sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="金额" android:layout_centerVertical="true" />
+                    <EditText android:textSize="14sp" android:textColor="@color/black" android:textColorHint="@color/grey" android:gravity="end|center_vertical" android:id="@+id/num" android:background="@color/transparent" android:layout_width="wrap_content" android:layout_height="match_parent" android:minWidth="100dp" android:hint="0.00" android:layout_centerVertical="true" android:inputType="numberDecimal" android:imeOptions="actionDone" android:layout_alignParentEnd="true" />
+                </RelativeLayout>
+                <RelativeLayout android:id="@+id/asset_layout" android:background="@drawable/selectable_item_expand_mask" android:layout_width="match_parent" android:layout_height="50dp" android:paddingStart="15dp" android:paddingEnd="15dp">
+                    <TextView android:textSize="14sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="账户" android:layout_centerVertical="true" />
+                    <ImageView android:id="@+id/asset_icon" android:layout_width="16dp" android:layout_height="16dp" android:src="@mipmap/ic_no_asset" android:layout_centerVertical="true" android:layout_marginEnd="6dp" android:layout_toStartOf="@+id/asset" />
+                    <TextView android:textSize="13sp" android:textColor="@color/black" android:id="@+id/asset" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="无账户" android:layout_centerVertical="true" android:layout_alignParentEnd="true" />
+                </RelativeLayout>
+                <RelativeLayout android:id="@+id/reimbursement_layout" android:background="@drawable/selectable_item_expand_mask" android:layout_width="match_parent" android:layout_height="50dp" android:paddingStart="15dp" android:paddingEnd="15dp">
+                    <TextView android:textSize="14sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="报销" android:layout_centerVertical="true" />
+                    <ImageView android:id="@+id/reimbursement_icon" android:layout_width="16dp" android:layout_height="16dp" android:src="@mipmap/ic_data_no_baoxiao" android:layout_centerVertical="true" android:layout_marginEnd="6dp" android:layout_toStartOf="@+id/reimbursement" />
+                    <TextView android:textSize="13sp" android:textColor="@color/black" android:id="@+id/reimbursement" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="不报销" android:layout_centerVertical="true" android:layout_alignParentEnd="true" />
+                </RelativeLayout>
+                <RelativeLayout android:id="@+id/reamrk_layout" android:background="@drawable/selectable_item_expand_mask" android:layout_width="match_parent" android:layout_height="50dp" android:paddingStart="15dp" android:paddingEnd="15dp">
+                    <TextView android:textSize="14sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="备注" android:layout_centerVertical="true" />
+                    <EditText android:textSize="13sp" android:textColor="@color/black" android:textColorHint="@color/grey" android:gravity="end|center_vertical" android:id="@+id/remark" android:background="@color/transparent" android:layout_width="wrap_content" android:layout_height="match_parent" android:minWidth="200dp" android:hint="输入备注" android:singleLine="true" android:layout_centerVertical="true" android:imeOptions="actionDone" android:layout_alignParentEnd="true" />
+                </RelativeLayout>
+                <RelativeLayout android:id="@+id/tag_layout" android:background="@drawable/selectable_item_expand_mask" android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingStart="15dp" android:paddingEnd="15dp">
+                    <TextView android:textSize="14sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="标签" android:layout_centerVertical="true" />
+                    <androidx.recyclerview.widget.RecyclerView android:id="@+id/tag_list" android:paddingTop="5dp" android:layout_width="wrap_content" android:layout_height="wrap_content" android:minHeight="50dp" android:layout_centerVertical="true" android:layout_marginStart="100dp" android:layout_alignParentEnd="true" />
+                </RelativeLayout>
+                <RelativeLayout android:id="@+id/file_layout" android:background="@drawable/selectable_item_expand_mask" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="55dp" android:paddingStart="15dp" android:paddingEnd="15dp">
+                    <TextView android:textSize="15sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="18dp" android:text="附件" />
+                    <androidx.recyclerview.widget.RecyclerView android:id="@+id/file_list" android:paddingBottom="5dp" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_centerVertical="true" android:layout_alignParentEnd="true" />
+                </RelativeLayout>
+                <RelativeLayout android:id="@+id/not_into_total_layout" android:background="@drawable/selectable_item_expand_mask" android:layout_width="match_parent" android:layout_height="50dp" android:paddingStart="15dp" android:paddingEnd="15dp">
+                    <TextView android:textSize="14sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="不计入收支" android:layout_centerVertical="true" />
+                    <Switch android:id="@+id/switch_not_into_total" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_centerVertical="true" android:layout_alignParentEnd="true" />
+                </RelativeLayout>
+                <RelativeLayout android:id="@+id/not_into_budget_layout" android:background="@drawable/selectable_item_expand_mask" android:layout_width="match_parent" android:layout_height="50dp" android:paddingStart="15dp" android:paddingEnd="15dp">
+                    <TextView android:textSize="14sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="不计入预算" android:layout_centerVertical="true" />
+                    <Switch android:id="@+id/switch_not_into_budget" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_centerVertical="true" android:layout_alignParentEnd="true" />
+                </RelativeLayout>
+                <RelativeLayout android:id="@+id/account_book_layout" android:background="@drawable/selectable_item_expand_mask" android:layout_width="match_parent" android:layout_height="50dp" android:paddingStart="15dp" android:paddingEnd="15dp">
+                    <TextView android:textSize="14sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="账本" android:layout_centerVertical="true" />
+                    <TextView android:textSize="13sp" android:textColor="@color/black" android:id="@+id/account_book" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="全账本生效" android:layout_centerVertical="true" android:layout_alignParentEnd="true" />
+                </RelativeLayout>
+                <RelativeLayout android:id="@+id/lock_layout" android:background="@drawable/selectable_item_expand_mask" android:layout_width="match_parent" android:layout_height="50dp" android:paddingStart="15dp" android:paddingEnd="15dp">
+                    <TextView android:textSize="14sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="锁定" android:layout_centerVertical="true" />
+                    <TextView android:textSize="13sp" android:textColor="@color/black" android:id="@+id/lock" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="未锁定" android:layout_centerVertical="true" android:layout_alignParentEnd="true" />
+                </RelativeLayout>
+            </LinearLayout>
+            <TextView android:textSize="12sp" android:textColor="@color/grey" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginBottom="15dp" android:text="提示：金额不为0时可锁定，锁定后执行模板记账，无需跳转至记账页面确认，将直接添加" android:lineSpacingExtra="5dp" android:layout_marginStart="15dp" android:layout_marginEnd="15dp" />
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

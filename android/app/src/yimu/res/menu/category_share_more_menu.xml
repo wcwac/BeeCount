@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/sort_by_collect"
+        android:title="按收藏排序"/>
+    <item
+        android:id="@+id/sort_by_time"
+        android:title="按时间排序"/>
+</menu>

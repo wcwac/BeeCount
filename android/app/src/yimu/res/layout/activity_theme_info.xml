@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android" android:background="@color/white" android:layout_width="match_parent" android:layout_height="match_parent">
+    <ImageView android:id="@+id/cover" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="50dp" android:src="@mipmap/ic_theme_preview_default" android:scaleType="fitCenter" android:paddingStart="20dp" android:paddingEnd="20dp" />
+    <RelativeLayout android:id="@+id/cover_custom" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="50dp" />
+    <CheckBox android:textSize="15sp" android:textColor="@color/black" android:id="@+id/use_current_book" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginBottom="10dp" android:text="仅应用到当前账本" android:layout_above="@+id/use_theme" android:layout_centerHorizontal="true" style="@style/commonCheckBox" />
+    <TextView android:textSize="15sp" android:textColor="@color/textColorWhite" android:gravity="center" android:id="@+id/use_theme" android:background="@drawable/selectable_item_primary_background" android:layout_width="match_parent" android:layout_height="45dp" android:layout_marginBottom="40dp" android:text="使用此主题" android:layout_alignParentBottom="true" android:layout_marginStart="20dp" android:layout_marginEnd="20dp" />
+</RelativeLayout>

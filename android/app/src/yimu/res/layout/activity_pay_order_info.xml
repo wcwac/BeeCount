@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:orientation="vertical" android:layout_width="match_parent" android:layout_height="match_parent">
+    <RelativeLayout android:id="@+id/text_tip_layout" android:background="@drawable/selectable_item_light_primary_background" android:visibility="visible" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="15dp" android:layout_marginStart="15dp" android:layout_marginEnd="15dp">
+        <TextView android:textSize="12sp" android:textColor="@color/colorPrimaryDark" android:id="@+id/auto_tip" android:paddingTop="5dp" android:paddingBottom="5dp" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="付款7日内可申请退款，每个用户仅有一次退款机会，已填写邀请信息或者Apple支付不支持退款。请勿通过他人进行充值，可能会导致钱货两空，我们对此并不负责。如您未在三个工作日内收到退款或无法正常退款，可通过邮件联系553847323@qq.com" android:layout_centerVertical="true" android:lineSpacingExtra="3dp" android:layout_marginStart="10dp" android:layout_marginEnd="10dp" />
+    </RelativeLayout>
+    <androidx.recyclerview.widget.RecyclerView android:id="@+id/content_list" android:layout_width="match_parent" android:layout_height="wrap_content" />
+</LinearLayout>

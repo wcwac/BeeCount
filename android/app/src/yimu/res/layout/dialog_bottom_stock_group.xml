@@ -1,0 +1,11 @@
+<?xml version='1.0' encoding='utf-8'?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:orientation="vertical" android:id="@+id/parent_layout" android:background="@drawable/bg_add_bill_dialog" android:layout_width="match_parent" android:layout_height="wrap_content">
+    <RelativeLayout android:layout_width="match_parent" android:layout_height="45dp" android:layout_marginTop="10dp" android:paddingStart="15dp">
+        <TextView android:textSize="15sp" android:textStyle="bold" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="选择所属分组" android:layout_centerVertical="true" />
+        <LinearLayout android:gravity="center" android:orientation="horizontal" android:id="@+id/add_group" android:background="?android:attr/selectableItemBackground" android:layout_width="wrap_content" android:layout_height="45dp" android:layout_centerVertical="true" android:layout_marginEnd="15dp" android:layout_alignParentEnd="true">
+            <ImageView android:id="@+id/icon" android:layout_width="16dp" android:layout_height="16dp" android:src="@mipmap/ic_search_add" android:tint="@color/darkGrey" />
+            <TextView android:textSize="14sp" android:textColor="@color/darkGrey" android:id="@+id/name" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="新增分组" android:singleLine="true" android:layout_marginStart="5dp" />
+        </LinearLayout>
+    </RelativeLayout>
+    <androidx.recyclerview.widget.RecyclerView android:id="@+id/data_list" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="30dp" />
+</LinearLayout>

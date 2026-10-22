@@ -1,0 +1,18 @@
+<?xml version='1.0' encoding='utf-8'?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:orientation="vertical" android:background="@drawable/dialog_user_agreement_bg" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginStart="20dp" android:layout_marginEnd="20dp">
+    <TextView android:textSize="16sp" android:textStyle="bold" android:textColor="@color/black" android:layout_gravity="center_horizontal" android:id="@+id/title" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="20dp" android:text="分享设置" />
+    <TextView android:textSize="12dp" android:textColor="@color/grey" android:visibility="gone" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="30dp" android:text="提示：数据中请勿带有不文明元素，违者将做封号处理" android:layout_marginStart="20dp" android:layout_marginEnd="20dp" />
+    <EditText android:textSize="14sp" android:textColor="@color/black" android:id="@+id/name" android:background="@drawable/shape_edit_frame" android:layout_width="match_parent" android:layout_height="50dp" android:layout_marginTop="15dp" android:layout_marginBottom="10dp" android:hint="为该组图标取一个名称" android:paddingStart="15dp" android:paddingEnd="15dp" android:layout_marginStart="20dp" android:layout_marginEnd="20dp" />
+    <LinearLayout android:gravity="center_vertical" android:id="@+id/share_to_friend" android:background="@drawable/selectable_item_expand_mask" android:layout_width="match_parent" android:layout_height="50dp" android:paddingStart="20dp" android:paddingEnd="20dp">
+        <ImageView android:id="@+id/share_to_friend_check" android:layout_width="20dp" android:layout_height="20dp" android:src="@mipmap/ic_check" android:tint="@color/colorPrimary" />
+        <TextView android:textSize="15sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="分享给好友" android:layout_marginStart="10dp" />
+    </LinearLayout>
+    <LinearLayout android:gravity="center_vertical" android:id="@+id/share_to_all" android:background="@drawable/selectable_item_expand_mask" android:visibility="gone" android:layout_width="match_parent" android:layout_height="50dp" android:paddingStart="20dp" android:paddingEnd="20dp">
+        <ImageView android:id="@+id/share_to_all_check" android:layout_width="20dp" android:layout_height="20dp" android:src="@mipmap/ic_not_check" android:tint="@color/textColorPrimary" />
+        <TextView android:textSize="15sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="发布到分享中心" android:layout_marginStart="10dp" />
+    </LinearLayout>
+    <LinearLayout android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="50dp" android:layout_marginTop="20dp">
+        <TextView android:textSize="15sp" android:textColor="@color/textGray" android:gravity="center" android:id="@+id/cancel" android:background="@drawable/selectable_item_expand_mask" android:layout_width="0dp" android:layout_height="match_parent" android:text="@string/cancel" android:layout_weight="1" />
+        <TextView android:textSize="15sp" android:textColor="@color/colorPrimaryText" android:gravity="center" android:id="@+id/confirm" android:background="@drawable/selectable_item_expand_mask" android:layout_width="0dp" android:layout_height="match_parent" android:text="@string/confirm" android:layout_weight="1" />
+    </LinearLayout>
+</LinearLayout>

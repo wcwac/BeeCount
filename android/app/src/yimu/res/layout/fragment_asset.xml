@@ -1,0 +1,86 @@
+<?xml version='1.0' encoding='utf-8'?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:id="@+id/parent_layout" android:descendantFocusability="blocksDescendants" android:layout_width="match_parent" android:layout_height="match_parent">
+    <FrameLayout android:id="@+id/pull_layout" android:layout_width="match_parent" android:layout_height="match_parent" app:headerHeight="56dp" app:pullHeight="128dp" app:triggerHeight="96dp">
+        <androidx.core.widget.NestedScrollView android:id="@+id/scroll_view" android:scrollbars="none" android:layout_width="match_parent" android:layout_height="match_parent" android:overScrollMode="never">
+            <LinearLayout android:orientation="vertical" android:paddingBottom="100dp" android:layout_width="match_parent" android:layout_height="match_parent">
+                <RelativeLayout android:id="@+id/text_tip_layout" android:background="@drawable/selectable_item_light_primary_background" android:visibility="gone" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:layout_marginStart="15dp" android:layout_marginEnd="15dp">
+                    <TextView android:textSize="12sp" android:textColor="@color/colorPrimaryDark" android:paddingTop="5dp" android:paddingBottom="5dp" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="下拉可隐藏资产，右上角更多可按账本设置不同资产" android:layout_centerVertical="true" android:lineSpacingExtra="3dp" android:layout_marginStart="10dp" android:layout_marginEnd="30dp" />
+                    <ImageView android:id="@+id/tip_close" android:padding="3dp" android:layout_width="30dp" android:layout_height="30dp" android:src="@mipmap/ic_tip_close" android:layout_centerVertical="true" android:layout_alignParentEnd="true" />
+                </RelativeLayout>
+                <androidx.constraintlayout.widget.ConstraintLayout android:id="@+id/banner_layout" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="15dp" android:layout_marginStart="15dp" android:layout_marginEnd="15dp">
+                    <LinearLayout android:orientation="horizontal" android:id="@+id/asset_background" android:layout_width="match_parent" android:layout_height="0dp" android:paddingStart="15dp" android:paddingEnd="15dp" app:layout_constraintDimensionRatio="980:264" app:layout_constraintLeft_toLeftOf="parent" app:layout_constraintRight_toRightOf="parent">
+                        <RelativeLayout android:layout_gravity="center_vertical" android:id="@+id/net_assets_layout" android:layout_width="0dp" android:layout_height="60dp" android:layout_weight="1">
+                            <RelativeLayout android:layout_width="wrap_content" android:layout_height="60dp">
+                                <LinearLayout android:gravity="center_vertical" android:orientation="horizontal" android:id="@+id/num_hide_layout" android:layout_width="wrap_content" android:layout_height="wrap_content">
+                                    <TextView android:textSize="12sp" android:id="@+id/net_assets_title" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="净资产" />
+                                    <ImageView android:id="@+id/ic_num_hide" android:layout_width="18dp" android:layout_height="18dp" android:src="@mipmap/ic_num_hide" android:layout_marginStart="8dp" />
+                                </LinearLayout>
+                                <TextView android:textSize="22dp" android:textStyle="bold" android:id="@+id/net_assets" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:text="0.00" android:singleLine="true" android:includeFontPadding="false" android:layout_alignParentBottom="true" />
+                            </RelativeLayout>
+                        </RelativeLayout>
+                        <RelativeLayout android:layout_gravity="center_vertical" android:layout_width="0dp" android:layout_height="60dp" android:layout_weight="1">
+                            <LinearLayout android:gravity="center_vertical" android:orientation="horizontal" android:id="@+id/deposit_layout" android:layout_width="wrap_content" android:layout_height="wrap_content">
+                                <TextView android:textSize="12sp" android:id="@+id/deposit_title" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="总资产" />
+                                <TextView android:textSize="14sp" android:textStyle="bold" android:id="@+id/deposit" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0.00" android:singleLine="true" android:layout_marginStart="8dp" />
+                            </LinearLayout>
+                            <LinearLayout android:gravity="center_vertical" android:orientation="horizontal" android:id="@+id/liabilities_layout" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginBottom="5dp" android:layout_alignParentBottom="true">
+                                <TextView android:textSize="12sp" android:id="@+id/liabilities_title" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="负资产" />
+                                <TextView android:textSize="14sp" android:textStyle="bold" android:id="@+id/liabilities" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0.00" android:singleLine="true" android:layout_marginStart="8dp" />
+                            </LinearLayout>
+                        </RelativeLayout>
+                    </LinearLayout>
+                    <ImageView android:id="@+id/ic_asset_setting" android:background="@drawable/selectable_item_circle" android:padding="6dp" android:layout_width="40dp" android:layout_height="40dp" android:layout_marginTop="5dp" android:src="@mipmap/ic_asset_menu" app:layout_constraintEnd_toEndOf="parent" app:layout_constraintTop_toTopOf="parent" />
+                </androidx.constraintlayout.widget.ConstraintLayout>
+                <LinearLayout android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginEnd="15dp">
+                    <LinearLayout android:gravity="center" android:orientation="vertical" android:id="@+id/reimbursement_layout" android:background="@drawable/shape_bg_theme_content_5" android:paddingTop="10dp" android:paddingBottom="10dp" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginTop="15dp" android:layout_weight="1" android:layout_marginStart="15dp">
+                        <TextView android:textSize="14sp" android:textStyle="bold" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="报销" />
+                        <LinearLayout android:orientation="vertical" android:layout_width="wrap_content" android:layout_height="wrap_content">
+                            <LinearLayout android:gravity="center" android:orientation="horizontal" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="5dp">
+                                <TextView android:textSize="11dp" android:textColor="@color/grey" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="可报:" />
+                                <TextView android:textSize="11dp" android:textColor="@color/black" android:id="@+id/reimbursement_num" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0.00" android:layout_marginStart="2dp" />
+                            </LinearLayout>
+                            <LinearLayout android:gravity="center" android:orientation="horizontal" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="3dp">
+                                <TextView android:textSize="11dp" android:textColor="@color/grey" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="已报:" />
+                                <TextView android:textSize="11dp" android:textColor="@color/grey" android:id="@+id/reimbursement_end_num" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0.00" android:layout_marginStart="2dp" />
+                            </LinearLayout>
+                        </LinearLayout>
+                    </LinearLayout>
+                    <LinearLayout android:gravity="center" android:orientation="vertical" android:id="@+id/lend_layout" android:background="@drawable/shape_bg_theme_content_5" android:paddingTop="10dp" android:paddingBottom="10dp" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginTop="15dp" android:layout_weight="1" android:layout_marginStart="15dp">
+                        <TextView android:textSize="14sp" android:textStyle="bold" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="债务" />
+                        <LinearLayout android:orientation="vertical" android:layout_width="wrap_content" android:layout_height="wrap_content">
+                            <LinearLayout android:gravity="center" android:orientation="horizontal" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="5dp">
+                                <TextView android:textSize="11dp" android:textColor="@color/grey" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="应付:" />
+                                <TextView android:textSize="11dp" android:textColor="@color/moneyPay" android:id="@+id/borrow_num" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0.00" android:layout_marginStart="2dp" />
+                            </LinearLayout>
+                            <LinearLayout android:gravity="center" android:orientation="horizontal" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="3dp">
+                                <TextView android:textSize="11dp" android:textColor="@color/grey" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="应收:" />
+                                <TextView android:textSize="11dp" android:textColor="@color/moneyIncome" android:id="@+id/lend_num" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0.00" android:layout_marginStart="2dp" />
+                            </LinearLayout>
+                        </LinearLayout>
+                    </LinearLayout>
+                    <LinearLayout android:gravity="center" android:orientation="vertical" android:id="@+id/stock_layout" android:background="@drawable/shape_bg_theme_content_5" android:paddingTop="10dp" android:paddingBottom="10dp" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginTop="15dp" android:layout_weight="1" android:layout_marginStart="15dp">
+                        <TextView android:textSize="14sp" android:textStyle="bold" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="理财" />
+                        <LinearLayout android:orientation="vertical" android:layout_width="wrap_content" android:layout_height="wrap_content">
+                            <LinearLayout android:gravity="center" android:orientation="horizontal" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="5dp">
+                                <TextView android:textSize="11dp" android:textColor="@color/grey" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="总额:" />
+                                <TextView android:textSize="11dp" android:textColor="@color/black" android:id="@+id/stock_total" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0.00" android:layout_marginStart="2dp" />
+                            </LinearLayout>
+                            <LinearLayout android:gravity="center" android:orientation="horizontal" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="3dp">
+                                <TextView android:textSize="11dp" android:textColor="@color/grey" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="盈亏:" />
+                                <TextView android:textSize="11dp" android:id="@+id/stock_income" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0.00" android:layout_marginStart="2dp" />
+                            </LinearLayout>
+                        </LinearLayout>
+                    </LinearLayout>
+                </LinearLayout>
+                <RelativeLayout android:layout_width="match_parent" android:layout_height="wrap_content">
+                    <LinearLayout android:gravity="center" android:orientation="vertical" android:id="@+id/tip_layout" android:visibility="gone" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginBottom="150dp" android:layout_alignParentBottom="true" android:layout_centerHorizontal="true">
+                        <include android:layout_width="150dp" android:layout_height="150dp" android:layout_marginBottom="10dp" layout="@layout/layout_home_tip" />
+                        <TextView android:textSize="14sp" android:textColor="@color/textGray" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="你还没有任何账户" />
+                        <TextView android:textSize="13sp" android:textColor="@color/grey" android:gravity="center" android:id="@+id/tip_text" android:layout_width="180dp" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:text="点击右下角新增按钮添加你的第一个账户" android:lineSpacingExtra="3dp" />
+                    </LinearLayout>
+                    <androidx.recyclerview.widget.RecyclerView android:id="@+id/data_List" android:paddingBottom="15dp" android:layout_width="match_parent" android:layout_height="wrap_content" android:overScrollMode="never" />
+                </RelativeLayout>
+            </LinearLayout>
+        </androidx.core.widget.NestedScrollView>
+    </FrameLayout>
+</LinearLayout>

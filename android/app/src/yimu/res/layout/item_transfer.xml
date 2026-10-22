@@ -1,0 +1,32 @@
+<?xml version='1.0' encoding='utf-8'?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:orientation="vertical" android:layout_width="match_parent" android:layout_height="match_parent">
+    <LinearLayout android:id="@+id/choice_from_asset" android:layout_width="match_parent" android:layout_height="55dp" android:layout_marginTop="20dp" android:layout_marginStart="20dp" android:layout_marginEnd="20dp">
+        <ImageView android:id="@+id/from_asset_icon" android:background="@drawable/shape_background_light_10" android:padding="17dp" android:layout_width="55dp" android:layout_height="55dp" android:src="@mipmap/ic_no_asset" />
+        <RelativeLayout android:background="@drawable/shape_background_light_10" android:layout_width="match_parent" android:layout_height="match_parent" android:paddingStart="10dp" android:paddingEnd="10dp" android:layout_marginStart="10dp">
+            <LinearLayout android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_centerVertical="true" android:layout_marginEnd="10dp" android:layout_toStartOf="@+id/reduce_num">
+                <TextView android:textSize="15sp" android:textColor="@color/black" android:textColorHint="@color/grey" android:id="@+id/from_asset_name" android:layout_width="wrap_content" android:layout_height="wrap_content" android:hint="转出账户" android:singleLine="true" />
+                <TextView android:textSize="12sp" android:textColor="@color/grey" android:id="@+id/from_asset_num" android:visibility="gone" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="5dp" android:hint="余额：1234.00" android:singleLine="true" />
+            </LinearLayout>
+            <TextView android:textSize="16sp" android:textStyle="bold" android:textColor="@color/moneyPay" android:id="@+id/reduce_num" android:background="@color/transparent" android:visibility="gone" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="-15.11" android:layout_centerVertical="true" android:layout_alignParentEnd="true" />
+        </RelativeLayout>
+    </LinearLayout>
+    <ImageView android:layout_gravity="center_horizontal" android:id="@+id/check_asset" android:background="@drawable/selectable_item_circle" android:padding="15dp" android:layout_width="46dp" android:layout_height="46dp" android:src="@mipmap/ic_asset_check" android:tint="@color/black" />
+    <LinearLayout android:id="@+id/choice_to_asset" android:layout_width="match_parent" android:layout_height="55dp" android:layout_marginBottom="20dp" android:layout_marginStart="20dp" android:layout_marginEnd="20dp">
+        <ImageView android:id="@+id/to_asset_icon" android:background="@drawable/shape_background_light_10" android:padding="17dp" android:layout_width="55dp" android:layout_height="55dp" android:src="@mipmap/ic_no_asset" />
+        <RelativeLayout android:background="@drawable/shape_background_light_10" android:layout_width="match_parent" android:layout_height="match_parent" android:paddingStart="10dp" android:paddingEnd="10dp" android:layout_marginStart="10dp">
+            <LinearLayout android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_centerVertical="true" android:layout_marginEnd="10dp" android:layout_toStartOf="@+id/add_num">
+                <TextView android:textSize="15sp" android:textColor="@color/black" android:textColorHint="@color/grey" android:id="@+id/to_asset_name" android:layout_width="wrap_content" android:layout_height="wrap_content" android:hint="转入账户" android:singleLine="true" />
+                <TextView android:textSize="12sp" android:textColor="@color/grey" android:id="@+id/to_asset_num" android:visibility="gone" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:hint="余额：1234.00" android:singleLine="true" />
+            </LinearLayout>
+            <TextView android:textSize="16sp" android:textStyle="bold" android:textColor="@color/moneyIncome" android:gravity="center_vertical" android:id="@+id/add_num" android:background="@color/transparent" android:visibility="gone" android:layout_width="wrap_content" android:layout_height="match_parent" android:text="-15.11" android:layout_centerVertical="true" android:layout_alignParentEnd="true" />
+        </RelativeLayout>
+    </LinearLayout>
+    <LinearLayout android:gravity="center" android:orientation="horizontal" android:id="@+id/set_repayment" android:paddingTop="10dp" android:paddingBottom="10dp" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="20dp">
+        <ImageView android:id="@+id/set_repayment_check" android:layout_width="20dp" android:layout_height="20dp" android:src="@mipmap/ic_check" android:tint="@color/textColorPrimary" />
+        <TextView android:textSize="13sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="转入为信贷账户，设为还款" android:layout_marginStart="5dp" />
+    </LinearLayout>
+    <RadioGroup android:id="@+id/radio_group" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="5dp" android:layout_marginEnd="20dp">
+        <RadioButton android:textSize="13sp" android:textColor="@color/black" android:id="@+id/radio_one" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="扣款金额(10) = 到账金额(5) + 手续费(5)" android:singleLine="true" style="@style/commonRadioButton" />
+        <RadioButton android:textSize="13sp" android:textColor="@color/black" android:id="@+id/radio_two" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="扣款金额(10) = 到账金额(5) + 手续费(5)" android:singleLine="true" style="@style/commonRadioButton" />
+    </RadioGroup>
+</LinearLayout>

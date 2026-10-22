@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/reimbursement_end"
+        android:title="设为待报销"/>
+    <item
+        android:id="@+id/refund"
+        android:title="退款"/>
+    <item
+        android:id="@+id/config_bill"
+        android:title="属性设置"/>
+    <item
+        android:id="@+id/split"
+        android:title="账单拆分"/>
+    <item
+        android:id="@+id/group_info"
+        android:title="组合信息"/>
+    <item
+        android:id="@+id/delete_bill"
+        android:title="删除"/>
+</menu>

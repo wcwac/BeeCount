@@ -1,0 +1,8 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android" android:background="@color/backgroundLight" android:layout_width="match_parent" android:layout_height="match_parent">
+    <androidx.recyclerview.widget.RecyclerView android:id="@+id/credit_bill_list" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="15dp" android:overScrollMode="never" />
+    <LinearLayout android:gravity="center" android:orientation="vertical" android:id="@+id/no_data_layout" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_centerInParent="true">
+        <include android:layout_width="150dp" android:layout_height="150dp" android:layout_marginBottom="10dp" layout="@layout/layout_common_tip" />
+        <TextView android:textSize="14sp" android:textColor="@color/textGray" android:id="@+id/search_tip" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="没有任何数据" />
+    </LinearLayout>
+</RelativeLayout>

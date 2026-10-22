@@ -1,184 +1,56 @@
-plugins {
-    id "com.android.application"
-    id "kotlin-android"
-    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
-    id "dev.flutter.flutter-gradle-plugin"
-}
+plugins { id "com.android.application" }
 
-// APK/AAB 都至少支持 API 24，与通知和生物识别插件最低版本保持一致。
-def buildingAppBundle = gradle.startParameter.taskNames.any { it.toLowerCase().contains("bundle") }
-
-// Load signing credentials from key.properties (not committed to VCS)
-def keystoreProperties = new Properties()
-def keystorePropertiesFile = rootProject.file('key.properties')
-if (keystorePropertiesFile.exists()) {
-    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
-}
+def signing = new Properties()
+def signingFile = rootProject.file('key.properties')
+if (signingFile.exists()) signingFile.withInputStream { signing.load(it) }
 
 android {
-    namespace = "com.tntlikely.beecount"
-    compileSdk = 36
-    // Keep in sync with plugins' required NDK to avoid build warnings/errors.
-    ndkVersion = "28.2.13676358"
-
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-
-        // Required by some plugins (e.g. flutter_local_notifications) when using newer Java APIs.
-        coreLibraryDesugaringEnabled true
-    }
-
+    namespace 'com.wangc.bill'
+    compileSdk 36
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "io.github.wcwac.beecount.offline"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = 24
-        // 显式固定 Android 16 的 API 36，独立于 Flutter SDK 的默认值。
-        targetSdk = 36
-        versionCode = flutter.versionCode
-        versionName = flutter.versionName
-        manifestPlaceholders += [appName: "@string/app_name"]
-        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-    // 当未在命令行指定 --flavor 时，默认选择 dev 风味，避免 Flutter 调试找不到 APK。
-    missingDimensionStrategy "env", "dev"
+        applicationId 'io.github.wcwac.yimu.reference'
+        minSdk 24
+        targetSdk 36
+        versionCode (System.getenv('BUILD_NUMBER') ?: '1').toInteger()
+        versionName (System.getenv('BUILD_VERSION') ?: '0.1.0')
+        testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
     }
-
-    flavorDimensions += ["env"]
-    productFlavors {
-        dev {
-            dimension "env"
-            applicationIdSuffix ".dev"
-            manifestPlaceholders += [appName: "@string/app_name_test"]
-        }
-        prod {
-            dimension "env"
-        }
+    sourceSets {
+        main { java.srcDirs = ['src/yimu/java']; res.srcDirs = ['src/yimu/res']; manifest.srcFile 'src/yimu/AndroidManifest.xml'; assets.srcDirs = [] }
+        test { java.srcDirs = ['src/yimuUnit/java'] }
+        androidTest { java.srcDirs = ['src/yimuTest/java']; res.srcDirs = []; assets.srcDirs = [] }
     }
-
-    // 按 ABI 拆 APK 产出多个独立分发包(2026-05-24):
-    //   - arm64-v8a:99% 现代真机 + Apple Silicon 模拟器,主分发
-    //   - armeabi-v7a:2014 前 32-bit only 老设备兼容
-    //   - x86_64:Intel/Win/Linux 模拟器
-    //   - universal:三 ABI 全打,兜底 / 不知道 ABI 的用户
-    // 单包 ~30-42 MB(原 universal 52 MB,主流 arm64-only 用户实际下载 ~40 MB)。
-    // x86 32-bit ABI 完全去掉(无真机用户,32 位 Intel 模拟器极少)。
-    //
-    // !!! AAB(App Bundle)build 不能开 splits.abi !!!
-    // AAB 本身就按 ABI 自动 split(Google Play 给设备分发对应 ABI),再开
-    // splits.abi 会让 R8 同一次 minify 产出 4 份 shrunk-resources,AGP 报
-    // "Multiple shrunk-resources files found"。所以根据 task name 动态启用:
-    // - assembleProdRelease(APK): splits 开,产 4 个 APK
-    // - bundleProdRelease(AAB):splits 关,正常 AAB
-    splits {
-        abi {
-            enable = !buildingAppBundle
-            reset()
-            include 'arm64-v8a', 'armeabi-v7a', 'x86_64'
-            universalApk true
-        }
-    }
-
+    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+    buildFeatures { buildConfig true }
     signingConfigs {
         release {
-            if (keystoreProperties['storeFile']) {
-                storeFile file(keystoreProperties['storeFile'])
-                storePassword keystoreProperties['storePassword']
-                keyAlias keystoreProperties['keyAlias']
-                keyPassword keystoreProperties['keyPassword']
+            if (signing['storeFile']) {
+                storeFile file(signing['storeFile']); storePassword signing['storePassword']
+                keyAlias signing['keyAlias']; keyPassword signing['keyPassword']
             }
         }
     }
-
     buildTypes {
-        debug {
-            // Debug 构建追加独立后缀，名称显示为测试版，便于与生产包共存
-            applicationIdSuffix ".debug"
-            versionNameSuffix "-debug"
-            manifestPlaceholders += [appName: "@string/app_name_test"]
-        }
+        debug { applicationIdSuffix ".debug"; versionNameSuffix "-debug" }
         release {
-            // Use a stable release keystore so upgrades don't require uninstall
-            // Without a configured key, build unsigned artifacts for CI checks only.
-            if (keystoreProperties['storeFile']) {
-                signingConfig = signingConfigs.release
-            }
-            // Enables code shrinking, obfuscation, and optimization for release builds.
-            minifyEnabled true
-            shrinkResources true
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            if (signing['storeFile']) signingConfig signingConfigs.release
+            minifyEnabled false
+            shrinkResources false
         }
     }
-
-    // 支持 16KB 页面大小 (Google Play 2024+ 要求)
-    packaging {
-        jniLibs {
-            useLegacyPackaging = true
-        }
-    }
-
-    // 当存在 flavors 时，assembleDebug 会聚合构建所有 debug 变体（devDebug、prodDebug），
-    // 这会让 Flutter 工具无法确定唯一 APK 路径。这里忽略 prodDebug，仅保留 devDebug，
-    // 从而让不带 --flavor 的 `flutter run` 正常工作并默认使用 dev。
-    variantFilter { variant ->
-        def names = variant.flavors*.name
-        if (variant.buildType.name == 'debug' && names.contains('prod')) {
-            setIgnore(true)
-        }
-    }
+    lint { abortOnError true; checkReleaseBuilds true; disable 'MissingTranslation', 'ExtraTranslation', 'TypographyFractions', 'TypographyQuotes', 'ObsoleteSdkInt', 'UnusedResources' }
+    packaging { resources.excludes += ['META-INF/DEPENDENCIES', 'META-INF/LICENSE*', 'META-INF/NOTICE*'] }
 }
-
-// 自定义 Release APK 命名:
-//   - arm64-v8a:  app-<flavor>-release-v<ver>(<code>).apk           (主分发,保持原名)
-//   - armeabi-v7a: app-<flavor>-armeabi-v7a-release-v<ver>(<code>).apk
-//   - x86_64:     app-<flavor>-x86_64-release-v<ver>(<code>).apk
-//   - universal:  app-<flavor>-universal-release-v<ver>(<code>).apk (三 ABI 兜底)
-android.applicationVariants.all { variant ->
-    if (variant.buildType.name == 'release') {
-        variant.outputs.all { output ->
-            def flavor = variant.flavorName ?: ""
-            def vName = variant.versionName
-            def vCode = variant.versionCode
-            def abi = output.getFilter(com.android.build.OutputFile.ABI)
-            def baseName
-            if (abi == null) {
-                // splits.abi.universalApk=true 产出的 universal 包(含所有 include 的 ABI)
-                baseName = "app-${flavor}-universal-release-v${vName}(${vCode}).apk"
-            } else if (abi == "arm64-v8a") {
-                // 主分发保持原命名
-                baseName = "app-${flavor}-release-v${vName}(${vCode}).apk"
-            } else {
-                baseName = "app-${flavor}-${abi}-release-v${vName}(${vCode}).apk"
-            }
-            try {
-                output.outputFileName = baseName
-            } catch (ignored) {
-                // For newer AGP where outputFileName setter may differ, ignore silently
-            }
-        }
-    }
-}
-
-kotlin {
-    compilerOptions {
-        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
-    }
-}
-
-flutter {
-    source = "../.."
-}
-
 dependencies {
+    implementation 'androidx.appcompat:appcompat:1.7.1'
+    implementation 'androidx.recyclerview:recyclerview:1.4.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.2.1'
+    implementation 'androidx.cardview:cardview:1.0.0'
+    implementation 'androidx.drawerlayout:drawerlayout:1.2.0'
     testImplementation 'junit:junit:4.13.2'
-    // 与 Flutter integration_test 传递依赖的 AndroidX Test 版本保持一致。
-    androidTestImplementation 'androidx.test:runner:1.2.0'
-    androidTestImplementation 'androidx.test.ext:junit:1.1.1'
-    androidTestImplementation 'androidx.test.uiautomator:uiautomator:2.2.0'
-    // Java language desugaring support for older Android devices.
-    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.4'
-
-    // uCrop 2.2.11 (image_cropper 13.0.0) still references OkHttp for image URIs.
-    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+    androidTestImplementation 'androidx.test:runner:1.6.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.2.1'
+    androidTestImplementation 'androidx.test:core:1.6.1'
+    androidTestImplementation 'androidx.test.uiautomator:uiautomator:2.3.0'
 }
+tasks.withType(JavaCompile).configureEach { options.compilerArgs += ['-Xmaxerrs', '1000', '-Xlint:unchecked'] }

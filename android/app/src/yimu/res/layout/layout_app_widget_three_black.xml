@@ -1,0 +1,20 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android" android:gravity="center_vertical" android:id="@+id/total_layout" android:background="@color/translate" android:focusable="true" android:clickable="true" android:layout_width="match_parent" android:layout_height="match_parent">
+    <ImageView android:id="@+id/background" android:clickable="false" android:layout_width="match_parent" android:layout_height="match_parent" android:scaleType="fitXY" />
+    <RelativeLayout android:id="@+id/top_layout" android:layout_width="match_parent" android:layout_height="50dp" android:paddingStart="10dp">
+        <LinearLayout android:orientation="horizontal" android:id="@+id/account_book_layout" android:layout_width="wrap_content" android:layout_height="match_parent">
+            <TextView android:textSize="15sp" android:textStyle="bold" android:textColor="@color/textColorBlack" android:gravity="center" android:id="@+id/book_name" android:layout_width="wrap_content" android:layout_height="match_parent" android:maxWidth="100dp" android:text="日常账本" android:singleLine="true" />
+            <ImageView android:layout_gravity="center_vertical" android:id="@+id/book_icon" android:layout_width="14dp" android:layout_height="14dp" android:src="@mipmap/ic_bottom" android:tint="@color/white" android:layout_marginStart="5dp" />
+        </LinearLayout>
+        <LinearLayout android:gravity="center_vertical" android:orientation="vertical" android:id="@+id/num_layout" android:layout_width="wrap_content" android:layout_height="match_parent" android:layout_marginStart="15dp" android:layout_toEndOf="@+id/account_book_layout">
+            <TextView android:textSize="11sp" android:textColor="@color/textColorBlack" android:id="@+id/pay" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="月支出：-199" />
+            <TextView android:textSize="11sp" android:textColor="@color/textColorBlack" android:id="@+id/income" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="3dp" android:text="月收入：+199" />
+        </LinearLayout>
+        <ImageView android:id="@+id/btn_refresh" android:background="@drawable/selectable_item_circle" android:padding="12dp" android:layout_width="45dp" android:layout_height="45dp" android:src="@mipmap/ic_refresh" android:tint="@color/white" android:layout_centerVertical="true" android:layout_alignParentEnd="true" />
+        <ImageView android:id="@+id/btn_add" android:background="@drawable/selectable_item_circle" android:padding="4dp" android:layout_width="45dp" android:layout_height="45dp" android:src="@mipmap/ic_notify_add" android:tint="@color/white" android:layout_centerVertical="true" android:layout_toStartOf="@+id/btn_refresh" />
+    </RelativeLayout>
+    <ImageView android:id="@+id/chart_layout" android:layout_width="match_parent" android:layout_height="match_parent" android:scaleType="fitCenter" android:layout_below="@+id/top_layout" />
+    <RelativeLayout android:id="@+id/open_vip_layout" android:background="@drawable/shape_bg_black25_15" android:visibility="gone" android:layout_width="match_parent" android:layout_height="match_parent">
+        <TextView android:textSize="15sp" android:textColor="@color/white" android:gravity="center" android:id="@+id/open_vip" android:background="@drawable/shape_bg_open_vip_btn" android:layout_width="150dp" android:layout_height="50dp" android:layout_marginBottom="30dp" android:text="立即开通" android:layout_alignParentBottom="true" android:layout_centerHorizontal="true" />
+    </RelativeLayout>
+</RelativeLayout>

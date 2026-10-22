@@ -1,0 +1,31 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/pay_layout" android:layout_width="match_parent" android:layout_height="match_parent">
+    <LinearLayout android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content">
+        <LinearLayout android:id="@+id/choice_lend" android:layout_width="match_parent" android:layout_height="40dp" android:layout_marginTop="15dp" android:layout_marginStart="20dp" android:layout_marginEnd="20dp">
+            <ImageView android:id="@+id/lend_icon" android:background="@drawable/shape_background_light_10" android:padding="12dp" android:layout_width="40dp" android:layout_height="40dp" android:src="@mipmap/ic_no_asset" />
+            <RelativeLayout android:background="@drawable/shape_background_light_10" android:layout_width="match_parent" android:layout_height="match_parent" android:paddingStart="10dp" android:paddingEnd="10dp" android:layout_marginStart="10dp">
+                <LinearLayout android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_centerVertical="true" android:layout_marginEnd="10dp" android:layout_toStartOf="@+id/lend_reduce_num">
+                    <TextView android:textSize="13sp" android:textColor="@color/black" android:textColorHint="@color/grey" android:id="@+id/lend_name" android:layout_width="wrap_content" android:layout_height="wrap_content" android:hint="选择债务" android:singleLine="true" />
+                    <TextView android:textSize="11sp" android:textColor="@color/grey" android:id="@+id/lend_num" android:visibility="gone" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="3dp" android:hint="余额：1234.00" android:singleLine="true" />
+                </LinearLayout>
+                <TextView android:textSize="15sp" android:textStyle="bold" android:id="@+id/lend_reduce_num" android:background="@color/transparent" android:visibility="gone" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="-15.11" android:layout_centerVertical="true" android:layout_alignParentEnd="true" />
+            </RelativeLayout>
+        </LinearLayout>
+        <LinearLayout android:layout_gravity="center_horizontal" android:orientation="horizontal" android:id="@+id/type_layout" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="10dp">
+            <TextView android:textSize="13dp" android:textColor="@color/textColorWhite" android:gravity="center" android:id="@+id/lend_btn" android:background="@drawable/shape_bg_primary" android:layout_width="70dp" android:layout_height="30dp" android:text="借入" />
+            <TextView android:textSize="13dp" android:textColor="@color/textColorWhite" android:gravity="center" android:id="@+id/repayment_btn" android:background="@drawable/shape_bg_primary" android:layout_width="70dp" android:layout_height="30dp" android:text="还款" android:layout_marginStart="30dp" />
+        </LinearLayout>
+        <ImageView android:layout_gravity="center_horizontal" android:layout_width="25dp" android:layout_height="25dp" android:src="@mipmap/ic_bottom_small" android:scaleType="fitXY" android:tint="@color/black" />
+        <LinearLayout android:id="@+id/choice_asset" android:layout_width="match_parent" android:layout_height="40dp" android:layout_marginBottom="10dp" android:layout_marginStart="20dp" android:layout_marginEnd="20dp">
+            <ImageView android:id="@+id/asset_icon" android:background="@drawable/shape_background_light_10" android:padding="12dp" android:layout_width="40dp" android:layout_height="40dp" android:src="@mipmap/ic_no_asset" />
+            <RelativeLayout android:background="@drawable/shape_background_light_10" android:layout_width="match_parent" android:layout_height="match_parent" android:paddingStart="10dp" android:paddingEnd="10dp" android:layout_marginStart="10dp">
+                <LinearLayout android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_centerVertical="true" android:layout_marginEnd="10dp" android:layout_toStartOf="@+id/asset_reduce_num">
+                    <TextView android:textSize="13sp" android:textColor="@color/black" android:textColorHint="@color/grey" android:id="@+id/asset_name" android:layout_width="wrap_content" android:layout_height="wrap_content" android:hint="选择借入账户" android:singleLine="true" />
+                    <TextView android:textSize="11sp" android:textColor="@color/grey" android:id="@+id/asset_num" android:visibility="gone" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="3dp" android:hint="余额：1234.00" android:singleLine="true" />
+                </LinearLayout>
+                <TextView android:textSize="15sp" android:textStyle="bold" android:id="@+id/asset_reduce_num" android:background="@color/transparent" android:visibility="gone" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="-15.11" android:layout_centerVertical="true" android:layout_alignParentEnd="true" />
+            </RelativeLayout>
+        </LinearLayout>
+        <CheckBox android:textSize="13dp" android:textColor="@color/black" android:id="@+id/general_bill" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginBottom="10dp" android:text="生成账单" android:singleLine="true" android:layout_marginStart="15dp" style="@style/commonCheckBox" />
+    </LinearLayout>
+</RelativeLayout>

@@ -1,0 +1,74 @@
+<?xml version='1.0' encoding='utf-8'?>
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:background="@color/backgroundLight" android:layout_width="match_parent" android:layout_height="match_parent">
+    <LinearLayout android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content">
+        <LinearLayout android:gravity="center_vertical" android:orientation="horizontal" android:id="@+id/add_widget_tip_layout" android:paddingTop="15dp" android:paddingBottom="10dp" android:layout_width="wrap_content" android:layout_height="wrap_content" android:paddingStart="15dp" android:paddingEnd="15dp">
+            <ImageView android:layout_width="17dp" android:layout_height="17dp" android:src="@mipmap/ic_tip" android:tint="@color/textColorPrimary" />
+            <TextView android:textSize="13sp" android:textColor="@color/textColorPrimary" android:id="@+id/add_widget_tip" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="如何添加小部件？" android:layout_marginStart="5dp" />
+        </LinearLayout>
+        <LinearLayout android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginStart="5dp" android:layout_marginEnd="5dp">
+            <LinearLayout android:gravity="center_horizontal" android:orientation="vertical" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1">
+                <androidx.cardview.widget.CardView android:layout_width="match_parent" android:layout_height="200dp" android:layout_margin="10dp" app:cardCornerRadius="15dp" app:cardElevation="10dp">
+                    <ImageView android:layout_width="match_parent" android:layout_height="wrap_content" android:src="@mipmap/ic_widget_today_preview" />
+                </androidx.cardview.widget.CardView>
+                <TextView android:textSize="13sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="5dp" android:text="今日" />
+            </LinearLayout>
+            <LinearLayout android:gravity="center_horizontal" android:orientation="vertical" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1">
+                <androidx.cardview.widget.CardView android:layout_width="match_parent" android:layout_height="200dp" android:layout_margin="10dp" app:cardCornerRadius="15dp" app:cardElevation="10dp">
+                    <ImageView android:layout_width="match_parent" android:layout_height="wrap_content" android:src="@mipmap/ic_widget_info_preview" />
+                </androidx.cardview.widget.CardView>
+                <TextView android:textSize="13sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="5dp" android:text="标准2x2" />
+            </LinearLayout>
+        </LinearLayout>
+        <LinearLayout android:gravity="center_horizontal" android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:layout_marginBottom="5dp" android:layout_marginStart="5dp" android:layout_marginEnd="5dp">
+            <androidx.cardview.widget.CardView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_margin="10dp" app:cardCornerRadius="15dp" app:cardElevation="10dp">
+                <ImageView android:layout_width="match_parent" android:layout_height="70dp" android:src="@mipmap/ic_widget_preview" />
+            </androidx.cardview.widget.CardView>
+            <TextView android:textSize="13sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="5dp" android:text="标准4x1" />
+        </LinearLayout>
+        <LinearLayout android:gravity="center_horizontal" android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:layout_marginBottom="5dp" android:layout_marginStart="5dp" android:layout_marginEnd="5dp">
+            <androidx.cardview.widget.CardView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_margin="10dp" app:cardCornerRadius="15dp" app:cardElevation="10dp">
+                <ImageView android:layout_width="match_parent" android:layout_height="wrap_content" android:src="@mipmap/ic_widget_calendar_preview" />
+            </androidx.cardview.widget.CardView>
+            <TextView android:textSize="13sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="5dp" android:text="月历" />
+        </LinearLayout>
+        <LinearLayout android:gravity="center_horizontal" android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:layout_marginBottom="5dp" android:layout_marginStart="5dp" android:layout_marginEnd="5dp">
+            <androidx.cardview.widget.CardView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_margin="10dp" app:cardCornerRadius="15dp" app:cardElevation="10dp">
+                <ImageView android:layout_width="match_parent" android:layout_height="400dp" android:src="@mipmap/ic_widget_preview_two" />
+            </androidx.cardview.widget.CardView>
+            <TextView android:textSize="13sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="5dp" android:text="详细" />
+        </LinearLayout>
+        <LinearLayout android:gravity="center_horizontal" android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:layout_marginBottom="5dp" android:layout_marginStart="5dp" android:layout_marginEnd="5dp">
+            <androidx.cardview.widget.CardView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_margin="10dp" app:cardCornerRadius="15dp" app:cardElevation="10dp">
+                <ImageView android:layout_width="match_parent" android:layout_height="220dp" android:src="@mipmap/ic_widget_preview_three" />
+            </androidx.cardview.widget.CardView>
+            <TextView android:textSize="13sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="5dp" android:text="图表" />
+        </LinearLayout>
+        <LinearLayout android:gravity="center_horizontal" android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:layout_marginBottom="5dp" android:layout_marginStart="5dp" android:layout_marginEnd="5dp">
+            <androidx.cardview.widget.CardView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_margin="10dp" app:cardCornerRadius="15dp" app:cardElevation="10dp">
+                <ImageView android:layout_width="match_parent" android:layout_height="180dp" android:src="@mipmap/ic_widget_preview_four" />
+            </androidx.cardview.widget.CardView>
+            <TextView android:textSize="13sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="5dp" android:text="预算" />
+        </LinearLayout>
+        <LinearLayout android:gravity="center_horizontal" android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:layout_marginBottom="5dp" android:layout_marginStart="5dp" android:layout_marginEnd="5dp">
+            <androidx.cardview.widget.CardView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_margin="10dp" app:cardCornerRadius="15dp" app:cardElevation="10dp">
+                <ImageView android:layout_width="match_parent" android:layout_height="140dp" android:src="@mipmap/ic_widget_dream_preview" />
+            </androidx.cardview.widget.CardView>
+            <TextView android:textSize="13sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="5dp" android:text="愿望清单" />
+        </LinearLayout>
+        <LinearLayout android:gravity="center_horizontal" android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:layout_marginBottom="15dp" android:layout_marginStart="5dp" android:layout_marginEnd="5dp">
+            <androidx.cardview.widget.CardView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_margin="10dp" app:cardCornerRadius="15dp" app:cardElevation="10dp">
+                <ImageView android:layout_width="match_parent" android:layout_height="wrap_content" android:src="@mipmap/ic_widget_preview_five" />
+            </androidx.cardview.widget.CardView>
+            <TextView android:textSize="13sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="5dp" android:text="日历" />
+        </LinearLayout>
+        <LinearLayout android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="60dp" android:layout_marginStart="5dp" android:layout_marginEnd="5dp">
+            <LinearLayout android:gravity="center_horizontal" android:orientation="vertical" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1">
+                <androidx.cardview.widget.CardView android:layout_width="match_parent" android:layout_height="200dp" android:layout_margin="10dp" app:cardCornerRadius="15dp" app:cardElevation="10dp">
+                    <ImageView android:layout_width="match_parent" android:layout_height="wrap_content" android:src="@mipmap/ic_widget_repayment_preview" />
+                </androidx.cardview.widget.CardView>
+                <TextView android:textSize="13sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="5dp" android:text="近期待还" />
+            </LinearLayout>
+            <LinearLayout android:gravity="center_horizontal" android:orientation="vertical" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" />
+        </LinearLayout>
+    </LinearLayout>
+</androidx.core.widget.NestedScrollView>

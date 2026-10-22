@@ -1,0 +1,10 @@
+<?xml version='1.0' encoding='utf-8'?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:orientation="vertical" android:background="@color/backgroundLight" android:layout_width="match_parent" android:layout_height="match_parent">
+    <RelativeLayout android:background="@color/white" android:layout_width="match_parent" android:layout_height="50dp">
+        <EditText android:textSize="14sp" android:textColor="@color/black" android:textColorHint="@color/grey" android:id="@+id/search_input" android:background="@color/white" android:visibility="gone" android:layout_width="match_parent" android:layout_height="match_parent" android:hint="搜索币种" android:singleLine="true" android:imeOptions="actionDone" android:layout_toStartOf="@+id/right_icon" android:layout_toEndOf="@+id/btn_back" />
+        <TextView android:textSize="18sp" android:textStyle="bold" android:textColor="@color/black" android:gravity="center" android:id="@+id/title" android:layout_width="wrap_content" android:layout_height="50dp" android:maxWidth="180dp" android:text="选择币种" android:singleLine="true" android:layout_toEndOf="@+id/btn_back" />
+        <ImageView android:id="@+id/right_icon" android:background="@drawable/selectable_item_circle" android:padding="15dp" android:layout_width="50dp" android:layout_height="50dp" android:src="@mipmap/ic_main_search" android:scaleType="fitXY" android:tint="@color/textColorPrimary" android:layout_alignParentEnd="true" />
+        <ImageView android:id="@+id/btn_back" android:background="@drawable/selectable_item_circle" android:padding="16dp" android:layout_width="50dp" android:layout_height="50dp" android:src="@mipmap/ic_back" android:scaleType="fitCenter" android:tint="@color/black" />
+    </RelativeLayout>
+    <androidx.recyclerview.widget.RecyclerView android:id="@+id/currency_list" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="15dp" android:overScrollMode="never" />
+</LinearLayout>

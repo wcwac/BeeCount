@@ -1,0 +1,15 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:id="@+id/parent_layout" android:background="@drawable/shape_bg_theme_content_10" android:layout_width="match_parent" android:layout_height="130dp" android:layout_marginTop="15dp" android:layout_marginEnd="15dp">
+    <ImageView android:id="@+id/background" android:layout_width="match_parent" android:layout_height="match_parent" android:scaleType="centerCrop" app:corner_radius="@dimen/common_radius" app:oval="false" />
+    <RelativeLayout android:id="@+id/left_layout" android:paddingTop="10dp" android:paddingBottom="7dp" android:layout_width="wrap_content" android:layout_height="match_parent" android:paddingStart="10dp">
+        <LinearLayout android:gravity="center" android:orientation="horizontal" android:layout_width="wrap_content" android:layout_height="wrap_content">
+            <ImageView android:layout_width="18dp" android:layout_height="18dp" android:src="@mipmap/ic_custom_module_line" />
+            <TextView android:textSize="14sp" android:textColor="@color/black" android:id="@+id/title" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="月收支" android:layout_marginStart="5dp" />
+        </LinearLayout>
+        <LinearLayout android:orientation="vertical" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_alignParentBottom="true">
+            <TextView android:textSize="12sp" android:textStyle="bold" android:textColor="@color/moneyPay" android:id="@+id/pay_number" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="-0.00" />
+            <TextView android:textSize="12sp" android:textStyle="bold" android:textColor="@color/moneyIncome" android:id="@+id/income_number" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="3dp" android:text="+0.00" />
+        </LinearLayout>
+    </RelativeLayout>
+    <FrameLayout android:id="@+id/month_info_view" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_centerVertical="true" android:layout_marginStart="15dp" android:layout_marginEnd="8dp" android:layout_toEndOf="@+id/left_layout" android:layout_alignParentEnd="true" />
+</RelativeLayout>

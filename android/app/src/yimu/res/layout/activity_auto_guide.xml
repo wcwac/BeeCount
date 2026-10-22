@@ -1,0 +1,25 @@
+<?xml version='1.0' encoding='utf-8'?>
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:layout_width="match_parent" android:layout_height="match_parent">
+    <LinearLayout android:orientation="vertical" android:id="@+id/total_layout" android:background="@color/colorPrimary" android:paddingBottom="50dp" android:layout_width="match_parent" android:layout_height="wrap_content">
+        <RelativeLayout android:layout_width="match_parent" android:layout_height="wrap_content">
+            <ImageView android:id="@+id/btn_back" android:padding="15dp" android:layout_width="50dp" android:layout_height="50dp" android:layout_marginTop="7dp" android:src="@mipmap/ic_back" android:tint="@color/white" />
+            <androidx.constraintlayout.widget.ConstraintLayout android:clipChildren="false" android:clipToPadding="false" android:layout_width="match_parent" android:layout_height="wrap_content">
+                <ImageView android:layout_width="match_parent" android:layout_height="0dp" android:src="@mipmap/auto_guide_title" app:layout_constraintDimensionRatio="1440:652" app:layout_constraintLeft_toLeftOf="parent" app:layout_constraintRight_toRightOf="parent" />
+            </androidx.constraintlayout.widget.ConstraintLayout>
+        </RelativeLayout>
+        <RelativeLayout android:background="@drawable/shape_bg_white_15" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginStart="15dp" android:layout_marginEnd="15dp" android:clipToOutline="true">
+            <FrameLayout android:id="@+id/video_view" android:layout_width="match_parent" android:layout_height="200dp" app:use_controller="true" />
+            <ImageView android:id="@+id/video_full" android:padding="8dp" android:layout_width="40dp" android:layout_height="40dp" android:src="@mipmap/ic_video_full" android:layout_alignParentEnd="true" app:tint="@color/white" />
+        </RelativeLayout>
+        <androidx.constraintlayout.widget.ConstraintLayout android:clipChildren="false" android:clipToPadding="false" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="20dp" android:layout_marginStart="13dp" android:layout_marginEnd="12dp">
+            <ImageView android:layout_width="match_parent" android:layout_height="0dp" android:src="@mipmap/auto_guide_content" app:layout_constraintDimensionRatio="1344:2208" app:layout_constraintLeft_toLeftOf="parent" app:layout_constraintRight_toRightOf="parent" />
+        </androidx.constraintlayout.widget.ConstraintLayout>
+        <androidx.constraintlayout.widget.ConstraintLayout android:clipChildren="false" android:clipToPadding="false" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="20dp" android:layout_marginStart="15dp" android:layout_marginEnd="15dp">
+            <ImageView android:layout_width="match_parent" android:layout_height="0dp" android:src="@mipmap/auto_guide_careful" app:layout_constraintDimensionRatio="1320:764" app:layout_constraintLeft_toLeftOf="parent" app:layout_constraintRight_toRightOf="parent" />
+        </androidx.constraintlayout.widget.ConstraintLayout>
+        <androidx.constraintlayout.widget.ConstraintLayout android:clipChildren="false" android:clipToPadding="false" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="20dp" android:layout_marginStart="15dp" android:layout_marginEnd="15dp">
+            <ImageView android:layout_width="match_parent" android:layout_height="0dp" android:src="@mipmap/auto_guide_safe" app:layout_constraintDimensionRatio="1320:573" app:layout_constraintLeft_toLeftOf="parent" app:layout_constraintRight_toRightOf="parent" />
+        </androidx.constraintlayout.widget.ConstraintLayout>
+        <androidx.recyclerview.widget.RecyclerView android:id="@+id/question_list" android:background="@drawable/auto_guide_background" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="20dp" android:layout_marginBottom="20dp" android:layout_marginStart="15dp" android:layout_marginEnd="15dp" />
+    </LinearLayout>
+</androidx.core.widget.NestedScrollView>

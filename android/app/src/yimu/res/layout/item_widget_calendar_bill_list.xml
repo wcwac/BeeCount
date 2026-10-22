@@ -1,0 +1,8 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/total_layout" android:layout_width="match_parent" android:layout_height="23dp">
+    <ImageView android:id="@+id/icon" android:padding="5dp" android:layout_width="23dp" android:layout_height="23dp" android:src="@mipmap/ic_parent_other" android:layout_centerVertical="true" android:layout_marginStart="5dp" />
+    <RelativeLayout android:gravity="center_vertical" android:orientation="vertical" android:id="@+id/bill_layout" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_centerVertical="true" android:layout_toEndOf="@+id/icon">
+        <TextView android:textSize="12dp" android:textColor="@color/black" android:ellipsize="end" android:id="@+id/category" android:background="@color/transparent" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="购物消费" android:singleLine="true" android:layout_marginEnd="5dp" android:layout_toStartOf="@+id/cost" />
+        <TextView android:textSize="12dp" android:textStyle="bold" android:textColor="@color/colorPrimary" android:ellipsize="end" android:id="@+id/cost" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="+5.00" android:singleLine="true" android:layout_centerVertical="true" android:layout_marginEnd="10dp" android:layout_alignParentEnd="true" />
+    </RelativeLayout>
+</RelativeLayout>

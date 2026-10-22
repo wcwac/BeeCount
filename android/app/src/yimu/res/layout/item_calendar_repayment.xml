@@ -1,0 +1,16 @@
+<?xml version='1.0' encoding='utf-8'?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content">
+    <RelativeLayout android:id="@+id/total_layout" android:background="@drawable/selectable_item_expand" android:layout_width="match_parent" android:layout_height="55dp" android:paddingEnd="15dp">
+        <RelativeLayout android:id="@+id/start_layout" android:layout_width="wrap_content" android:layout_height="match_parent" android:layout_centerVertical="true">
+            <ImageView android:id="@+id/icon" android:layout_width="20dp" android:layout_height="20dp" android:src="@mipmap/ic_repayment_bank" android:layout_centerVertical="true" android:layout_marginStart="15dp" android:layout_marginEnd="10dp" />
+        </RelativeLayout>
+        <LinearLayout android:gravity="center_vertical" android:orientation="vertical" android:layout_width="wrap_content" android:layout_height="56dp" android:layout_centerVertical="true" android:layout_marginEnd="10dp" android:layout_toStartOf="@+id/cost_layout" android:layout_toEndOf="@+id/start_layout">
+            <TextView android:textSize="14sp" android:textColor="@color/black" android:gravity="center_vertical" android:id="@+id/category" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="信贷账户待还款" android:singleLine="true" />
+            <TextView android:textSize="11sp" android:textColor="@color/darkGrey" android:ellipsize="end" android:id="@+id/remark" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="5dp" android:singleLine="true" />
+        </LinearLayout>
+        <LinearLayout android:gravity="end" android:orientation="vertical" android:id="@+id/cost_layout" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_centerVertical="true" android:layout_alignParentEnd="true">
+            <TextView android:textSize="15sp" android:id="@+id/cost" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="100" />
+            <TextView android:textSize="10sp" android:textColor="@color/grey" android:id="@+id/status" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="5dp" android:maxWidth="100dp" android:text="支付宝" android:singleLine="true" />
+        </LinearLayout>
+    </RelativeLayout>
+</LinearLayout>

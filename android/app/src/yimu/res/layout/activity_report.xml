@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:orientation="vertical" android:background="@color/white" android:padding="15dp" android:layout_width="match_parent" android:layout_height="match_parent">
+    <TextView android:textSize="14sp" android:textColor="@color/black" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="若权利人认为第三方用户在主题分享中心提供的主题侵犯其合法权益，可按照以下要求提交相关材料进行投诉。权利人应向我们提交投诉通知材料，通知材料的内容应包括但不限于以下内容：" android:lineSpacingExtra="5dp" />
+    <TextView android:textSize="14sp" android:textColor="@color/black" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="15dp" android:text="权利人主体信息和相关材料：包括权利人的姓名（公司名称）、联系方式、地址、营业执照（单位）或者身份证（个人）、相关授权证明等证明权利人主体资格的材料。" android:lineSpacingExtra="5dp" />
+    <TextView android:textSize="14sp" android:textStyle="bold" android:textColor="@color/black" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="15dp" android:text="权利人需按以下邮件模板发送邮件：" android:lineSpacingExtra="5dp" />
+    <TextView android:textSize="14sp" android:textColor="@color/black" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="15dp" android:text="邮件发送至：553847323@qq.com\10　邮件标题：【版权投诉】+主题名称+用户名称\10　邮件正文：投诉主题名称\10　　　　　　投诉用户名称\10　　　　　　主体信息\10　　　　　　简单说明\10　　　附件：相关授权文书、版权证明等。" android:lineSpacingExtra="5dp" />
+</LinearLayout>

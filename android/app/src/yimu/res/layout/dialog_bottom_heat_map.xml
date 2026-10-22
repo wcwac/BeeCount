@@ -1,0 +1,18 @@
+<?xml version='1.0' encoding='utf-8'?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:orientation="vertical" android:id="@+id/parent_layout" android:background="@drawable/bg_add_bill_dialog" android:layout_width="match_parent" android:layout_height="wrap_content">
+    <RelativeLayout android:layout_width="match_parent" android:layout_height="45dp" android:layout_marginTop="10dp" android:paddingStart="15dp">
+        <TextView android:textSize="15sp" android:textStyle="bold" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="收支热力图" android:layout_centerVertical="true" />
+        <ImageView android:id="@+id/close" android:padding="15dp" android:layout_width="50dp" android:layout_height="50dp" android:src="@mipmap/ic_arrow_bottom" android:layout_centerVertical="true" android:layout_alignParentEnd="true" app:tint="@color/darkGrey" />
+        <LinearLayout android:gravity="center_vertical" android:orientation="horizontal" android:id="@+id/heat_map_menu" android:background="@drawable/bg_statistics_bar_menu" android:layout_width="wrap_content" android:layout_height="25dp" android:layout_centerVertical="true" android:layout_toStartOf="@+id/close">
+            <TextView android:textSize="11sp" android:gravity="center" android:id="@+id/heat_map_pay" android:layout_width="wrap_content" android:layout_height="match_parent" android:text="支出" android:paddingStart="10dp" android:paddingEnd="10dp" />
+            <TextView android:textSize="11sp" android:gravity="center" android:id="@+id/heat_map_income" android:layout_width="wrap_content" android:layout_height="match_parent" android:text="收入" android:paddingStart="10dp" android:paddingEnd="10dp" />
+            <TextView android:textSize="11sp" android:gravity="center" android:id="@+id/heat_map_balance" android:layout_width="wrap_content" android:layout_height="match_parent" android:text="结余" android:paddingStart="10dp" android:paddingEnd="10dp" />
+        </LinearLayout>
+    </RelativeLayout>
+    <androidx.recyclerview.widget.RecyclerView android:id="@+id/week_list" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginStart="10dp" android:layout_marginEnd="10dp" />
+    <androidx.core.widget.NestedScrollView android:id="@+id/scroll_vew" android:layout_width="match_parent" android:layout_height="match_parent">
+        <LinearLayout android:orientation="vertical" android:layout_width="match_parent" android:layout_height="match_parent">
+            <androidx.recyclerview.widget.RecyclerView android:id="@+id/data_list" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="20dp" />
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+</LinearLayout>

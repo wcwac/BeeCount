@@ -1,0 +1,15 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:id="@+id/parent_layout" android:layout_width="wrap_content" android:layout_height="wrap_content">
+    <RelativeLayout android:id="@+id/background_layout" android:background="@drawable/dialog_user_agreement_bg" android:paddingBottom="15dp" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="15dp" android:layout_marginEnd="15dp">
+        <androidx.recyclerview.widget.RecyclerView android:id="@+id/gallery_info" android:background="@color/white" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_below="@+id/gallery_choice" android:overScrollMode="never" android:paddingStart="10dp" app:maxHeight="500dp" />
+        <androidx.recyclerview.widget.RecyclerView android:id="@+id/gallery_list" android:background="@color/white" android:visibility="invisible" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_below="@+id/gallery_choice" android:overScrollMode="never" app:maxHeight="500dp" />
+        <RelativeLayout android:id="@+id/gallery_choice" android:layout_width="match_parent" android:layout_height="50dp">
+            <LinearLayout android:orientation="horizontal" android:layout_width="wrap_content" android:layout_height="match_parent" android:layout_centerVertical="true" android:layout_marginStart="15dp">
+                <TextView android:textSize="14sp" android:textColor="@color/darkGrey" android:gravity="center" android:id="@+id/gallery_name" android:layout_width="wrap_content" android:layout_height="match_parent" android:text="@string/all_image" />
+                <ImageView android:layout_gravity="center_vertical" android:layout_width="wrap_content" android:layout_height="wrap_content" android:src="@mipmap/ic_close_image_dialog" android:tint="@color/black" android:layout_marginStart="8dp" />
+            </LinearLayout>
+            <View android:background="@color/divider" android:layout_width="match_parent" android:layout_height="1px" android:layout_alignParentBottom="true" />
+            <TextView android:textSize="14sp" android:textColor="@color/darkGrey" android:gravity="center" android:id="@+id/complete" android:background="@drawable/selectable_item_circle" android:layout_width="wrap_content" android:layout_height="match_parent" android:text="取消" android:layout_centerVertical="true" android:paddingStart="15dp" android:paddingEnd="15dp" android:layout_alignParentEnd="true" />
+        </RelativeLayout>
+    </RelativeLayout>
+</RelativeLayout>

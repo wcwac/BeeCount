@@ -1,0 +1,41 @@
+<?xml version='1.0' encoding='utf-8'?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content">
+    <androidx.constraintlayout.widget.ConstraintLayout android:id="@+id/banner_layout" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="15dp">
+        <LinearLayout android:orientation="horizontal" android:id="@+id/asset_background" android:layout_width="match_parent" android:layout_height="0dp" android:paddingStart="15dp" android:paddingEnd="15dp" android:layout_marginStart="15dp" android:layout_marginEnd="15dp" app:layout_constraintDimensionRatio="980:264" app:layout_constraintLeft_toLeftOf="parent" app:layout_constraintRight_toRightOf="parent">
+            <RelativeLayout android:layout_gravity="center_vertical" android:layout_width="0dp" android:layout_height="60dp" android:layout_weight="1">
+                <TextView android:textSize="13sp" android:textColor="@color/textGray" android:id="@+id/net_assets_title" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="净资产" />
+                <TextView android:textSize="22sp" android:textStyle="bold" android:textColor="@color/textColorPrimary" android:id="@+id/net_assets" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:text="0.00" android:singleLine="true" android:includeFontPadding="false" android:layout_alignParentBottom="true" />
+            </RelativeLayout>
+            <RelativeLayout android:layout_gravity="center_vertical" android:layout_width="0dp" android:layout_height="60dp" android:layout_weight="1" android:paddingStart="15dp">
+                <LinearLayout android:orientation="horizontal" android:layout_width="wrap_content" android:layout_height="wrap_content">
+                    <TextView android:textSize="13sp" android:textColor="@color/textGray" android:id="@+id/deposit_title" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="总资产" />
+                    <TextView android:textSize="15sp" android:textStyle="bold" android:textColor="@color/darkGrey" android:id="@+id/deposit" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0.00" android:singleLine="true" android:layout_marginStart="10dp" />
+                </LinearLayout>
+                <LinearLayout android:orientation="horizontal" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginBottom="5dp" android:layout_alignParentBottom="true">
+                    <TextView android:textSize="13sp" android:textColor="@color/textGray" android:id="@+id/liabilities_title" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="负资产" />
+                    <TextView android:textSize="15sp" android:textStyle="bold" android:textColor="@color/darkGrey" android:id="@+id/liabilities" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0.00" android:singleLine="true" android:layout_marginStart="10dp" />
+                </LinearLayout>
+            </RelativeLayout>
+        </LinearLayout>
+    </androidx.constraintlayout.widget.ConstraintLayout>
+    <LinearLayout android:orientation="vertical" android:background="@drawable/shape_bg_setting" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="15dp" android:layout_marginStart="15dp" android:layout_marginEnd="15dp">
+        <RelativeLayout android:id="@+id/one_color_layout" android:background="?android:attr/selectableItemBackground" android:layout_width="match_parent" android:layout_height="60dp" android:paddingStart="15dp" android:paddingEnd="15dp">
+            <LinearLayout android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_centerVertical="true" android:layout_marginEnd="15dp">
+                <TextView android:textSize="15sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="净资产颜色" />
+            </LinearLayout>
+            <ImageView android:layout_width="18dp" android:layout_height="18dp" android:src="@mipmap/ic_more" android:tint="@color/grey" android:layout_centerVertical="true" android:layout_alignParentEnd="true" />
+        </RelativeLayout>
+        <RelativeLayout android:id="@+id/two_color_layout" android:background="?android:attr/selectableItemBackground" android:layout_width="match_parent" android:layout_height="60dp" android:paddingStart="15dp" android:paddingEnd="15dp">
+            <LinearLayout android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_centerVertical="true" android:layout_marginEnd="15dp">
+                <TextView android:textSize="15sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="数值颜色" />
+            </LinearLayout>
+            <ImageView android:layout_width="18dp" android:layout_height="18dp" android:src="@mipmap/ic_more" android:tint="@color/grey" android:layout_centerVertical="true" android:layout_alignParentEnd="true" />
+        </RelativeLayout>
+        <RelativeLayout android:id="@+id/three_color_layout" android:background="?android:attr/selectableItemBackground" android:layout_width="match_parent" android:layout_height="60dp" android:paddingStart="15dp" android:paddingEnd="15dp">
+            <LinearLayout android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_centerVertical="true" android:layout_marginEnd="15dp">
+                <TextView android:textSize="15sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="标题颜色" />
+            </LinearLayout>
+            <ImageView android:layout_width="18dp" android:layout_height="18dp" android:src="@mipmap/ic_more" android:tint="@color/grey" android:layout_centerVertical="true" android:layout_alignParentEnd="true" />
+        </RelativeLayout>
+    </LinearLayout>
+</LinearLayout>
