@@ -132,7 +132,8 @@ REQUEST_INSTALL_PACKAGES 权限；确认独立包名、`allowBackup=false`，
 原始 `outcome`，任一必需检查未成功都会使 job 失败；发布仍要求整个构建 job 成功。
 常规 push 流程仅编译 instrumentation APK。另行授权并手动开启 `run_device_tests` 后，
 会在 GitHub 托管的临时 API36 AOSP x86_64 模拟器上运行采集包测试，保存日志及 XML；
-其默认关闭，尚无执行结果。不会安装第三方支付应用，也不进行逐界面自动截图。
+其默认关闭；独立的已授权验证分支已实际执行并通过 23 项，结果见下文。
+不会安装第三方支付应用，也不进行逐界面自动截图。
 真实支付应用页面、系统服务重连和性能测量仍需独立验收；编译不代表这些场景已通过。
 
 `feat/flutter-stable-upgrade` 的新版 SDK 与依赖已通过云端验证，过程及实际 CI 结果见
@@ -150,6 +151,18 @@ REQUEST_INSTALL_PACKAGES 权限；确认独立包名、`allowBackup=false`，
 - 分析有 597 条非阻断 info/warning；锁文件和生成物已与实际验证内容匹配。
 - 自动记账的异步退出后入账、停止与状态未知、账本稳定身份等回归已通过；
   22 个真实客户端的兼容、系统服务生命周期和性能仍待设备验收。
+
+### 独立设备验证
+
+[设备验证 #1](https://github.com/wcwac/BeeCount/actions/runs/39726407651) 已通过：
+API36 AOSP x86_64 临时模拟器执行 23 项，失败、错误、跳过均为 0。
+CaptureBridgeTest 3 项、CaptureInboxStoreTest 15 项、CaptureSettingsTest 5 项，
+已下载原始 XML 核实，并非仅依据编译成功判断。
+
+该次运行来自已获授权的 `ci/capture-device-validation` 分支，`8f58f5f` 相对
+`fbbbe8e` 只改变两份 CI 文件的触发方式和完整发现检查，应用代码保持一致。
+功能分支仍默认关闭设备执行。23 项不代表所有真实支付应用、系统服务重连
+或性能验收通过；详见 `docs/CAPTURE_IMPLEMENTATION.txt`。
 
 ### 首次升级验证（历史）
 

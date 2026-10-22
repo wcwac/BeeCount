@@ -147,9 +147,10 @@ ABI checks, and unsigned iOS/WidgetExtension compilation passed. The late-commit
 editor-disposal regression and all ten new settings regressions passed.
 Analysis had 597 nonfatal info/warning findings under the existing policy.
 Both platforms used the same Dart lock; generated sources already matched.
-The opt-in device job and release job were skipped; instrumentation is compiled
-only. No local build or project test ran, no emulator/APK was executed, and no
-signed release or real-client compatibility is claimed.
+Actions 27 skipped the opt-in device job and release job; it compiled the
+instrumentation APK without executing it. The separate authorized device run
+recorded below subsequently passed all 23 instrumentation cases. No local build
+or project test ran; no signed release or real-client compatibility is claimed.
 
 Initial SDK migration validation (historical)
 Actions 24 passed every original required outcome for source 18703aa:
@@ -202,7 +203,7 @@ Flutter/native methods and well-formed Android XML. CI proves the exercised
 synthetic/widget/JVM cases and compilation; it does not establish compatibility
 with all 22 real applications, service reconnection or Android performance.
 
-Regression coverage (Flutter/JVM executed in CI; instrumentation compiled only)
+Regression coverage (Flutter/JVM and listed instrumentation executed in CI)
 - Android CaptureEngineTest: exact money, checkout/result transitions, failed
   checkout isolation, expiry, ledger changes, repeated events, independent
   same-amount payments, coupons, ambiguity, refunds, late reference enrichment,
@@ -257,15 +258,16 @@ Regression coverage (Flutter/JVM executed in CI; instrumentation compiled only)
    preferences are used; production capture storage and the ledger remain separate.
 - Android instrumentation CaptureBridgeTest: a controlled real worker queue,
    bridge, parser, preferences and SQLite check the acknowledged consent boundary.
-   This source test does not launch a service or Flutter engine; its fixture
-   notification manager is disabled. It remains unexecuted on a device.
+   These tests do not launch a bound service or Flutter engine; their fixture
+   notification manager is disabled. All three passed on an API36 AOSP emulator.
+   The feedback callback is invoked explicitly, not dispatched by Android binding.
 
 Remaining device acceptance before claiming real-client compatibility
 1. Continue source review and acquire redacted device page fixtures for each
    family; the synthetic corpus cannot establish client-version compatibility.
-2. Execute the compiled instrumentation cases and verify permission/service
-   reconnect, native inbox persistence with Flutter
-   absent, notification taps, interrupted commits and duplicate confirmation.
+2. Instrumentation SQLite/settings/worker cases now pass on API36 AOSP x86_64.
+   Verify actual permission/service reconnect, background service capture with
+   Flutter absent, notification taps and interrupted UI saves on real devices.
 3. Validate the 5 first-stage applications, then 10 second-stage and 7 final-stage
    packages on actual client versions. Record supported/unreadable scenarios.
 4. Stress the implemented queue-overload policy on Android and measure latency,
@@ -343,12 +345,12 @@ Source batch validated in Actions 27 (instrumentation compiled only)
 - Additional Flutter regressions and two Android instrumentation source cases
   cover these boundaries. Instrumentation compilation is not device execution.
 
-Prepared device validation (default off, not authorized or run)
+Device validation entry points (feature default off; authorized run completed)
 .github/workflows/capture-device-tests.yml and its guarded helper prepare an
 isolated API36 AOSP x86_64 emulator on an ephemeral GitHub-hosted runner. No
 local SDK/emulator setup, application installation or screenshot automation is
 introduced. No third-party payment APK is installed by this workflow.
-Both workflow entry points and the helper require an explicit manual opt-in.
+On the feature branch, both entry points and the helper require manual opt-in.
 The registered Release workflow can invoke it only after Android and iOS checks
 pass. A normal push cannot run this device job. Reviewed official package
 revisions are AOSP API36 image r2, Android Emulator 37.2.12 and platform-tools
@@ -358,9 +360,33 @@ capture test classes and three bridge regression methods, rejects failures,
 errors/skips and empty discovery, retains logs/XML, then removes its emulator.
 Its temporary runner may download about 1.2 GB of emulator/image data, install
 this fork's dev.debug and test APKs there, and execute the capture tests.
-This needs explicit additional execution authorization under the user's global
-AGENTS.md; cloud build permission alone was not interpreted as APK execution
-permission. A manual Release run on feat/flutter-stable-upgrade with
+The user explicitly authorized emulator/test APK execution on 2026-10-22.
+For that authorized validation, a separate ci/capture-device-validation branch
+enabled an exact-branch push in two CI files; application source stayed identical.
+The application feature branch retains its default-off manual execution guards. A manual Release run on feat/flutter-stable-upgrade with
 run_device_tests=true is the prepared approval/execution path; sign_apk and
 create_release stay false. No device result or 22-client compatibility claim
 follows from preparing these files.
+
+
+Verified Android device run — 2026-10-22 (Asia/Shanghai)
+https://github.com/wcwac/BeeCount/actions/runs/39726407651
+Validation source 8f58f5f7fd424811ee532de62fa79f98b2c15d29 differs from feature
+fbbbe8e only in the workflow/helper event guards and exact discovery count.
+Application code is the same as Actions 27's validated 5a4b10c.
+The complete device job passed in 12m58s. Official API36 AOSP x86_64 emulator,
+Emulator 37.2.12 and platform-tools 37.0.1 revision checks passed. Device props
+confirm SDK36, x86_64 and ro.kernel.qemu=1. Both project APKs were installed
+and the capture instrumentation package ran on that temporary cloud emulator.
+Original XML independently downloaded and parsed: tests=23, failures=0,
+errors=0, skipped=0. Exactly three classes: CaptureBridgeTest 3,
+CaptureInboxStoreTest 15 and CaptureSettingsTest 5. All required bridge method
+names are present, including feedback interruption and worker-serialized stop.
+Artifact capture-device-diagnostics-1 (id 12403383943) contains the XML and logs.
+XML SHA256: 41aec47604c82b6964da3be4fedd8dac0c19ea6ff48ac2207776c0d01e7b9a25.
+This proves these 23 runtime cases on one emulator configuration. It does not
+prove real-client 22-app compatibility, Android service binding/reconnection,
+notification delivery, physical-device behavior or performance benchmarks.
+No third-party payment APK was installed. No screenshot automation or release
+publication was added. Local actions only read/edited files and parsed reports;
+no local SDK/build/emulator or project test ran.

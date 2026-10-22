@@ -1,7 +1,7 @@
 Flutter / 依赖实际迁移记录（2026-10-22，北京时间）
 
 升级分支：feat/flutter-stable-upgrade；基于 feat/local-transaction-capture 的已验证源码89ecf81和文档提交de13c54。
-当前状态：Actions #27 已全部通过，源码5a4b10cf0df1c39caedcca7520cb62b87b7706f7；536项Flutter及56项JVM测试通过，两平台编译通过。锁文件和生成物与验证内容已一致，无需新增回写提交。#24及此前轮次保留为历史升级证据；#25/#26的采集回归失败已在#27解决。
+当前状态：Actions #27 已全部通过，应用源码5a4b10cf0df1c39caedcca7520cb62b87b7706f7；另有已授权的 API36 AOSP 模拟器 23 项设备测试通过（详见文末）。536项Flutter及56项JVM测试通过，两平台编译通过。锁文件和生成物与验证内容已一致，无需新增回写提交。#24及此前轮次保留为历史升级证据；#25/#26的采集回归失败已在#27解决。
 不在本机安装SDK、生成代码、编译或执行项目测试，所有这些步骤仅在已授权的GitHub Actions中运行。自动截图继续暂缓。
 
 目标和边界
@@ -25,7 +25,7 @@ Flutter / 依赖实际迁移记录（2026-10-22，北京时间）
 - 解析、Drift生成、本地化生成、分析、采集专项、全Flutter回归、Kotlin单元、release与仪器测试APK编译、APK权限/native SQLite ABI检查。
 - 独立检查尽可能继续执行，最终gate读取各步骤原始outcome；失败、跳过、未执行不能伪装通过。
 - 只在升级分支全部检查成功后，用单独contents:write后续job回写实际已验证的pubspec.lock、ios/Podfile.lock、db.g.dart和本地化生成文件；仅这些路径，检测源SHA未被更新，提交[skip ci]。普通编译job仍contents:read。
-- 仪器测试当前只编译，不表示已在设备执行；22个真实应用规则仍为实验性。后台服务重连、权限撤销、实际客户端页面、性能与iOS生命周期运行仍需设备验证；iOS和WidgetExtension编译现已通过。
+- 常规构建只编译仪器测试；独立云端API36 AOSP模拟器已实际执行23项并通过，22个真实应用规则仍为实验性。后台服务重连、权限撤销、实际客户端页面、性能与iOS生命周期运行仍需设备验证；iOS和WidgetExtension编译现已通过。
 
 主要明确官方来源（只读直达，无搜索引擎）
 https://storage.googleapis.com/flutter_infra_release/releases/releases_linux.json
@@ -94,3 +94,14 @@ android、ios、persist-generated均success，默认关闭的capture-device-test
   bridge/runtime/SQLite设备用例已编译，待显式授权后通过手动设备workflow执行。
 - 两平台解析的Dart锁文件相同，生成物已与源码匹配，persist-generated无需另写提交。
   未签名、未发布、未在本地运行工具链；真实22个客户端仍为实验性适配。
+
+
+独立 Android 设备验证（2026-10-22，北京时间）
+https://github.com/wcwac/BeeCount/actions/runs/39726407651
+用户已明确授权云端模拟器和本项目测试APK运行。隔离ci/capture-device-validation分支
+源码8f58f5f只改2份CI文件以允许精确分支push触发，应用源码仍等同于5a4b10c。
+API36 AOSP x86_64，官方Emulator37.2.12/platform-tools37.0.1校验通过；总耗时12分58秒。
+原始XML核验：23项、0失败、0错误、0跳过；Bridge3、InboxStore15、Settings5。
+真实worker串行撤销/停止、SQLite重开/并发/容量/终态和设置generation等设备用例通过。
+这不是22个真实客户端或系统服务绑定重连验收，也不是性能测量。本地仍未安装工具链
+或执行项目/模拟器；未运行第三方支付APK，未签名发布或增加逐界面截图。
