@@ -111,7 +111,7 @@ for apk in root.rglob('*.apk'):
     found[package]=apk
 assert set(found)==expected, 'Missing project test APKs'
 for package,apk in found.items():
-    subprocess.run([str(adb),'-s','emulator-5554','install','-r',str(apk)],check=True,timeout=90)
+    subprocess.run([str(adb),'-s','emulator-5554','install','-r','-t',str(apk)],check=True,timeout=90)
 PY_APKS
 
 timeout --signal=TERM --kill-after=20s 15m \
