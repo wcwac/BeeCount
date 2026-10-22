@@ -4,10 +4,10 @@ set -euo pipefail
 
 : "${GITHUB_ACTIONS:?This helper is only prepared for GitHub Actions}"
 [[ "$GITHUB_ACTIONS" == true ]] || exit 1
-[[ "${GITHUB_EVENT_NAME:-}" == workflow_dispatch ]] || {
-  echo "Only an explicitly authorized manual workflow may run device tests"
-  exit 1
-}
+case "${GITHUB_EVENT_NAME:-}:${GITHUB_REF:-}" in
+  workflow_dispatch:*|push:refs/heads/ci/capture-device-validation) ;;
+  *) echo "Only an authorized manual run or the isolated validation branch may run device tests"; exit 1 ;;
+esac
 [[ "${CAPTURE_DEVICE_TESTS_OPT_IN:-false}" == true ]] || {
   echo "Explicit device-test opt-in is required"
   exit 1

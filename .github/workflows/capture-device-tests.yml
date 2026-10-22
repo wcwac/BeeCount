@@ -1,9 +1,12 @@
-name: Capture device tests (manual opt-in)
+name: Capture device tests (authorized validation)
 
-# Preparing this workflow does not authorize running an emulator or an APK.
-# Obtain the user's explicit execution authorization before selecting true.
-# There are deliberately no push, pull_request, workflow_run or schedule triggers.
+# Cloud device execution was explicitly authorized by the user on 2026-10-22.
+# This isolated validation branch uses the existing SSH push permission.
+# The application feature branch retains its manual-only, default-off workflow.
+# There are no pull_request, workflow_run or schedule triggers.
 on:
+  push:
+    branches: [ci/capture-device-validation]
   workflow_dispatch:
     inputs:
       run_device_tests:
@@ -34,11 +37,11 @@ env:
   CAPTURE_IMAGE_REVISION: "2"
   CAPTURE_EMULATOR_REVISION: "37.2.12"
   CAPTURE_PLATFORM_TOOLS_REVISION: "37.0.1"
-  CAPTURE_DEVICE_TESTS_OPT_IN: ${{ inputs.run_device_tests || false }}
+  CAPTURE_DEVICE_TESTS_OPT_IN: ${{ inputs.run_device_tests || (github.event_name == 'push' && github.ref == 'refs/heads/ci/capture-device-validation' && github.event.deleted != true) }}
 
 jobs:
   capture-device-tests:
-    if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_device_tests == true }}
+    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.run_device_tests == true) || (github.event_name == 'push' && github.ref == 'refs/heads/ci/capture-device-validation' && github.event.deleted != true) }}
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
@@ -151,8 +154,8 @@ jobs:
           print(summary)
           with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as output:
               output.write(summary + '\n')
-          if not reports or totals['tests'] == 0 or not required.issubset(classes):
-              raise SystemExit('Capture instrumentation did not discover all required test classes')
+          if not reports or totals['tests'] != 23 or classes != required:
+              raise SystemExit('Expected exactly all 23 capture tests from the three reviewed classes')
           if not required_bridge_cases.issubset(cases):
               raise SystemExit(f'Missing bridge regressions: {sorted(required_bridge_cases - cases)}')
           if any(not name.startswith(prefix) for name in classes):
