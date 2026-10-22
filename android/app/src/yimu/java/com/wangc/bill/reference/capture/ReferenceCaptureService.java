@@ -67,7 +67,7 @@ public final class ReferenceCaptureService extends AccessibilityService {
         if (raw != null) for (String name : raw.split(":")) if (component.equals(ComponentName.unflattenFromString(name))) granted = true;
         AccessibilityServiceInfo info=null;try{if(service!=null)info=service.getServiceInfo();}catch(RuntimeException ignored){}
         return Json.object("enabled", AutoApps.enabled(), "permissionGranted", granted, "connected", service != null,
-            "selectedPackages", new org.json.JSONArray(AutoApps.selected()), "flags", info == null ? 0 : info.flags,
+            "selectedPackages", new org.json.JSONArray(AutoApps.selected()), "toolIdentity",Build.VERSION.SDK_INT>=31&&info!=null&&info.isAccessibilityTool(), "flags", info == null ? 0 : info.flags,
             "eventTypes", info == null ? 0 : info.eventTypes, "effectivePackages", info == null || info.packageNames == null ? new org.json.JSONArray() : new org.json.JSONArray(java.util.Arrays.asList(info.packageNames)),
             "diagnostics", ReferenceDiagnostics.snapshot());
     }

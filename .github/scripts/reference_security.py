@@ -79,10 +79,11 @@ def source():
                     assert e.tag not in {'fragment','WebView','android.webkit.WebView'}
                     assert '.' not in e.tag or e.tag.startswith(('android.','androidx.','com.wangc.bill.reference.ui.')), 'Unreviewed view class '+e.tag
                     if e.tag=='view':assert e.get('class','').startswith(('android.','androidx.','com.wangc.bill.reference.ui.')), 'Unreviewed view class attribute'
-    access = ET.parse(SOURCE/'res/xml/reference_accessibility.xml').getroot()
-    assert access.get(A+'canRetrieveWindowContent') == 'true'
-    assert access.get(A+'canPerformGestures') != 'true'
-    assert access.get(A+'canRequestEnhancedWebAccessibility') != 'true'
+    for path in (SOURCE/'res').rglob('reference_accessibility.xml'):
+        access=ET.parse(path).getroot()
+        assert access.get(A+'canRetrieveWindowContent') == 'true'
+        assert access.get(A+'canPerformGestures') != 'true'
+        assert access.get(A+'canRequestEnhancedWebAccessibility') != 'true'
     paths = ET.parse(SOURCE/'res/xml/reference_file_paths.xml').getroot()
     assert len(paths) == 1 and paths[0].tag == 'files-path' and paths[0].get('path') == 'attachments/'
     print(f'Source boundary verified: {count} Java files, read-only accessibility, local attachments, no dynamic/native/network APIs')

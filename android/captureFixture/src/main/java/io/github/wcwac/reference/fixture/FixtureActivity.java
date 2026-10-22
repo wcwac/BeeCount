@@ -10,7 +10,7 @@ import android.widget.*;
 public abstract class FixtureActivity extends Activity {
     private final Handler handler=new Handler(Looper.getMainLooper());
     protected abstract String[] lines();
-    @Override protected void onCreate(Bundle state){super.onCreate(state);LinearLayout root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);root.setPadding(24,48,24,24);for(String line:lines()){TextView text=new TextView(this);text.setText(line);text.setTextSize(22);text.setPadding(0,15,0,15);root.addView(text);}setContentView(root);
+    @Override protected void onCreate(Bundle state){super.onCreate(state);LinearLayout root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);root.setPadding(24,48,24,24);for(String line:lines()){TextView text=new TextView(this);text.setText(line);text.setTextSize(22);text.setPadding(0,15,0,15);if(android.os.Build.VERSION.SDK_INT>=34)text.setAccessibilityDataSensitive(View.ACCESSIBILITY_DATA_SENSITIVE_YES);root.addView(text);}setContentView(root);
         root.setAccessibilityDelegate(new View.AccessibilityDelegate(){@Override public void onInitializeAccessibilityEvent(View view,AccessibilityEvent event){super.onInitializeAccessibilityEvent(view,event);event.setClassName(FixtureActivity.this.getClass().getName());event.setPackageName(getPackageName());}});
         for(long delay:new long[]{350,1200,2300})handler.postDelayed(()->root.sendAccessibilityEvent(AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED),delay);
     }

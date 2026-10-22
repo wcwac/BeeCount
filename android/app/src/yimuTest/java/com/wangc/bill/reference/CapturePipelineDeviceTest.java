@@ -31,7 +31,7 @@ public final class CapturePipelineDeviceTest {
         preferences=new HashMap<>(ReferenceApplication.prefs().getAll());priorServices=shell("settings get secure enabled_accessibility_services").trim();priorEnabled=shell("settings get secure accessibility_enabled").trim();
         ReferenceApplication.prefs().edit().putBoolean("show_overlay",false).putBoolean("auto_save",false).putBoolean("use_active_window",false).putLong("capture_book",1).putLong("default_account",0).putStringSet("enabled_packages",new HashSet<>(Arrays.asList("com.tencent.mm","com.taobao.taobao"))).commit();
         AutoApps.enable(true);String component=ReferenceApplication.app().getPackageName()+"/com.wangc.bill.reference.capture.ReferenceCaptureService";shell("settings put secure enabled_accessibility_services "+quote(component));shell("settings put secure accessibility_enabled 1");
-        await(()->ReferenceCaptureService.current()!=null,10000,"Accessibility service did not connect");ReferenceDiagnostics.clear();
+        await(()->ReferenceCaptureService.current()!=null,10000,"Accessibility service did not connect");assertTrue("Original tool identity is missing",ReferenceCaptureService.status().optBoolean("toolIdentity"));ReferenceDiagnostics.clear();
     }
     @After public void restore()throws Exception{
         if(preferences==null)return;
@@ -49,7 +49,7 @@ public final class CapturePipelineDeviceTest {
     }
     private JSONObject waitDraft(String pkg,long since)throws Exception{final JSONObject[] found={null};await(()->{found[0]=ReferenceApplication.store().one("SELECT * FROM candidates WHERE package_name=? AND created>=? AND state='PENDING' ORDER BY created DESC LIMIT 1",pkg,""+since);return found[0]!=null;},12000,"No draft for "+pkg+": "+ReferenceCaptureService.status());drafts.add(found[0].optString("id"));return found[0];}
     interface Check{boolean ready();}
-    private void await(Check check,long timeout,String message)throws Exception{long end=SystemClock.elapsedRealtime()+timeout;while(SystemClock.elapsedRealtime()<end){if(check.ready())return;SystemClock.sleep(50);}throw new AssertionError(message);}
+    private void await(Check check,long timeout,String message)throws Exception{long end=SystemClock.elapsedRealtime()+timeout;while(SystemClock.elapsedRealtime()<end){if(check.ready())return;SystemClock.sleep(50);}throw new AssertionError(message+"\n"+ReferenceCaptureService.status());}
     private void launch(String component)throws Exception{String result=shell("am start -W -n "+quote(component));assertFalse(result,result.contains("Error:"));}
     private String shell(String command)throws Exception{try(ParcelFileDescriptor descriptor=automation.executeShellCommand(command);InputStream input=new ParcelFileDescriptor.AutoCloseInputStream(descriptor);ByteArrayOutputStream output=new ByteArrayOutputStream()){byte[] bytes=new byte[4096];int n;while((n=input.read(bytes))!=-1){output.write(bytes,0,n);if(output.size()>1024*1024)throw new IOException("Shell output too large");}return output.toString(StandardCharsets.UTF_8.name());}}
     private static String quote(String value){return "'"+value.replace("'","'\\''")+"'";}

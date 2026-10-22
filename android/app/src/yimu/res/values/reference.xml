@@ -1,5 +1,5 @@
 <resources>
- <string name="reference_accessibility_description">仅在你开启自动记账后，读取所选支付应用的界面并生成本地待确认账单。不上传页面内容，不代替付款。</string>
+ <string name="reference_accessibility_description">开启自动记账后，读取所选支付应用界面并生成本地待确认账单。实验分支保留一木原版的无障碍工具标记，以对比敏感节点的读取差异。只读页面，不上传内容，不执行手势或代替付款。</string>
  <style name="BaseReferenceTheme" parent="AppTheme"><item name="android:fontFamily">sans</item><item name="android:windowLightStatusBar">true</item><item name="android:statusBarColor">@color/backgroundLight</item><item name="android:navigationBarColor">@color/white</item></style>
  <style name="ReferenceTheme" parent="BaseReferenceTheme"/>
 </resources>
