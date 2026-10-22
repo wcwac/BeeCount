@@ -277,8 +277,12 @@ void main() {
     await showSettings(tester);
     await openDiagnostics(tester);
     final copy = find.byKey(const ValueKey('capture-copy-diagnostics'));
-    await tester.scrollUntilVisible(copy, 250);
-    await tester.tap(copy);
+    // Expanded panel children already exist outside the viewport. Scroll to a
+    // hit-testable button, then paint the final scroll position before tapping.
+    await tester.scrollUntilVisible(copy.hitTestable(), 250);
+    await tester.pumpAndSettle();
+    expect(copy.hitTestable(), findsOneWidget);
+    await tester.tap(copy.hitTestable());
     await tester.pumpAndSettle();
     expect(copied, isNotNull);
     final report = jsonDecode(copied!) as Map;

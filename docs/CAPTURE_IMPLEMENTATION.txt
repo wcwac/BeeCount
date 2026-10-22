@@ -390,3 +390,32 @@ notification delivery, physical-device behavior or performance benchmarks.
 No third-party payment APK was installed. No screenshot automation or release
 publication was added. Local actions only read/edited files and parsed reports;
 no local SDK/build/emulator or project test ran.
+
+
+Capture repair following the 0.4.0 device report — 2026-10-23 (Asia/Shanghai)
+The user reported granted permissions but no pending drafts or visible error.
+The exact client, page and device were requested; they are not yet available.
+Source 96c5cb6 fixes a confirmed event-flow gap: a debounced content event now
+owns one source handle until it is refreshed and checked against package/window.
+Replacement, cancellation and callback failure release that handle. Source reads
+get a reserved time slice; node/character limits remain shared. Window/source
+selection now uses the same vocabulary as the registered parsers.
+The exact WeChat received-payment state is classified as income. Overlong inline
+notification fields are bounded, and legacy long remark/payment-method payloads
+are adapted for display with TEXT_TRUNCATED without rewriting original rows.
+Settings now show readiness conditions and process-local event/read/parse/write
+metadata. Copying diagnostics uses a whitelist and excludes screen text, amounts,
+merchants, transaction identities and ledger identifiers. A newer failed/empty
+read takes precedence over an older successful parse. Inbox reads time out after
+five seconds and a missing response is an error rather than an empty list.
+Cloud validation: https://github.com/wcwac/BeeCount/actions/runs/39820200227
+Actions 29 failed its required gate: 544 Flutter passes, three failures and one
+existing preview skip; focused capture had 58 passes and the same three failures.
+The new clipboard test tapped an unpainted off-screen button; two inbox read
+tests restored a platform override too late for Flutter invariants. Follow-up
+test source uses a hit-testable settled button and TargetPlatformVariant.
+Both platform builds, all 70 JVM tests, instrumentation compilation, APK signing,
+permissions and SQLite ABI checks passed. Device tests and release were skipped.
+No 0.4.1 was published by that failed run. The publication job now requires the
+opted-in device test job to succeed in addition to both builds.
+No local SDK, compilation, project tests, emulator or application execution.

@@ -11,11 +11,9 @@ void main() {
       .setMockMethodCallHandler(CaptureService.channel, null));
 
   testWidgets('an unresponsive inbox read times out and a fresh read can recover', (tester) async {
-    debugDefaultTargetPlatformOverride = TargetPlatform.android;
     final delayedReply = Completer<List<Object?>>();
     addTearDown(() {
       if (!delayedReply.isCompleted) delayedReply.complete([]);
-      debugDefaultTargetPlatformOverride = null;
     });
     var calls = 0;
     binding.defaultBinaryMessenger.setMockMethodCallHandler(CaptureService.channel, (call) async {
@@ -31,14 +29,12 @@ void main() {
     expect(calls, 2);
     delayedReply.complete([]);
     await tester.pump();
-  });
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 
   testWidgets('a missing inbox response is reported instead of showing an empty inbox', (tester) async {
-    debugDefaultTargetPlatformOverride = TargetPlatform.android;
-    addTearDown(() { debugDefaultTargetPlatformOverride = null; });
     binding.defaultBinaryMessenger.setMockMethodCallHandler(CaptureService.channel, (call) async => null);
     await expectLater(CaptureService().pending(), throwsFormatException);
-  });
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 
   test('repeated acknowledgements share one bridge call and clear after success', () async {
     final reply = Completer<void>();
