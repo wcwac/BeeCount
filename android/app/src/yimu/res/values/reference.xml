@@ -1,4 +1,5 @@
 <resources>
  <string name="reference_accessibility_description">仅在你开启自动记账后，读取所选支付应用的界面并生成本地待确认账单。不上传页面内容，不代替付款。</string>
- <style name="ReferenceTheme" parent="AppTheme"><item name="android:fontFamily">sans</item><item name="android:windowLightStatusBar">true</item><item name="android:statusBarColor">@color/backgroundLight</item><item name="android:navigationBarColor">@color/white</item><item name="android:windowLightNavigationBar">true</item></style>
+ <style name="BaseReferenceTheme" parent="AppTheme"><item name="android:fontFamily">sans</item><item name="android:windowLightStatusBar">true</item><item name="android:statusBarColor">@color/backgroundLight</item><item name="android:navigationBarColor">@color/white</item></style>
+ <style name="ReferenceTheme" parent="BaseReferenceTheme"/>
 </resources>

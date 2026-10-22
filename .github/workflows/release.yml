@@ -16,6 +16,14 @@ on:
         description: "全部检查通过后发布实验预发行版"
         type: boolean
         default: false
+      run_device_tests:
+        description: "使用已成功的构建产物运行已授权云端设备测试，不重新编译"
+        type: boolean
+        default: false
+      source_run:
+        description: "设备测试的源构建 run ID；留空时使用 version 字段作为 run ID"
+        type: string
+        default: ""
 
 permissions:
   contents: read
@@ -26,6 +34,7 @@ concurrency:
 
 jobs:
   android:
+    if: ${{ !inputs.run_device_tests }}
     runs-on: ubuntu-24.04
     timeout-minutes: 50
     outputs:
@@ -159,3 +168,12 @@ jobs:
           TAG: ${{ needs.android.outputs.tag }}
           COMMIT: ${{ github.sha }}
         run: gh release create "$TAG" dist/*.apk --target "$COMMIT" --prerelease --title "$TAG" --notes "Android 本地采集对比实验。跳过云同步、广告、会员及联网 SDK。"
+  reference-device:
+    if: ${{ inputs.run_device_tests }}
+    permissions:
+      contents: read
+      actions: read
+    uses: ./.github/workflows/capture-device-tests.yml
+    with:
+      run_device_tests: true
+      source_run: ${{ inputs.source_run || inputs.version }}

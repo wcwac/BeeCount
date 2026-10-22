@@ -43,7 +43,6 @@
                 <TextView android:textSize="12sp" android:textColor="@color/grey" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="通过你能想到的所有条件来进行搜索" android:layout_below="@+id/search_tip" android:layout_centerInParent="true" />
                 <TextView android:textSize="14sp" android:textColor="@color/darkGrey" android:id="@+id/search_tip" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="账单太多？搜索一下" android:layout_centerInParent="true" />
             </RelativeLayout>
-            <include android:id="@+id/edit_layout" android:visibility="invisible" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_alignParentBottom="true" layout="@layout/layout_bill_edit" />
         </RelativeLayout>
         <View android:background="@color/divider" android:layout_width="match_parent" android:layout_height="1px" />
     </LinearLayout>

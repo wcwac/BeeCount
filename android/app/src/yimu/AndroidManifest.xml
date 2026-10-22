@@ -40,7 +40,7 @@
         <receiver android:name="com.wangc.bill.reference.capture.PlanReceiver" android:exported="false"><intent-filter><action android:name="android.intent.action.BOOT_COMPLETED"/></intent-filter></receiver>
         <receiver android:name="com.wangc.bill.reference.ReferenceWidget" android:exported="false"><intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE"/></intent-filter><meta-data android:name="android.appwidget.provider" android:resource="@xml/reference_widget_info"/></receiver>
         <provider android:name="androidx.core.content.FileProvider" android:authorities="${applicationId}.files" android:exported="false" android:grantUriPermissions="true"><meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/reference_file_paths"/></provider>
-        <provider android:name="androidx.startup.InitializationProvider" tools:node="remove"/>
-        <receiver android:name="androidx.profileinstaller.ProfileInstallReceiver" tools:node="remove"/>
+        <provider android:name="androidx.startup.InitializationProvider" tools:node="remove" tools:ignore="MissingClass"/>
+        <receiver android:name="androidx.profileinstaller.ProfileInstallReceiver" tools:node="remove" tools:ignore="MissingClass"/>
     </application>
 </manifest>

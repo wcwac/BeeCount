@@ -11,7 +11,5 @@
         <TextView android:textSize="18sp" android:textStyle="bold" android:textColor="@color/black" android:id="@+id/title" android:layout_width="wrap_content" android:layout_height="wrap_content" android:maxWidth="180dp" android:singleLine="true" android:layout_centerVertical="true" android:layout_toEndOf="@+id/btn_back" />
     </RelativeLayout>
     <androidx.recyclerview.widget.RecyclerView android:id="@+id/data_list" android:paddingBottom="80dp" android:clipToPadding="false" android:layout_width="match_parent" android:layout_height="match_parent" android:layout_below="@+id/tool_bar" android:overScrollMode="never" android:layout_marginStart="15dp" android:layout_marginEnd="15dp" />
-    <include android:id="@+id/total_speech_layout" android:layout_width="match_parent" android:layout_height="match_parent" layout="@layout/layout_speech" />
     <FrameLayout android:id="@+id/float_ball_layout" android:layout_width="match_parent" android:layout_height="match_parent" android:layout_marginBottom="50dp" />
-    <include android:id="@+id/edit_layout" android:visibility="invisible" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_alignParentBottom="true" layout="@layout/layout_bill_edit" />
 </RelativeLayout>

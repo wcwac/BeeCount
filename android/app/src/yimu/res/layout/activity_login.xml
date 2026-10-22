@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:orientation="vertical" android:layout_width="match_parent" android:layout_height="match_parent">
     <androidx.constraintlayout.widget.ConstraintLayout android:id="@+id/category_type_tip" android:clipChildren="false" android:clipToPadding="false" android:layout_width="match_parent" android:layout_height="wrap_content">
-        <ImageView android:layout_width="match_parent" android:layout_height="0dp" android:src="@mipmap/ic_login_illustration" app:layout_constraintDimensionRatio="1440:1498" app:layout_constraintLeft_toLeftOf="parent" app:layout_constraintRight_toRightOf="parent" />
+        <ImageView android:layout_width="match_parent" android:layout_height="0dp" android:src="@mipmap/ic_login_illustration" app:layout_constraintDimensionRatio="1440:1498" app:layout_constraintLeft_toLeftOf="parent" app:layout_constraintRight_toRightOf="parent" app:layout_constraintTop_toTopOf="parent" />
     </androidx.constraintlayout.widget.ConstraintLayout>
     <RelativeLayout android:layout_width="match_parent" android:layout_height="match_parent">
         <LinearLayout android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_centerInParent="true">

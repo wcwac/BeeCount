@@ -5,5 +5,4 @@
         <include android:layout_width="150dp" android:layout_height="150dp" android:layout_marginBottom="10dp" layout="@layout/layout_common_tip" />
         <TextView android:textSize="14sp" android:textColor="@color/textGray" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="没有任何账单" />
     </LinearLayout>
-    <include android:id="@+id/edit_layout" android:visibility="invisible" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_alignParentBottom="true" layout="@layout/layout_bill_edit" />
 </RelativeLayout>

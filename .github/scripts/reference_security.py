@@ -78,6 +78,7 @@ def source():
                 if p.parent.name.startswith('layout'):
                     assert e.tag not in {'fragment','WebView','android.webkit.WebView'}
                     assert '.' not in e.tag or e.tag.startswith(('android.','androidx.','com.wangc.bill.reference.ui.')), 'Unreviewed view class '+e.tag
+                    if e.tag=='view':assert e.get('class','').startswith(('android.','androidx.','com.wangc.bill.reference.ui.')), 'Unreviewed view class attribute'
     access = ET.parse(SOURCE/'res/xml/reference_accessibility.xml').getroot()
     assert access.get(A+'canRetrieveWindowContent') == 'true'
     assert access.get(A+'canPerformGestures') != 'true'

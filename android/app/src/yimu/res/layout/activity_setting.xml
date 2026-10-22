@@ -165,7 +165,7 @@
                 <Switch android:id="@+id/switch_manual_btn_position" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_centerVertical="true" android:layout_alignParentEnd="true" />
             </RelativeLayout>
             <RelativeLayout android:background="?android:attr/selectableItemBackground" android:layout_width="match_parent" android:layout_height="60dp" android:paddingStart="15dp" android:paddingEnd="15dp">
-                <LinearLayout android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_centerVertical="true" android:layout_toStartOf="@+id/switch_remark_history">
+                <LinearLayout android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_centerVertical="true" android:layout_toStartOf="@+id/switch_add_bill_tip">
                     <TextView android:textSize="15sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="智能提示" />
                     <TextView android:textSize="12sp" android:textColor="@color/grey" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="3dp" android:text="智能记账时显示历史识别记录" android:singleLine="true" />
                 </LinearLayout>

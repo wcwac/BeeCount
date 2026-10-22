@@ -1,5 +1,13 @@
 name: Reference device tests (manual)
 on:
+  workflow_call:
+    inputs:
+      run_device_tests:
+        type: boolean
+        required: true
+      source_run:
+        type: string
+        required: true
   workflow_dispatch:
     inputs:
       run_device_tests:
