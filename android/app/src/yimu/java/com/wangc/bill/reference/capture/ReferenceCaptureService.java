@@ -54,7 +54,7 @@ public final class ReferenceCaptureService extends AccessibilityService {
             YimuKernel.SOURCE.set(pkg);
             OriginalDispatch.accept(this, pkg, page, source);
             if (ReferenceDiagnostics.attemptCount() == beforeAttempt) ReferenceDiagnostics.result(
-                source == null ? "SOURCE_UNAVAILABLE" : ReferenceDiagnostics.readCount() == beforeRead ? "PAGE_GATE_NOT_MATCHED" : "NO_BILL_FROM_ORIGINAL_RULES");
+                source == null ? "SOURCE_UNAVAILABLE" : ReferenceDiagnostics.readCount() == beforeRead ? "PAGE_GATE_NOT_MATCHED" : ReferenceDiagnostics.snapshot().optInt("textCount")==0?"EMPTY_TREE":"NO_BILL_FROM_ORIGINAL_RULES");
         } catch (Exception error) { ReferenceDiagnostics.failure("PROCESSING_FAILED",error); }
         finally { YimuKernel.SOURCE.remove(); recycle(source); }
     }
