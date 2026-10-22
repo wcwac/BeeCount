@@ -9,8 +9,11 @@ public final class ReferenceDiagnostics {
     private static long events, reads, attempts, drafts, skipped, lastEvent, lastRead, lastResult;
     private static int texts, visited;
     private static String sourcePackage = "", page = "", result = "NO_EVENT";
+    private static String failureCode="",failureType="";
+    private static long failures,lastFailure;
     private ReferenceDiagnostics() {}
-    public static synchronized void clear(){started=System.currentTimeMillis();events=reads=attempts=drafts=skipped=lastEvent=lastRead=lastResult=0;texts=visited=0;sourcePackage=page="";result="NO_EVENT";}
+    public static synchronized void clear(){started=System.currentTimeMillis();events=reads=attempts=drafts=skipped=lastEvent=lastRead=lastResult=failures=lastFailure=0;texts=visited=0;sourcePackage=page=failureCode=failureType="";result="NO_EVENT";}
+    public static synchronized void failure(String code,Exception error){result(code);failureCode=code;failureType=error.getClass().getName();lastFailure=System.currentTimeMillis();failures++;}
     public static synchronized void event(String pkg, String cls) {
         events++; lastEvent = System.currentTimeMillis(); sourcePackage = pkg;
         page = cls != null && cls.matches("[A-Za-z0-9_.$]+") ? cls.substring(0, Math.min(200, cls.length())) : "unknown";
@@ -26,6 +29,6 @@ public final class ReferenceDiagnostics {
         return Json.object("startedAt", started, "events", events, "reads", reads, "submissionAttempts", attempts,
             "drafts", drafts, "skipped", skipped, "lastEventAt", lastEvent, "lastReadAt", lastRead,
             "lastResultAt", lastResult, "package", sourcePackage, "pageClass", page, "textCount", texts,
-            "visitedBranches", visited, "result", result);
+            "visitedBranches", visited, "result", result,"failures",failures,"lastFailureAt",lastFailure,"lastFailureCode",failureCode,"lastFailureType",failureType);
     }
 }

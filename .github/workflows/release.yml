@@ -79,7 +79,7 @@ jobs:
         run: >-
           python3 .github/scripts/run_checked.py gradle -p android
           :app:assembleRelease :app:assembleDebug :app:assembleDebugAndroidTest
-          :app:testDebugUnitTest :app:lintRelease --continue --no-daemon --console=plain
+          :app:testDebugUnitTest :app:lintRelease --continue --no-daemon --console=plain --stacktrace
       - name: Require discovered tests and inspect packaged app
         id: packaged
         if: ${{ !cancelled() }}

@@ -55,7 +55,7 @@ public final class ReferenceCaptureService extends AccessibilityService {
             OriginalDispatch.accept(this, pkg, page, source);
             if (ReferenceDiagnostics.attemptCount() == beforeAttempt) ReferenceDiagnostics.result(
                 source == null ? "SOURCE_UNAVAILABLE" : ReferenceDiagnostics.readCount() == beforeRead ? "PAGE_GATE_NOT_MATCHED" : "NO_BILL_FROM_ORIGINAL_RULES");
-        } catch (Exception error) { ReferenceDiagnostics.result("PROCESSING_FAILED"); }
+        } catch (Exception error) { ReferenceDiagnostics.failure("PROCESSING_FAILED",error); }
         finally { YimuKernel.SOURCE.remove(); recycle(source); }
     }
     @SuppressWarnings("deprecation") private static void recycle(AccessibilityNodeInfo node) { if (node != null && Build.VERSION.SDK_INT < 33) try { node.recycle(); } catch (RuntimeException ignored) {} }

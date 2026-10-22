@@ -11,14 +11,14 @@ android {
         applicationId 'io.github.wcwac.yimu.reference'
         minSdk 24
         targetSdk 36
-        versionCode (System.getenv('BUILD_NUMBER') ?: '1').toInteger()
-        versionName (System.getenv('BUILD_VERSION') ?: '0.1.0')
+        versionCode = Integer.parseInt(System.getenv('BUILD_NUMBER') ?: '1')
+        versionName = System.getenv('BUILD_VERSION') ?: '0.1.0'
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
     }
     sourceSets {
         main { java.srcDirs = ['src/yimu/java']; res.srcDirs = ['src/yimu/res']; manifest.srcFile 'src/yimu/AndroidManifest.xml'; assets.srcDirs = []; jniLibs.srcDirs = [] }
         test { java.srcDirs = ['src/yimuUnit/java'] }
-        androidTest { java.srcDirs = ['src/yimuTest/java']; res.srcDirs = []; assets.srcDirs = [] }
+        androidTest { java.srcDirs = ['src/yimuTest/java']; manifest.srcFile 'src/yimuTest/AndroidManifest.xml'; res.srcDirs = []; assets.srcDirs = [] }
     }
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
     buildFeatures { buildConfig true }
