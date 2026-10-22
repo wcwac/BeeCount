@@ -1,0 +1,83 @@
+name: Repair release checksum filenames
+on:
+  push:
+    branches: [ci/release-checksum-fix]
+permissions:
+  contents: write
+jobs:
+  repair:
+    if: ${{ github.event.deleted != true }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      GITHUB_TOKEN: ${{ github.token }}
+      RELEASE_TAG: offline-v0.4.0-28
+    steps:
+      - name: Match checksum names to the uploaded release assets
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import os
+          from urllib.error import HTTPError
+          from urllib.parse import quote
+          from urllib.request import Request, HTTPRedirectHandler, build_opener, urlopen
+
+          assert os.environ['GITHUB_REPOSITORY'] == 'wcwac/BeeCount'
+          assert os.environ['GITHUB_REF'] == 'refs/heads/ci/release-checksum-fix'
+          base = 'https://api.github.com/repos/wcwac/BeeCount'
+          headers = {'Authorization': 'Bearer ' + os.environ['GITHUB_TOKEN'],
+                     'Accept': 'application/vnd.github+json',
+                     'X-GitHub-Api-Version': '2022-11-28',
+                     'User-Agent': 'BeeCount-release-checksum-repair'}
+          class NoRedirect(HTTPRedirectHandler):
+              def redirect_request(self, *args):
+                  return None
+          opener = build_opener(NoRedirect)
+          def api(path, method='GET', body=None, binary=False):
+              url = path if path.startswith('https://uploads.github.com/') else base + path
+              data = body if binary else None if body is None else json.dumps(body).encode()
+              request_headers = dict(headers)
+              if body is not None:
+                  request_headers['Content-Type'] = 'application/octet-stream' if binary else 'application/json'
+              with opener.open(Request(url, headers=request_headers, data=data, method=method), timeout=40) as response:
+                  raw = response.read()
+                  return json.loads(raw) if raw else None
+          release = api('/releases/tags/' + quote(os.environ['RELEASE_TAG'], safe=''))
+          assert not release['draft'] and release['tag_name'] == 'offline-v0.4.0-28'
+          assets = {a['name']: a for a in release['assets']}
+          original = assets['SHA256SUMS']
+          with urlopen(Request(original['browser_download_url'] + '?verify=' + str(original['id']),
+                               headers={'User-Agent': 'BeeCount-release-checksum-repair'}), timeout=40) as response:
+              raw = response.read(16384)
+          assert 'sha256:' + hashlib.sha256(raw).hexdigest() == original['digest']
+          lines = []
+          for line in raw.decode().splitlines():
+              if not line.strip():
+                  continue
+              digest, name = line.split(None, 1)
+              name = name.lstrip('*').replace('(', '.').replace(')', '')
+              assert name in assets and assets[name]['digest'] == 'sha256:' + digest
+              lines.append(digest + '  ' + name)
+          corrected = ('\n'.join(lines) + '\n').encode()
+          if corrected == raw:
+              print('Published checksums already match all actual asset names and digests.')
+              raise SystemExit(0)
+          assert 'SHA256SUMS.original' not in assets
+          new_asset = assets.get('SHA256SUMS.fixed')
+          if new_asset is None:
+              upload = 'https://uploads.github.com/repos/wcwac/BeeCount/releases/' + str(release['id']) + '/assets?name=SHA256SUMS.fixed'
+              new_asset = api(upload, method='POST', body=corrected, binary=True)
+          assert new_asset['state'] == 'uploaded'
+          assert new_asset['digest'] == 'sha256:' + hashlib.sha256(corrected).hexdigest()
+          api('/releases/assets/' + str(original['id']), method='PATCH', body={'name': 'SHA256SUMS.original'})
+          try:
+              updated = api('/releases/assets/' + str(new_asset['id']), method='PATCH', body={'name': 'SHA256SUMS'})
+          except Exception:
+              api('/releases/assets/' + str(original['id']), method='PATCH', body={'name': 'SHA256SUMS'})
+              raise
+          assert updated['name'] == 'SHA256SUMS' and updated['digest'] == new_asset['digest']
+          api('/releases/assets/' + str(original['id']), method='DELETE')
+          print('Updated SHA256SUMS for all 9 uploaded files; APKs were not replaced.')
+          PY
