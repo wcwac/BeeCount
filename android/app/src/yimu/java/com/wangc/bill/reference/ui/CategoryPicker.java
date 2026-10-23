@@ -76,7 +76,9 @@ public final class CategoryPicker {
     public CategoryPicker(Context context,ReferenceStore store,long book,String kind,JSONObject data,State state,boolean automatic,Runnable changed,Runnable manage){
         this.context=context;repository=store.categoryRepository();this.book=book;this.data=data;this.state=state;this.automatic=automatic;
         this.income="income".equals(kind);columns=automatic?6:5;this.changed=changed;this.manage=manage;
-        root=Ui.layout(context,(automatic?"item_auto_":"item_")+(income?"income_category":"pay_category"));
+        // Keep complete names visible to the audited resource closure used by AAPT.
+        root=Ui.layout(context,automatic?(income?"item_auto_income_category":"item_auto_pay_category")
+            :(income?"item_income_category":"item_pay_category"));
         list=Ui.view(root,income?"bill_income_type_list":"bill_parent_type_list");
         GridLayoutManager layout=new GridLayoutManager(context,columns);
         layout.setSpanSizeLookup(new GridLayoutManager.SpanSizeLookup(){@Override public int getSpanSize(int position){return items.get(position).type==CELL?1:columns;}});
