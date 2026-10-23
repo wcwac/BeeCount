@@ -194,17 +194,21 @@ public final class CategoryRepository {
         return candidate;
     }
 
-    /** Raw mapping only. Original f.R account showBook filtering awaits the asset schema. */
+    /** Compatibility FK bridge. Original selection uses AssetRepository's raw mapping and f.R. */
     public long rememberedAccountRowId(int parentSemanticId, int childSemanticId) {
-        JSONObject row = store.one("SELECT account_row_id FROM category_accounts WHERE parent_semantic_id=? AND child_semantic_id=?", "" + parentSemanticId, "" + childSemanticId);
-        return row == null || row.isNull("account_row_id") ? -1 : row.optLong("account_row_id");
+        synchronized(store) {
+            JSONObject row=store.one("SELECT account_row_id FROM category_accounts WHERE parent_semantic_id=? AND child_semantic_id=? AND (owner_semantic_id=? OR owner_semantic_id IS NULL) ORDER BY bridge_revision DESC,updated DESC,id DESC LIMIT 1",
+                ""+parentSemanticId,""+childSemanticId,""+ReferenceStore.LOCAL_OFFLINE_OWNER);
+            return row==null||row.isNull("account_row_id")?-1:row.optLong("account_row_id");
+        }
     }
 
-    /** Called inside the caller's save transaction, under the Store lock. */
+    /** Legacy-FK compatibility only; never fabricates the raw original asset ID or owner. */
     void learn(SQLiteDatabase db, int parentSemanticId, int childSemanticId, long accountRowId) {
         ContentValues values = new ContentValues(); values.put("parent_semantic_id", parentSemanticId); values.put("child_semantic_id", childSemanticId);
         if (accountRowId > 0) values.put("account_row_id", accountRowId); else values.putNull("account_row_id");
         values.put("updated", System.currentTimeMillis());
+        values.put("bridge_revision",store.assetRepository().nextBridgeRevision());
         if(db.insertWithOnConflict("category_accounts", null, values, SQLiteDatabase.CONFLICT_REPLACE)<0)throw new IllegalStateException("分类账户学习未能保存");
     }
 

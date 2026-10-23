@@ -307,7 +307,7 @@ public final class CaptureOverlay {
             for (int i = 0; i < accounts.size(); i++) labels[i] = accounts.get(i).optString("name");
             showDialog(new AlertDialog.Builder(context, android.R.style.Theme_Material_Light_Dialog_Alert)
                 .setTitle("选择账户").setItems(labels, (d, index) -> {
-                    Json.put(data, key, index == accounts.size() ? 0 : accounts.get(index).optLong("id")); render();
+                    ReferenceApplication.store().selectAccountForInput(data,key,index == accounts.size()?0:accounts.get(index).optLong("id"),true); render();
                 }).create());
         }
 

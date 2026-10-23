@@ -13,9 +13,13 @@ import java.util.UUID;
 
 /** Local experimental schema. Does not open or modify any BeeCount database. */
 public final class ReferenceStore extends SQLiteOpenHelper {
+    /** Offline experimental identity, not a recovered original User default. */
+    public static final int LOCAL_OFFLINE_OWNER = 0;
     private final CategoryRepository categoryRepository = new CategoryRepository(this);
+    private final AssetRepository assetRepository = new AssetRepository(this);
+    private final BookRepository bookRepository = new BookRepository(this);
     public ReferenceStore(Context context) { this(context,"yimu_reference.sqlite"); }
-    ReferenceStore(Context context,String name) { super(context.getApplicationContext(), name, null, 2); }
+    ReferenceStore(Context context,String name) { super(context.getApplicationContext(), name, null, 3); }
     @Override public void onConfigure(SQLiteDatabase db) { db.setForeignKeyConstraintsEnabled(true); }
     @Override public void onCreate(SQLiteDatabase db) {
         db.execSQL("CREATE TABLE books(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT NOT NULL,currency TEXT NOT NULL DEFAULT 'CNY',budget INTEGER NOT NULL DEFAULT 0,archived INTEGER NOT NULL DEFAULT 0,created INTEGER NOT NULL)");
@@ -33,17 +37,18 @@ public final class ReferenceStore extends SQLiteOpenHelper {
         db.execSQL("CREATE TABLE rules(id INTEGER PRIMARY KEY AUTOINCREMENT,merchant TEXT NOT NULL UNIQUE,category_id INTEGER REFERENCES categories(id),book_id INTEGER REFERENCES books(id),account_id INTEGER REFERENCES accounts(id))");
         db.execSQL("CREATE TABLE plans(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT NOT NULL,interval TEXT NOT NULL,payload TEXT NOT NULL,next_due INTEGER NOT NULL,enabled INTEGER NOT NULL DEFAULT 1)");
         db.execSQL("CREATE TABLE goals(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT NOT NULL,target INTEGER NOT NULL CHECK(target>0),saved INTEGER NOT NULL DEFAULT 0,created INTEGER NOT NULL)");
-        db.execSQL("INSERT INTO books(name,created) VALUES('日常账本',?)", new Object[]{System.currentTimeMillis()});
-        db.execSQL("INSERT INTO accounts(name,type) VALUES('现金','cash'),('支付宝','wallet'),('微信','wallet')");
         CategoryRepository.installV2Schema(db);
         CategoryRepository.bootstrap(db);
+        ReferenceSchemaV3.install(db);
+        BookRepository.bootstrapNewLocalOwner(db, LOCAL_OFFLINE_OWNER, System.currentTimeMillis());
     }
     @Override public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        if (oldVersion != 1 || newVersion != 2) throw new IllegalStateException("未知数据版本");
+        if (oldVersion < 1 || oldVersion > 2 || newVersion != 3) throw new IllegalStateException("未知数据版本");
         // ALTER preserves every local category PK and its transaction/rule/payload references.
         // The new columns default to legacy/NULL; names never imply original semantic IDs.
-        CategoryRepository.installV2Schema(db);
+        if (oldVersion < 2) CategoryRepository.installV2Schema(db);
         CategoryRepository.bootstrap(db);
+        ReferenceSchemaV3.install(db);
     }
     @Override public void onOpen(SQLiteDatabase db) {
         super.onOpen(db);
@@ -53,6 +58,23 @@ public final class ReferenceStore extends SQLiteOpenHelper {
         finally { db.endTransaction(); }
     }
     public CategoryRepository categoryRepository() { return categoryRepository; }
+    public AssetRepository assetRepository() { return assetRepository; }
+    public BookRepository bookRepository() { return bookRepository; }
+
+    /** Explicit picker action replaces a raw reference; an unrelated edit preserves unknown NULLs. */
+    public synchronized void selectAccountForInput(JSONObject input,String field,long rowId,boolean automatic) {
+        if(!field.equals("account_id")&&!field.equals("to_account_id"))throw new IllegalArgumentException("账户字段无效");
+        String raw=field.equals("account_id")?"raw_asset_semantic_id":"raw_to_asset_semantic_id";
+        JSONObject account=rowId>0?assetRepository.byRowId(rowId):null;
+        if(rowId>0&&account==null)throw new IllegalArgumentException("账户不存在");
+        Json.put(input,field,rowId>0?rowId:0);
+        if(account!=null&&AssetRepository.ORIGINAL.equals(account.optString("asset_origin"))) {
+            Json.put(input,raw,account.optLong("semantic_id"));Json.put(input,"owner_semantic_id",account.optInt("owner_semantic_id"));
+        } else {
+            Json.put(input,raw,account==null?(automatic?-1L:0L):null);
+            if(input.isNull("owner_semantic_id"))Json.put(input,"owner_semantic_id",LOCAL_OFFLINE_OWNER);
+        }
+    }
 
     public synchronized List<JSONObject> query(String sql, String... args) {
         try (Cursor cursor = getReadableDatabase().rawQuery(sql, args)) {
@@ -151,6 +173,7 @@ public final class ReferenceStore extends SQLiteOpenHelper {
             else categoryRepository.applySelection(input, selectedCategory, values);
             if (account <= 0) values.putNull("account_id"); else values.put("account_id", account);
             if (!kind.equals("transfer")) values.putNull("to_account_id"); else values.put("to_account_id", destination);
+            ReferenceSchemaV3.applyAssetReferences(this,input,account,kind.equals("transfer")?destination:0,candidateId!=null,values);
             for (String field : java.util.Arrays.asList("remark", "merchant", "origin", "asset_text", "financial_type")) values.put(field, bounded(input.optString(field), 2000));
             values.put("discount", discount); values.put("fee", fee); values.put("time", time);
             values.put("not_total", input.optBoolean("not_total") ? 1 : 0); values.put("not_budget", input.optBoolean("not_budget") ? 1 : 0);
@@ -177,6 +200,7 @@ public final class ReferenceStore extends SQLiteOpenHelper {
             if (candidate != null) {
                 JSONObject confirmed=Json.copy(input);Json.put(confirmed,"currency",currency);
                 Json.put(confirmed,"parent_semantic_id",values.getAsLong("parent_semantic_id"));Json.put(confirmed,"child_semantic_id",values.getAsLong("child_semantic_id"));
+                for(String field:new String[]{"owner_semantic_id","raw_asset_semantic_id","raw_to_asset_semantic_id"})Json.put(confirmed,field,values.getAsLong(field));
                 db.execSQL("UPDATE candidates SET state='SAVED',transaction_id=?,book_id=?,payload=? WHERE id=?",
                     new Object[]{id,bookId,confirmed.toString(),candidateId});
             }
@@ -187,8 +211,15 @@ public final class ReferenceStore extends SQLiteOpenHelper {
             }
             String financialType=input.optString("financial_type");
             if(selectedCategory!=null&&!CategoryRepository.LEGACY.equals(selectedCategory.optString("level"))
-                &&(financialType.isEmpty()||financialType.equals("reimbursement")))
-                categoryRepository.learn(db,values.getAsInteger("parent_semantic_id"),values.getAsInteger("child_semantic_id"),account);
+                &&(financialType.isEmpty()||financialType.equals("reimbursement"))) {
+                Long raw=values.getAsLong("raw_asset_semantic_id");
+                if(raw!=null) {
+                    // i0 stores an int even though Asset.assetId is long. A
+                    // narrowed ID must not fabricate a link to the full-width row.
+                    Long mappedRow=account>0&&raw.longValue()==(long)raw.intValue()?account:null;
+                    assetRepository.learnCategoryAccount(db,values.getAsInteger("owner_semantic_id"),values.getAsInteger("parent_semantic_id"),values.getAsInteger("child_semantic_id"),raw,mappedRow,System.currentTimeMillis());
+                } else categoryRepository.learn(db,values.getAsInteger("parent_semantic_id"),values.getAsInteger("child_semantic_id"),account);
+            }
             db.setTransactionSuccessful(); return id;
         } finally { db.endTransaction(); }
     }
@@ -328,37 +359,44 @@ public final class ReferenceStore extends SQLiteOpenHelper {
     private static String bounded(String value, int max) { return value == null ? "" : value.substring(0, Math.min(value.length(), max)); }
 
     private static final String[] V1_BACKUP_TABLES = {"books", "accounts", "categories", "tags", "candidates", "transactions", "transaction_tags", "rules", "plans", "goals"};
-    private static final String[] BACKUP_TABLES = {"books", "accounts", "categories", "tags", "candidates", "transactions", "transaction_tags", "rules", "plans", "goals", "category_hidden_books", "category_accounts"};
+    private static final String[] V2_BACKUP_TABLES = {"books", "accounts", "categories", "tags", "candidates", "transactions", "transaction_tags", "rules", "plans", "goals", "category_hidden_books", "category_accounts"};
+    private static final String[] BACKUP_TABLES = {"books", "accounts", "categories", "tags", "candidates", "transactions", "transaction_tags", "rules", "plans", "goals", "category_hidden_books", "category_accounts", "asset_show_books"};
     public synchronized JSONObject backup() {
         SQLiteDatabase db = getWritableDatabase(); db.beginTransaction();
         try {
             JSONObject tables = new JSONObject(); for (String table : BACKUP_TABLES) Json.put(tables, table, new JSONArray(query("SELECT * FROM " + table)));
-            JSONObject result = Json.object("format", "YimuReferenceBackup", "version", 2, "created", System.currentTimeMillis(), "tables", tables);
+            JSONObject result = Json.object("format", "YimuReferenceBackup", "version", 3, "created", System.currentTimeMillis(), "tables", tables);
             db.setTransactionSuccessful(); return result;
         } finally { db.endTransaction(); }
     }
     public synchronized void restore(JSONObject backup) {
         int version=backup.optInt("version");
-        if (!"YimuReferenceBackup".equals(backup.optString("format")) || (version!=1&&version!=2)) throw new IllegalArgumentException("请选择本实验版的完整备份");
+        if (!"YimuReferenceBackup".equals(backup.optString("format")) || (version!=1&&version!=2&&version!=3)) throw new IllegalArgumentException("请选择本实验版的完整备份");
         JSONObject tables = backup.optJSONObject("tables"); if (tables == null || tables.optJSONArray("books") == null || tables.optJSONArray("books").length() == 0) throw new IllegalArgumentException("备份缺少账本");
         SQLiteDatabase db = getWritableDatabase(); db.beginTransaction();
         try {
             db.execSQL("PRAGMA defer_foreign_keys=ON");
             for (int i = BACKUP_TABLES.length - 1; i >= 0; i--) db.delete(BACKUP_TABLES[i], null, null);
-            for (String table : version==1?V1_BACKUP_TABLES:BACKUP_TABLES) {
+            for (String table : version==1?V1_BACKUP_TABLES:version==2?V2_BACKUP_TABLES:BACKUP_TABLES) {
                 JSONArray rows = tables.optJSONArray(table); if (rows == null || rows.length() > 100000) throw new IllegalArgumentException("备份表缺失或过大：" + table);
-                List<String> allowed = new ArrayList<>(); try (Cursor c = db.rawQuery("PRAGMA table_info(" + table + ")", null)) { while (c.moveToNext()) allowed.add(c.getString(c.getColumnIndexOrThrow("name"))); }
+                List<String> allowed = new ArrayList<>();java.util.Map<String,String> types=new java.util.HashMap<>();
+                try (Cursor c = db.rawQuery("PRAGMA table_info(" + table + ")", null)) {
+                    while (c.moveToNext()) {
+                        String column=c.getString(c.getColumnIndexOrThrow("name"));allowed.add(column);
+                        types.put(column,c.getString(c.getColumnIndexOrThrow("type")));
+                    }
+                }
                 for (int i = 0; i < rows.length(); i++) {
                     JSONObject row = rows.optJSONObject(i); if (row == null) throw new IllegalArgumentException("备份记录格式错误");
-                    if(version==2)for(String column:allowed)if(!row.has(column))throw new IllegalArgumentException("备份字段缺失："+table+"."+column);
+                    if(version>=2)for(String column:allowed)if(ReferenceSchemaV3.acceptsOldColumn(version,table,column)&&!row.has(column))throw new IllegalArgumentException("备份字段缺失："+table+"."+column);
                     ContentValues values = new ContentValues();
                     for (String column : allowed) if (row.has(column)) {
-                        if(version==1&&table.equals("categories")&&!java.util.Arrays.asList("id","name","kind","icon","archived").contains(column))continue;
-                        if(version==1&&table.equals("transactions")&&(column.equals("parent_semantic_id")||column.equals("child_semantic_id")))continue;
+                        if(!ReferenceSchemaV3.acceptsOldColumn(version,table,column))continue;
                         Object value = row.opt(column);
                         if (value == JSONObject.NULL) values.putNull(column);
-                        else if (value instanceof Long || value instanceof Integer) values.put(column, ((Number)value).longValue());
-                        else if (value instanceof String text && text.length() <= 200000) values.put(column, text);
+                        else if ("INTEGER".equals(types.get(column))&&(value instanceof Long || value instanceof Integer)) values.put(column, ((Number)value).longValue());
+                        else if("REAL".equals(types.get(column))&&value instanceof Number&&Double.isFinite(((Number)value).doubleValue()))values.put(column,((Number)value).doubleValue());
+                        else if ("TEXT".equals(types.get(column))&&value instanceof String text && text.length() <= 200000) values.put(column, text);
                         else throw new IllegalArgumentException("备份字段格式错误：" + column);
                     }
                     if(version==1&&table.equals("categories"))values.put("level",CategoryRepository.LEGACY);
@@ -366,6 +404,9 @@ public final class ReferenceStore extends SQLiteOpenHelper {
                 }
             }
             categoryRepository.validateRestored();
+            assetRepository.validateRestored();
+            bookRepository.validateRestored();
+            ReferenceSchemaV3.validateRestored(this);
             CategoryRepository.bootstrap(db);
             try (Cursor c = db.rawQuery("PRAGMA foreign_key_check", null)) { if (c.moveToFirst()) throw new IllegalArgumentException("备份的账本或账户关联损坏"); }
             for (JSONObject book : query("SELECT * FROM books")) Money.scale(book.optString("currency"));

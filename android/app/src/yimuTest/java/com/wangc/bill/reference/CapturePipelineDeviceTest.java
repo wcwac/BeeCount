@@ -88,7 +88,7 @@ public final class CapturePipelineDeviceTest {
         // This permission is scoped to the disposable emulator and avoids covering the master switch with a dialog.
         shell("pm grant "+token(ReferenceApplication.app().getPackageName())+" android.permission.POST_NOTIFICATIONS");assertEquals(PackageManager.PERMISSION_GRANTED,ReferenceApplication.app().checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS));
         AutoApps.enable(false);String component=ReferenceApplication.app().getPackageName()+"/com.wangc.bill.reference.capture.ReferenceCaptureService";shell("settings put secure enabled_accessibility_services "+token(component));shell("settings put secure accessibility_enabled 1");assertEquals("Secure setting was not written as a component",component,shell("settings get secure enabled_accessibility_services").trim());
-        await(()->ReferenceCaptureService.current()!=null,10000,"Accessibility service did not connect");assertTrue("Original tool identity is missing",ReferenceCaptureService.status().optBoolean("toolIdentity"));assertRuntimeEnabled(false);awaitCaptureWorker();ReferenceDiagnostics.clear();
+        await(()->ReferenceCaptureService.current()!=null,10000,"Accessibility service did not connect");assertTrue("Original tool identity is missing",ReferenceCaptureService.status().optBoolean("toolIdentity"));assertRuntimeEnabled(false);awaitCaptureWorker();ReferenceTestAccounts.installLegacyFixture(ReferenceApplication.store());ReferenceDiagnostics.clear();
     }
     @After public void restore()throws Exception{
         if(preferences==null)return;

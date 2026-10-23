@@ -38,6 +38,7 @@ public final class CategoryUiDeviceTest {
         assertTrue(Build.HARDWARE.equals("ranchu")||Build.HARDWARE.equals("goldfish"));
         assertTrue(Arrays.asList(Build.SUPPORTED_ABIS).contains("x86_64"));
         store=ReferenceApplication.store();
+        ReferenceTestAccounts.installLegacyFixture(store);
         previousMappings=store.query("SELECT * FROM category_accounts");
         book=store.saveBook(0,"分类界面合成测试","CNY",0);
     }
@@ -53,10 +54,17 @@ public final class CategoryUiDeviceTest {
                 db.delete("category_accounts",null,null);
                 for(JSONObject row:previousMappings){
                     ContentValues values=new ContentValues();
-                    values.put("parent_semantic_id",row.optInt("parent_semantic_id"));
-                    values.put("child_semantic_id",row.optInt("child_semantic_id"));
-                    if(row.isNull("account_row_id"))values.putNull("account_row_id");else values.put("account_row_id",row.optLong("account_row_id"));
-                    values.put("updated",row.optLong("updated"));db.insertOrThrow("category_accounts",null,values);
+                    java.util.Iterator<String> columns=row.keys();
+                    while(columns.hasNext()){
+                        String column=columns.next();Object value=row.opt(column);
+                        if(value==null||value==JSONObject.NULL)values.putNull(column);
+                        else if(value instanceof Double||value instanceof Float)values.put(column,((Number)value).doubleValue());
+                        else if(value instanceof Number)values.put(column,((Number)value).longValue());
+                        else if(value instanceof String)values.put(column,(String)value);
+                        else throw new AssertionError("Unsupported saved mapping column: "+column);
+                    }
+                    // Keep PK, owner, raw ID and category-asset metadata as well as the local FK.
+                    db.insertOrThrow("category_accounts",null,values);
                 }
                 for(int i=createdCategories.size()-1;i>=0;i--)db.delete("categories","id=?",new String[]{""+createdCategories.get(i)});
                 db.setTransactionSuccessful();

@@ -23,7 +23,7 @@ public final class CategoryStoreDeviceTest {
 
     @Before public void open() {
         context=ApplicationProvider.getApplicationContext();context.deleteDatabase(DATABASE);
-        store=new ReferenceStore(context,DATABASE);store.getWritableDatabase();
+        store=new ReferenceStore(context,DATABASE);store.getWritableDatabase();ReferenceTestAccounts.installLegacyFixture(store);
     }
     @After public void close() { store.close();context.deleteDatabase(SOURCE); }
     private CategoryRepository categories() { return store.categoryRepository(); }
@@ -33,7 +33,7 @@ public final class CategoryStoreDeviceTest {
     }
 
     @Test public void freshDatabaseUsesOriginalSeedsAndKeepsRowIdsSeparateFromSemanticIds() {
-        assertEquals(2,store.getReadableDatabase().getVersion());
+        assertEquals(3,store.getReadableDatabase().getVersion());
         assertEquals(10,store.scalar("SELECT COUNT(*) n FROM categories WHERE level='parent' AND category_type=1"));
         assertEquals(66,store.scalar("SELECT COUNT(*) n FROM categories WHERE level='child' AND category_type=1"));
         assertEquals(0,store.scalar("SELECT COUNT(*) n FROM categories WHERE level='legacy'"));
@@ -45,10 +45,25 @@ public final class CategoryStoreDeviceTest {
         assertEquals(0,child.optInt("parent_child_semantic_id"));assertEquals(3,store.accounts().size());
     }
 
+    @Test public void freshVersionThreeDatabaseHasNoAutomaticAccountSeeds() {
+        String database="reference_categories_fresh_v3.sqlite";
+        context.deleteDatabase(database);
+        try(ReferenceStore fresh=new ReferenceStore(context,database)) {
+            // This database never receives the compatibility fixture installed in @Before.
+            assertEquals(3,fresh.getWritableDatabase().getVersion());
+            assertEquals(0,fresh.scalar("SELECT COUNT(*) n FROM accounts"));
+            assertTrue(fresh.accounts().isEmpty());
+            assertEquals(0,fresh.scalar("SELECT COUNT(*) n FROM category_accounts"));
+            assertEquals(76,fresh.scalar("SELECT COUNT(*) n FROM categories"));
+        } finally {
+            context.deleteDatabase(database);
+        }
+    }
+
     @Test public void realVersionOneUpgradePreservesEveryOldRowAndReferenceWithoutNameInference() {
         store.close();context.deleteDatabase(DATABASE);createV1(DATABASE);
         store=new ReferenceStore(context,DATABASE);store.getWritableDatabase();
-        assertEquals(2,store.getReadableDatabase().getVersion());
+        assertEquals(3,store.getReadableDatabase().getVersion());
         assertLegacyReferences();
         JSONObject original=categories().parent(8);
         assertNotNull(original);assertNotEquals(8,original.optLong("id"));
@@ -116,7 +131,12 @@ public final class CategoryStoreDeviceTest {
         assertEquals(1,categories().rememberedAccountRowId(99,-1));assertEquals(2,categories().rememberedAccountRowId(99,0));
         Json.put(manual,"account_id",0);store.saveTransaction(manual,0,null);
         assertEquals(-1,categories().rememberedAccountRowId(99,-1));assertEquals(2,categories().rememberedAccountRowId(99,0));
-        assertEquals(2,store.scalar("SELECT COUNT(*) n FROM category_accounts"));
+        assertEquals(3,store.scalar("SELECT COUNT(*) n FROM category_accounts"));
+        JSONObject legacy=store.one("SELECT * FROM category_accounts WHERE owner_semantic_id IS NULL AND parent_semantic_id=99 AND child_semantic_id=-1");
+        assertNotNull(legacy);assertEquals(1,legacy.optLong("account_row_id"));assertTrue(legacy.isNull("raw_asset_semantic_id"));
+        JSONObject noAccount=store.one("SELECT * FROM category_accounts WHERE owner_semantic_id=0 AND parent_semantic_id=99 AND child_semantic_id=-1");
+        assertNotNull(noAccount);assertTrue(noAccount.isNull("account_row_id"));assertEquals(0,noAccount.optLong("raw_asset_semantic_id"));
+        assertNotEquals(legacy.optLong("id"),noAccount.optLong("id"));
     }
 
     @Test public void learningUsesOrdinaryBillsAndExactPairsWithoutParentFallback() {
@@ -130,9 +150,9 @@ public final class CategoryStoreDeviceTest {
         try{categories().rowForSelection("income",8,811);fail();}catch(IllegalArgumentException expected){}
     }
 
-    @Test public void versionTwoBackupKeepsHierarchyHiddenBooksSemanticPairsAndMapping() {
+    @Test public void versionThreeBackupKeepsHierarchyHiddenBooksSemanticPairsAndMapping() {
         JSONObject child=categories().child(8,811);long saved=store.saveTransaction(draft(child.optLong("id")),0,null);
-        categories().setHiddenInBook(child.optLong("id"),1,true);JSONObject backup=store.backup();assertEquals(2,backup.optInt("version"));
+        categories().setHiddenInBook(child.optLong("id"),1,true);JSONObject backup=store.backup();assertEquals(3,backup.optInt("version"));
         store.restore(backup);assertEquals(child.optLong("id"),categories().child(8,811).optLong("id"));
         assertTrue(categories().isHiddenInBook(child.optLong("id"),1));assertEquals(811,store.transaction(saved).optInt("child_semantic_id"));assertEquals(1,categories().rememberedAccountRowId(8,811));
         assertEquals(0,foreignKeyErrors());
@@ -157,7 +177,7 @@ public final class CategoryStoreDeviceTest {
         assertTrue(categories().isHiddenInBook(categories().parent(8).optLong("id"),1));assertEquals(1,categories().rememberedAccountRowId(99,-1));assertEquals(0,foreignKeyErrors());
     }
 
-    @Test public void inconsistentVersionTwoSemanticIdentityRollsBackWithoutDeletingTheBill() {
+    @Test public void inconsistentVersionThreeSemanticIdentityRollsBackWithoutDeletingTheBill() {
         long saved=store.saveTransaction(draft(categories().child(8,811).optLong("id")),0,null);JSONObject backup=store.backup();
         Json.put(backup.optJSONObject("tables").optJSONArray("transactions").optJSONObject(0),"child_semantic_id",810);
         try{store.restore(backup);fail();}catch(IllegalArgumentException expected){}
