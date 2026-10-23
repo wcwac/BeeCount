@@ -96,7 +96,7 @@ timeout 10s "$capture_adb" -s "$capture_serial" shell getprop > "$capture_logs/d
 [[ "$(timeout 10s "$capture_adb" -s "$capture_serial" shell getprop ro.build.version.sdk | tr -d '\r')" == 36 ]]
 [[ "$(timeout 10s "$capture_adb" -s "$capture_serial" shell getprop ro.product.cpu.abi | tr -d '\r')" == x86_64 ]]
 
-# Reuse verified artifacts; compilation is intentionally confined to the source run.
+# Use only APKs staged by the build step in this workflow run.
 python3 - <<'PY_APKS'
 from pathlib import Path
 import os,subprocess
