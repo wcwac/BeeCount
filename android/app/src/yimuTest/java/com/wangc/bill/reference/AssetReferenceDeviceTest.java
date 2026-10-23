@@ -161,7 +161,7 @@ public final class AssetReferenceDeviceTest {
             JSONArray rows=tables.optJSONArray(table);
             for(int i=0;i<rows.length();i++){
                 JSONObject row=rows.optJSONObject(i);List<String> keys=new ArrayList<>();Iterator<String> names=row.keys();while(names.hasNext())keys.add(names.next());
-                for(String key:keys)if(!ReferenceSchemaV4.acceptsBackupColumn(2,table,key))row.remove(key);
+                for(String key:keys)if(!ReferenceSchemaV5.acceptsBackupColumn(2,table,key))row.remove(key);
             }
         }
         JSONObject oldAccount=tables.optJSONArray("accounts").optJSONObject(0);Json.put(oldAccount,"asset_origin","original");Json.put(oldAccount,"semantic_id",account);Json.put(oldAccount,"owner_semantic_id",0);

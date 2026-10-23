@@ -1,8 +1,6 @@
 package com.wangc.bill.reference;
 
 import android.content.ContentValues;
-import android.os.Handler;
-import android.os.Looper;
 import java.util.function.LongSupplier;
 import org.json.JSONObject;
 
@@ -10,25 +8,21 @@ import org.json.JSONObject;
  * Executable offline financial stages from a0.g/h and f.t1/r/s/h/o1.
  * This adapter never wraps the whole action in a transaction: an earlier balance
  * save/history can survive a later save=false. Network calls are deliberately absent.
- * CreditBill projection, CurdHistory, BillFiles and the complete original EventBus
- * consumers are separate ports; callbacks here expose their exact local ordering.
+ * The default effects implement local credit projections, operation history and
+ * MAIN subscriptions. BillFiles/AutoTag/BillGroup and remaining domains are explicit
+ * unfinished ports; the hooks preserve their original position in the call sequence.
  */
 public final class OriginalFinancialOrchestrator {
     public interface Effects {
         void assetChanged(OriginalAssetBalanceStore.LoadedAsset asset, boolean refreshCredit);
         void schedule(Runnable callback, long delayMillis);
         void billSaved(OriginalBillRecord bill, boolean saved);
+        default void beforeBillEntitySave(OriginalBillRecord bill) {}
+        default void afterBillEntitySaveBeforeLearning(OriginalBillRecord bill,boolean saved) {}
+        default void billSaved(OriginalBillRecord bill,boolean saved,boolean emitNormalEvents){billSaved(bill,saved);}
+        default void assetOperationRecorded(OriginalAssetBalanceStore.LoadedAsset asset) {}
+        default void assetBalanceChangeCompleted(OriginalAssetBalanceStore.LoadedAsset asset) {}
     }
-    private static final Effects LOCAL_EFFECTS = new Effects() {
-        @Override public void assetChanged(OriginalAssetBalanceStore.LoadedAsset asset, boolean refreshCredit) {
-            // Host UI reads the authoritative balance on resume. Original credit-cache
-            // projection is not replaced with another asset/quota balance mutation.
-        }
-        @Override public void schedule(Runnable task, long delay) {
-            new Handler(Looper.getMainLooper()).postDelayed(task, delay);
-        }
-        @Override public void billSaved(OriginalBillRecord bill, boolean saved) {}
-    };
     private final ReferenceStore store;
     private final int currentOwner, currentBookOwner;
     private final OriginalBillRepository bills;
@@ -38,7 +32,7 @@ public final class OriginalFinancialOrchestrator {
     private final LongSupplier clock;
 
     public OriginalFinancialOrchestrator(ReferenceStore store, int currentOwner, int currentBookOwner) {
-        this(store, currentOwner, currentBookOwner, LOCAL_EFFECTS, System::currentTimeMillis);
+        this(store, currentOwner, currentBookOwner, new OriginalFinancialEffects(store,currentOwner,currentBookOwner), System::currentTimeMillis);
     }
     OriginalFinancialOrchestrator(ReferenceStore store, int owner, int bookOwner, Effects effects, LongSupplier clock) {
         if (store == null || effects == null || clock == null) throw new IllegalArgumentException("Financial dependencies are required");
@@ -51,6 +45,10 @@ public final class OriginalFinancialOrchestrator {
 
     /** a0.g: f.t1 precedes fresh Bill-ID allocation and the independent Bill.save. */
     public OriginalBillRepository.SaveResult saveNormal(OriginalBillRecord bill, ContentValues projection) {
+        return saveNormal(bill,projection,true);
+    }
+    /** a0.h omits a0.g's final normal-bill/asset events while preserving the shared stages. */
+    public OriginalBillRepository.SaveResult saveNormal(OriginalBillRecord bill, ContentValues projection,boolean emitNormalEvents) {
         if (bill == null) throw new IllegalArgumentException("Bill is required");
         synchronized (store) {
             requireIndependentAction();
@@ -59,13 +57,15 @@ public final class OriginalFinancialOrchestrator {
             bill.updateTime = clock.getAsLong();
             editBillAssets(bill);
             if (bill.localRowId == 0) bill.billId = bills.allocateSemanticId(currentOwner);
+            effects.beforeBillEntitySave(bill);
             OriginalBillRepository.SaveResult result = bills.trySaveOriginalRaw(bill, projection);
+            effects.afterBillEntitySaveBeforeLearning(bill,result.saved);
             // i0.a is after Bill.save and is not suppressed by a returned false.
             Long localAsset = projection == null ? null : projection.getAsLong("account_id");
             Long exactBridge = bill.assetId == (long) (int) bill.assetId ? localAsset : null;
             store.assetRepository().tryLearnCategoryAccount(store.getWritableDatabase(), currentOwner,
                     bill.parentCategoryId, bill.childCategoryId, bill.assetId, exactBridge, clock.getAsLong());
-            effects.billSaved(bill, result.saved);
+            effects.billSaved(bill, result.saved,emitNormalEvents);
             return result;
         }
     }
@@ -139,6 +139,7 @@ public final class OriginalFinancialOrchestrator {
             if (bill.parentCategoryId == 9) asset.reduceNumber(amount); else asset.addNumber(amount);
             asset.setUpdateTime(clock.getAsLong()); balances.saveLoaded(asset);
             if (withHistory) effects.assetChanged(asset, false);
+            else effects.assetOperationRecorded(asset);
             if (withHistory) histories.appendOperation(currentOwner, asset.semanticId, delta,
                     asset.getAssetNumber(), "删除账单：" + description(bill));
         }
@@ -158,6 +159,8 @@ public final class OriginalFinancialOrchestrator {
             histories.appendOperation(currentOwner, semanticId, asset.getAssetNumber() - before,
                     asset.getAssetNumber(), content);
             effects.assetChanged(asset, true);
+            // f.h/o1 posts g7.d after m(asset,true); m alone has no such event.
+            effects.assetBalanceChangeCompleted(asset);
         }
     }
 
@@ -191,7 +194,7 @@ public final class OriginalFinancialOrchestrator {
         }
         return value;
     }
-    private String description(OriginalBillRecord bill) {
+    public String description(OriginalBillRecord bill) {
         if (!empty(bill.remark)) return bill.remark;
         JSONObject parent = store.categoryRepository().parent(bill.parentCategoryId);
         String name = parent == null ? null : parent.optString("name");

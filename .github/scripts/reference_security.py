@@ -16,6 +16,9 @@ COMPONENTS = {
     'com.wangc.bill.reference.capture.ReferenceCaptureService',
     'com.wangc.bill.reference.capture.PlanReceiver',
     'com.wangc.bill.reference.ReferenceWidget',
+    'com.wangc.bill.reference.OriginalRepaymentWidget',
+    'com.wangc.bill.reference.OriginalRepaymentWidgetService',
+    'com.wangc.bill.reference.OriginalCreditStatementActivity',
     'androidx.core.content.FileProvider',
 }
 PERMISSIONS = {'android.permission.POST_NOTIFICATIONS', 'android.permission.RECEIVE_BOOT_COMPLETED', 'android.permission.SYSTEM_ALERT_WINDOW'}
@@ -52,6 +55,14 @@ def manifest(path, merged=False):
             assert c.get(A+'exported') == 'true'
         elif name.endswith('ReferenceCaptureService'):
             assert c.get(A+'exported') == 'true' and c.get(A+'permission') == 'android.permission.BIND_ACCESSIBILITY_SERVICE'
+        elif name.endswith('OriginalRepaymentWidget'):
+            assert c.get(A+'exported') == 'true'
+            actions=[a.get(A+'name') for a in c.findall('intent-filter/action')]
+            assert actions == ['android.appwidget.action.APPWIDGET_UPDATE']
+            metadata=c.find('meta-data')
+            assert metadata is not None and metadata.get(A+'name') == 'android.appwidget.provider'
+        elif name.endswith('OriginalRepaymentWidgetService'):
+            assert c.get(A+'exported') == 'false' and c.get(A+'permission') == 'android.permission.BIND_REMOTEVIEWS'
         else:
             assert c.get(A+'exported') == 'false', 'Component exposure: '+name
     assert found == COMPONENTS, 'Missing or unexpected components'

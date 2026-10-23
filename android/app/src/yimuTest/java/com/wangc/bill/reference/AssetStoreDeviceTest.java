@@ -44,7 +44,7 @@ public final class AssetStoreDeviceTest {
     }
 
     @Test public void freshDatabaseDoesNotInventThreeOriginalOrLegacyAccounts() {
-        assertEquals(4,store.getReadableDatabase().getVersion());
+        assertEquals(5,store.getReadableDatabase().getVersion());
         assertEquals(0,store.scalar("SELECT COUNT(*) n FROM accounts"));
         assertTrue(assets.picker(0,1L).isEmpty());assertTrue(assets.legacyPicker().isEmpty());
         assertNull(assets.p(0,0));assertNull(assets.r(-1,0,1));
@@ -201,7 +201,7 @@ public final class AssetStoreDeviceTest {
         AssetRepository.Definition definition=new AssetRepository.Definition("原始小数余额",9,null);
         definition.assetNumber=12.25;definition.totalQuota=39.5;definition.showBook.addAll(Arrays.asList(1L,200L));definition.hide=true;
         long row=assets.insertRecovered(0,903,12,56,definition);learn(0,8,811,903,row);
-        JSONObject backup=store.backup();assertEquals(4,backup.optInt("version"));store.restore(backup);
+        JSONObject backup=store.backup();assertEquals(5,backup.optInt("version"));store.restore(backup);
         JSONObject restored=assets.p(903,0);assertEquals(row,restored.optLong("id"));assertTrue(restored.isNull("asset_currency"));
         assertEquals(12.25,restored.optDouble("asset_number"),0);assertEquals(39.5,restored.optDouble("total_quota"),0);
         assertEquals(Arrays.asList(1L,200L),assets.showBook(row));assertEquals(903,assets.categoryMapping(0,8,811).rawSemanticId);

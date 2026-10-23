@@ -11,6 +11,9 @@ A='{http://schemas.android.com/apk/res/android}'
 APP='{http://schemas.android.com/apk/res-auto}'
 ET.register_namespace('android',A[1:-1]);ET.register_namespace('app',APP[1:-1])
 REFERENCE=re.compile(r'[@?](?:\+)?(?:\*?([\w.]+):)?([\w]+)/([\w.]+)')
+# RemoteViews permits framework views only. Keep native ImageView tint attributes
+# in these recovered widget layouts instead of introducing AppCompat subclasses.
+REMOTE_VIEWS_LAYOUTS={'reference_widget','layout_app_widget_repayment','item_widget_repayment_list','item_widget_no_tip_small'}
 
 def key(element):
     kind=element.get('type') if element.tag=='item' else element.tag
@@ -102,7 +105,7 @@ def prepare(source,output,java,manifest,aars):
             target=output/relative;target.parent.mkdir(parents=True,exist_ok=True)
             if path in documents:
                 root=copy.deepcopy(documents[path].getroot())
-                if path.parent.name.startswith('layout'):
+                if path.parent.name.startswith('layout') and path.stem not in REMOTE_VIEWS_LAYOUTS:
                     for e in root.iter():
                         if e.tag in {'ImageView','ImageButton','android.widget.ImageView','android.widget.ImageButton','androidx.appcompat.widget.AppCompatImageView','androidx.appcompat.widget.AppCompatImageButton'} and A+'tint' in e.attrib:
                             e.tag='androidx.appcompat.widget.AppCompatImageButton' if e.tag.endswith('ImageButton') else 'androidx.appcompat.widget.AppCompatImageView';e.set(APP+'tint',e.attrib.pop(A+'tint'))

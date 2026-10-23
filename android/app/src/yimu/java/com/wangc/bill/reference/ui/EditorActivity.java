@@ -20,6 +20,13 @@ import java.util.*;
 public final class EditorActivity extends AppCompatActivity {
     private View root;private JSONObject data;private String candidateId,amount="0";private long editingId;private boolean saving;private int selectedTab;
     private CategoryPicker.State categoryState;
+    private final OriginalFinancialEffects.Listener financialListener=event->{
+        if(root!=null&&data!=null&&!isFinishing()){
+            // Consume the current account snapshot without rebuilding the keyboard,
+            // amount, remark, or category selection while the user is editing.
+            Ui.text(root,"asset_name",accountName(data.optLong("account_id")));
+        }
+    };
     private static final String[] NAMES={"支出","收入","转账","借出","借入","还款","报销"};
     private static final String[] KINDS={"expense","income","transfer","expense","income","expense","expense"},FINANCE={"","","","lend","borrow","repayment","reimbursement"};
     private long defaultAccount(long book){long id=ReferenceApplication.prefs().getLong("default_account",0);JSONObject b=store().book(book);return b!=null&&store().accountInDisplayCurrency(id,b.optString("currency"))!=null?id:0;}
@@ -64,4 +71,6 @@ public final class EditorActivity extends AppCompatActivity {
     private void save(boolean another){if(saving)return;saving=true;try{syncNote();Json.put(data,"amount",Money.positive(amount,currency()));store().saveTransaction(data,editingId,candidateId);CaptureOverlay.complete(candidateId);CaptureNotifications.update();Ui.toast(this,editingId>0?"已保存修改":"已保存账单");if(another&&candidateId==null&&editingId==0){amount="0";Json.put(data,"amount",0);Json.put(data,"remark","");Json.put(data,"merchant","");Json.put(data,"origin","");Json.put(data,"discount",0);Json.put(data,"fee",0);Json.put(data,"time",System.currentTimeMillis());Ui.text(root,"remark","");render();}else finish();}catch(Exception e){Ui.error(this,e);}finally{saving=false;}}
     @Override protected void onActivityResult(int request,int result,Intent intent){super.onActivityResult(request,result,intent);if(request==401&&result==RESULT_OK&&intent!=null&&intent.getData()!=null){FileTasks.run(this,"正在保存附件",()->LocalFiles.importAttachment(this,intent.getData()),file->{JSONArray files=Json.array(data.optString("attachments","[]"));if(files.length()>=100){Ui.toast(this,"单条账单最多100个附件");return;}files.put(file);Json.put(data,"attachments",files.toString());renderChips();Ui.toast(this,"附件已加入账单");});}}
     @Override protected void onResume(){super.onResume();if(root!=null){renderCategories();renderChips();}}
+    @Override protected void onStart(){super.onStart();OriginalFinancialEffects.subscribe(store(),financialListener);}
+    @Override protected void onStop(){OriginalFinancialEffects.unsubscribe(store(),financialListener);super.onStop();}
 }

@@ -67,6 +67,7 @@ public final class LocalFiles {
                 ReferenceApplication.store().restore(restored);committed.set(true);YimuKernel.resetAfterRestore();
                 long book=ReferenceApplication.store().books().get(0).optLong("id");android.content.SharedPreferences.Editor preferences=ReferenceApplication.prefs().edit().putLong("current_book",book).putLong("capture_book",book).putLong("default_account",0).putBoolean("auto_save",false);
                 for(String key:ReferenceApplication.prefs().getAll().keySet())if(key.startsWith("source_tag_"))preferences.remove(key);preferences.commit();
+                OriginalFinancialEffects.bookSelectionChanged(ReferenceApplication.store());
                 return null;
             });
             // Capture, window saves, remark callbacks and plans use this same serial worker.

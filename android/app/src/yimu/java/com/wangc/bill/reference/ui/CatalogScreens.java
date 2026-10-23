@@ -15,7 +15,7 @@ final class CatalogScreens {
     private CatalogScreens(){}
     static void render(ManagerActivity a){switch(a.page){
         case "books"->books(a);case "edit_book"->book(a);case "accounts"->accounts(a);
-        case "new_account","edit_account"->account(a);case "account_detail"->movements(a);
+        case "new_account","edit_account"->account(a);case "account_detail"->movements(a);case "credit_statements"->creditStatements(a);
         case "categories"->categories(a);case "edit_category"->category(a);
         case "tags"->tags(a);case "edit_tag"->tag(a);case "budget"->budget(a);
     }}
@@ -32,13 +32,13 @@ final class CatalogScreens {
         long id=b.optLong("id");JSONObject sums=a.store().totals(id,0,Long.MAX_VALUE);String currency=b.optString("currency");
         Ui.text(v,"asset_book_name",b.optString("name"));Ui.text(v,"system_book",id==a.bookId()?"当前账本":currency);Ui.show(v,"system_book",true);
         Ui.text(v,"pay",Money.text(sums.optLong("pay"),currency));Ui.text(v,"income",Money.text(sums.optLong("income"),currency));Ui.text(v,"num",sums.optLong("count")+"笔");Ui.text(v,"time",Ui.date(b.optLong("created"),"yyyy-MM-dd"));
-        Ui.click(v,"book_edit",()->a.open("edit_book",id));v.setOnClickListener(x->{ReferenceApplication.prefs().edit().putLong("current_book",id).apply();Ui.toast(a,"已切换账本");a.reload();});
+        Ui.click(v,"book_edit",()->a.open("edit_book",id));v.setOnClickListener(x->{ReferenceApplication.selectCurrentBook(id);Ui.toast(a,"已切换账本");a.reload();});
     });}
     static void book(ManagerActivity a){JSONObject old=a.entity>0?a.store().book(a.entity):null;if(a.entity>0&&old==null)throw new IllegalArgumentException("账本不存在");
         View r=a.original(a.entity>0?"编辑账本":"新增账本",a.entity>0?"activity_edit_account_book":"activity_add_account_book");EditText name=Ui.view(r,"account_book_name");name.setText(old==null?"":old.optString("name"));
         final String[] currency={old==null?"CNY":old.optString("currency")};ViewGroup currencyRow=Ui.view(r,"icon_layout");Ui.hide(r,"icon");for(int i=0;i<currencyRow.getChildCount();i++)if(currencyRow.getChildAt(i) instanceof TextView label)label.setText("账本币种");TextView currencyValue=Ui.label(a,currency[0],14);RelativeLayout.LayoutParams currencyParams=new RelativeLayout.LayoutParams(-2,-2);currencyParams.addRule(RelativeLayout.CENTER_VERTICAL);currencyParams.addRule(RelativeLayout.ALIGN_PARENT_END);currencyParams.setMarginEnd(Ui.dp(a,30));currencyRow.addView(currencyValue,currencyParams);Ui.click(r,"icon_layout",()->Dialogs.currencies(a,currency[0],value->{currency[0]=value;currencyValue.setText(value);}));for(String id:new String[]{"switch_hide_all_category","switch_show_transfer","switch_show_stock"}){View option=Ui.view(r,id);if(option!=null&&option.getParent() instanceof View row)row.setVisibility(View.GONE);}
-        Ui.click(r,"btn_complete",()->{try{long id=a.store().saveBook(a.entity,name.getText().toString(),currency[0],old==null?0:old.optLong("budget"));if(a.entity==0)ReferenceApplication.prefs().edit().putLong("current_book",id).apply();a.finish();}catch(Exception e){Ui.error(a,e);}});
-        Ui.click(r,"btn_delete",()->Ui.confirm(a,"删除空账本","仅能删除没有账单和采集记录的账本。",()->{a.store().removeBook(a.entity);if(a.bookId()==a.entity)ReferenceApplication.prefs().edit().putLong("current_book",a.store().books().get(0).optLong("id")).apply();a.finish();}));
+        Ui.click(r,"btn_complete",()->{try{long id=a.store().saveBook(a.entity,name.getText().toString(),currency[0],old==null?0:old.optLong("budget"));if(a.entity==0)ReferenceApplication.selectCurrentBook(id);a.finish();}catch(Exception e){Ui.error(a,e);}});
+        Ui.click(r,"btn_delete",()->Ui.confirm(a,"删除空账本","仅能删除没有账单和采集记录的账本。",()->{boolean wasCurrent=a.bookId()==a.entity;a.store().removeBook(a.entity);if(wasCurrent)ReferenceApplication.selectCurrentBook(a.store().books().get(0).optLong("id"));a.finish();}));
     }
     static void accounts(ManagerActivity a){a.body("账户管理","新增",()->a.open("new_account",0));for(JSONObject row:a.store().accounts()){
         LinearLayout view=Ui.row(a,row.optString("name"),row.optString("currency")+" · "+Money.text(row.optLong("balance"),row.optString("currency")),()->a.open("account_detail",row.optLong("id")));view.setOnLongClickListener(v->{a.open("edit_account",row.optLong("id"));return true;});a.rows.addView(view);
@@ -51,8 +51,39 @@ final class CatalogScreens {
         Ui.hide(r,"remark","card_code","remark_title","card_code_title","type_simple_name","type_simple_title");Ui.text(r,"content_title","账户名称");Ui.text(r,"type_title",original?"账户余额":"期初余额");
     }
     static void movements(ManagerActivity a){JSONObject account=a.store().one("SELECT * FROM accounts WHERE id=?",""+a.entity);if(account==null)throw new IllegalArgumentException("账户不存在");if(AssetRepository.ORIGINAL.equals(account.optString("asset_origin"))&&account.optString("currency").isEmpty())Json.put(account,"currency","CNY");View r=a.original(account.optString("name"),"activity_asset_info");Ui.hide(r,"edit_layout","float_ball_layout","total_speech_layout","speech_layout","statistics","right_icon");Ui.click(r,"title",()->a.open("edit_account",a.entity));RecyclerView list=Ui.view(r,"data_list");list.setLayoutManager(new LinearLayoutManager(a));List<JSONObject> data=a.store().query("SELECT t.*,c.name category,c.icon category_icon,z.name account FROM transactions t LEFT JOIN categories c ON c.id=t.category_id LEFT JOIN accounts z ON z.id=t.account_id WHERE t.deleted=0 AND (t.account_id=? OR t.to_account_id=?) ORDER BY t.time DESC LIMIT 2000",""+a.entity,""+a.entity);
-        LinearLayout header=Ui.column(a);header.addView(Ui.row(a,"余额 "+Money.text(a.store().accountBalance(a.entity),account.optString("currency")),account.optString("currency")+" · 点击编辑账户",()->a.open("edit_account",a.entity)));header.addView(Ui.row(a,"归档账户","保留已有账单，记账时不再显示此账户",()->Ui.confirm(a,"归档账户","已有账单与余额会保留。",()->{a.store().archiveAccount(a.entity);a.finish();})));list.setAdapter(new RecordAdapter(data,header,t->Ui.edit(a,t.optLong("id"),null)));
+        LinearLayout header=Ui.column(a);header.addView(Ui.row(a,"余额 "+Money.text(a.store().accountBalance(a.entity),account.optString("currency")),account.optString("currency")+" · 点击编辑账户",()->a.open("edit_account",a.entity)));
+        if(AssetRepository.ORIGINAL.equals(account.optString("asset_origin"))&&account.optInt("asset_type")==2)
+            header.addView(Ui.row(a,"信用账单","查看账期、待还金额与分期明细",()->a.open("credit_statements",a.entity)));
+        header.addView(Ui.row(a,"归档账户","保留已有账单，记账时不再显示此账户",()->Ui.confirm(a,"归档账户","已有账单与余额会保留。",()->{a.store().archiveAccount(a.entity);a.finish();})));list.setAdapter(new RecordAdapter(data,header,t->Ui.edit(a,t.optLong("id"),null)));
     }
+    static void creditStatements(ManagerActivity a){
+        JSONObject account=a.store().assetRepository().byRowId(a.entity);
+        if(account==null||!AssetRepository.ORIGINAL.equals(account.optString("asset_origin"))||account.optInt("asset_type")!=2)
+            throw new IllegalArgumentException("请选择原版信用账户");
+        int owner=account.optInt("owner_semantic_id"),bookOwner=a.store().book(a.bookId()).optInt("owner_semantic_id");
+        long semantic=account.optLong("semantic_id");
+        List<OriginalCreditBill> bills=OriginalFinancialEffects.creditStatements(a.store(),owner,bookOwner,semantic);
+        OriginalFinancialEffects.CreditStatus status=OriginalFinancialEffects.creditStatus(a.store(),owner,bookOwner,semantic);
+        View root=a.original("信用账单","activity_credit_bill");Ui.show(root,"no_data_layout",bills.isEmpty());
+        Ui.text(root,"search_tip",status==OriginalFinancialEffects.CreditStatus.LOADING?"正在读取信用账单"
+                :status==OriginalFinancialEffects.CreditStatus.FAILED?"信用账单计算失败，请检查账单日和还款日":"没有任何数据");
+        RecyclerView list=Ui.view(root,"credit_bill_list");list.setLayoutManager(new LinearLayoutManager(a));
+        list.setAdapter(new RecyclerView.Adapter<RecordAdapter.Holder>(){
+            @Override public int getItemCount(){return bills.size();}
+            @Override public RecordAdapter.Holder onCreateViewHolder(ViewGroup parent,int type){return new RecordAdapter.Holder(Ui.layout(parent.getContext(),"item_credit_bill"));}
+            @Override public void onBindViewHolder(RecordAdapter.Holder holder,int position){
+                OriginalCreditBill bill=bills.get(position);View row=holder.itemView;
+                Ui.text(row,"title",bill.getTitle());Ui.show(row,"current_tag",bill.isCurrent());
+                Ui.text(row,"number","账单金额："+creditAmount(bill.getNumber()));
+                Ui.show(row,"instalment_num",bill.getInstalmentNumber()!=0);Ui.text(row,"instalment_num","还款分期："+creditAmount(bill.getInstalmentNumber()));
+                Ui.text(row,"remind_num","剩余待还："+creditAmount(bill.getRemindNumber()));
+                Ui.text(row,"in_date","入账周期："+bill.getInDate());Ui.text(row,"repayment_date","还款日期："+bill.getRepaymentDay());
+                row.setOnClickListener(v->a.startActivity(new android.content.Intent(a,OriginalCreditStatementActivity.class)
+                        .putExtra("CreditBill",bill).putExtra("owner",owner).putExtra("bookOwner",bookOwner)));
+            }
+        });
+    }
+    private static String creditAmount(double value){return OriginalCreditFormatting.amount(value);}
     static void categories(ManagerActivity a){
         a.body("分类管理","新增",()->new AlertDialog.Builder(a).setTitle("新增分类")
             .setItems(new String[]{"支出一级分类","支出二级分类","收入分类","收入子分类"},(d,w)->{

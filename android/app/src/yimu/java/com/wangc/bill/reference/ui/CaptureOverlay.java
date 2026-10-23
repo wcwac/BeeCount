@@ -26,6 +26,7 @@ import com.wangc.bill.auto.x1;
 import com.wangc.bill.reference.*;
 import com.wangc.bill.reference.capture.*;
 import org.json.JSONObject;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
@@ -172,6 +173,7 @@ public final class CaptureOverlay {
         final boolean preview;
         final Context context;
         final CaptureOverlayLayout view;
+        final int normalCostColor, normalSymbolColor;
         final WindowManager manager;
         final JSONObject data;
         final CategoryPicker.State categoryState;
@@ -186,6 +188,11 @@ public final class CaptureOverlay {
         PopupWindow repeatPopup;
         boolean closed, saving;
         String originalRemark;
+        final double capturedNumber;
+        final String capturedRemark;
+        final boolean capturedIncome;
+        boolean refundMode;
+        OriginalBillRecord refundParent;
         ViewTreeObserver.OnGlobalLayoutListener keyboardListener;
         Runnable keyboardStateChange;
 
@@ -194,12 +201,19 @@ public final class CaptureOverlay {
             generation = CLOSE_GENERATION.get();
             context = new ContextThemeWrapper(ReferenceApplication.app(), com.wangc.bill.R.style.ReferenceTheme);
             view = (CaptureOverlayLayout) Ui.layout(context, "view_auto_add_new");
+            normalCostColor = ((TextView) Ui.view(view, "cost")).getCurrentTextColor();
+            normalSymbolColor = ((TextView) Ui.view(view, "num_symbol")).getCurrentTextColor();
             manager = (WindowManager) ReferenceApplication.app().getSystemService(Context.WINDOW_SERVICE);
             data = Json.parse(row.optString("payload"));
             Json.put(data, "book_id", row.optLong("book_id"));
             Json.put(data, "currency", "CNY");
             categoryState=CategoryPicker.State.from(null,ReferenceApplication.store(),data);
             originalRemark = data.optString("remark");
+            capturedRemark = data.isNull("original_remark") ? originalRemark : data.optString("original_remark");
+            capturedIncome = data.optBoolean("original_income", "income".equals(data.optString("kind")));
+            capturedNumber = data.has("original_number")
+                ? com.wangc.bill.utils.h2.S(data.optString("original_number"))
+                : BigDecimal.valueOf(data.optLong("amount"), 2).doubleValue();
             repeats = preview ? new ArrayList<>() : ReferenceApplication.store().findRepeatTransactions(data);
             repeatDetected = !repeats.isEmpty();
         }
@@ -219,14 +233,16 @@ public final class CaptureOverlay {
             }
             ReferenceTabs tabs = Ui.view(view, "tab_layout");
             String[] kinds = {"expense", "income", "transfer"};
-            tabs.configure(new String[]{"支出", "收入", "转账"}, "income".equals(data.optString("kind")) ? 1
+            tabs.configure(new String[]{"支出", "收入", "转账", "退款"}, "income".equals(data.optString("kind")) ? 1
                 : "transfer".equals(data.optString("kind")) ? 2 : 0, index -> {
-                    cancelTimer(); Json.put(data, "kind", kinds[index]);
+                    cancelTimer(); refundMode = index == 3;
+                    if (refundMode) matchRefundIfMissing(); else Json.put(data, "kind", kinds[index]);
                     render();
                 });
             Ui.click(view, "account_book_layout", this::chooseBook);
             Ui.click(view, "asset_layout", () -> chooseAccount("account_id"));
             Ui.click(view, "date_layout", this::chooseDate);
+            Ui.click(view, "refund_in_date_layout", () -> chooseDate("in_time"));
             Ui.click(view, "close_btn", this::cancel);
             Ui.click(view, "btn_save", () -> save(false));
             // The original background is bound only as a field, without a click-to-dismiss listener.
@@ -244,12 +260,32 @@ public final class CaptureOverlay {
             Ui.text(view, "account_book_name", book == null ? "请选择账本" : book.optString("name"));
             Ui.text(view, "date", Ui.date(data.optLong("time"), "MM.dd"));
             String kind = data.optString("kind");
-            Ui.text(view, "num_symbol", "income".equals(kind) ? "+" : "expense".equals(kind) ? "-" : "");
+            Ui.text(view, "num_symbol", refundMode ? refundParent != null && refundParent.parentCategoryId == 9 ? "-" : "+"
+                : "income".equals(kind) ? "+" : "expense".equals(kind) ? "-" : "");
+            TextView costInput = Ui.view(view, "cost"), symbol = Ui.view(view, "num_symbol");
+            if (refundMode) {
+                // Original J0/n0 use these same two colors independently of p0.H.
+                boolean pay = refundParent != null && refundParent.parentCategoryId == 9;
+                int color = Ui.color(context, pay ? "moneyPay" : "moneyIncome", pay ? Ui.RED : Ui.GREEN);
+                costInput.setTextColor(color); symbol.setTextColor(color);
+            } else {
+                // Restore the existing non-refund appearance after leaving this tab.
+                costInput.setTextColor(normalCostColor); symbol.setTextColor(normalSymbolColor);
+            }
             Ui.text(view, "asset_name", accountName(data.optLong("account_id")));
-            Ui.show(view, "asset_layout", !"transfer".equals(kind));
-            Ui.show(view, "discount_layout", "expense".equals(kind));
-            Ui.show(view, "service_charge_layout", "transfer".equals(kind) || data.optLong("fee") > 0);
+            Ui.show(view, "asset_layout", refundMode || !"transfer".equals(kind));
+            Ui.show(view, "discount_layout", !refundMode && "expense".equals(kind));
+            Ui.show(view, "service_charge_layout", !refundMode && ("transfer".equals(kind) || data.optLong("fee") > 0));
+            JSONObject receiver = ReferenceApplication.store().assetRepository().byRowId(data.optLong("account_id"));
+            Ui.show(view, "refund_in_date_layout", refundMode && receiver != null && receiver.optInt("asset_type") == 2);
+            Ui.text(view, "refund_in_date", data.optLong("in_time") == 0 ? "入账日期" : Ui.date(data.optLong("in_time"), "MM.dd"));
+            Ui.show(view, "repeat_tip", repeatDetected);
+            Ui.view(view, "btn_save").setBackgroundResource(Ui.res(context, "drawable", repeatDetected
+                ? "selectable_item_light_grey_background" : "selectable_item_primary_background"));
             FrameLayout container = Ui.view(view, "category_pager"); container.removeAllViews();
+            if (refundMode) {
+                container.addView(refundView(), new FrameLayout.LayoutParams(-1, -2)); return;
+            }
             if ("transfer".equals(kind)) {
                 LinearLayout column = Ui.column(context);
                 column.addView(Ui.row(context, "转出账户", accountName(data.optLong("account_id")), () -> chooseAccount("account_id")));
@@ -260,6 +296,87 @@ public final class CaptureOverlay {
             // not invoke I0, which cancels the automatic-add timer only after a click.
             container.addView(new CategoryPicker(context,ReferenceApplication.store(),data.optLong("book_id"),kind,
                 data,categoryState,true,this::cancelTimer,null).view(),new FrameLayout.LayoutParams(-1,-2));
+        }
+
+        void matchRefundIfMissing() {
+            if (refundParent != null) return;
+            if (!Double.isFinite(capturedNumber)) return;
+            // AutoAdd.X0 uses the original capture, not edited amount/remark or selected book.
+            // Adapter.s1 stores the parent without the manual-selection receiving-account callback.
+            refundParent = new OriginalRefundMatcher(ReferenceApplication.store())
+                .findParent(capturedNumber, capturedRemark, capturedIncome);
+        }
+
+        View refundView() {
+            View page = Ui.layout(context, "item_auto_add_refund");
+            Ui.hide(page, "end_reimbursement", "tag_one", "tag_two", "tag_three", "reimbursement", "refund", "discount");
+            Ui.text(page, "choice_bill_title", "退款账单");
+            Ui.text(page, "bill_count", refundParent == null ? "已选择0条账单" : "已选择1条账单");
+            Ui.show(page, "choice_bill_tip", refundParent == null);
+            Ui.show(page, "bill_layout", refundParent != null);
+            Ui.click(page, "total_layout", this::chooseRefundParent);
+            if (refundParent == null) return page;
+            CategoryRepository categories = ReferenceApplication.store().categoryRepository();
+            JSONObject category = categories.child(refundParent.parentCategoryId, refundParent.childCategoryId);
+            if (category == null) category = categories.parent(refundParent.parentCategoryId);
+            Ui.text(page, "category", category == null ? "其他" : category.optString("name"));
+            if (category != null) Ui.image(page, "icon", category.optString("icon"));
+            Ui.text(page, "bill_remark", refundParent.remark == null ? "" : refundParent.remark);
+            Ui.text(page, "time", Ui.date(refundParent.time, "MM.dd HH:mm"));
+            TextView amount = Ui.view(page, "bill_cost");
+            amount.setText((refundParent.parentCategoryId == 9 ? "+" : "-") + com.wangc.bill.utils.h2.t(Math.abs(refundParent.cost)));
+            amount.setTextColor(Ui.color(context, refundParent.parentCategoryId == 9 ? "moneyIncome" : "moneyPay", Ui.RED));
+            JSONObject asset = ReferenceApplication.store().assetRepository().p(refundParent.assetId, ReferenceStore.LOCAL_OFFLINE_OWNER);
+            Ui.show(page, "asset", asset != null); Ui.text(page, "asset", asset == null ? "" : asset.optString("name"));
+            return page;
+        }
+
+        void chooseRefundParent() {
+            cancelTimer();
+            // BillChoiceDialog.H starts at MyApplication's current book, which is
+            // independent of this automatic-entry window's selected header book.
+            JSONObject current = ReferenceApplication.store().bookRepository().resolveCurrent(
+                ReferenceStore.LOCAL_OFFLINE_OWNER, ReferenceApplication.prefs().getLong("current_book", 1));
+            if (current == null) { Ui.toast(context, "当前账本不可用"); return; }
+            chooseRefundParent(current.optLong("id"));
+        }
+
+        void chooseRefundParent(long bookRowId) {
+            cancelTimer();
+            try {
+                ReferenceStore store = ReferenceApplication.store();
+                List<OriginalBillRecord> parents = new OriginalRefundMatcher(store).manualParents(
+                    ReferenceStore.LOCAL_OFFLINE_OWNER, bookRowId, refundParent);
+                String[] labels = new String[parents.size()];
+                for (int i = 0; i < parents.size(); i++) {
+                    OriginalBillRecord bill = parents.get(i);
+                    labels[i] = (bill.parentCategoryId == 9 ? "+" : "-")
+                        + com.wangc.bill.utils.h2.t(Math.abs(bill.cost)) + " · "
+                        + (bill.remark == null ? "" : bill.remark) + "\n" + Ui.date(bill.time, "MM.dd HH:mm");
+                }
+                int[] selected = {-1};
+                // This is the recovered P=0, empty-search page (100 before
+                // removeAll(selected)); search/asset/date controls are not ported.
+                AlertDialog picker = new AlertDialog.Builder(context, android.R.style.Theme_Material_Light_Dialog_Alert)
+                    .setTitle(bookRowId == 0 ? "退款账单 · 所有账本" : "退款账单 · 当前账本")
+                    .setSingleChoiceItems(labels, -1, (d, index) -> selected[0] = index)
+                    .setNeutralButton(bookRowId == 0 ? "当前账本" : "所有账本", (d, which) -> {
+                        if (bookRowId == 0) chooseRefundParent(); else chooseRefundParent(0);
+                    })
+                    .setNegativeButton("取消", null).setPositiveButton("确定", null).create();
+                showDialog(picker);
+                if (!picker.isShowing()) return;
+                picker.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+                    if (selected[0] < 0) { Ui.toast(context, "请至少选择一条账单"); return; }
+                    refundParent = parents.get(selected[0]);
+                    // Manual T0 -> J0 replaces an existing receiving account only
+                    // for a positive raw asset ID resolving through f.P. X0 does not.
+                    JSONObject asset = refundParent.assetId > 0 ? store.assetRepository().p(
+                        refundParent.assetId, ReferenceStore.LOCAL_OFFLINE_OWNER) : null;
+                    if (asset != null) store.selectAccountForInput(data, "account_id", asset.optLong("id"), true);
+                    picker.dismiss(); render();
+                });
+            } catch (RuntimeException error) { Ui.error(context, error); }
         }
 
         void startTimer() {
@@ -311,15 +428,18 @@ public final class CaptureOverlay {
                 }).create());
         }
 
-        void chooseDate() {
-            cancelTimer(); Calendar calendar = Calendar.getInstance(); calendar.setTimeInMillis(data.optLong("time"));
+        void chooseDate() { chooseDate("time"); }
+
+        void chooseDate(String field) {
+            cancelTimer(); Calendar calendar = Calendar.getInstance();
+            long selected = data.optLong(field); calendar.setTimeInMillis(selected == 0 ? System.currentTimeMillis() : selected);
             DatePickerDialog picker = new DatePickerDialog(context, (p, year, month, day) -> {
                 calendar.set(year, month, day);
                 // ChoiceDatePopupManager.c includes hour/minute and clears seconds/milliseconds.
                 showDialog(new TimePickerDialog(context, (clock, hour, minute) -> {
                     calendar.set(Calendar.HOUR_OF_DAY, hour); calendar.set(Calendar.MINUTE, minute);
                     calendar.set(Calendar.SECOND, 0); calendar.set(Calendar.MILLISECOND, 0);
-                    Json.put(data, "time", calendar.getTimeInMillis()); render();
+                    Json.put(data, field, calendar.getTimeInMillis()); render();
                 }, calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE), true));
             }, calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH));
             showDialog(picker);
@@ -347,8 +467,24 @@ public final class CaptureOverlay {
                 JSONObject value = Json.copy(data);
                 EditText cost = Ui.view(view, "cost"), remark = Ui.view(view, "remark");
                 EditText discount = Ui.view(view, "discount_edit"), fee = Ui.view(view, "service_charge_edit");
-                Json.put(value, "amount", Money.positive(cost.getText().toString(), "CNY"));
+                long entered = refundMode ? Money.signed(cost.getText().toString(), "CNY") : Money.positive(cost.getText().toString(), "CNY");
+                if (refundMode && entered == 0) throw new IllegalArgumentException("请输入非零退款金额");
+                Json.put(value, "amount", entered);
                 Json.put(value, "remark", remark.getText().toString());
+                if (refundMode) {
+                    if (refundParent == null) { state("REFUND_PARENT_REQUIRED"); Ui.toast(context, "请选择退款账单"); return; }
+                    Long receiver = null;
+                    if (value.optLong("account_id") > 0) {
+                        JSONObject account = ReferenceApplication.store().assetRepository().byRowId(value.optLong("account_id"));
+                        if (account == null || !AssetRepository.ORIGINAL.equals(account.optString("asset_origin"))
+                            || account.optInt("owner_semantic_id") != ReferenceStore.LOCAL_OFFLINE_OWNER)
+                            throw new IllegalArgumentException("该账户暂不支持退款，请选择其他账户或无账户");
+                        receiver = account.optLong("semantic_id");
+                    }
+                    Json.put(value, "discount", 0); Json.put(value, "fee", 0);
+                    if (repeatDetected) { confirmRepeat(value, automatic, refundParent, receiver); return; }
+                    persist(value, 0, automatic, refundParent, receiver); return;
+                }
                 Json.put(value, "discount", optionalAmount(discount)); Json.put(value, "fee", optionalAmount(fee));
                 if ("transfer".equals(value.optString("kind")) && (value.optLong("account_id") <= 0
                     || value.optLong("to_account_id") <= 0 || value.optLong("account_id") == value.optLong("to_account_id")))
@@ -366,6 +502,10 @@ public final class CaptureOverlay {
         }
 
         void confirmRepeat(JSONObject value, boolean automatic) {
+            confirmRepeat(value, automatic, null, null);
+        }
+
+        void confirmRepeat(JSONObject value, boolean automatic, OriginalBillRecord parent, Long receiver) {
             if (closed || closeRequested) return;
             if (repeatPopup != null && repeatPopup.isShowing()) return;
             View content = Ui.layout(context, "popup_repeat_tip");
@@ -389,7 +529,7 @@ public final class CaptureOverlay {
             popup.setWindowLayoutType(WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY);
             popup.setOnDismissListener(() -> { if (repeatPopup == popup) repeatPopup = null; });
             Ui.click(content, "cancel", popup::dismiss);
-            Ui.click(content, "confirm", () -> { popup.dismiss(); if (!closed) persist(value, replace[0] && repeats.size() == 1 ? repeats.get(0).optLong("id") : 0, automatic); });
+            Ui.click(content, "confirm", () -> { popup.dismiss(); if (!closed) persist(value, replace[0] && repeats.size() == 1 ? repeats.get(0).optLong("id") : 0, automatic, parent, receiver); });
             try { popup.showAtLocation(view, Gravity.CENTER, 0, 0); }
             catch (RuntimeException error) {
                 repeatPopup = null; try { popup.dismiss(); } catch (RuntimeException ignored) {}
@@ -399,6 +539,10 @@ public final class CaptureOverlay {
         }
 
         void persist(JSONObject value, long replacing, boolean automatic) {
+            persist(value, replacing, automatic, null, null);
+        }
+
+        void persist(JSONObject value, long replacing, boolean automatic, OriginalBillRecord parent, Long receiver) {
             if (closed || closeRequested || saving) return;
             saving = true;
             try {
@@ -416,16 +560,19 @@ public final class CaptureOverlay {
                             MAIN.post(() -> { if (active == null) state("SAVE_CANCELLED"); CaptureNotifications.update(); });
                             return;
                         }
-                        if (replacing > 0) ReferenceApplication.store().saveCandidateReplacing(value, id, replacing);
+                        if (parent != null && replacing > 0) ReferenceApplication.store().saveCandidateRefundReplacing(value, id, parent, receiver, replacing);
+                        else if (parent != null) ReferenceApplication.store().saveCandidateRefund(value, id, parent, receiver);
+                        else if (replacing > 0) ReferenceApplication.store().saveCandidateReplacing(value, id, replacing);
                         else ReferenceApplication.store().saveTransaction(value, 0, id);
-                        ReferenceDiagnostics.result(automatic ? "AUTO_SAVED" : "BILL_SAVED");
+                        ReferenceDiagnostics.result(parent != null ? "REFUND_SAVED" : automatic ? "AUTO_SAVED" : "BILL_SAVED");
                         MAIN.post(() -> {
-                            if (active == null) state(automatic ? "AUTO_SAVED" : "SAVED");
-                            CaptureNotifications.update(); Ui.toast(context, "新增成功");
+                            if (active == null) state(parent != null ? "REFUND_SAVED" : automatic ? "AUTO_SAVED" : "SAVED");
+                            CaptureNotifications.update(); Ui.toast(context, parent != null ? "退款已记账" : "新增成功");
                         });
                     } catch (RuntimeException error) {
                         ReferenceDiagnostics.failure("STORE_FAILED", error);
-                        MAIN.post(() -> { if (active == null) state("SAVE_FAILED"); CaptureNotifications.update(); CaptureNotifications.error(); Ui.toast(context, "新增失败，账单仍在待确认列表"); });
+                        MAIN.post(() -> { if (active == null) state("SAVE_FAILED"); CaptureNotifications.update(); CaptureNotifications.error();
+                            Ui.toast(context, parent != null ? "退款保存未完成，请先核对余额、资产历史和原账单，勿重复提交" : "新增失败，账单仍在待确认列表"); });
                     }
                 });
                 // Original Z0/Y removes the window immediately after submitting its save task.

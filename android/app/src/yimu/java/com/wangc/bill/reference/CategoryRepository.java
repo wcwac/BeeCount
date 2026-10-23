@@ -252,6 +252,16 @@ public final class CategoryRepository {
         }
         for (JSONObject transaction : store.query("SELECT * FROM transactions WHERE kind<>'transfer'")) {
             JSONObject category = categoryRows.get(transaction.optLong("category_id"));
+            // Original Bills can retain raw category pairs after a category disappears.
+            // An unmapped bridge stays NULL instead of silently selecting a fallback.
+            if(category==null&&transaction.isNull("category_id")&&OriginalBillRepository.ORIGINAL.equals(transaction.optString("bill_origin"))) {
+                if(transaction.isNull("parent_semantic_id")||transaction.isNull("child_semantic_id")
+                        ||transaction.optLong("parent_semantic_id")!=transaction.optLong("bill_parent_category_id")
+                        ||transaction.optLong("child_semantic_id")!=transaction.optLong("bill_child_category_id")
+                        ||!transaction.optString("kind").equals(transaction.optInt("bill_parent_category_id")==9?"income":"expense"))
+                    throw new IllegalArgumentException("原版账单的未映射分类无效");
+                continue;
+            }
             if (category == null || !transaction.optString("kind").equals(category.optString("kind"))) throw new IllegalArgumentException("备份账单分类关联无效");
             ContentValues expected = new ContentValues(); applySelection(transaction, category, expected);
             for (String key : new String[]{"parent_semantic_id", "child_semantic_id"}) {
@@ -261,7 +271,8 @@ public final class CategoryRepository {
         }
         for (JSONObject mapping : store.query("SELECT * FROM category_accounts")) {
             if(!integerInRange(mapping,"parent_semantic_id",1,Integer.MAX_VALUE,false)||!integerInRange(mapping,"child_semantic_id",-1,Integer.MAX_VALUE,false))throw new IllegalArgumentException("备份分类账户标识无效");
-            if (rowForSelection(mapping.optInt("parent_semantic_id") == 9 ? "income" : "expense", mapping.optInt("parent_semantic_id"), mapping.optInt("child_semantic_id")) == null) throw new IllegalArgumentException("备份分类账户映射无效");
+            if (rowForSelection(mapping.optInt("parent_semantic_id") == 9 ? "income" : "expense", mapping.optInt("parent_semantic_id"), mapping.optInt("child_semantic_id")) == null
+                    && mapping.isNull("category_asset_semantic_id")) throw new IllegalArgumentException("备份分类账户映射无效");
         }
     }
 

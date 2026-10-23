@@ -18,6 +18,10 @@ public final class OriginalAssetCommands {
             value.assetNumber=number;value.intoTotalAsset=true;
             AssetRepository.CreationResult result=store.assetRepository().tryCreateOriginal(owner,value);
             if(number!=0.0d)new AssetHistoryRepository(store).appendOperation(owner,result.semanticId,number,number,"资产账户创建");
+            JSONObject retained=Json.object("id",result.rowId,"semantic_id",result.semanticId,"owner_semantic_id",owner,
+                    "name",name,"asset_type",1,"asset_currency",currency,"asset_icon",value.assetIcon,
+                    "icon_night",value.iconNight,"into_total_asset",1,"asset_number",number);
+            new OriginalFinancialEffects(store,owner,owner).assetCreatedOrEdited(result.semanticId,retained);
             if(!result.saved)throw new IllegalStateException("原版账户保存失败；已完成的历史记录会保留，请检查后处理");
             return result.rowId;
         }
@@ -30,13 +34,18 @@ public final class OriginalAssetCommands {
             independent();JSONObject old=store.assetRepository().byRowId(rowId);
             if(old==null||!AssetRepository.ORIGINAL.equals(old.optString("asset_origin"))||old.optInt("owner_semantic_id")!=owner||old.optInt("asset_type")!=1)
                 throw new IllegalArgumentException("请选择当前身份的资金账户");
-            ContentValues values=new ContentValues();values.put("name",name);values.put("currency",currency==null?"":currency);
-            values.put("asset_currency",currency);values.put("asset_number",number);values.put("update_time",System.currentTimeMillis());
+            ContentValues values=new ContentValues();values.put("name",name);
+            // Ordinary LitePal model-save omits null references. Empty text still writes.
+            if(currency!=null){values.put("currency",currency);values.put("asset_currency",currency);}
+            values.put("asset_number",number);values.put("update_time",System.currentTimeMillis());
             Exception failure=null;
             try{store.getWritableDatabase().update("accounts",values,"id=?",new String[]{""+rowId});}
             catch(Exception error){failure=error;}
             double change=number-previousGetter;
             if(change!=0.0d)new AssetHistoryRepository(store).appendOperation(owner,old.optLong("semantic_id"),change,number,"资产账户编辑");
+            JSONObject retained=Json.copy(old);Json.put(retained,"name",name);Json.put(retained,"asset_number",number);
+            if(currency!=null)Json.put(retained,"asset_currency",currency);
+            new OriginalFinancialEffects(store,owner,owner).assetCreatedOrEdited(old.optLong("semantic_id"),retained);
             if(failure!=null)throw new IllegalStateException("原版账户修改保存失败；已完成的历史记录会保留，请检查后处理");
         }
     }

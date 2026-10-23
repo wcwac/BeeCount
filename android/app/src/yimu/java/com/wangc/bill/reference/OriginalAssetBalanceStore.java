@@ -39,13 +39,17 @@ public final class OriginalAssetBalanceStore {
         private final OriginalAssetBalanceStore source;
         public final long rowId,semanticId;
         public final int ownerSemanticId,assetType;
+        private final JSONObject metadata;
         private double storedNumber,reimbursementNumber=-1.0d;
         private long updateTime;
         private LoadedAsset(OriginalAssetBalanceStore source,JSONObject row){
             this.source=source;rowId=row.optLong("id");semanticId=row.optLong("semantic_id");ownerSemanticId=row.optInt("owner_semantic_id");assetType=row.optInt("asset_type");
+            metadata=Json.copy(row);
             storedNumber=row.optDouble("asset_number");updateTime=row.optLong("update_time");
         }
         public double storedNumber(){synchronized(source.store){return storedNumber;}}
+        /** Loaded metadata belongs to this captured object; delayed work must not requery it. */
+        public JSONObject sourceMetadata(){synchronized(source.store){return Json.copy(metadata);}}
         public double getAssetNumber(){
             synchronized(source.store){
                 if(assetType!=9)return storedNumber;

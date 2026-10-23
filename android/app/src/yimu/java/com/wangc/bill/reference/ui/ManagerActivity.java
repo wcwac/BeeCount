@@ -13,16 +13,24 @@ import org.json.JSONObject;
 public final class ManagerActivity extends AppCompatActivity {
     public String page;public long entity;public View template;public LinearLayout rows;
     private long pendingBook;
+    private final OriginalFinancialEffects.Listener financialListener=event->{
+        // Live result lists follow MAIN events. Replacing an edit form here would
+        // erase unsubmitted text on an unrelated balance/credit callback.
+        if(java.util.Arrays.asList("accounts","account_detail","lending","reimbursement","loans","investments",
+                "search","range_records","trash","inbox","budget","credit_statements").contains(page))reload();
+    };
     public ReferenceStore store(){return ReferenceApplication.store();}
     public long bookId(){long id=ReferenceApplication.prefs().getLong("current_book",1);return store().book(id)!=null?id:store().books().get(0).optLong("id");}
     public String currency(){return store().book(bookId()).optString("currency");}
     @Override protected void onCreate(Bundle state){super.onCreate(state);page=getIntent().getStringExtra("page");if(page==null)page="settings";entity=getIntent().getLongExtra("id",0);pendingBook=state==null?bookId():state.getLong("pendingBook",bookId());}
     @Override protected void onResume(){super.onResume();reload();}
+    @Override protected void onStart(){super.onStart();OriginalFinancialEffects.subscribe(store(),financialListener);}
+    @Override protected void onStop(){OriginalFinancialEffects.unsubscribe(store(),financialListener);super.onStop();}
     @Override protected void onSaveInstanceState(Bundle out){super.onSaveInstanceState(out);out.putLong("pendingBook",pendingBook);}
     public void reload(){if(isFinishing())return;try{
         switch(page){
             case "capture", "capture_settings", "apps", "diagnostics", "inbox", "rules"->CaptureScreens.render(this);
-            case "books", "edit_book", "accounts", "new_account", "edit_account", "account_detail", "categories", "edit_category", "tags", "edit_tag", "budget"->CatalogScreens.render(this);
+            case "books", "edit_book", "accounts", "new_account", "edit_account", "account_detail", "credit_statements", "categories", "edit_category", "tags", "edit_tag", "budget"->CatalogScreens.render(this);
             case "goals", "edit_goal", "plans", "edit_plan", "lending", "reimbursement", "investments", "loans"->FinancialScreens.render(this);
             case "search", "range_records", "trash", "backup", "import", "attachments", "settings", "theme", "profile", "widgets", "help", "about"->UtilityScreens.render(this);
             default->{body("本地功能",null,null);rows.addView(Ui.row(this,"此入口未接入","可以继续使用本地记账、统计和自动采集功能。",null));}

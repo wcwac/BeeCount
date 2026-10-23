@@ -90,7 +90,7 @@ public final class YimuKernel {
             "time", bill.getTime() > 0 ? bill.getTime() : now, "not_total", bill.isNotIntoTotal()||ReferenceApplication.prefs().getBoolean("capture_not_total",false), "not_budget", bill.isNotIntoBudget()||ReferenceApplication.prefs().getBoolean("capture_not_budget",false),
             "tag_ids", tags, "originalNumberValid", amount > 0,
             // Original repeat checks keep BillInfo's captured values, including a missing time (0).
-            "original_amount", amount, "original_time", bill.getTime(), "original_income", bill.isIncome(), "original_currency", "CNY");
+            "original_amount", amount, "original_time", bill.getTime(), "original_income", bill.isIncome(), "original_currency", "CNY", "original_remark", safe(bill.getRemark()));
         if(capturedCategory!=null&&capturedCategory.optLong("id")==category){
             Json.put(data,"parent_semantic_id",bill.getParentCategoryId());Json.put(data,"child_semantic_id",bill.getChildCategoryId());
         }

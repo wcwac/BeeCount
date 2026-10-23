@@ -28,5 +28,11 @@ public final class ReferenceApplication extends Application {
         return instance;
     }
     public static ReferenceStore store() { return app().store; }
+    public static boolean isProductionStore(ReferenceStore store){return instance!=null&&instance.store==store;}
     public static SharedPreferences prefs() { return app().getSharedPreferences("reference_settings", Context.MODE_PRIVATE); }
+    public static void selectCurrentBook(long rowId){
+        long previous=prefs().getLong("current_book",1);
+        prefs().edit().putLong("current_book",rowId).apply();
+        if(previous!=rowId)OriginalFinancialEffects.bookSelectionChanged(store());
+    }
 }
