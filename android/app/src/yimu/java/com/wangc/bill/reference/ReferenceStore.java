@@ -132,7 +132,9 @@ public final class ReferenceStore extends SQLiteOpenHelper {
         SQLiteDatabase db = getWritableDatabase(); db.beginTransaction();
         try {
             JSONObject candidate = candidateId == null ? null : candidate(candidateId);
-            String importKey=input.optString("import_key");
+            // Android JSONObject.NULL is a present value: optString would turn
+            // a database NULL into the literal "null" when editing an ordinary bill.
+            String importKey=input.isNull("import_key")?"":input.optString("import_key");
             if(!importKey.isEmpty()){
                 if(!importKey.matches("[a-f0-9]{64}"))throw new IllegalArgumentException("导入标识无效");
                 if(candidateId!=null)throw new IllegalArgumentException("采集记录不能使用导入标识");

@@ -57,8 +57,8 @@ public final class OriginalAssetMutation {
     }
 
     /**
-     * Bounded support for the recovered stored-balance account types 1..8.
-     * Type 9's getAssetNumber is derived from reimbursements; unknown types are not guessed.
+     * Asset.getAssetNumber reads the stored field for every integer type except 9.
+     * Type 9's getter is derived from reimbursements and requires a separate adapter.
      * No finite-number filter is added: the original numeric path admits NaN and infinities.
      */
     public static final class AccountValue {
@@ -67,7 +67,7 @@ public final class OriginalAssetMutation {
         public final double balance;
 
         public AccountValue(long assetId, int assetType, double balance) {
-            if (assetType < 1 || assetType > 8) {
+            if (assetType == 9) {
                 throw new IllegalArgumentException("Unsupported original account balance semantics");
             }
             this.assetId = assetId;

@@ -304,14 +304,29 @@ public final class OriginalAssetMutationTest {
         assertEquals(42.0d, applied.history.currentBalance, 0.0d);
     }
 
-    @Test(expected = IllegalArgumentException.class)
-    public void defaultZeroTypeIsNotAssignedInventedBalanceSemantics() {
-        new OriginalAssetMutation.AccountValue(10, 0, 100.0d);
+    @Test public void defaultZeroTypeUsesTheOriginalStoredGetterWithoutATypeGate() {
+        OriginalAssetMutation.OldAssetStep reversed=OriginalAssetMutation.begin(bill(12,7,10),2.0d)
+                .oldBill(new OriginalAssetMutation.OldBill(7,10,5.0d))
+                .oldAsset(new OriginalAssetMutation.AccountValue(10,0,100.0d),7.0d);
+        assertEquals(7.0d,reversed.billStep.correctedOldCost,0.0d);
+        assertEquals(107.0d,reversed.oldBalanceAfter,0.0d);
+        OriginalAssetMutation.NewAssetStep applied=finishOld(reversed,true)
+                .newAsset(new OriginalAssetMutation.AccountValue(10,0,107.0d),10.0d);
+        assertEquals(95.0d,applied.balanceAfter,0.0d);
+        assertEquals(AMOUNT_EDIT,applied.history.kind);
+        assertEquals(-5.0d,applied.history.change,0.0d);
     }
 
-    @Test(expected = IllegalArgumentException.class)
-    public void unknownAccountTypesAreNotAssignedInventedBalanceSemantics() {
-        new OriginalAssetMutation.AccountValue(10, 99, 100.0d);
+    @Test public void otherIntegerTypesAlsoUseTheOriginalStoredGetter() {
+        for(int type:new int[]{99,-7,Integer.MIN_VALUE,Integer.MAX_VALUE}) {
+            OriginalAssetMutation.NewLookup lookup=OriginalAssetMutation.begin(bill(0,9,10),0.0d)
+                    .oldBill(null).oldAsset(null,0.0d).withoutOldAssetEffects();
+            OriginalAssetMutation.NewAssetStep applied=lookup.newAsset(new OriginalAssetMutation.AccountValue(10,type,20.0d),8.0d);
+            assertEquals(28.0d,applied.balanceAfter,0.0d);
+            assertEquals(ADD,applied.history.kind);
+            assertEquals(8.0d,applied.history.change,0.0d);
+            assertEquals(28.0d,applied.history.currentBalance,0.0d);
+        }
     }
 
     @Test(expected = IllegalStateException.class)
