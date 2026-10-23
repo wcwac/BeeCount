@@ -32,6 +32,7 @@ public final class YimuKernel {
     public static void enqueue(Runnable task){synchronized(WORKER){WORKER.execute(task);}}
     public static boolean isWorkerThread(){return Thread.currentThread()==workerThread;}
     public static int registeredCallbackCount(){return HANDLERS.size();}
+    public static boolean hasRegisteredCallback(String candidateId){return candidateId!=null&&HANDLERS.containsKey(candidateId);}
     /** Called on the serial worker after a successful full database replacement. */
     public static synchronized void resetAfterRestore(){
         if(!isWorkerThread())throw new IllegalStateException("采集状态必须在采集工作线程重置");

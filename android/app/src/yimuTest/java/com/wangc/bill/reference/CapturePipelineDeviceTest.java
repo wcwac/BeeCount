@@ -348,7 +348,12 @@ public final class CapturePipelineDeviceTest {
             LocalFiles.exportBackup(ReferenceApplication.app(),Uri.fromFile(archive));
             recordPhase("BEFORE_FIRST_LAUNCH");
             SystemClock.sleep(1300);long began=System.currentTimeMillis();launchAmount("com.eg.android.AlipayGphone/com.alipay.android.msp.ui.views.MspContainerActivity","38.70");
-            JSONObject prior=waitDraft("com.eg.android.AlipayGphone",began);assertTrue("The actual recovered parser did not register its dismissal callback",YimuKernel.registeredCallbackCount()>0);
+            JSONObject prior=waitDraft("com.eg.android.AlipayGphone",began);
+            // A committed candidate can be observed before submit publishes its
+            // callback. Join that worker task before checking the registration.
+            awaitCaptureWorker();
+            assertTrue("The actual recovered parser did not register its dismissal callback",YimuKernel.registeredCallbackCount()>0);
+            assertTrue("The first candidate has no callback",YimuKernel.hasRegisteredCallback(prior.optString("id")));
             recordPhase("BEFORE_RESTORE");
             // Keep the remote tree alive until restoration itself disables capture
             // and reaches its serial barrier. Killing it immediately after a draft
@@ -357,13 +362,19 @@ public final class CapturePipelineDeviceTest {
             recordPhase("AFTER_RESTORE");
             assertRuntimeEnabled(false);awaitCaptureWorker();
             recordPhase("AFTER_DISABLED_BARRIER");
-            assertEquals("Restoration retained obsolete parser registrations",0,YimuKernel.registeredCallbackCount());assertNull(ReferenceApplication.store().candidate(prior.optString("id")));
+            assertEquals("Restoration retained obsolete parser registrations",0,YimuKernel.registeredCallbackCount());assertFalse(YimuKernel.hasRegisteredCallback(prior.optString("id")));assertNull(ReferenceApplication.store().candidate(prior.optString("id")));
             assertFalse(AutoApps.enabled());
             shell("am force-stop com.eg.android.AlipayGphone");recordPhase("AFTER_STOP");AutoApps.enable(true);assertRuntimeEnabled(true);
             began=System.currentTimeMillis();launchAmount("com.eg.android.AlipayGphone/com.alipay.android.msp.ui.views.MspContainerActivity","38.70");
             JSONObject next=waitDraft("com.eg.android.AlipayGphone",began);assertNotEquals(prior.optString("id"),next.optString("id"));assertEquals(3870,Json.parse(next.optString("payload")).optLong("amount"));
+            awaitCaptureWorker();
             recordPhase("AFTER_RECAPTURE");
-            assertTrue(YimuKernel.registeredCallbackCount()>0);assertEquals(ReferenceDiagnostics.snapshot().toString(),0,ReferenceDiagnostics.snapshot().optLong("failures"));
+            assertTrue(YimuKernel.registeredCallbackCount()>0);assertTrue("The recaptured candidate has no callback",YimuKernel.hasRegisteredCallback(next.optString("id")));assertFalse("An obsolete callback reappeared",YimuKernel.hasRegisteredCallback(prior.optString("id")));assertEquals(ReferenceDiagnostics.snapshot().toString(),0,ReferenceDiagnostics.snapshot().optLong("failures"));
+        }catch(Exception|AssertionError error){
+            // TestWatcher's failed() runs after @After cleanup. Preserve this
+            // case's live state too, before cleanup disconnects the service.
+            error.addSuppressed(new AssertionError("REFERENCE_CAPTURE_BEFORE_CLEANUP "+ReferenceDiagnostics.snapshot()+" callbacks="+YimuKernel.registeredCallbackCount()+" phases="+phaseMarkers));
+            throw error;
         }finally{archive.delete();}
     }
     private JSONObject windowData(long amount,long time){return Json.object("book_id",1,"kind","expense","currency","CNY","amount",amount,"original_amount",amount,"original_number",Money.text(amount,"CNY"),"time",time,"original_time",time,"original_income",false,"original_currency","CNY","account_id",1,"category_id",ReferenceApplication.store().defaultCategory("expense"),"remark","窗口交互回归","merchant","窗口交互回归","origin","合成窗口测试","fee",0,"discount",0);}
@@ -376,7 +387,7 @@ public final class CapturePipelineDeviceTest {
         JSONObject meta=ReferenceDiagnostics.snapshot();
         phaseMarkers.add(Json.object("stage",stage,"at",System.currentTimeMillis(),"failures",meta.optLong("failures"),
             "lastFailureAt",meta.optLong("lastFailureAt"),"lastFailureCode",meta.optString("lastFailureCode"),
-            "readsStarted",meta.optLong("readsStarted"),"readsAborted",meta.optLong("readsAborted")));
+            "readsStarted",meta.optLong("readsStarted"),"readsAborted",meta.optLong("readsAborted"),"registeredCallbacks",YimuKernel.registeredCallbackCount()));
     }
     private void cleanWindowData()throws Exception{
         if(windowCandidates.isEmpty()&&windowTransactions.isEmpty()&&windowBooks.isEmpty())return;
