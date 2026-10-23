@@ -55,7 +55,7 @@ import static org.junit.Assert.*;
 public final class CapturePipelineDeviceTest {
     @Rule public final TestWatcher failureMetadata=new TestWatcher(){
         @Override protected void failed(Throwable error,Description description){
-            String metadata="REFERENCE_CAPTURE_FAILURE "+description.getMethodName()+" "+ReferenceDiagnostics.snapshot();
+            String metadata="REFERENCE_CAPTURE_FAILURE "+description.getMethodName()+" "+ReferenceDiagnostics.snapshot()+" phases="+phaseMarkers;
             System.out.println(metadata);
             // Android redirects stdout to logcat, whose bounded tail can omit an
             // early case. Keep the same metadata in the reported failure stack too.
@@ -67,6 +67,7 @@ public final class CapturePipelineDeviceTest {
     private String[] priorObserverPackages;
     private boolean observerScopeSaved;
     private UiAutomation automation;
+    private final List<JSONObject> phaseMarkers=new ArrayList<>();
     private final List<String> drafts=new ArrayList<>();
     private final List<String> windowCandidates=new ArrayList<>();
     private final List<Long> windowTransactions=new ArrayList<>(),windowBooks=new ArrayList<>();
@@ -345,13 +346,23 @@ public final class CapturePipelineDeviceTest {
         File archive=File.createTempFile("reference-parser-restore-",".zip",ReferenceApplication.app().getCacheDir());
         try{
             LocalFiles.exportBackup(ReferenceApplication.app(),Uri.fromFile(archive));
+            recordPhase("BEFORE_FIRST_LAUNCH");
             SystemClock.sleep(1300);long began=System.currentTimeMillis();launchAmount("com.eg.android.AlipayGphone/com.alipay.android.msp.ui.views.MspContainerActivity","38.70");
             JSONObject prior=waitDraft("com.eg.android.AlipayGphone",began);assertTrue("The actual recovered parser did not register its dismissal callback",YimuKernel.registeredCallbackCount()>0);
-            shell("am force-stop com.eg.android.AlipayGphone");LocalFiles.restoreBackup(ReferenceApplication.app(),Uri.fromFile(archive));
+            recordPhase("BEFORE_RESTORE");
+            // Keep the remote tree alive until restoration itself disables capture
+            // and reaches its serial barrier. Killing it immediately after a draft
+            // races the fixture's remaining content events with Binder getChild.
+            LocalFiles.restoreBackup(ReferenceApplication.app(),Uri.fromFile(archive));
+            recordPhase("AFTER_RESTORE");
+            assertRuntimeEnabled(false);awaitCaptureWorker();
+            recordPhase("AFTER_DISABLED_BARRIER");
             assertEquals("Restoration retained obsolete parser registrations",0,YimuKernel.registeredCallbackCount());assertNull(ReferenceApplication.store().candidate(prior.optString("id")));
-            assertFalse(AutoApps.enabled());AutoApps.enable(true);assertRuntimeEnabled(true);
+            assertFalse(AutoApps.enabled());
+            shell("am force-stop com.eg.android.AlipayGphone");recordPhase("AFTER_STOP");AutoApps.enable(true);assertRuntimeEnabled(true);
             began=System.currentTimeMillis();launchAmount("com.eg.android.AlipayGphone/com.alipay.android.msp.ui.views.MspContainerActivity","38.70");
             JSONObject next=waitDraft("com.eg.android.AlipayGphone",began);assertNotEquals(prior.optString("id"),next.optString("id"));assertEquals(3870,Json.parse(next.optString("payload")).optLong("amount"));
+            recordPhase("AFTER_RECAPTURE");
             assertTrue(YimuKernel.registeredCallbackCount()>0);assertEquals(ReferenceDiagnostics.snapshot().toString(),0,ReferenceDiagnostics.snapshot().optLong("failures"));
         }finally{archive.delete();}
     }
@@ -360,6 +371,12 @@ public final class CapturePipelineDeviceTest {
     private void showWindow(String id){InstrumentationRegistry.getInstrumentation().runOnMainSync(()->CaptureOverlay.show(id,null));}
     private void awaitCaptureWorker()throws Exception{
         FutureTask<Void> barrier=new FutureTask<>(()->null);YimuKernel.enqueue(barrier);barrier.get(10,TimeUnit.SECONDS);
+    }
+    private void recordPhase(String stage){
+        JSONObject meta=ReferenceDiagnostics.snapshot();
+        phaseMarkers.add(Json.object("stage",stage,"at",System.currentTimeMillis(),"failures",meta.optLong("failures"),
+            "lastFailureAt",meta.optLong("lastFailureAt"),"lastFailureCode",meta.optString("lastFailureCode"),
+            "readsStarted",meta.optLong("readsStarted"),"readsAborted",meta.optLong("readsAborted")));
     }
     private void cleanWindowData()throws Exception{
         if(windowCandidates.isEmpty()&&windowTransactions.isEmpty()&&windowBooks.isEmpty())return;
