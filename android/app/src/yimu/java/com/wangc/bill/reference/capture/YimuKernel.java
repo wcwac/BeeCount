@@ -65,7 +65,15 @@ public final class YimuKernel {
         long account = ReferenceApplication.prefs().getLong("default_account", 0), toAccount = 0;
         if(account>0&&store.one("SELECT id FROM accounts WHERE id=? AND archived=0 AND currency='CNY'",""+account)==null)account=0;
         if (bill.isTransfer()) { account = accountNamed(store, bill.getFromAsset()); toAccount = accountNamed(store, bill.getToAsset()); }
-        long category = store.defaultCategory(kind.equals("transfer") ? "expense" : kind);
+        long category = store.defaultCategory(kind.equals("transfer") ? "expense" : kind,bookId);
+        // BillInfo category IDs identify original ParentCategory/ChildCategory records,
+        // never local categories.id. Keep a recognized pair through the local FK bridge.
+        JSONObject capturedCategory=null;
+        if(!bill.isTransfer()&&bill.getParentCategoryId()>0&&bill.getChildCategoryId()>=-1
+            &&kind.equals(bill.getParentCategoryId()==9?"income":"expense")){
+            capturedCategory=store.categoryRepository().rowForSelection(kind,bill.getParentCategoryId(),bill.getChildCategoryId());
+            if(capturedCategory!=null)category=capturedCategory.optLong("id");
+        }
         String merchant = safe(bill.getShopName());
         JSONObject rule = store.one("SELECT * FROM rules WHERE merchant=?", merchant);
         if (rule != null && ReferenceApplication.prefs().getBoolean("remember_merchants", true)) {
@@ -82,6 +90,9 @@ public final class YimuKernel {
             "tag_ids", tags, "originalNumberValid", amount > 0,
             // Original repeat checks keep BillInfo's captured values, including a missing time (0).
             "original_amount", amount, "original_time", bill.getTime(), "original_income", bill.isIncome(), "original_currency", "CNY");
+        if(capturedCategory!=null&&capturedCategory.optLong("id")==category){
+            Json.put(data,"parent_semantic_id",bill.getParentCategoryId());Json.put(data,"child_semantic_id",bill.getChildCategoryId());
+        }
         try {
             String id = store.addCandidate(data, pkg, bookId);
             lastSubmit = now;com.google.android.accessibility.selecttospeak.SelectToSpeakService.f1838j=now; lastKey = key; lastCandidate = id; lastPackage = pkg;

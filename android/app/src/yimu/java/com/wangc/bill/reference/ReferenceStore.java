@@ -13,8 +13,9 @@ import java.util.UUID;
 
 /** Local experimental schema. Does not open or modify any BeeCount database. */
 public final class ReferenceStore extends SQLiteOpenHelper {
+    private final CategoryRepository categoryRepository = new CategoryRepository(this);
     public ReferenceStore(Context context) { this(context,"yimu_reference.sqlite"); }
-    ReferenceStore(Context context,String name) { super(context.getApplicationContext(), name, null, 1); }
+    ReferenceStore(Context context,String name) { super(context.getApplicationContext(), name, null, 2); }
     @Override public void onConfigure(SQLiteDatabase db) { db.setForeignKeyConstraintsEnabled(true); }
     @Override public void onCreate(SQLiteDatabase db) {
         db.execSQL("CREATE TABLE books(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT NOT NULL,currency TEXT NOT NULL DEFAULT 'CNY',budget INTEGER NOT NULL DEFAULT 0,archived INTEGER NOT NULL DEFAULT 0,created INTEGER NOT NULL)");
@@ -33,13 +34,25 @@ public final class ReferenceStore extends SQLiteOpenHelper {
         db.execSQL("CREATE TABLE plans(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT NOT NULL,interval TEXT NOT NULL,payload TEXT NOT NULL,next_due INTEGER NOT NULL,enabled INTEGER NOT NULL DEFAULT 1)");
         db.execSQL("CREATE TABLE goals(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT NOT NULL,target INTEGER NOT NULL CHECK(target>0),saved INTEGER NOT NULL DEFAULT 0,created INTEGER NOT NULL)");
         db.execSQL("INSERT INTO books(name,created) VALUES('日常账本',?)", new Object[]{System.currentTimeMillis()});
-        String[][] expense = {{"餐饮","ic_parent_restaurant"},{"购物","ic_parent_shopping"},{"交通","ic_parent_traffic"},{"日用","ic_shopping_home"},{"娱乐","ic_parent_game"},{"住房","ic_parent_home"},{"通讯","ic_home_telephone_bill"},{"医疗","ic_parent_medical"},{"教育","ic_parent_education"},{"人情","ic_parent_gift"},{"其他支出","ic_parent_other"}};
-        for (String[] c : expense) db.execSQL("INSERT INTO categories(name,kind,icon) VALUES(?,'expense',?)", c);
-        String[][] income = {{"工资","ic_income_wages"},{"奖金","ic_income_bonus"},{"理财","ic_income_manager_money"},{"退款","ic_refund"},{"其他收入","ic_parent_other"}};
-        for (String[] c : income) db.execSQL("INSERT INTO categories(name,kind,icon) VALUES(?,'income',?)", c);
         db.execSQL("INSERT INTO accounts(name,type) VALUES('现金','cash'),('支付宝','wallet'),('微信','wallet')");
+        CategoryRepository.installV2Schema(db);
+        CategoryRepository.bootstrap(db);
     }
-    @Override public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) { throw new IllegalStateException("未知数据版本"); }
+    @Override public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+        if (oldVersion != 1 || newVersion != 2) throw new IllegalStateException("未知数据版本");
+        // ALTER preserves every local category PK and its transaction/rule/payload references.
+        // The new columns default to legacy/NULL; names never imply original semantic IDs.
+        CategoryRepository.installV2Schema(db);
+        CategoryRepository.bootstrap(db);
+    }
+    @Override public void onOpen(SQLiteDatabase db) {
+        super.onOpen(db);
+        if (db.isReadOnly()) return;
+        db.beginTransaction();
+        try { CategoryRepository.bootstrap(db); db.setTransactionSuccessful(); }
+        finally { db.endTransaction(); }
+    }
+    public CategoryRepository categoryRepository() { return categoryRepository; }
 
     public synchronized List<JSONObject> query(String sql, String... args) {
         try (Cursor cursor = getReadableDatabase().rawQuery(sql, args)) {
@@ -74,8 +87,11 @@ public final class ReferenceStore extends SQLiteOpenHelper {
         if (row == null) return 0;
         return row.optLong("opening") + scalar("SELECT COALESCE(SUM(CASE WHEN account_id=? THEN CASE WHEN kind='income' THEN amount-fee ELSE -amount-fee END ELSE 0 END + CASE WHEN kind='transfer' AND to_account_id=? THEN amount ELSE 0 END),0) n FROM transactions WHERE deleted=0", "" + id, "" + id);
     }
-    public List<JSONObject> categories(String kind) { return query("SELECT * FROM categories WHERE kind=? AND archived=0 ORDER BY id", kind); }
-    public long defaultCategory(String kind) { JSONObject c = one("SELECT id FROM categories WHERE kind=? AND archived=0 ORDER BY CASE WHEN name LIKE '其他%' THEN 0 ELSE 1 END,id LIMIT 1", kind); return c == null ? 0 : c.optLong("id"); }
+    /** Compatibility list: original expense parents or top-level income children in the first book. */
+    public List<JSONObject> categories(String kind) { synchronized(this) { long book=firstBookId(); return kind.equals("income")?categoryRepository.incomeTopLevel(book):categoryRepository.expenseParents(book); } }
+    public long defaultCategory(String kind) { synchronized(this) { return defaultCategory(kind,firstBookId()); } }
+    public long defaultCategory(String kind,long bookRowId) { return categoryRepository.defaultRowId(kind,bookRowId); }
+    private long firstBookId() { List<JSONObject> all=books();return all.isEmpty()?0:all.get(0).optLong("id"); }
     public JSONObject transaction(long id) { return one("SELECT t.*,c.name category,c.icon category_icon,a.name account,b.name book_name FROM transactions t LEFT JOIN categories c ON c.id=t.category_id LEFT JOIN accounts a ON a.id=t.account_id JOIN books b ON b.id=t.book_id WHERE t.id=?", "" + id); }
     public List<JSONObject> transactions(long book, long start, long end, String search, boolean trash) {
         String filter = " WHERE t.book_id=? AND t.deleted=? AND t.time>=? AND t.time<?";
@@ -118,9 +134,11 @@ public final class ReferenceStore extends SQLiteOpenHelper {
             long account = input.optLong("account_id"), destination = input.optLong("to_account_id"), category = input.optLong("category_id");
             validateAccount(account, currency); validateAccount(destination, currency);
             if (kind.equals("transfer") && (account <= 0 || destination <= 0 || account == destination)) throw new IllegalArgumentException("请选择两个不同的转账账户");
+            JSONObject selectedCategory = null;
             if (!kind.equals("transfer")) {
                 JSONObject c = one("SELECT * FROM categories WHERE id=? AND archived=0", "" + category);
                 if (c == null || !kind.equals(c.optString("kind"))) throw new IllegalArgumentException("请选择对应收支类型的分类");
+                selectedCategory = c;
             }
             long time = input.optLong("time"); if (time <= 0 || time > 8640000000000000L) throw new IllegalArgumentException("记账时间无效");
             long related=input.optLong("related_id");
@@ -129,6 +147,8 @@ public final class ReferenceStore extends SQLiteOpenHelper {
             ContentValues values = new ContentValues();
             values.put("book_id", bookId); values.put("kind", kind); values.put("amount", amount); values.put("currency", currency);
             if (kind.equals("transfer")) values.putNull("category_id"); else values.put("category_id", category);
+            if (selectedCategory == null) { values.putNull("parent_semantic_id"); values.putNull("child_semantic_id"); }
+            else categoryRepository.applySelection(input, selectedCategory, values);
             if (account <= 0) values.putNull("account_id"); else values.put("account_id", account);
             if (!kind.equals("transfer")) values.putNull("to_account_id"); else values.put("to_account_id", destination);
             for (String field : java.util.Arrays.asList("remark", "merchant", "origin", "asset_text", "financial_type")) values.put(field, bounded(input.optString(field), 2000));
@@ -156,6 +176,7 @@ public final class ReferenceStore extends SQLiteOpenHelper {
             }
             if (candidate != null) {
                 JSONObject confirmed=Json.copy(input);Json.put(confirmed,"currency",currency);
+                Json.put(confirmed,"parent_semantic_id",values.getAsLong("parent_semantic_id"));Json.put(confirmed,"child_semantic_id",values.getAsLong("child_semantic_id"));
                 db.execSQL("UPDATE candidates SET state='SAVED',transaction_id=?,book_id=?,payload=? WHERE id=?",
                     new Object[]{id,bookId,confirmed.toString(),candidateId});
             }
@@ -164,6 +185,10 @@ public final class ReferenceStore extends SQLiteOpenHelper {
                 JSONObject old = one("SELECT id FROM rules WHERE merchant=?", input.optString("merchant"));
                 if (old == null) db.insertOrThrow("rules", null, rule); else db.update("rules", rule, "id=?", new String[]{"" + old.optLong("id")});
             }
+            String financialType=input.optString("financial_type");
+            if(selectedCategory!=null&&!CategoryRepository.LEGACY.equals(selectedCategory.optString("level"))
+                &&(financialType.isEmpty()||financialType.equals("reimbursement")))
+                categoryRepository.learn(db,values.getAsInteger("parent_semantic_id"),values.getAsInteger("child_semantic_id"),account);
             db.setTransactionSuccessful(); return id;
         } finally { db.endTransaction(); }
     }
@@ -218,7 +243,7 @@ public final class ReferenceStore extends SQLiteOpenHelper {
             if(amount<=0||amount>outstanding(id))throw new IllegalArgumentException("回款金额超过剩余金额");
             String type=original.optString("financial_type"),kind=type.equals("borrow")?"expense":"income";
             String next=type.equals("lend")?"lend_return":type.equals("borrow")?"borrow_repay":type.equals("reimbursement")?"reimbursement_return":"refund";
-            JSONObject value=Json.object("book_id",original.optLong("book_id"),"kind",kind,"amount",amount,"category_id",defaultCategory(kind),"account_id",account,"remark",(kind.equals("income")?"回款·":"还款·")+original.optString("remark"),"merchant",original.optString("merchant"),"time",time,"financial_type",next,"related_id",id);
+            JSONObject value=Json.object("book_id",original.optLong("book_id"),"kind",kind,"amount",amount,"category_id",defaultCategory(kind,original.optLong("book_id")),"account_id",account,"remark",(kind.equals("income")?"回款·":"还款·")+original.optString("remark"),"merchant",original.optString("merchant"),"time",time,"financial_type",next,"related_id",id);
             long saved=saveTransaction(value,0,null);if(outstanding(id)==0)db.execSQL("UPDATE transactions SET settled=1 WHERE id=?",new Object[]{id});db.setTransactionSuccessful();return saved;
         }finally{db.endTransaction();}
     }
@@ -264,9 +289,11 @@ public final class ReferenceStore extends SQLiteOpenHelper {
     public synchronized void archiveAccount(long id) { getWritableDatabase().execSQL("UPDATE accounts SET archived=1 WHERE id=?", new Object[]{id}); }
     public synchronized long saveCategory(long id, String name, String kind, String icon) {
         if (!java.util.Arrays.asList("expense", "income").contains(kind)) throw new IllegalArgumentException("分类类型无效");
-        ContentValues v = new ContentValues(); v.put("name", requiredName(name)); v.put("kind", kind); v.put("icon", icon);
-        if (id > 0) { JSONObject old = one("SELECT kind FROM categories WHERE id=?", "" + id); if (old == null || !kind.equals(old.optString("kind"))) throw new IllegalArgumentException("不能改变已建分类的收支类型"); getWritableDatabase().update("categories", v, "id=?", new String[]{"" + id}); return id; }
-        return getWritableDatabase().insertOrThrow("categories", null, v);
+        JSONObject old=id>0?categoryRepository.byRowId(id):null;
+        if(id>0&&(old==null||!kind.equals(old.optString("kind"))))throw new IllegalArgumentException("不能改变已建分类的收支类型");
+        if(old!=null&&CategoryRepository.LEGACY.equals(old.optString("level"))){ContentValues v=new ContentValues();v.put("name",requiredName(name));v.put("icon",icon);getWritableDatabase().update("categories",v,"id=?",new String[]{""+id});return id;}
+        if(old!=null&&CategoryRepository.CHILD.equals(old.optString("level")))return categoryRepository.saveChild(id,name,icon,old.optInt("parent_semantic_id"),old.optInt("parent_child_semantic_id"));
+        return old!=null||kind.equals("expense")?categoryRepository.saveParent(id,name,icon):categoryRepository.saveChild(0,name,icon,9,0);
     }
     public synchronized void archiveCategory(long id) { getWritableDatabase().execSQL("UPDATE categories SET archived=1 WHERE id=?", new Object[]{id}); }
     public synchronized long saveTag(String name) { ContentValues v = new ContentValues(); v.put("name", requiredName(name)); return getWritableDatabase().insertOrThrow("tags", null, v); }
@@ -285,7 +312,7 @@ public final class ReferenceStore extends SQLiteOpenHelper {
     }
     public synchronized void enablePlan(long id,boolean enabled){getWritableDatabase().execSQL("UPDATE plans SET enabled=? WHERE id=?",new Object[]{enabled?1:0,id});}
     private boolean hasPlanForBook(long id){for(JSONObject row:query("SELECT payload FROM plans"))if(Json.parse(row.optString("payload")).optLong("book_id")==id)return true;return false;}
-    private void validatePlan(JSONObject payload){JSONObject book=book(payload.optLong("book_id"));long amount=payload.optLong("amount");if(book==null||book.optInt("archived")!=0||amount<=0||amount>99999999999999L)throw new IllegalArgumentException("周期账单缺少有效账本或金额");if(!java.util.Arrays.asList("expense","income").contains(payload.optString("kind")))throw new IllegalArgumentException("周期账单收支方向无效");Json.put(payload,"currency",book.optString("currency"));}
+    private void validatePlan(JSONObject payload){JSONObject book=book(payload.optLong("book_id"));long amount=payload.optLong("amount");if(book==null||book.optInt("archived")!=0||amount<=0||amount>99999999999999L)throw new IllegalArgumentException("周期账单缺少有效账本或金额");if(!java.util.Arrays.asList("expense","income").contains(payload.optString("kind")))throw new IllegalArgumentException("周期账单收支方向无效");if(payload.optLong("category_id")>0&&categoryRepository.byRowId(payload.optLong("category_id"))==null)throw new IllegalArgumentException("周期账单分类不存在");Json.put(payload,"currency",book.optString("currency"));}
     public synchronized int processPlans(long now){
         SQLiteDatabase db=getWritableDatabase();db.beginTransaction();int count=0;try{
             for(JSONObject plan:query("SELECT * FROM plans WHERE enabled=1 AND next_due<=? ORDER BY next_due LIMIT 50",""+now)){
@@ -300,38 +327,46 @@ public final class ReferenceStore extends SQLiteOpenHelper {
     private static String requiredName(String value) { String name = value == null ? "" : value.trim(); if (name.isEmpty() || name.length() > 100) throw new IllegalArgumentException("名称需要1至100个字符"); return name; }
     private static String bounded(String value, int max) { return value == null ? "" : value.substring(0, Math.min(value.length(), max)); }
 
-    private static final String[] BACKUP_TABLES = {"books", "accounts", "categories", "tags", "candidates", "transactions", "transaction_tags", "rules", "plans", "goals"};
+    private static final String[] V1_BACKUP_TABLES = {"books", "accounts", "categories", "tags", "candidates", "transactions", "transaction_tags", "rules", "plans", "goals"};
+    private static final String[] BACKUP_TABLES = {"books", "accounts", "categories", "tags", "candidates", "transactions", "transaction_tags", "rules", "plans", "goals", "category_hidden_books", "category_accounts"};
     public synchronized JSONObject backup() {
         SQLiteDatabase db = getWritableDatabase(); db.beginTransaction();
         try {
             JSONObject tables = new JSONObject(); for (String table : BACKUP_TABLES) Json.put(tables, table, new JSONArray(query("SELECT * FROM " + table)));
-            JSONObject result = Json.object("format", "YimuReferenceBackup", "version", 1, "created", System.currentTimeMillis(), "tables", tables);
+            JSONObject result = Json.object("format", "YimuReferenceBackup", "version", 2, "created", System.currentTimeMillis(), "tables", tables);
             db.setTransactionSuccessful(); return result;
         } finally { db.endTransaction(); }
     }
     public synchronized void restore(JSONObject backup) {
-        if (!"YimuReferenceBackup".equals(backup.optString("format")) || backup.optInt("version") != 1) throw new IllegalArgumentException("请选择本实验版的完整备份");
+        int version=backup.optInt("version");
+        if (!"YimuReferenceBackup".equals(backup.optString("format")) || (version!=1&&version!=2)) throw new IllegalArgumentException("请选择本实验版的完整备份");
         JSONObject tables = backup.optJSONObject("tables"); if (tables == null || tables.optJSONArray("books") == null || tables.optJSONArray("books").length() == 0) throw new IllegalArgumentException("备份缺少账本");
         SQLiteDatabase db = getWritableDatabase(); db.beginTransaction();
         try {
             db.execSQL("PRAGMA defer_foreign_keys=ON");
             for (int i = BACKUP_TABLES.length - 1; i >= 0; i--) db.delete(BACKUP_TABLES[i], null, null);
-            for (String table : BACKUP_TABLES) {
+            for (String table : version==1?V1_BACKUP_TABLES:BACKUP_TABLES) {
                 JSONArray rows = tables.optJSONArray(table); if (rows == null || rows.length() > 100000) throw new IllegalArgumentException("备份表缺失或过大：" + table);
                 List<String> allowed = new ArrayList<>(); try (Cursor c = db.rawQuery("PRAGMA table_info(" + table + ")", null)) { while (c.moveToNext()) allowed.add(c.getString(c.getColumnIndexOrThrow("name"))); }
                 for (int i = 0; i < rows.length(); i++) {
                     JSONObject row = rows.optJSONObject(i); if (row == null) throw new IllegalArgumentException("备份记录格式错误");
+                    if(version==2)for(String column:allowed)if(!row.has(column))throw new IllegalArgumentException("备份字段缺失："+table+"."+column);
                     ContentValues values = new ContentValues();
                     for (String column : allowed) if (row.has(column)) {
+                        if(version==1&&table.equals("categories")&&!java.util.Arrays.asList("id","name","kind","icon","archived").contains(column))continue;
+                        if(version==1&&table.equals("transactions")&&(column.equals("parent_semantic_id")||column.equals("child_semantic_id")))continue;
                         Object value = row.opt(column);
                         if (value == JSONObject.NULL) values.putNull(column);
                         else if (value instanceof Long || value instanceof Integer) values.put(column, ((Number)value).longValue());
                         else if (value instanceof String text && text.length() <= 200000) values.put(column, text);
                         else throw new IllegalArgumentException("备份字段格式错误：" + column);
                     }
+                    if(version==1&&table.equals("categories"))values.put("level",CategoryRepository.LEGACY);
                     db.insertOrThrow(table, null, values);
                 }
             }
+            categoryRepository.validateRestored();
+            CategoryRepository.bootstrap(db);
             try (Cursor c = db.rawQuery("PRAGMA foreign_key_check", null)) { if (c.moveToFirst()) throw new IllegalArgumentException("备份的账本或账户关联损坏"); }
             for (JSONObject book : query("SELECT * FROM books")) Money.scale(book.optString("currency"));
             if(scalar("SELECT COUNT(*) n FROM books WHERE archived=0")==0)throw new IllegalArgumentException("备份中没有可用账本");
@@ -340,6 +375,7 @@ public final class ReferenceStore extends SQLiteOpenHelper {
             for(JSONObject candidate:query("SELECT * FROM candidates")){
                 if(!java.util.Arrays.asList("PENDING","SAVED","DISMISSED").contains(candidate.optString("state")))throw new IllegalArgumentException("备份采集状态无效");
                 JSONObject payload=Json.parse(candidate.optString("payload"));if(payload.optLong("book_id")!=candidate.optLong("book_id"))throw new IllegalArgumentException("备份采集账本不匹配");
+                if(payload.optLong("category_id")>0&&categoryRepository.byRowId(payload.optLong("category_id"))==null)throw new IllegalArgumentException("备份采集分类关联无效");
                 if(candidate.optString("state").equals("SAVED")){JSONObject t=one("SELECT candidate_id FROM transactions WHERE id=?",""+candidate.optLong("transaction_id"));if(t==null||!candidate.optString("id").equals(t.optString("candidate_id")))throw new IllegalArgumentException("备份采集关联无效");}
             }
             db.setTransactionSuccessful();

@@ -10,6 +10,7 @@ public final class ReferenceDiagnostics {
     private static int texts, visited;
     private static String sourcePackage = "", page = "", result = "NO_EVENT";
     private static String failureCode="",failureType="";
+    private static java.util.List<String> failureStack=java.util.Collections.emptyList();
     private static long failures,lastFailure;
     private static long readsStarted,readsAborted,coalesced,evicted,activeSince,queueWaitMs;
     private static int liveVisited;
@@ -24,8 +25,8 @@ public final class ReferenceDiagnostics {
     private static final java.util.Map<String,Long> eventsByPackage=new java.util.LinkedHashMap<>();
     private static final java.util.Map<String,Long> widgetContentReadsByPackage=new java.util.LinkedHashMap<>();
     private ReferenceDiagnostics() {}
-    public static synchronized void clear(){started=System.currentTimeMillis();events=reads=attempts=drafts=skipped=lastEvent=lastRead=lastResult=failures=lastFailure=readsStarted=readsAborted=coalesced=evicted=0;texts=visited=0;sourcePackage=page=failureCode=failureType="";result="NO_EVENT";eventsByPackage.clear();widgetContentReadsByPackage.clear();eventSourceNull=eventSourceErrors=sourceLookups=sourceWindows=sourceErrors=fallbackAttempts=fallbackSuccess=0;lastEventSourceErrorType=lastSourceErrorType="";lastSourceRoute=lastDraftSourceRoute="NONE";lastSourceReason="UNAVAILABLE";lastSourceWindowId=-1;}
-    public static synchronized void failure(String code,Exception error){result(code);failureCode=code;failureType=error.getClass().getName();lastFailure=System.currentTimeMillis();failures++;}
+    public static synchronized void clear(){started=System.currentTimeMillis();events=reads=attempts=drafts=skipped=lastEvent=lastRead=lastResult=failures=lastFailure=readsStarted=readsAborted=coalesced=evicted=0;texts=visited=0;sourcePackage=page=failureCode=failureType="";failureStack=java.util.Collections.emptyList();result="NO_EVENT";eventsByPackage.clear();widgetContentReadsByPackage.clear();eventSourceNull=eventSourceErrors=sourceLookups=sourceWindows=sourceErrors=fallbackAttempts=fallbackSuccess=0;lastEventSourceErrorType=lastSourceErrorType="";lastSourceRoute=lastDraftSourceRoute="NONE";lastSourceReason="UNAVAILABLE";lastSourceWindowId=-1;}
+    public static synchronized void failure(String code,Exception error){result(code);failureCode=code;failureType=className(error.getClass().getName());failureStack=stackFrames(error.getStackTrace());lastFailure=System.currentTimeMillis();failures++;}
     public static synchronized void event(String pkg, String cls) {
         events++; lastEvent = System.currentTimeMillis(); sourcePackage = pkg;
         String bucket=KNOWN_PACKAGES.contains(pkg)?pkg:"other";Long previous=eventsByPackage.get(bucket);eventsByPackage.put(bucket,previous==null?1:previous+1);
@@ -65,7 +66,7 @@ public final class ReferenceDiagnostics {
         return Json.object("startedAt", started, "events", events, "reads", reads, "submissionAttempts", attempts,
             "drafts", drafts, "skipped", skipped, "lastEventAt", lastEvent, "lastReadAt", lastRead,
             "lastResultAt", lastResult, "package", sourcePackage, "pageClass", page, "textCount", texts,
-            "visitedBranches", visited, "result", result,"failures",failures,"lastFailureAt",lastFailure,"lastFailureCode",failureCode,"lastFailureType",failureType,"eventsByPackage",new JSONObject(new java.util.LinkedHashMap<>(eventsByPackage)),
+            "visitedBranches", visited, "result", result,"failures",failures,"lastFailureAt",lastFailure,"lastFailureCode",failureCode,"lastFailureType",failureType,"lastFailureStack",new org.json.JSONArray(failureStack),"eventsByPackage",new JSONObject(new java.util.LinkedHashMap<>(eventsByPackage)),
             "readsStarted",readsStarted,"readsAborted",readsAborted,"readInProgress",readInProgress,"liveVisitedNodes",liveVisited,
             "coalesced",coalesced,"evicted",evicted,"activeStage",activeStage,"activePackage",activePackage,"activePageClass",activePage,"activeEventType",activeEventType,"widgetContentReadsByPackage",new JSONObject(widgetContentReadsByPackage),
             "eventSourceNull",eventSourceNull,"eventSourceErrors",eventSourceErrors,"lastEventSourceErrorType",lastEventSourceErrorType,
@@ -74,6 +75,7 @@ public final class ReferenceDiagnostics {
             "activeForMs",activeSince==0?0:(System.nanoTime()-activeSince)/1_000_000,"queueWaitMs",queueWaitMs,"workerStack",workerStack());
     }
     private static String className(String value){return value!=null&&value.matches("[A-Za-z0-9_.$]+")?value.substring(0,Math.min(200,value.length())):"";}
+    private static java.util.List<String> stackFrames(StackTraceElement[] stack){java.util.List<String> frames=new java.util.ArrayList<>();for(int i=0;i<Math.min(8,stack.length);i++){StackTraceElement frame=stack[i];String cls=frame.getClassName(),method=frame.getMethodName();if(cls.matches("[A-Za-z0-9_.$]+")&&method.matches("[A-Za-z0-9_$<>]+"))frames.add(className(cls)+"."+method.substring(0,Math.min(100,method.length()))+":"+frame.getLineNumber());}return frames;}
     private static <E extends Enum<E>> String enumName(String value,Class<E> type,String fallback){try{return Enum.valueOf(type,value).name();}catch(IllegalArgumentException|NullPointerException ignored){return fallback;}}
     private static org.json.JSONArray workerStack(){org.json.JSONArray frames=new org.json.JSONArray();Thread thread=activeThread;if(thread==null)return frames;try{StackTraceElement[] stack=thread.getStackTrace();for(int i=0;i<Math.min(8,stack.length);i++){StackTraceElement frame=stack[i];String cls=frame.getClassName(),method=frame.getMethodName();if(cls.matches("[A-Za-z0-9_.$]+")&&method.matches("[A-Za-z0-9_$<>]+"))frames.put(cls+"."+method+":"+frame.getLineNumber());}}catch(RuntimeException ignored){}return frames;}
 }

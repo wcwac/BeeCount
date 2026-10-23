@@ -78,7 +78,7 @@ public final class CaptureOverlay {
         }
         JSONObject data = Json.object("book_id", book, "kind", "expense", "amount", 123, "discount", 0,
             "fee", 0, "currency", "CNY", "time", System.currentTimeMillis(), "remark", "测试浮窗，不生成账单",
-            "account_id", 0, "category_id", ReferenceApplication.store().defaultCategory("expense"));
+            "account_id", 0, "category_id", ReferenceApplication.store().defaultCategory("expense",book));
         display(null, Json.object("book_id", book, "payload", data.toString()), true);
     }
 
@@ -174,6 +174,7 @@ public final class CaptureOverlay {
         final CaptureOverlayLayout view;
         final WindowManager manager;
         final JSONObject data;
+        final CategoryPicker.State categoryState;
         final List<JSONObject> repeats;
         final boolean repeatDetected;
         final long generation;
@@ -197,6 +198,7 @@ public final class CaptureOverlay {
             data = Json.parse(row.optString("payload"));
             Json.put(data, "book_id", row.optLong("book_id"));
             Json.put(data, "currency", "CNY");
+            categoryState=CategoryPicker.State.from(null,ReferenceApplication.store(),data);
             originalRemark = data.optString("remark");
             repeats = preview ? new ArrayList<>() : ReferenceApplication.store().findRepeatTransactions(data);
             repeatDetected = !repeats.isEmpty();
@@ -220,7 +222,6 @@ public final class CaptureOverlay {
             tabs.configure(new String[]{"支出", "收入", "转账"}, "income".equals(data.optString("kind")) ? 1
                 : "transfer".equals(data.optString("kind")) ? 2 : 0, index -> {
                     cancelTimer(); Json.put(data, "kind", kinds[index]);
-                    Json.put(data, "category_id", ReferenceApplication.store().defaultCategory(index == 1 ? "income" : "expense"));
                     render();
                 });
             Ui.click(view, "account_book_layout", this::chooseBook);
@@ -255,32 +256,10 @@ public final class CaptureOverlay {
                 column.addView(Ui.row(context, "转入账户", accountName(data.optLong("to_account_id")), () -> chooseAccount("to_account_id")));
                 container.addView(column); return;
             }
-            List<JSONObject> categories = ReferenceApplication.store().categories(kind);
-            GridView grid = new GridView(context); grid.setNumColumns(5); grid.setVerticalSpacing(Ui.dp(context, 4));
-            grid.setAdapter(new BaseAdapter() {
-                @Override public int getCount() { return categories.size(); }
-                @Override public Object getItem(int index) { return categories.get(index); }
-                @Override public long getItemId(int index) { return categories.get(index).optLong("id"); }
-                @Override public View getView(int index, View recycled, ViewGroup parent) {
-                    JSONObject category = categories.get(index);
-                    LinearLayout cell = new LinearLayout(context); cell.setOrientation(LinearLayout.VERTICAL);
-                    cell.setGravity(Gravity.CENTER); cell.setPadding(0, Ui.dp(context, 7), 0, Ui.dp(context, 7));
-                    ImageView icon = new ImageView(context);
-                    int image = Ui.res(context, "mipmap", category.optString("icon"));
-                    if (image == 0) image = Ui.res(context, "mipmap", "ic_parent_other");
-                    icon.setImageResource(image);
-                    cell.addView(icon, new LinearLayout.LayoutParams(Ui.dp(context, 26), Ui.dp(context, 26)));
-                    cell.addView(Ui.label(context, category.optString("name"), 11));
-                    if (category.optLong("id") == data.optLong("category_id")) cell.setBackground(Ui.rounded(0x2248ab93, 8, context));
-                    return cell;
-                }
-            });
-            grid.setOnItemClickListener((parent, cell, index, rowId) -> {
-                // Original I0 cancels only on a category selection, not on arbitrary touches.
-                cancelTimer(); Json.put(data, "category_id", categories.get(index).optLong("id"));
-                ((BaseAdapter) grid.getAdapter()).notifyDataSetChanged();
-            });
-            container.addView(grid, new FrameLayout.LayoutParams(-1, Ui.dp(context, 135)));
+            // Original AutoCategoryPagerAdapter uses six columns; initialization must
+            // not invoke I0, which cancels the automatic-add timer only after a click.
+            container.addView(new CategoryPicker(context,ReferenceApplication.store(),data.optLong("book_id"),kind,
+                data,categoryState,true,this::cancelTimer,null).view(),new FrameLayout.LayoutParams(-1,-2));
         }
 
         void startTimer() {

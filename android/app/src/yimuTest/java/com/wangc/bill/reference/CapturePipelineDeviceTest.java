@@ -33,6 +33,8 @@ import com.wangc.bill.reference.ui.LocalFiles;
 import org.json.JSONObject;
 import org.junit.*;
 import org.junit.runner.RunWith;
+import org.junit.runner.Description;
+import org.junit.rules.TestWatcher;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
@@ -51,6 +53,11 @@ import static org.junit.Assert.*;
  */
 @RunWith(AndroidJUnit4.class)
 public final class CapturePipelineDeviceTest {
+    @Rule public final TestWatcher failureMetadata=new TestWatcher(){
+        @Override protected void failed(Throwable error,Description description){
+            System.out.println("REFERENCE_CAPTURE_FAILURE "+description.getMethodName()+" "+ReferenceDiagnostics.snapshot());
+        }
+    };
     private Map<String,?> preferences;
     private String priorServices,priorEnabled,priorOverlayMode;
     private String[] priorObserverPackages;
@@ -76,13 +83,13 @@ public final class CapturePipelineDeviceTest {
         // This permission is scoped to the disposable emulator and avoids covering the master switch with a dialog.
         shell("pm grant "+token(ReferenceApplication.app().getPackageName())+" android.permission.POST_NOTIFICATIONS");assertEquals(PackageManager.PERMISSION_GRANTED,ReferenceApplication.app().checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS));
         AutoApps.enable(false);String component=ReferenceApplication.app().getPackageName()+"/com.wangc.bill.reference.capture.ReferenceCaptureService";shell("settings put secure enabled_accessibility_services "+token(component));shell("settings put secure accessibility_enabled 1");assertEquals("Secure setting was not written as a component",component,shell("settings get secure enabled_accessibility_services").trim());
-        await(()->ReferenceCaptureService.current()!=null,10000,"Accessibility service did not connect");assertTrue("Original tool identity is missing",ReferenceCaptureService.status().optBoolean("toolIdentity"));assertRuntimeEnabled(false);ReferenceDiagnostics.clear();
+        await(()->ReferenceCaptureService.current()!=null,10000,"Accessibility service did not connect");assertTrue("Original tool identity is missing",ReferenceCaptureService.status().optBoolean("toolIdentity"));assertRuntimeEnabled(false);awaitCaptureWorker();ReferenceDiagnostics.clear();
     }
     @After public void restore()throws Exception{
         if(preferences==null)return;
         try{
             AutoApps.enable(false);
-            try{for(String id:drafts)ReferenceApplication.store().dismiss(id);cleanWindowData();}
+            try{awaitCaptureWorker();for(String id:drafts)ReferenceApplication.store().dismiss(id);cleanWindowData();}
             finally{
                 SharedPreferences.Editor edit=ReferenceApplication.prefs().edit().clear();for(Map.Entry<String,?> e:preferences.entrySet()){Object v=e.getValue();if(v instanceof Boolean b)edit.putBoolean(e.getKey(),b);else if(v instanceof Long l)edit.putLong(e.getKey(),l);else if(v instanceof Integer i)edit.putInt(e.getKey(),i);else if(v instanceof Float f)edit.putFloat(e.getKey(),f);else if(v instanceof Set<?> set){Set<String> values=new HashSet<>();for(Object item:set)values.add((String)item);edit.putStringSet(e.getKey(),values);}else if(v instanceof String s)edit.putString(e.getKey(),s);}edit.commit();
                 shell(priorServices.equals("null")?"settings delete secure enabled_accessibility_services":"settings put secure enabled_accessibility_services "+token(priorServices));shell(priorEnabled.equals("null")?"settings delete secure accessibility_enabled":"settings put secure accessibility_enabled "+token(priorEnabled));
@@ -121,7 +128,7 @@ public final class CapturePipelineDeviceTest {
         try(ActivityScenario<ManagerActivity> scenario=manager("capture")){touchMaster(scenario,false);assertRuntimeEnabled(true);}
         SystemClock.sleep(1300);long began=System.currentTimeMillis();launchAmount("com.eg.android.AlipayGphone/com.alipay.android.msp.ui.views.MspContainerActivity","18.60");
         JSONObject candidate=waitDraft("com.eg.android.AlipayGphone",began),payload=Json.parse(candidate.optString("payload"));
-        assertEquals(1860,payload.optLong("amount"));assertEquals("实验支付宝商户",payload.optString("merchant"));assertEquals("实验支付宝商户",payload.optString("remark"));assertEquals("支付宝",payload.optString("origin"));assertEquals("The non-important payment-method label was not read","余额",payload.optString("asset_text"));
+        assertEquals(1860,payload.optLong("amount"));assertEquals("实验支付宝商户",payload.optString("merchant"));assertEquals("实验支付宝商户",payload.optString("remark"));assertEquals("支付宝",payload.optString("origin"));assertEquals("The non-important payment-method label was not read","余额宝",payload.optString("asset_text"));
         // Explicit RelativeLayout updates continue after the payment page settles.
         // This must not leave the worker stuck while events accumulate in its queue.
         await(()->"android.widget.RelativeLayout".equals(ReferenceDiagnostics.snapshot().optString("pageClass")),6000,"No natural widget content event reached the service");
@@ -130,7 +137,7 @@ public final class CapturePipelineDeviceTest {
         ReferenceApplication.store().dismiss(candidate.optString("id"));YimuKernel.complete(candidate.optString("id"));
         SystemClock.sleep(1300);began=System.currentTimeMillis();launchAmount("com.tencent.mm/com.tencent.mm.plugin.wallet_index.ui.WalletBrandUI","15.70");
         JSONObject next=waitDraft("com.tencent.mm",began);assertEquals("Worker did not process the next application's payment",1570,Json.parse(next.optString("payload")).optLong("amount"));
-        assertEquals(0,ReferenceDiagnostics.snapshot().optLong("failures"));
+        assertEquals(ReferenceDiagnostics.snapshot().toString(),0,ReferenceDiagnostics.snapshot().optLong("failures"));
     }
     @Test public void applicationOverlayAppearsSavesAndIgnoresBackgroundTouch()throws Exception{
         AutoApps.select("com.eg.android.AlipayGphone",true);
@@ -172,7 +179,7 @@ public final class CapturePipelineDeviceTest {
         touchOverlayBackground();assertTrue("A background tap unexpectedly dismissed the recovered confirmation",hasOverlay());assertEquals("PENDING",ReferenceApplication.store().candidate(id).optString("state"));
         touch(visibleOverlayControl("close_btn"));await(()->!hasOverlay(),5000,"Null-source payment overlay did not cancel");
         assertEquals("Explicit cancellation left its recovered draft pending","DISMISSED",ReferenceApplication.store().candidate(id).optString("state"));assertEquals(0,ReferenceApplication.store().candidate(id).optLong("transaction_id"));
-        assertEquals(0,ReferenceDiagnostics.snapshot().optLong("failures"));
+        assertEquals(ReferenceDiagnostics.snapshot().toString(),0,ReferenceDiagnostics.snapshot().optLong("failures"));
     }
     @Test public void nullSourceAutoAddShowsCountdownBeforeSavingTransaction()throws Exception{
         AutoApps.select("com.eg.android.AlipayGphone",true);
@@ -192,7 +199,7 @@ public final class CapturePipelineDeviceTest {
         assertTrue(saved.optLong("transaction_id")>0);assertEquals(2280,ReferenceApplication.store().transaction(saved.optLong("transaction_id")).optLong("amount"));
         await(()->!hasOverlay(),5000,"The automatically saved confirmation window did not close");
         assertTrue("auto_save must remain selected",ReferenceApplication.prefs().getBoolean("auto_save",false));assertTrue(ReferenceApplication.prefs().getBoolean("show_overlay",false));
-        assertEquals(0,ReferenceDiagnostics.snapshot().optLong("failures"));
+        assertEquals(ReferenceDiagnostics.snapshot().toString(),0,ReferenceDiagnostics.snapshot().optLong("failures"));
     }
     @Test public void selectingCategoryCancelsAutomaticAddButStillAllowsManualSave()throws Exception{
         AutoApps.select("com.eg.android.AlipayGphone",true);
@@ -203,6 +210,9 @@ public final class CapturePipelineDeviceTest {
         await(()->{AccessibilityNodeInfo label=overlayControl("btn_save_text");return label!=null&&label.getText()!=null&&label.getText().toString().matches("新增\\([1-5]\\)");},2500,"No automatic-add countdown before category selection");
         JSONObject selected=null;long initialCategory=Json.parse(pending.optString("payload")).optLong("category_id");
         for(JSONObject category:ReferenceApplication.store().categories("expense"))if(category.optLong("id")!=initialCategory){selected=category;break;}assertNotNull("No alternate category to exercise the real selection",selected);
+        AccessibilityNodeInfo categoryList=overlayControl("bill_parent_type_list");assertNotNull(categoryList);
+        assertNotNull("Original automatic-entry categories should expose their grid",categoryList.getCollectionInfo());
+        assertEquals("Automatic-entry categories must use the recovered six-column grid",6,categoryList.getCollectionInfo().getColumnCount());
         // Recovered AutoAddLayout.I0 starts with a1(): cancel timer, clear it and
         // restore 新增. Inject the real category item touch, not an arbitrary tap.
         touch(visibleOverlayCategory(selected.optString("name")));
@@ -210,7 +220,8 @@ public final class CapturePipelineDeviceTest {
         SystemClock.sleep(5500);assertEquals("A cancelled automatic-add countdown still saved the draft","PENDING",ReferenceApplication.store().candidate(id).optString("state"));assertTrue("Cancelling the countdown should keep its editable confirmation window",hasOverlay());
         touch(visibleOverlayControl("btn_save"));await(()->"SAVED".equals(ReferenceApplication.store().candidate(id).optString("state")),5000,"Manual save stopped working after cancelling automatic add");
         JSONObject saved=ReferenceApplication.store().candidate(id),transaction=ReferenceApplication.store().transaction(saved.optLong("transaction_id"));assertNotNull(transaction);assertEquals(2380,transaction.optLong("amount"));assertEquals("The real category item selection was not applied",selected.optLong("id"),transaction.optLong("category_id"));
-        await(()->!hasOverlay(),5000,"Manually saved window did not close");assertEquals(0,ReferenceDiagnostics.snapshot().optLong("failures"));
+        assertEquals(selected.optInt("semantic_id"),transaction.optInt("parent_semantic_id"));assertEquals("The original automatic-entry parent-only save omits childCategoryId, retaining its default zero",0,transaction.optInt("child_semantic_id"));
+        await(()->!hasOverlay(),5000,"Manually saved window did not close");assertEquals(ReferenceDiagnostics.snapshot().toString(),0,ReferenceDiagnostics.snapshot().optLong("failures"));
     }
     @Test public void missingOverlayPermissionExplainsTheBlockAndPreviewCreatesNoWindowOrDraft()throws Exception{
         ReferenceApplication.prefs().edit().putBoolean("show_overlay",true).putBoolean("auto_save",false).commit();observeWindows();
@@ -226,7 +237,7 @@ public final class CapturePipelineDeviceTest {
         assertFalse("An ungranted overlay was actually shown",hasOverlay());
         assertEquals("Permission preview inserted a candidate",candidates,ReferenceApplication.store().scalar("SELECT COUNT(*) n FROM candidates"));
         setOverlayMode("allow",true);assertCapturePermissionSwitch(true);
-        assertEquals(0,ReferenceDiagnostics.snapshot().optLong("failures"));
+        assertEquals(ReferenceDiagnostics.snapshot().toString(),0,ReferenceDiagnostics.snapshot().optLong("failures"));
     }
     @Test public void automaticAddCannotBypassAWindowThatHasNoOverlayPermission()throws Exception{
         AutoApps.select("com.eg.android.AlipayGphone",true);
@@ -239,7 +250,7 @@ public final class CapturePipelineDeviceTest {
         // leave our persisted safety draft, but it must never save in the background.
         SystemClock.sleep(6000);assertEquals("Automatic add silently saved without an attached confirmation window","PENDING",ReferenceApplication.store().candidate(id).optString("state"));
         assertEquals(0,ReferenceApplication.store().candidate(id).optLong("transaction_id"));assertFalse(hasOverlay());
-        assertEquals(0,ReferenceDiagnostics.snapshot().optLong("failures"));
+        assertEquals(ReferenceDiagnostics.snapshot().toString(),0,ReferenceDiagnostics.snapshot().optLong("failures"));
     }
     /** Synthetic database setup tests the real repeat window independently of payment parsing. */
     @Test public void aRepeatedBillStopsAutomaticAddAndCanReplaceThroughTheActualPopup()throws Exception{
@@ -257,7 +268,7 @@ public final class CapturePipelineDeviceTest {
         JSONObject saved=store.candidate(id);long newId=saved.optLong("transaction_id");assertTrue(newId>0&&newId!=oldId);assertNull("Replacement retained the old bill",store.transaction(oldId));
         assertEquals(3220,store.transaction(newId).optLong("amount"));assertEquals(id,store.transaction(newId).optString("candidate_id"));
         assertEquals("DISMISSED",store.candidate(oldCandidate).optString("state"));assertEquals(0,store.candidate(oldCandidate).optLong("transaction_id"));assertEquals(baseline-3220,store.accountBalance(1));
-        await(()->!hasOverlay(),5000,"Replacement confirmation left the entry window open");assertEquals(0,ReferenceDiagnostics.snapshot().optLong("failures"));
+        await(()->!hasOverlay(),5000,"Replacement confirmation left the entry window open");assertEquals(ReferenceDiagnostics.snapshot().toString(),0,ReferenceDiagnostics.snapshot().optLong("failures"));
     }
     /** Select a book through the public window UI; do not edit its data object in the test. */
     @Test public void theActualWindowBookPickerSavesTheSelectedBookAndCandidatePayload()throws Exception{
@@ -268,7 +279,7 @@ public final class CapturePipelineDeviceTest {
         await(()->{AccessibilityNodeInfo label=overlayControl("account_book_name");return label!=null&&name.contentEquals(label.getText()==null?"":label.getText());},5000,"The book picker did not update the actual entry window");
         touch(visibleOverlayControl("btn_save"));await(()->"SAVED".equals(store.candidate(id).optString("state")),5000,"The selected-book entry was not saved");
         JSONObject candidate=store.candidate(id),transaction=store.transaction(candidate.optLong("transaction_id"));assertNotNull(transaction);assertEquals(book,transaction.optLong("book_id"));assertEquals(3430,transaction.optLong("amount"));assertEquals(book,candidate.optLong("book_id"));assertEquals(book,Json.parse(candidate.optString("payload")).optLong("book_id"));assertEquals(id,transaction.optString("candidate_id"));
-        await(()->!hasOverlay(),5000,"The selected-book entry window did not close");assertEquals(0,ReferenceDiagnostics.snapshot().optLong("failures"));
+        await(()->!hasOverlay(),5000,"The selected-book entry window did not close");assertEquals(ReferenceDiagnostics.snapshot().toString(),0,ReferenceDiagnostics.snapshot().optLong("failures"));
     }
     @Test public void backgroundBackupRestoreClosesTheWindowAndInvalidatesQueuedSaves()throws Exception{
         ReferenceApplication.prefs().edit().putBoolean("auto_save",false).putBoolean("show_overlay",true).commit();observeWindows();
@@ -301,7 +312,7 @@ public final class CapturePipelineDeviceTest {
             assertNull("Restoration retained the attached window's candidate",ReferenceApplication.store().candidate(attached));
             assertNull(ReferenceApplication.store().one("SELECT id FROM transactions WHERE candidate_id=?",id));
             await(()->!hasOverlay(),5000,"Background restoration left an application overlay attached");
-            assertFalse(AutoApps.enabled());assertFalse(ReferenceApplication.prefs().getBoolean("auto_save",true));assertEquals(0,ReferenceDiagnostics.snapshot().optLong("failures"));
+            assertFalse(AutoApps.enabled());assertFalse(ReferenceApplication.prefs().getBoolean("auto_save",true));assertEquals(ReferenceDiagnostics.snapshot().toString(),0,ReferenceDiagnostics.snapshot().optLong("failures"));
             FutureTask<Boolean> reentrant=new FutureTask<>(()->{try{LocalFiles.restoreBackup(ReferenceApplication.app(),Uri.fromFile(archive));return false;}catch(IllegalStateException expected){return true;}});
             YimuKernel.enqueue(reentrant);assertTrue("Restoration on its own serial worker must reject before waiting on itself",reentrant.get(5,TimeUnit.SECONDS));
         }finally{
@@ -333,12 +344,15 @@ public final class CapturePipelineDeviceTest {
             assertFalse(AutoApps.enabled());AutoApps.enable(true);assertRuntimeEnabled(true);
             began=System.currentTimeMillis();launchAmount("com.eg.android.AlipayGphone/com.alipay.android.msp.ui.views.MspContainerActivity","38.70");
             JSONObject next=waitDraft("com.eg.android.AlipayGphone",began);assertNotEquals(prior.optString("id"),next.optString("id"));assertEquals(3870,Json.parse(next.optString("payload")).optLong("amount"));
-            assertTrue(YimuKernel.registeredCallbackCount()>0);assertEquals(0,ReferenceDiagnostics.snapshot().optLong("failures"));
+            assertTrue(YimuKernel.registeredCallbackCount()>0);assertEquals(ReferenceDiagnostics.snapshot().toString(),0,ReferenceDiagnostics.snapshot().optLong("failures"));
         }finally{archive.delete();}
     }
     private JSONObject windowData(long amount,long time){return Json.object("book_id",1,"kind","expense","currency","CNY","amount",amount,"original_amount",amount,"original_number",Money.text(amount,"CNY"),"time",time,"original_time",time,"original_income",false,"original_currency","CNY","account_id",1,"category_id",ReferenceApplication.store().defaultCategory("expense"),"remark","窗口交互回归","merchant","窗口交互回归","origin","合成窗口测试","fee",0,"discount",0);}
     private String windowCandidate(JSONObject data){String id=ReferenceApplication.store().addCandidate(data,"test.fixture.window",data.optLong("book_id"));windowCandidates.add(id);return id;}
     private void showWindow(String id){InstrumentationRegistry.getInstrumentation().runOnMainSync(()->CaptureOverlay.show(id,null));}
+    private void awaitCaptureWorker()throws Exception{
+        FutureTask<Void> barrier=new FutureTask<>(()->null);YimuKernel.enqueue(barrier);barrier.get(10,TimeUnit.SECONDS);
+    }
     private void cleanWindowData()throws Exception{
         if(windowCandidates.isEmpty()&&windowTransactions.isEmpty()&&windowBooks.isEmpty())return;
         InstrumentationRegistry.getInstrumentation().runOnMainSync(CaptureOverlay::close);

@@ -65,7 +65,10 @@ public final class MspContainerActivity extends Activity {
             // state 2. b.r reads the next amount and the 收款方 label's next item.
             String amount = getIntent().getStringExtra("fixture_amount");
             if (amount == null || !amount.matches("[1-9][0-9]{0,3}\\.[0-9]{2}")) amount = "18.60";
-            for (String line : new String[]{"支付成功", "￥" + amount, "收款方", "实验支付宝商户", "付款方式", "余额"}) add(lines, line);
+            // b.r normalizes 余额/账户余额/可用余额 back to 支付宝. 余额宝
+            // remains distinct here and can only come from the adjacent 付款方式
+            // field: this merchant has no 商品说明/余额宝收益发放 shortcut.
+            for (String line : new String[]{"支付成功", "￥" + amount, "收款方", "实验支付宝商户", "付款方式", "余额宝"}) add(lines, line);
         }, missingEventSource ? 1300 : 650);
         // Burst and subsequent updates retain the natural RelativeLayout class.
         // A changed payment page must still be read when content events coalesce.

@@ -27,6 +27,10 @@ capture_adb="$ANDROID_HOME/platform-tools/adb"
 capture_emulator="$ANDROID_HOME/emulator/emulator"
 capture_avdmanager="$ANDROID_HOME/cmdline-tools/latest/bin/avdmanager"
 capture_pid=""
+capture_evidence_attempted=false
+capture_evidence_status=1
+capture_evidence_remote="/sdcard/Android/data/io.github.wcwac.yimu.reference.debug/files/test-evidence"
+capture_evidence_folder="$capture_logs/screen-evidence"
 mkdir -p "$capture_logs"
 export ANDROID_AVD_HOME="$RUNNER_TEMP/capture-avd"
 export ANDROID_SERIAL="$capture_serial"
@@ -45,10 +49,35 @@ check_revision "$ANDROID_HOME/platform-tools/source.properties" "$CAPTURE_PLATFO
 check_revision "$ANDROID_HOME/system-images/android-36/default/x86_64/source.properties" "$CAPTURE_IMAGE_REVISION"
 [[ "$CAPTURE_SYSTEM_IMAGE" == 'system-images;android-36;default;x86_64' ]]
 
+collect_screen_evidence() {
+  if [[ "$capture_evidence_attempted" == true ]]; then
+    return "$capture_evidence_status"
+  fi
+  capture_evidence_attempted=true
+  if timeout 30s "$capture_adb" -s "$capture_serial" pull "$capture_evidence_remote" "$capture_evidence_folder" \
+      > "$capture_logs/screen-evidence-pull.txt" 2>&1; then
+    capture_evidence_status=0
+    return 0
+  fi
+  # Android can restrict shell access to app-specific external storage. The tested
+  # debug app can read its own files; copy only its data, never execute an artifact.
+  if timeout 30s "$capture_adb" -s "$capture_serial" exec-out run-as io.github.wcwac.yimu.reference.debug \
+      tar -C "$capture_evidence_remote" -cf - . > "$capture_logs/screen-evidence.tar" \
+      2> "$capture_logs/screen-evidence-run-as.txt"; then
+    if python3 .github/scripts/reference_screens.py --extract "$capture_logs/screen-evidence.tar" \
+        --destination "$capture_evidence_folder"; then
+      capture_evidence_status=0
+      return 0
+    fi
+  fi
+  return 1
+}
+
 cleanup() {
   local capture_status=$?
   trap - EXIT INT TERM
   if [[ -n "$capture_pid" ]]; then
+    collect_screen_evidence || true
     timeout 10s "$capture_adb" -s "$capture_serial" logcat -d -v threadtime -t 2000 > "$capture_logs/logcat.txt" 2>&1 || true
     timeout 10s "$capture_adb" -s "$capture_serial" emu kill > "$capture_logs/emulator-stop.txt" 2>&1 || true
     kill "$capture_pid" 2>/dev/null || true
@@ -114,18 +143,21 @@ for package,apk in found.items():
     subprocess.run([str(adb),'-s','emulator-5554','install','-r','-t',str(apk)],check=True,timeout=90)
 PY_APKS
 
+capture_instrument_status=0
 timeout --signal=TERM --kill-after=20s 15m \
   "$capture_adb" -s "$capture_serial" shell am instrument -w -r \
   -e reference_cloud_only true -e timeout_msec 180000 \
   io.github.wcwac.yimu.reference.debug.test/androidx.test.runner.AndroidJUnitRunner \
-  | tee "$capture_logs/instrumentation.txt"
-python3 - <<'PY_RESULTS'
+  | tee "$capture_logs/instrumentation.txt" || capture_instrument_status=$?
+collect_screen_evidence || capture_evidence_status=$?
+capture_results_status=0
+python3 - <<'PY_RESULTS' || capture_results_status=$?
 from pathlib import Path
 import os,re,json
 text=(Path(os.environ['RUNNER_TEMP'])/'capture-device/instrumentation.txt').read_text()
 assert not any(s in text for s in ['FAILURES!!!','INSTRUMENTATION_FAILED','Process crashed','INSTRUMENTATION_RESULT: shortMsg']), 'Device tests failed or crashed'
 match=re.search(r'OK \(([0-9]+) tests?\)',text)
-assert match and int(match[1])>=46, 'Required device tests were not discovered or did not all pass'
+assert match and int(match[1])>=71, 'Required device tests were not discovered or did not all pass'
 required=set(json.loads((Path(os.environ['GITHUB_WORKSPACE'])/'.github/reference-test-cases.json').read_text())['device'])
 started=set();passed=set();case={}
 for line in text.splitlines():
@@ -144,3 +176,10 @@ assert required==started==passed, 'Device case inventory mismatch: missing='+str
 assert int(match[1])==len(passed), 'Device summary does not match individual passing cases'
 print('Device tests verified:',match[1])
 PY_RESULTS
+capture_screens_status=0
+python3 .github/scripts/reference_screens.py --destination "$capture_evidence_folder" \
+  --inventory .github/reference-test-cases.json || capture_screens_status=$?
+[[ "$capture_instrument_status" == 0 && "$capture_evidence_status" == 0 && "$capture_results_status" == 0 && "$capture_screens_status" == 0 ]] || {
+  echo "::error::Cloud device checks: instrumentation=$capture_instrument_status results=$capture_results_status screenshots=$capture_screens_status collection=$capture_evidence_status"
+  exit 1
+}
