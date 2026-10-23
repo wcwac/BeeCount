@@ -156,6 +156,7 @@ public final class CaptureRefundOverlayDeviceTest {
         assertEquals(android.text.InputType.TYPE_CLASS_NUMBER | android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL, node("cost").getInputType());
         assertEquals("1.00", text("cost"));
         clickId("account_book_layout"); clickText("退款浮窗另一本");
+        awaitRefundBook("退款浮窗另一本", rawRemark);
         assertEquals("已选择1条账单", text("bill_count")); assertEquals(rawRemark, text("bill_remark"));
         long before = store.scalar("SELECT COUNT(*) n FROM transactions"); clickId("btn_save");
         await(() -> node("confirm") != null, "Repeated refund did not open the original confirmation popup");
@@ -239,6 +240,7 @@ public final class CaptureRefundOverlayDeviceTest {
         await(() -> automatic.remark.equals(text("bill_remark")), "Automatic refund parent was not rendered");
         assertEquals("退款手选已有账户", text("asset_name")); // X0 does not call manual J0.
         clickId("account_book_layout"); clickText("退款手选另一账本");
+        awaitRefundBook("退款手选另一账本", automatic.remark);
         clickId("total_layout"); clickContainingText(income.remark); clickText("确定");
         await(() -> income.remark.equals(text("bill_remark")), "Default picker used the header book instead of the global book");
         assertEquals("退款手选原账户", text("asset_name")); assertEquals("-", text("num_symbol"));
@@ -266,6 +268,20 @@ public final class CaptureRefundOverlayDeviceTest {
         return null;
     }
     private String text(String id) { AccessibilityNodeInfo n = node(id); return n == null || n.getText() == null ? "" : n.getText().toString(); }
+    private boolean visibleTextEquals(String id, String expected) {
+        AccessibilityNodeInfo n = node(id);
+        return n != null && n.isVisibleToUser() && n.getText() != null && expected.contentEquals(n.getText());
+    }
+    private void awaitRefundBook(String name, String parentRemark) throws Exception {
+        // Injecting the item click does not establish that the modal window has
+        // dismissed and the replacement category_pager accessibility tree is ready.
+        // Require the selected header AND the same visible refund parent together.
+        await(() -> visibleTextEquals("account_book_name", name)
+                && visibleTextEquals("bill_count", "已选择1条账单")
+                && visibleTextEquals("bill_remark", parentRemark),
+                "Selected book and retained refund parent did not finish rendering");
+        assertEquals(name, text("account_book_name"));
+    }
     private void clickId(String id) throws Exception { await(() -> node(id) != null && node(id).isVisibleToUser(), "No visible overlay control " + id); touch(node(id)); }
     private void clickText(String text) throws Exception {
         clickText(text, true);
@@ -301,7 +317,31 @@ public final class CaptureRefundOverlayDeviceTest {
     private void await(Check check, String message) throws Exception {
         long end = SystemClock.elapsedRealtime() + 7000;
         while (SystemClock.elapsedRealtime() < end) { if (check.ready()) return; SystemClock.sleep(50); }
-        throw new AssertionError(message + " " + CaptureOverlay.status() + " " + ReferenceDiagnostics.snapshot());
+        throw new AssertionError(message + " " + liveUiSummary() + " " + CaptureOverlay.status() + " " + ReferenceDiagnostics.snapshot());
+    }
+    /** Synthetic emulator fixture labels only; no amount, capture payload or SQL is dumped. */
+    private JSONObject liveUiSummary() {
+        JSONObject result = Json.object("header", text("account_book_name"), "bill_count", text("bill_count"),
+                "parent_fixture_remark", text("bill_remark"), "edited_fixture_remark", text("remark"),
+                "renderedRefundPage", node("bill_count") != null);
+        try {
+            AccessibilityNodeInfo focus = automation.findFocus(AccessibilityNodeInfo.FOCUS_INPUT);
+            Json.put(result, "inputFocus", focus == null ? "none" : focus.getViewIdResourceName());
+            org.json.JSONArray tabs = new org.json.JSONArray();
+            AccessibilityNodeInfo strip = node("tab_layout"); collectTabState(strip, tabs);
+            Json.put(result, "tabNodes", tabs);
+            Json.put(result, "tabSelectionLimit", "ReferenceTabs does not expose its selected index as an accessibility flag");
+            org.json.JSONArray windows = new org.json.JSONArray();
+            for (AccessibilityWindowInfo window : automation.getWindows()) windows.put(Json.object(
+                    "type", window.getType(), "focused", window.isFocused(), "active", window.isActive(), "layer", window.getLayer()));
+            Json.put(result, "windows", windows);
+        } catch (RuntimeException error) { Json.put(result, "snapshotFailureType", error.getClass().getName()); }
+        return result;
+    }
+    private void collectTabState(AccessibilityNodeInfo node, org.json.JSONArray tabs) {
+        if (node == null) return;
+        if (node.getText() != null) tabs.put(Json.object("text", node.getText().toString(), "selected", node.isSelected(), "visible", node.isVisibleToUser()));
+        for (int i = 0; i < node.getChildCount(); i++) collectTabState(node.getChild(i), tabs);
     }
     private void barrier() throws Exception { FutureTask<Void> task = new FutureTask<>(() -> null); YimuKernel.enqueue(task); task.get(10, TimeUnit.SECONDS); }
     private String overlayMode() throws Exception {

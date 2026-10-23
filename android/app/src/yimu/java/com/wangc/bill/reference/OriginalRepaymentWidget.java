@@ -7,6 +7,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
+import android.os.Bundle;
 import android.view.View;
 import android.widget.RemoteViews;
 import com.wangc.bill.reference.ui.MainActivity;
@@ -18,9 +19,11 @@ public final class OriginalRepaymentWidget extends AppWidgetProvider {
     public static void refreshInstalled(ReferenceStore store){
         // Isolated device-test stores share applicationContext but never publish production rows.
         if(!ReferenceApplication.isProductionStore(store))return;Context context=store.context();AppWidgetManager manager=AppWidgetManager.getInstance(context);ComponentName provider=new ComponentName(context,OriginalRepaymentWidget.class);int[] ids=manager.getAppWidgetIds(provider);if(ids.length==0)return;
-        context.sendBroadcast(new Intent(context,OriginalRepaymentWidget.class).setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE).setFlags(268435456).putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS,ids));
+        context.sendBroadcast(new Intent(context,OriginalRepaymentWidget.class).setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE).setFlags(Intent.FLAG_RECEIVER_FOREGROUND).putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS,ids));
     }
     @Override public void onUpdate(Context context,AppWidgetManager manager,int[] ids){for(int id:ids){manager.notifyAppWidgetViewDataChanged(id,required(context,"id","repayment_list"));manager.updateAppWidget(id,views(context,id));}}
+    /** Original AppWidgetRepayment method45877 delegates its options event to u6.j. */
+    @Override public void onAppWidgetOptionsChanged(Context context,AppWidgetManager manager,int widgetId,Bundle options){super.onAppWidgetOptionsChanged(context,manager,widgetId,options);onUpdate(context,manager,new int[]{widgetId});}
     public static RemoteViews views(Context context,int widgetId){
         RemoteViews views=new RemoteViews(context.getPackageName(),required(context,"layout","layout_app_widget_repayment"));
         views.setImageViewResource(required(context,"id","background"),required(context,"drawable","shape_bg_white_15"));views.setInt(required(context,"id","background"),"setImageAlpha",(int)(0.8f*255.0f));

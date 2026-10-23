@@ -13,20 +13,24 @@ import org.json.JSONObject;
 
 /** Source repayment RemoteViews collection with current-store credit rows and real fill-in intents. */
 public final class OriginalRepaymentWidgetService extends RemoteViewsService {
-    @Override public RemoteViewsFactory onGetViewFactory(Intent intent){return new Factory(ReferenceApplication.store(),intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID,AppWidgetManager.INVALID_APPWIDGET_ID));}
+    @Override public RemoteViewsFactory onGetViewFactory(Intent intent){int id=intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID,AppWidgetManager.INVALID_APPWIDGET_ID);OriginalRepaymentWidgetDiagnostics.requested(id);return new Factory(ReferenceApplication.store(),id);}
     public static final class Factory implements RemoteViewsFactory {
         private final ReferenceStore store;private final Context context;private final int widgetId;
         private List<OriginalCreditBill> rows=new ArrayList<>();
         public Factory(ReferenceStore store,int widgetId){this.store=store;context=store.context();this.widgetId=widgetId;}
-        @Override public void onCreate(){}
-        @Override public void onDestroy(){rows=new ArrayList<>();}
-        @Override public void onDataSetChanged(){rows=upcoming(store,System.currentTimeMillis());}
+        @Override public void onCreate(){OriginalRepaymentWidgetDiagnostics.created(widgetId);}
+        @Override public void onDestroy(){rows=new ArrayList<>();OriginalRepaymentWidgetDiagnostics.destroyed(widgetId);}
+        @Override public void onDataSetChanged(){try{rows=upcoming(store,System.currentTimeMillis());OriginalRepaymentWidgetDiagnostics.changed(widgetId,rows.size());}catch(RuntimeException error){OriginalRepaymentWidgetDiagnostics.failed(widgetId,error);throw error;}}
         @Override public int getCount(){return rows.isEmpty()?1:rows.size();}
         @Override public long getItemId(int position){return position;}
         @Override public RemoteViews getLoadingView(){return null;}
         @Override public int getViewTypeCount(){return 3;}
         @Override public boolean hasStableIds(){return true;}
         @Override public RemoteViews getViewAt(int position){
+            OriginalRepaymentWidgetDiagnostics.row(widgetId,position<0||position>=rows.size());
+            try{return rowView(position);}catch(RuntimeException error){OriginalRepaymentWidgetDiagnostics.failed(widgetId,error);throw error;}
+        }
+        private RemoteViews rowView(int position){
             if(position<0||position>=rows.size())return new RemoteViews(context.getPackageName(),OriginalRepaymentWidget.required(context,"layout","item_widget_no_tip_small"));
             OriginalCreditBill bill=rows.get(position);RemoteViews views=new RemoteViews(context.getPackageName(),OriginalRepaymentWidget.required(context,"layout","item_widget_repayment_list"));JSONObject asset=OriginalFinancialEffects.cachedAsset(store,ReferenceStore.LOCAL_OFFLINE_OWNER,bill.getAssetId());
             views.setTextViewText(OriginalRepaymentWidget.required(context,"id","asset_name"),asset==null?"":asset.optString("name"));views.setTextViewText(OriginalRepaymentWidget.required(context,"id","cost"),OriginalCreditFormatting.amount(bill.getRemindNumber()));

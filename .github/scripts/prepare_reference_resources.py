@@ -9,7 +9,8 @@ import xml.etree.ElementTree as ET
 
 A='{http://schemas.android.com/apk/res/android}'
 APP='{http://schemas.android.com/apk/res-auto}'
-ET.register_namespace('android',A[1:-1]);ET.register_namespace('app',APP[1:-1])
+TOOLS='{http://schemas.android.com/tools}'
+ET.register_namespace('android',A[1:-1]);ET.register_namespace('app',APP[1:-1]);ET.register_namespace('tools',TOOLS[1:-1])
 REFERENCE=re.compile(r'[@?](?:\+)?(?:\*?([\w.]+):)?([\w]+)/([\w.]+)')
 # RemoteViews permits framework views only. Keep native ImageView tint attributes
 # in these recovered widget layouts instead of introducing AppCompat subclasses.
@@ -105,7 +106,15 @@ def prepare(source,output,java,manifest,aars):
             target=output/relative;target.parent.mkdir(parents=True,exist_ok=True)
             if path in documents:
                 root=copy.deepcopy(documents[path].getroot())
-                if path.parent.name.startswith('layout') and path.stem not in REMOTE_VIEWS_LAYOUTS:
+                if path.parent.name.startswith('layout') and path.stem in REMOTE_VIEWS_LAYOUTS:
+                    # RemoteViews cannot inflate AppCompat views. Android's native tint
+                    # works on the supported API levels; the AppCompat lint replacement
+                    # would break the system widget, so exempt only these native nodes.
+                    for e in root.iter():
+                        if e.tag in {'ImageView','ImageButton','android.widget.ImageView','android.widget.ImageButton'} and A+'tint' in e.attrib:
+                            ignored={x.strip() for x in e.get(TOOLS+'ignore','').split(',') if x.strip()}
+                            ignored.add('UseAppTint');e.set(TOOLS+'ignore',','.join(sorted(ignored)))
+                elif path.parent.name.startswith('layout'):
                     for e in root.iter():
                         if e.tag in {'ImageView','ImageButton','android.widget.ImageView','android.widget.ImageButton','androidx.appcompat.widget.AppCompatImageView','androidx.appcompat.widget.AppCompatImageButton'} and A+'tint' in e.attrib:
                             e.tag='androidx.appcompat.widget.AppCompatImageButton' if e.tag.endswith('ImageButton') else 'androidx.appcompat.widget.AppCompatImageView';e.set(APP+'tint',e.attrib.pop(A+'tint'))
