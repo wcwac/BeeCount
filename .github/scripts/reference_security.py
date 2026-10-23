@@ -18,7 +18,7 @@ COMPONENTS = {
     'com.wangc.bill.reference.ReferenceWidget',
     'androidx.core.content.FileProvider',
 }
-PERMISSIONS = {'android.permission.POST_NOTIFICATIONS', 'android.permission.RECEIVE_BOOT_COMPLETED'}
+PERMISSIONS = {'android.permission.POST_NOTIFICATIONS', 'android.permission.RECEIVE_BOOT_COMPLETED', 'android.permission.SYSTEM_ALERT_WINDOW'}
 
 def manifest(path, merged=False):
     root = ET.parse(path).getroot()
@@ -83,7 +83,12 @@ def source():
         access=ET.parse(path).getroot()
         assert access.get(A+'canRetrieveWindowContent') == 'true'
         assert access.get(A+'canPerformGestures') != 'true'
-        assert access.get(A+'canRequestEnhancedWebAccessibility') != 'true'
+        # Original 6.3.0 read profile (75). The deprecated web-read capability is declared
+        # by the reference too; app networking, WebView code and executable assets stay forbidden.
+        assert access.get(A+'canRequestEnhancedWebAccessibility') == 'true'
+        assert set(access.get(A+'accessibilityFlags','').split('|')) == {
+            'flagRetrieveInteractiveWindows','flagRequestEnhancedWebAccessibility',
+            'flagIncludeNotImportantViews','flagDefault'}
     paths = ET.parse(SOURCE/'res/xml/reference_file_paths.xml').getroot()
     assert len(paths) == 1 and paths[0].tag == 'files-path' and paths[0].get('path') == 'attachments/'
     print(f'Source boundary verified: {count} Java files, read-only accessibility, local attachments, no dynamic/native/network APIs')

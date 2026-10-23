@@ -21,7 +21,7 @@
             </RelativeLayout>
             <RelativeLayout android:id="@+id/overlays_layout" android:background="?android:attr/selectableItemBackground" android:layout_width="match_parent" android:layout_height="60dp" android:paddingStart="15dp" android:paddingEnd="15dp">
                 <LinearLayout android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_centerVertical="true" android:layout_toStartOf="@+id/switch_overlays">
-                    <TextView android:textSize="15sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="识别后显示确认浮窗" />
+                    <TextView android:textSize="15sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="悬浮窗权限" />
                 </LinearLayout>
                 <Switch android:id="@+id/switch_overlays" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_centerVertical="true" android:layout_alignParentEnd="true" />
             </RelativeLayout>
@@ -30,12 +30,12 @@
                 <ImageView android:id="@+id/ic_more" android:layout_width="18dp" android:layout_height="18dp" android:src="@mipmap/ic_more" android:tint="@color/grey" android:layout_centerVertical="true" android:layout_alignParentEnd="true" />
                 <TextView android:textSize="13sp" android:textColor="@color/red" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="新手必看" android:layout_centerVertical="true" android:layout_marginEnd="6dp" android:layout_toStartOf="@+id/ic_more" />
             </RelativeLayout>
-            <RelativeLayout android:id="@+id/allow_run_back" android:background="?android:attr/selectableItemBackground" android:visibility="gone" android:layout_width="match_parent" android:layout_height="60dp" android:paddingStart="15dp" android:paddingEnd="15dp">
+            <RelativeLayout android:id="@+id/allow_run_back" android:background="?android:attr/selectableItemBackground" android:layout_width="match_parent" android:layout_height="68dp" android:paddingStart="15dp" android:paddingEnd="15dp">
                 <LinearLayout android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_centerVertical="true">
-                    <TextView android:textSize="15sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="允许后台运行" />
+                    <TextView android:textSize="15sp" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="后台运行设置" />
+                    <TextView android:textSize="12sp" android:textColor="@color/grey" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="3dp" android:text="查看手机自启动与省电设置" />
                 </LinearLayout>
                 <ImageView android:id="@+id/ic_run_back_more" android:layout_width="18dp" android:layout_height="18dp" android:src="@mipmap/ic_more" android:tint="@color/grey" android:layout_centerVertical="true" android:layout_alignParentEnd="true" />
-                <TextView android:textSize="13sp" android:textColor="@color/red" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="必须设置" android:layout_centerVertical="true" android:layout_marginEnd="6dp" android:layout_toStartOf="@+id/ic_run_back_more" />
             </RelativeLayout>
             <RelativeLayout android:id="@+id/not_work_layout" android:background="@drawable/selectable_item_expand_mask" android:layout_width="match_parent" android:layout_height="60dp" android:paddingStart="15dp" android:paddingEnd="15dp">
                 <LinearLayout android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_centerVertical="true">

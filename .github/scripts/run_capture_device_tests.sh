@@ -121,10 +121,26 @@ timeout --signal=TERM --kill-after=20s 15m \
   | tee "$capture_logs/instrumentation.txt"
 python3 - <<'PY_RESULTS'
 from pathlib import Path
-import os,re
+import os,re,json
 text=(Path(os.environ['RUNNER_TEMP'])/'capture-device/instrumentation.txt').read_text()
 assert not any(s in text for s in ['FAILURES!!!','INSTRUMENTATION_FAILED','Process crashed','INSTRUMENTATION_RESULT: shortMsg']), 'Device tests failed or crashed'
 match=re.search(r'OK \(([0-9]+) tests?\)',text)
-assert match and int(match[1])>=22, 'Required device tests were not discovered or did not all pass'
+assert match and int(match[1])>=46, 'Required device tests were not discovered or did not all pass'
+required=set(json.loads((Path(os.environ['GITHUB_WORKSPACE'])/'.github/reference-test-cases.json').read_text())['device'])
+started=set();passed=set();case={}
+for line in text.splitlines():
+    field=re.fullmatch(r'INSTRUMENTATION_STATUS: (class|test)=(.*)',line.strip())
+    if field:case[field[1]]=field[2]
+    status=re.fullmatch(r'INSTRUMENTATION_STATUS_CODE: (-?\d+)',line.strip())
+    if not status:continue
+    if 'class' in case and 'test' in case:
+        name=case['class']+'.'+case['test'];code=int(status[1])
+        assert code in (0,1), 'Device case failed or skipped: '+name+' status='+str(code)
+        target=started if code==1 else passed
+        assert name not in target, 'Duplicated device case result: '+name
+        target.add(name)
+    case={}
+assert required==started==passed, 'Device case inventory mismatch: missing='+str(sorted(required-passed))+' unexpected='+str(sorted(passed-required))
+assert int(match[1])==len(passed), 'Device summary does not match individual passing cases'
 print('Device tests verified:',match[1])
 PY_RESULTS

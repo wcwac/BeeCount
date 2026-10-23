@@ -2,6 +2,6 @@
  android:description="@string/reference_accessibility_description"
  android:accessibilityEventTypes="typeWindowContentChanged|typeWindowStateChanged"
  android:accessibilityFeedbackType="feedbackAllMask" android:notificationTimeout="10"
- android:accessibilityFlags="flagRetrieveInteractiveWindows|flagIncludeNotImportantViews|flagReportViewIds"
- android:canRetrieveWindowContent="true"
+ android:accessibilityFlags="flagRetrieveInteractiveWindows|flagRequestEnhancedWebAccessibility|flagIncludeNotImportantViews|flagDefault"
+ android:canRetrieveWindowContent="true" android:canRequestEnhancedWebAccessibility="true"
  android:packageNames="com.tencent.mm,com.eg.android.AlipayGphone,com.unionpay,com.xunmeng.pinduoduo"/>

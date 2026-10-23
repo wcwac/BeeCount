@@ -97,8 +97,12 @@ public final class ReferenceStore extends SQLiteOpenHelper {
             String importKey=input.optString("import_key");
             if(!importKey.isEmpty()){
                 if(!importKey.matches("[a-f0-9]{64}"))throw new IllegalArgumentException("导入标识无效");
+                if(candidateId!=null)throw new IllegalArgumentException("采集记录不能使用导入标识");
                 JSONObject previous=one("SELECT id FROM transactions WHERE import_key=?",importKey);
-                if(previous!=null){db.setTransactionSuccessful();return previous.optLong("id");}
+                if(previous!=null&&previous.optLong("id")!=editingId){
+                    if(editingId>0)throw new IllegalArgumentException("导入标识属于其他账单");
+                    db.setTransactionSuccessful();return previous.optLong("id");
+                }
             }
             if (candidateId != null) {
                 if (candidate == null) throw new IllegalArgumentException("采集记录不存在");
@@ -107,7 +111,6 @@ public final class ReferenceStore extends SQLiteOpenHelper {
             }
             long bookId = input.optLong("book_id"); JSONObject book = book(bookId);
             if (book == null || book.optInt("archived") != 0) throw new IllegalArgumentException("请选择有效账本");
-            if (candidate != null && candidate.optLong("book_id") != bookId) throw new IllegalArgumentException("请使用采集时的目标账本");
             String currency = book.optString("currency"), kind = input.optString("kind");
             if (!java.util.Arrays.asList("expense", "income", "transfer").contains(kind)) throw new IllegalArgumentException("记账类型无效");
             long amount = input.optLong("amount"), fee = input.optLong("fee"), discount = input.optLong("discount");
@@ -151,7 +154,11 @@ public final class ReferenceStore extends SQLiteOpenHelper {
                     db.execSQL("INSERT OR IGNORE INTO transaction_tags(transaction_id,tag_id) VALUES(?,?)", new Object[]{id, tag});
                 }
             }
-            if (candidate != null) db.execSQL("UPDATE candidates SET state='SAVED',transaction_id=? WHERE id=?", new Object[]{id, candidateId});
+            if (candidate != null) {
+                JSONObject confirmed=Json.copy(input);Json.put(confirmed,"currency",currency);
+                db.execSQL("UPDATE candidates SET state='SAVED',transaction_id=?,book_id=?,payload=? WHERE id=?",
+                    new Object[]{id,bookId,confirmed.toString(),candidateId});
+            }
             if (!kind.equals("transfer") && input.optBoolean("remember_rule") && !input.optString("merchant").trim().isEmpty()) {
                 ContentValues rule = new ContentValues(); rule.put("merchant", bounded(input.optString("merchant"), 2000)); rule.put("category_id", category); rule.put("book_id", bookId); if (account > 0) rule.put("account_id", account);
                 JSONObject old = one("SELECT id FROM rules WHERE merchant=?", input.optString("merchant"));
@@ -164,6 +171,41 @@ public final class ReferenceStore extends SQLiteOpenHelper {
         if (id <= 0) return;
         JSONObject account = one("SELECT * FROM accounts WHERE id=? AND archived=0", "" + id);
         if (account == null || !currency.equals(account.optString("currency"))) throw new IllegalArgumentException("账户不存在或币种与账本不同");
+    }
+    /** Original a0.y/C2 matches the unedited captured time +/- one minute, absolute amount
+     * +/- 0.0001 and income direction, across books. Transfers/debts use other original tables. */
+    public synchronized List<JSONObject> findRepeatTransactions(JSONObject data) {
+        long time=data.has("original_time")?data.optLong("original_time"):data.optLong("time");
+        double amount=data.has("original_number")?Math.abs(com.wangc.bill.utils.h2.S(data.optString("original_number")))
+            :Math.abs((data.has("original_amount")?data.optLong("original_amount"):data.optLong("amount"))/100.0);
+        boolean income=data.has("original_income")?data.optBoolean("original_income"):"income".equals(data.optString("kind"));
+        if(time<Long.MIN_VALUE+60000||time>Long.MAX_VALUE-60000||!Double.isFinite(amount))return new ArrayList<>();
+        String currency=data.optString("original_currency",data.optString("currency","CNY"));
+        return query("SELECT t.*,b.name book_name FROM transactions t JOIN books b ON b.id=t.book_id"
+            +" WHERE t.deleted=0 AND t.currency=? AND t.time>=? AND t.time<=? AND t.amount/100.0>=CAST(? AS REAL) AND t.amount/100.0<=CAST(? AS REAL) AND t.kind=?"
+            +" AND t.financial_type IN ('','reimbursement') ORDER BY t.id",
+            currency,""+(time-60000),""+(time+60000),""+(amount-0.0001),""+(amount+0.0001),income?"income":"expense");
+    }
+    /** The original repeat dialog can replace its sole matching bill. All local changes,
+     * including the old candidate link, commit together; failed validation retains the old bill. */
+    public synchronized long saveCandidateReplacing(JSONObject data,String candidateId,long oldId) {
+        if(candidateId==null||candidateId.isEmpty())throw new IllegalArgumentException("采集记录不存在");
+        SQLiteDatabase db=getWritableDatabase();db.beginTransaction();
+        try {
+            JSONObject candidate=candidate(candidateId);
+            if(candidate==null)throw new IllegalArgumentException("采集记录不存在");
+            if("SAVED".equals(candidate.optString("state"))){db.setTransactionSuccessful();return candidate.optLong("transaction_id");}
+            if(!"PENDING".equals(candidate.optString("state")))throw new IllegalArgumentException("采集记录已处理");
+            List<JSONObject> repeats=findRepeatTransactions(data);
+            if(repeats.size()!=1||repeats.get(0).optLong("id")!=oldId)throw new IllegalArgumentException("重复账单已变化，请重新确认");
+            JSONObject old=repeats.get(0);
+            if(old.optLong("related_id")>0||scalar("SELECT COUNT(*) n FROM transactions WHERE related_id=?",""+oldId)>0)
+                throw new IllegalArgumentException("重复账单有关联回款，请先处理关联账单");
+            long id=saveTransaction(data,0,candidateId);
+            db.execSQL("UPDATE candidates SET state='DISMISSED',transaction_id=NULL WHERE transaction_id=?",new Object[]{oldId});
+            if(db.delete("transactions","id=?",new String[]{""+oldId})!=1)throw new IllegalStateException("重复账单已变化");
+            db.setTransactionSuccessful();return id;
+        } finally { db.endTransaction(); }
     }
     public synchronized void trash(long id, boolean deleted) { getWritableDatabase().execSQL("UPDATE transactions SET deleted=? WHERE id=?", new Object[]{deleted ? 1 : 0, id}); }
     public synchronized void purge(long id){SQLiteDatabase db=getWritableDatabase();db.beginTransaction();try{JSONObject row=transaction(id);if(row==null||row.optInt("deleted")!=1)throw new IllegalArgumentException("只能永久删除回收站中的账单");if(scalar("SELECT COUNT(*) n FROM transactions WHERE related_id=?",""+id)>0)throw new IllegalArgumentException("请先删除关联的回款账单");String candidate=row.optString("candidate_id");if(!candidate.isEmpty()&&!candidate.equals("null"))db.execSQL("UPDATE candidates SET state='DISMISSED',transaction_id=NULL WHERE id=?",new Object[]{candidate});db.delete("transactions","id=?",new String[]{""+id});db.setTransactionSuccessful();}finally{db.endTransaction();}}

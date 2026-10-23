@@ -7,6 +7,8 @@ import android.os.Looper;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.accessibility.AccessibilityEvent;
+import android.view.accessibility.AccessibilityNodeInfo;
+import android.view.accessibility.AccessibilityNodeProvider;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
@@ -23,6 +25,21 @@ public final class MspContainerActivity extends Activity {
         missingEventSource = getIntent().getBooleanExtra("fixture_null_source", false);
         root = new RelativeLayout(this);
         if (missingEventSource) root.setAccessibilityDelegate(new View.AccessibilityDelegate() {
+            private final AccessibilityNodeProvider provider = new AccessibilityNodeProvider() {
+                @Override public AccessibilityNodeInfo createAccessibilityNodeInfo(int virtualId) {
+                    if (virtualId != HOST_VIEW_ID) return null;
+                    // Calling root.createAccessibilityNodeInfo() here would recurse
+                    // through this provider. Initialize the real host directly so
+                    // a window-root traversal still sees its physical children.
+                    AccessibilityNodeInfo node = AccessibilityNodeInfo.obtain(root);
+                    root.onInitializeAccessibilityNodeInfo(node);
+                    if (node.getChildCount() == 0) for (int i = 0; i < root.getChildCount(); i++) node.addChild(root.getChildAt(i));
+                    return node;
+                }
+            };
+            @Override public AccessibilityNodeProvider getAccessibilityNodeProvider(View host) {
+                return provider;
+            }
             @Override public void onInitializeAccessibilityEvent(View host, AccessibilityEvent event) {
                 super.onInitializeAccessibilityEvent(host, event);
                 redirectMissingSource(event);
@@ -61,9 +78,9 @@ public final class MspContainerActivity extends Activity {
     private void redirectMissingSource(AccessibilityEvent event) {
         if (missingEventSource && root != null) {
             // Keep the real window ID, but refer to a virtual descendant that does
-            // not exist. The physical root remains readable. Since this View has
-            // no virtual node provider, the receiving service's getSource() must
-            // resolve to null rather than a fabricated/test-only Java result.
+            // not exist. A real provider explicitly returns null for this ID;
+            // otherwise Android can resolve a no-provider View to its host.
+            // HOST_VIEW_ID remains readable for the actual window traversal.
             event.setSource(root, MISSING_VIRTUAL_NODE);
         }
     }
@@ -81,6 +98,9 @@ public final class MspContainerActivity extends Activity {
         text.setText(value);
         text.setTextSize(22);
         text.setPadding(0, 15, 0, 15);
+        // The recovered reader requests INCLUDE_NOT_IMPORTANT_VIEWS. This real
+        // payment-method label must remain available for both its gate and asset.
+        if (value.equals("付款方式")) text.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
         if (android.os.Build.VERSION.SDK_INT >= 34) text.setAccessibilityDataSensitive(View.ACCESSIBILITY_DATA_SENSITIVE_YES);
         lines.addView(text);
     }

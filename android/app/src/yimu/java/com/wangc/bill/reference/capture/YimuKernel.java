@@ -17,23 +17,38 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 public final class YimuKernel {
+    private static volatile Thread workerThread;
     public static final ThreadPoolExecutor WORKER = new ThreadPoolExecutor(1, 1, 30, TimeUnit.SECONDS,
-        new ArrayBlockingQueue<>(32), task -> new Thread(task, "yimu-reference"), new ThreadPoolExecutor.AbortPolicy());
+        new ArrayBlockingQueue<>(32), task -> { Thread thread=new Thread(task,"yimu-reference");workerThread=thread;return thread; }, new ThreadPoolExecutor.AbortPolicy());
     private static final Handler MAIN = new Handler(Looper.getMainLooper());
     static final ThreadLocal<String> SOURCE = new ThreadLocal<>();
     private static long lastSubmit;
     private static String lastKey, lastCandidate, lastPackage;
-    private static final java.util.concurrent.ConcurrentHashMap<x1.a,String> HANDLERS = new java.util.concurrent.ConcurrentHashMap<>();
+    private static volatile long restoreEpoch;
+    // Parser callbacks may be singletons. Each durable candidate owns its own registration.
+    private static final java.util.concurrent.ConcurrentHashMap<String,x1.a> HANDLERS = new java.util.concurrent.ConcurrentHashMap<>();
     private YimuKernel() {}
     /** Share the event submission lock so callbacks remain queue ordering barriers. */
     public static void enqueue(Runnable task){synchronized(WORKER){WORKER.execute(task);}}
+    public static boolean isWorkerThread(){return Thread.currentThread()==workerThread;}
+    public static int registeredCallbackCount(){return HANDLERS.size();}
+    /** Called on the serial worker after a successful full database replacement. */
+    public static synchronized void resetAfterRestore(){
+        if(!isWorkerThread())throw new IllegalStateException("采集状态必须在采集工作线程重置");
+        restoreEpoch++;
+        java.util.Set<x1.a> callbacks=java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
+        callbacks.addAll(HANDLERS.values());HANDLERS.clear();
+        lastSubmit=0;lastKey=null;lastCandidate=null;lastPackage=null;
+        com.google.android.accessibility.selecttospeak.SelectToSpeakService.f1838j=0;
+        for(x1.a callback:callbacks)try{callback.dismiss();}catch(RuntimeException error){ReferenceDiagnostics.failure("RESTORE_PARSER_RESET_FAILED",error);}
+    }
 
     public static synchronized void submit(BillInfo bill, x1.a callback) {
         ReferenceDiagnostics.attempt();
         String pkg = SOURCE.get();
         if (pkg == null || !AutoApps.accepts(pkg)) { ReferenceDiagnostics.result("STOPPED"); return; }
         // Recovered SelectToSpeakService.l: 1s between submissions, identical
-        // normalized number+time rejected for 10s. Retained for comparison.
+        // captured number+time rejected for 10s. Retained for comparison.
         long now = System.currentTimeMillis();
         if (!com.wangc.bill.utils.h2.J(bill.getNumber())) { ReferenceDiagnostics.result("INVALID_AMOUNT"); return; }
         String key = bill.getAutoRepeatString();
@@ -44,7 +59,7 @@ public final class YimuKernel {
         if (book == null || book.optInt("archived") != 0 || !"CNY".equals(book.optString("currency"))) { ReferenceDiagnostics.result("TARGET_BOOK_UNAVAILABLE"); return; }
         String kind = bill.isTransfer() ? "transfer" : bill.isIncome() ? "income" : "expense";
         long amount = 0, discount = 0, fee = 0;
-        try { amount = Money.positive(bill.getNumber(), "CNY"); } catch (IllegalArgumentException ignored) {}
+        try { amount = CapturedAmount.minorUnits(bill.getNumber()); } catch (IllegalArgumentException ignored) {}
         try { if (bill.getDiscount() != null) discount = Math.max(0, Money.signed(bill.getDiscount(), "CNY")); } catch (IllegalArgumentException ignored) {}
         try { fee = Math.max(0, Money.signed(BigDecimal.valueOf(bill.getServiceCharge()).toPlainString(), "CNY")); } catch (IllegalArgumentException ignored) {}
         long account = ReferenceApplication.prefs().getLong("default_account", 0), toAccount = 0;
@@ -60,27 +75,26 @@ public final class YimuKernel {
             if (a != null) account = a.optLong("id");
         }
         JSONArray tags = new JSONArray(); if (bill.getTagList() != null) for (Long id : bill.getTagList()) if (store.one("SELECT id FROM tags WHERE id=?", "" + id) != null) tags.put(id);
-        JSONObject data = Json.object("book_id", bookId, "kind", kind, "amount", amount, "currency", "CNY", "category_id", category,
+        JSONObject data = Json.object("book_id", bookId, "kind", kind, "amount", amount, "currency", "CNY", "original_number", bill.getNumber(), "category_id", category,
             "account_id", account, "to_account_id", toAccount, "remark", ReferenceApplication.prefs().getBoolean("add_remark",true)?safe(bill.getRemark()):"", "merchant", merchant,
             "origin", safe(bill.getOrigin()), "asset_text", safe(bill.getAsset()), "discount", discount, "fee", fee,
             "time", bill.getTime() > 0 ? bill.getTime() : now, "not_total", bill.isNotIntoTotal()||ReferenceApplication.prefs().getBoolean("capture_not_total",false), "not_budget", bill.isNotIntoBudget()||ReferenceApplication.prefs().getBoolean("capture_not_budget",false),
-            "tag_ids", tags, "originalNumberValid", amount > 0);
+            "tag_ids", tags, "originalNumberValid", amount > 0,
+            // Original repeat checks keep BillInfo's captured values, including a missing time (0).
+            "original_amount", amount, "original_time", bill.getTime(), "original_income", bill.isIncome(), "original_currency", "CNY");
         try {
             String id = store.addCandidate(data, pkg, bookId);
             lastSubmit = now;com.google.android.accessibility.selecttospeak.SelectToSpeakService.f1838j=now; lastKey = key; lastCandidate = id; lastPackage = pkg;
-            if (callback != null) HANDLERS.put(callback, id);
+            if (callback != null) HANDLERS.put(id, callback);
             ReferenceDiagnostics.result("DRAFT_SAVED");
-            if (ReferenceApplication.prefs().getBoolean("auto_save", false) && amount > 0 && (!kind.equals("transfer") || (account > 0 && toAccount > 0))) {
-                store.saveTransaction(data, 0, id);
-                ReferenceDiagnostics.result("AUTO_SAVED");
-                CaptureOverlay.autoSaved();
-                if (callback != null) callback.dismiss();
-            } else {
-                MAIN.post(() -> {
-                    if (ReferenceApplication.prefs().getBoolean("show_overlay", true)) CaptureOverlay.show(id, callback);
-                    CaptureNotifications.update();
-                });
-            }
+            // AutoSetting.autoAdd belongs to the attached entry window: it counts down for 5s
+            // and invokes the same validated save action as a manual click. Never bypass it here.
+            long epoch=restoreEpoch;
+            MAIN.post(() -> {
+                if(epoch!=restoreEpoch)return;
+                if (ReferenceApplication.prefs().getBoolean("show_overlay", true)) CaptureOverlay.show(id, callback);
+                CaptureNotifications.update();
+            });
         } catch (Exception error) { ReferenceDiagnostics.failure("STORE_FAILED",error); MAIN.post(CaptureNotifications::error); }
     }
     private static long accountNamed(ReferenceStore store, String value) { if (value == null || value.isEmpty()) return 0; JSONObject row = store.one("SELECT id FROM accounts WHERE name=? AND archived=0 AND currency='CNY'", value); return row == null ? 0 : row.optLong("id"); }
@@ -88,10 +102,14 @@ public final class YimuKernel {
     public static void enrichRemark(String remark) {
         String pkg = SOURCE.get();
         if (pkg == null || remark == null || remark.isEmpty() || !ReferenceApplication.prefs().getBoolean("add_remark",true)) return;
-        String candidate;
-        synchronized (YimuKernel.class) { candidate = pkg.equals(lastPackage) ? lastCandidate : null; }
+        String candidate;long epoch;
+        synchronized (YimuKernel.class) { candidate = pkg.equals(lastPackage) ? lastCandidate : null;epoch=restoreEpoch; }
         if (candidate != null) MAIN.postDelayed(() -> {
-            try { enqueue(() -> ReferenceApplication.store().updateCandidateRemark(candidate, remark)); }
+            try { enqueue(() -> {
+                if(epoch!=restoreEpoch)return;
+                ReferenceApplication.store().updateCandidateRemark(candidate, remark);
+                MAIN.post(() -> CaptureOverlay.enrichRemark(candidate, remark));
+            }); }
             catch (java.util.concurrent.RejectedExecutionException ignored) { ReferenceDiagnostics.skipped(); }
         }, 1000);
     }
@@ -101,8 +119,11 @@ public final class YimuKernel {
     }
     public static void complete(String candidateId) {
         if(candidateId==null)return;
-        for(java.util.Map.Entry<x1.a,String> entry:HANDLERS.entrySet())if(candidateId.equals(entry.getValue())){
-            try{enqueue(()->{if(HANDLERS.remove(entry.getKey(),candidateId))entry.getKey().dismiss();});}
+        // Original closeBtn/u0 restart SelectToSpeakService.j's debounce clock on dismissal.
+        synchronized(YimuKernel.class){lastSubmit=System.currentTimeMillis();com.google.android.accessibility.selecttospeak.SelectToSpeakService.f1838j=lastSubmit;}
+        x1.a callback=HANDLERS.get(candidateId);
+        if(callback!=null){
+            try{enqueue(()->{if(HANDLERS.remove(candidateId,callback))callback.dismiss();});}
             catch(java.util.concurrent.RejectedExecutionException ignored){ReferenceDiagnostics.skipped();}
         }
     }

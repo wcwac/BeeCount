@@ -14,6 +14,7 @@ import android.view.accessibility.AccessibilityWindowInfo;
 import com.wangc.bill.reference.Json;
 import com.wangc.bill.reference.ReferenceApplication;
 import com.wangc.bill.reference.ui.CaptureOverlay;
+import com.wangc.bill.reference.ui.OverlayPermission;
 import java.lang.ref.WeakReference;
 import java.util.List;
 import org.json.JSONObject;
@@ -28,9 +29,11 @@ public final class ReferenceCaptureService extends AccessibilityService {
         AccessibilityServiceInfo info = getServiceInfo(); if (info == null) return;
         info.packageNames = AutoApps.selected().toArray(new String[0]);
         info.eventTypes = AutoApps.enabled() && info.packageNames.length > 0 ? AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED | AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED : 0;
-        // The original APK includes non-important and interactive-window nodes.
-        // Keep these original read flags: they materially change hybrid pages.
-        info.flags = AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS | AccessibilityServiceInfo.FLAG_INCLUDE_NOT_IMPORTANT_VIEWS | AccessibilityServiceInfo.FLAG_REPORT_VIEW_IDS;
+        // Yimu 6.3.0 xml/accessibility_service_config.xml: the original keeps flags 75
+        // when onServiceConnected changes packageNames. UI inspection flags belong to the observer.
+        info.flags = AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS
+            | AccessibilityServiceInfo.FLAG_REQUEST_ENHANCED_WEB_ACCESSIBILITY
+            | AccessibilityServiceInfo.FLAG_INCLUDE_NOT_IMPORTANT_VIEWS | AccessibilityServiceInfo.DEFAULT;
         info.notificationTimeout = 10;
         setServiceInfo(info);
         if (!AutoApps.enabled()) CaptureOverlay.close();
@@ -117,10 +120,11 @@ public final class ReferenceCaptureService extends AccessibilityService {
         AccessibilityServiceInfo info=null;try{if(service!=null)info=service.getServiceInfo();}catch(RuntimeException ignored){}
         return Json.object("enabled", AutoApps.enabled(), "permissionGranted", granted, "connected", service != null,
             "selectedPackages", new org.json.JSONArray(AutoApps.selected()), "toolIdentity",Build.VERSION.SDK_INT>=31&&info!=null&&info.isAccessibilityTool(), "flags", info == null ? 0 : info.flags,
+            "capabilities",info==null?0:info.getCapabilities(),"canRetrieveWindowContent",info!=null&&(info.getCapabilities()&AccessibilityServiceInfo.CAPABILITY_CAN_RETRIEVE_WINDOW_CONTENT)!=0,
             "eventTypes", info == null ? 0 : info.eventTypes, "effectivePackages", info == null || info.packageNames == null ? new org.json.JSONArray() : new org.json.JSONArray(java.util.Arrays.asList(info.packageNames)),
-            "workerQueueSize",YimuKernel.WORKER.getQueue().size(),"workerActiveCount",YimuKernel.WORKER.getActiveCount(),
+            "callbackRegistrations",YimuKernel.registeredCallbackCount(),"workerQueueSize",YimuKernel.WORKER.getQueue().size(),"workerActiveCount",YimuKernel.WORKER.getActiveCount(),
             "overlayEnabled",ReferenceApplication.prefs().getBoolean("show_overlay",true),"autoSave",ReferenceApplication.prefs().getBoolean("auto_save",false),"overlay",CaptureOverlay.status(),
-            "sourcePolicy",ReferenceApplication.prefs().getBoolean("use_active_window",false)?"ACTIVE_WINDOW_FIRST":"EVENT_THEN_SAME_WINDOW", "overlayPermissionModel","CONNECTED_ACCESSIBILITY_SERVICE",
+            "sourcePolicy",ReferenceApplication.prefs().getBoolean("use_active_window",false)?"ACTIVE_WINDOW_FIRST":"EVENT_THEN_SAME_WINDOW", "overlayPermissionModel","SYSTEM_ALERT_WINDOW", "overlayPermissionGranted",OverlayPermission.granted(),
             "diagnostics", ReferenceDiagnostics.snapshot());
     }
     @Override public void onInterrupt() { ReferenceDiagnostics.result("FEEDBACK_INTERRUPTED"); }

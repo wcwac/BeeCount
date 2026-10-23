@@ -7,6 +7,7 @@ import android.provider.OpenableColumns;
 import androidx.core.content.FileProvider;
 import com.wangc.bill.reference.*;
 import com.wangc.bill.reference.capture.AutoApps;
+import com.wangc.bill.reference.capture.YimuKernel;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import java.io.*;
@@ -14,6 +15,9 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.*;
 import java.util.zip.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public final class LocalFiles {
     private static final int MAX_ATTACHMENT=16*1024*1024,MAX_JSON=16*1024*1024,MAX_ARCHIVE=128*1024*1024;
@@ -39,8 +43,10 @@ public final class LocalFiles {
         }
     }
     public static void restoreBackup(Context context,Uri uri)throws Exception{
+        if(android.os.Looper.myLooper()==android.os.Looper.getMainLooper())throw new IllegalStateException("备份恢复需要在文件工作线程执行");
+        if(YimuKernel.isWorkerThread())throw new IllegalStateException("备份恢复不能在采集工作线程中等待自身任务");
         File staging=new File(context.getCacheDir(),"restore-"+UUID.randomUUID());if(!staging.mkdirs())throw new IOException("无法准备恢复目录");
-        List<File> moved=new ArrayList<>();boolean committed=false;try{
+        List<File> moved=new ArrayList<>();AtomicBoolean committed=new AtomicBoolean();try{
             JSONObject backup=null;Set<String> entries=new HashSet<>();Map<String,File> pending=new HashMap<>();long total=0;int count=0;
             InputStream input=context.getContentResolver().openInputStream(uri);if(input==null)throw new IOException("无法读取备份");
             try(ZipInputStream zip=new ZipInputStream(input)){
@@ -55,10 +61,25 @@ public final class LocalFiles {
             if(backup==null)throw new IOException("备份缺少账单数据");Set<String> referenced=attachmentNames(backup);Map<String,String> names=new HashMap<>();
             for(String original:referenced){File staged=pending.get(original);if(staged==null)throw new IOException("备份缺少引用的附件");String renamed=UUID.randomUUID()+original.substring(original.lastIndexOf('.'));File target=file(context,renamed);if(!staged.renameTo(target))throw new IOException("无法恢复附件文件");moved.add(target);names.put(original,renamed);}
             rewriteAttachments(backup,names);
-            AutoApps.enable(false);CaptureOverlay.close();ReferenceApplication.store().restore(backup);committed=true;
-            long book=ReferenceApplication.store().books().get(0).optLong("id");android.content.SharedPreferences.Editor preferences=ReferenceApplication.prefs().edit().putLong("current_book",book).putLong("capture_book",book).putLong("default_account",0).putBoolean("auto_save",false);
-            for(String key:ReferenceApplication.prefs().getAll().keySet())if(key.startsWith("source_tag_"))preferences.remove(key);preferences.commit();
-        }finally{File[] staged=staging.listFiles();if(staged!=null)for(File f:staged)f.delete();staging.delete();if(!committed)for(File f:moved)f.delete();}
+            AutoApps.enable(false);CaptureOverlay.closeForRestore();
+            JSONObject restored=backup;
+            FutureTask<Void> operation=new FutureTask<>(()->{
+                ReferenceApplication.store().restore(restored);committed.set(true);YimuKernel.resetAfterRestore();
+                long book=ReferenceApplication.store().books().get(0).optLong("id");android.content.SharedPreferences.Editor preferences=ReferenceApplication.prefs().edit().putLong("current_book",book).putLong("capture_book",book).putLong("default_account",0).putBoolean("auto_save",false);
+                for(String key:ReferenceApplication.prefs().getAll().keySet())if(key.startsWith("source_tag_"))preferences.remove(key);preferences.commit();
+                return null;
+            });
+            // Capture, window saves, remark callbacks and plans use this same serial worker.
+            // Finish any in-flight transaction before replacing the database; old queued
+            // window saves are invalidated by close() and cannot write after restoration.
+            YimuKernel.enqueue(operation);
+            boolean interrupted=false;
+            try{
+                for(;;)try{operation.get();break;}catch(InterruptedException error){interrupted=true;}
+            }catch(ExecutionException error){
+                Throwable cause=error.getCause();if(cause instanceof Exception failure)throw failure;if(cause instanceof Error failure)throw failure;throw new IOException("无法恢复账单数据",cause);
+            }finally{if(interrupted)Thread.currentThread().interrupt();}
+        }finally{File[] staged=staging.listFiles();if(staged!=null)for(File f:staged)f.delete();staging.delete();if(!committed.get())for(File f:moved)f.delete();}
     }
     private static Set<String> attachmentNames(JSONObject backup){Set<String> names=new HashSet<>();JSONObject tables=backup.optJSONObject("tables");if(tables==null)throw new IllegalArgumentException("备份格式错误");JSONArray rows=tables.optJSONArray("transactions");if(rows==null)throw new IllegalArgumentException("备份缺少账单表");for(int i=0;i<rows.length();i++){JSONObject row=rows.optJSONObject(i);if(row==null)throw new IllegalArgumentException("账单格式错误");JSONArray items=Json.array(row.optString("attachments","[]"));if(items.length()>100)throw new IllegalArgumentException("单条账单的附件过多");for(int j=0;j<items.length();j++){JSONObject item=items.optJSONObject(j);if(item==null||!item.optString("file").matches(SAFE_FILE))throw new IllegalArgumentException("附件路径无效");names.add(item.optString("file"));}}return names;}
     private static void rewriteAttachments(JSONObject backup,Map<String,String> names){JSONArray rows=backup.optJSONObject("tables").optJSONArray("transactions");for(int i=0;i<rows.length();i++){JSONObject row=rows.optJSONObject(i);JSONArray files=Json.array(row.optString("attachments","[]"));for(int j=0;j<files.length();j++){JSONObject item=files.optJSONObject(j);Json.put(item,"file",names.get(item.optString("file")));}Json.put(row,"attachments",files.toString());}}

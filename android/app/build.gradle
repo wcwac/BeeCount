@@ -9,7 +9,7 @@ android {
     compileSdk 36
     defaultConfig {
         applicationId 'io.github.wcwac.yimu.reference'
-        minSdk 24
+        minSdk 26
         targetSdk 36
         versionCode = Integer.parseInt(System.getenv('BUILD_NUMBER') ?: '1')
         versionName = System.getenv('BUILD_VERSION') ?: '0.1.0'
