@@ -15,7 +15,11 @@ public final class OriginalMaxHeightRecyclerView extends RecyclerView {
     public OriginalMaxHeightRecyclerView(Context context,AttributeSet attributes,int style){super(context,attributes,style);read(context,attributes);}
 
     private void read(Context context,AttributeSet attributes){
-        TypedArray values=context.obtainStyledAttributes(attributes,new int[]{com.wangc.bill.R.attr.maxHeight});
+        // The merged attribute is supplied by a dependency and is omitted from this
+        // app's non-transitive R class. Resolve that same XML attribute at runtime.
+        int attribute=Ui.res(context,"attr","maxHeight");
+        if(attribute==0)throw new IllegalStateException("Missing maxHeight resource attribute");
+        TypedArray values=context.obtainStyledAttributes(attributes,new int[]{attribute});
         try{maxHeight=values.getLayoutDimension(0,maxHeight);}finally{values.recycle();}
     }
     @Override protected void onMeasure(int widthSpec,int heightSpec){

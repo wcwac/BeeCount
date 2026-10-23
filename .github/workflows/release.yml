@@ -181,7 +181,7 @@ jobs:
           python3 - <<'PY'
           import os
           from pathlib import Path
-          labels={'VALIDATION':'Compile, unit tests and lint','UNIT_REPORTS':'76 required unit cases without failures or skips','PACKAGED':'Packaged APK, security and signature','DEVICE_INPUTS':'Device APKs from this build','DEVICE_SETUP':'Official disposable emulator setup','DEVICE':'46 required cloud device tests'}
+          labels={'VALIDATION':'Compile, unit tests and lint','UNIT_REPORTS':'Required named unit cases without failures or skips','PACKAGED':'Packaged APK, security and signature','DEVICE_INPUTS':'Device APKs from this build','DEVICE_SETUP':'Official disposable emulator setup','DEVICE':'Required named device cases and screen evidence'}
           failed=[]
           with Path(os.environ['GITHUB_STEP_SUMMARY']).open('a') as summary:
               summary.write('## Android full validation\n\n| Check | Result |\n| --- | --- |\n')
