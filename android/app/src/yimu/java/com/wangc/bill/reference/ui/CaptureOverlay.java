@@ -23,6 +23,8 @@ public final class CaptureOverlay {
     private static volatile long lastChanged;
     private CaptureOverlay(){}
     private static void state(String value){lastResult=value;lastChanged=System.currentTimeMillis();}
+    /** Automatic saving intentionally has no confirmation-window request. */
+    public static void autoSaved(){state("SKIPPED_AUTO_SAVE");}
     public static JSONObject status(){String outcome=lastResult;View view=shown;return Json.object("attached",view!=null&&view.isAttachedToWindow(),"lastResult",outcome,"lastChangedAt",lastChanged,"windowType",WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY);}
     private static boolean ready(ReferenceCaptureService service){if(service==null){state("SERVICE_DISCONNECTED");return false;}if(!AutoApps.enabled()){state("CAPTURE_DISABLED");return false;}if(!ReferenceApplication.prefs().getBoolean("show_overlay",true)){state("OVERLAY_DISABLED");return false;}return true;}
     /** An explicit window test. Its sample values are never inserted into the database. */

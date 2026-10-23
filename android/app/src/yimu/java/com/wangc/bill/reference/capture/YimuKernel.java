@@ -73,6 +73,7 @@ public final class YimuKernel {
             if (ReferenceApplication.prefs().getBoolean("auto_save", false) && amount > 0 && (!kind.equals("transfer") || (account > 0 && toAccount > 0))) {
                 store.saveTransaction(data, 0, id);
                 ReferenceDiagnostics.result("AUTO_SAVED");
+                CaptureOverlay.autoSaved();
                 if (callback != null) callback.dismiss();
             } else {
                 MAIN.post(() -> {

@@ -13,9 +13,12 @@ import android.os.ParcelFileDescriptor;
 import android.os.SystemClock;
 import android.view.InputDevice;
 import android.view.MotionEvent;
+import android.view.View;
+import android.view.ViewGroup;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.view.accessibility.AccessibilityWindowInfo;
 import android.widget.CompoundButton;
+import android.widget.TextView;
 import androidx.test.core.app.ActivityScenario;
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.platform.app.InstrumentationRegistry;
@@ -104,7 +107,7 @@ public final class CapturePipelineDeviceTest {
     @Test public void accessibilityOverlayAppearsSavesAndBackgroundCloseKeepsDraft()throws Exception{
         AutoApps.select("com.eg.android.AlipayGphone",true);
         ReferenceApplication.prefs().edit().putBoolean("show_overlay",true).commit();
-        AccessibilityServiceInfo observer=automation.getServiceInfo();observer.flags|=AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS|AccessibilityServiceInfo.FLAG_REPORT_VIEW_IDS|AccessibilityServiceInfo.FLAG_INCLUDE_NOT_IMPORTANT_VIEWS;automation.setServiceInfo(observer);
+        observeWindows();
         try(ActivityScenario<ManagerActivity> scenario=manager("diagnostics")){touchMaster(scenario,false);assertRuntimeEnabled(true);}
         SystemClock.sleep(1300);long began=System.currentTimeMillis();launchAmount("com.eg.android.AlipayGphone/com.alipay.android.msp.ui.views.MspContainerActivity","19.80");
         JSONObject saved=waitDraft("com.eg.android.AlipayGphone",began);String savedId=saved.optString("id");
@@ -123,6 +126,35 @@ public final class CapturePipelineDeviceTest {
         await(()->!hasOverlay(),5000,"Touching the overlay background did not close the window");
         assertEquals("Closing the window lost the persisted pending draft","PENDING",ReferenceApplication.store().candidate(pendingId).optString("state"));
         assertEquals("An overlay operation raised an exception",0,ReferenceDiagnostics.snapshot().optLong("failures"));
+    }
+    @Test public void diagnosticConfirmationModeRecoversNullSourceAndShowsRealOverlay()throws Exception{
+        AutoApps.select("com.eg.android.AlipayGphone",true);
+        ReferenceApplication.prefs().edit().putBoolean("auto_save",true).putBoolean("show_overlay",true).commit();observeWindows();
+        try(ActivityScenario<ManagerActivity> scenario=manager("diagnostics")){
+            touchMaster(scenario,false);assertRuntimeEnabled(true);
+            touchRow(scenario,"改为浮窗确认");
+            await(()->!ReferenceApplication.prefs().getBoolean("auto_save",true)&&ReferenceApplication.prefs().getBoolean("show_overlay",false),5000,"Diagnostic action did not select confirmation mode");
+            scenario.recreate();assertFalse(ReferenceApplication.prefs().getBoolean("auto_save",true));assertTrue(ReferenceApplication.prefs().getBoolean("show_overlay",false));
+        }
+        SystemClock.sleep(1300);long began=System.currentTimeMillis();launchNullSourcePayment("21.80");
+        JSONObject pending=waitDraft("com.eg.android.AlipayGphone",began);String id=pending.optString("id");
+        assertEquals(2180,Json.parse(pending.optString("payload")).optLong("amount"));assertFallbackDraft();visibleOverlayControl("btn_save");
+        assertEquals("PENDING",ReferenceApplication.store().candidate(id).optString("state"));
+        closeOverlayBackground();await(()->!hasOverlay(),5000,"Null-source payment overlay did not close");
+        assertEquals("Closing the recovered payment overlay lost its pending draft","PENDING",ReferenceApplication.store().candidate(id).optString("state"));
+        assertEquals(0,ReferenceDiagnostics.snapshot().optLong("failures"));
+    }
+    @Test public void nullSourceAutomaticSavePersistsTransactionAndSkipsOverlay()throws Exception{
+        AutoApps.select("com.eg.android.AlipayGphone",true);
+        ReferenceApplication.prefs().edit().putBoolean("auto_save",true).putBoolean("show_overlay",true).commit();observeWindows();
+        try(ActivityScenario<ManagerActivity> scenario=manager("capture")){touchMaster(scenario,false);assertRuntimeEnabled(true);}
+        SystemClock.sleep(1300);long began=System.currentTimeMillis();launchNullSourcePayment("22.80");
+        JSONObject saved=waitCandidate("com.eg.android.AlipayGphone",began,"SAVED");assertFallbackDraft();
+        assertTrue(saved.optLong("transaction_id")>0);assertEquals(2280,ReferenceApplication.store().transaction(saved.optLong("transaction_id")).optLong("amount"));
+        await(()->{JSONObject overlay=ReferenceCaptureService.status().optJSONObject("overlay");return overlay!=null&&"SKIPPED_AUTO_SAVE".equals(overlay.optString("lastResult"));},5000,"Automatic save did not explain why its overlay was skipped");
+        assertFalse("Automatic save unexpectedly opened an actual accessibility overlay",hasOverlay());
+        assertTrue("auto_save must remain selected",ReferenceApplication.prefs().getBoolean("auto_save",false));assertTrue(ReferenceApplication.prefs().getBoolean("show_overlay",false));
+        assertEquals(0,ReferenceDiagnostics.snapshot().optLong("failures"));
     }
     private ActivityScenario<ManagerActivity> manager(String page){return ActivityScenario.launch(new Intent(ApplicationProvider.getApplicationContext(),ManagerActivity.class).putExtra("page",page));}
     private void assertRuntimeEnabled(boolean enabled)throws Exception{
@@ -148,6 +180,14 @@ public final class CapturePipelineDeviceTest {
         try{assertTrue("Master switch touch up was rejected",automation.injectInputEvent(up,true));}finally{up.recycle();}
         InstrumentationRegistry.getInstrumentation().waitForIdleSync();
     }
+    private void touchRow(ActivityScenario<ManagerActivity> scenario,String title)throws Exception{
+        scenario.onActivity(a->{View label=findText(a.getWindow().getDecorView(),title);assertNotNull("Missing diagnostic action: "+title,label);label.requestRectangleOnScreen(new Rect(0,0,label.getWidth(),label.getHeight()),true);});
+        final Point[] point={null};await(()->{scenario.onActivity(a->{View label=findText(a.getWindow().getDecorView(),title);Rect bounds=new Rect();if(label!=null&&label.isShown()&&a.hasWindowFocus()&&label.getGlobalVisibleRect(bounds)&&!bounds.isEmpty())point[0]=new Point(bounds.centerX(),bounds.centerY());});return point[0]!=null;},5000,"Diagnostic action is not visible: "+title);touch(point[0]);
+    }
+    private static View findText(View root,String text){if(root instanceof TextView label&&text.contentEquals(label.getText()))return root;if(root instanceof ViewGroup group)for(int i=0;i<group.getChildCount();i++){View found=findText(group.getChildAt(i),text);if(found!=null)return found;}return null;}
+    private void observeWindows(){AccessibilityServiceInfo observer=automation.getServiceInfo();observer.flags|=AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS|AccessibilityServiceInfo.FLAG_REPORT_VIEW_IDS|AccessibilityServiceInfo.FLAG_INCLUDE_NOT_IMPORTANT_VIEWS;automation.setServiceInfo(observer);}
+    private void assertFallbackDraft()throws Exception{await(()->Arrays.asList("ACTIVE_ROOT","INTERACTIVE_WINDOW").contains(ReferenceDiagnostics.snapshot().optString("lastDraftSourceRoute")),5000,"The actual saved draft did not come from a window fallback");JSONObject meta=ReferenceDiagnostics.snapshot();assertTrue("Fixture did not produce a real null event.getSource()",meta.optLong("eventSourceNull")>0);assertTrue("No same-package window fallback succeeded",meta.optLong("fallbackSuccess")>0);assertFalse("Test accidentally selected the manual active-window comparison mode",ReferenceApplication.prefs().getBoolean("use_active_window",false));}
+    private void closeOverlayBackground()throws Exception{AccessibilityNodeInfo background=overlayControl("background"),content=overlayControl("content_layout");assertNotNull(background);assertNotNull(content);Rect outside=new Rect(),sheet=new Rect();background.getBoundsInScreen(outside);content.getBoundsInScreen(sheet);assertTrue("No exposed overlay background to close",sheet.top>outside.top+2);touch(new Point(outside.centerX(),outside.top+(sheet.top-outside.top)/2));}
     private Point visibleOverlayControl(String name)throws Exception{
         final Point[] point={null};await(()->{AccessibilityNodeInfo node=overlayControl(name);if(node==null||!node.isVisibleToUser()||!node.isEnabled())return false;Rect bounds=new Rect();node.getBoundsInScreen(bounds);if(bounds.isEmpty())return false;point[0]=new Point(bounds.centerX(),bounds.centerY());return true;},7000,"No real TYPE_ACCESSIBILITY_OVERLAY window with visible "+name);return point[0];
     }
@@ -157,11 +197,13 @@ public final class CapturePipelineDeviceTest {
         for(AccessibilityWindowInfo window:automation.getWindows())if(window.getType()==AccessibilityWindowInfo.TYPE_ACCESSIBILITY_OVERLAY){AccessibilityNodeInfo root=window.getRoot();if(root==null||!ReferenceApplication.app().getPackageName().contentEquals(root.getPackageName()==null?"":root.getPackageName()))continue;List<AccessibilityNodeInfo> found=root.findAccessibilityNodeInfosByViewId(resource);if(!found.isEmpty())return found.get(0);}return null;
     }
     private boolean hasOverlay(){return overlayControl("btn_save")!=null;}
-    private JSONObject waitDraft(String pkg,long since)throws Exception{final JSONObject[] found={null};await(()->{found[0]=ReferenceApplication.store().one("SELECT * FROM candidates WHERE package_name=? AND created>=? AND state='PENDING' ORDER BY created DESC LIMIT 1",pkg,""+since);return found[0]!=null;},12000,"No draft for "+pkg+": "+ReferenceCaptureService.status());drafts.add(found[0].optString("id"));return found[0];}
+    private JSONObject waitDraft(String pkg,long since)throws Exception{return waitCandidate(pkg,since,"PENDING");}
+    private JSONObject waitCandidate(String pkg,long since,String state)throws Exception{final JSONObject[] found={null};await(()->{found[0]=ReferenceApplication.store().one("SELECT * FROM candidates WHERE package_name=? AND created>=? AND state=? ORDER BY created DESC LIMIT 1",pkg,""+since,state);return found[0]!=null;},12000,"No "+state+" candidate for "+pkg+": "+ReferenceCaptureService.status());drafts.add(found[0].optString("id"));return found[0];}
     interface Check{boolean ready();}
     private void await(Check check,long timeout,String message)throws Exception{long end=SystemClock.elapsedRealtime()+timeout;while(SystemClock.elapsedRealtime()<end){if(check.ready())return;SystemClock.sleep(50);}throw new AssertionError(message+"\n"+ReferenceCaptureService.status());}
     private void launch(String component)throws Exception{String result=shell("am start -W -n "+token(component));assertFalse(result,result.contains("Error:"));}
     private void launchAmount(String component,String amount)throws Exception{if(!amount.matches("[1-9][0-9]{0,3}\\.[0-9]{2}"))throw new IllegalArgumentException("Invalid synthetic amount");String result=shell("am start -W -S -n "+token(component)+" --es fixture_amount "+amount);assertFalse(result,result.contains("Error:"));}
+    private void launchNullSourcePayment(String amount)throws Exception{if(!amount.matches("[1-9][0-9]{0,3}\\.[0-9]{2}"))throw new IllegalArgumentException("Invalid synthetic amount");String result=shell("am start -W -S -n com.eg.android.AlipayGphone/com.alipay.android.msp.ui.views.MspContainerActivity --es fixture_amount "+amount+" --ez fixture_null_source true");assertFalse(result,result.contains("Error:"));}
     private String shell(String command)throws Exception{try(ParcelFileDescriptor descriptor=automation.executeShellCommand(command);InputStream input=new ParcelFileDescriptor.AutoCloseInputStream(descriptor);ByteArrayOutputStream output=new ByteArrayOutputStream()){byte[] bytes=new byte[4096];int n;while((n=input.read(bytes))!=-1){output.write(bytes,0,n);if(output.size()>1024*1024)throw new IOException("Shell output too large");}return output.toString(StandardCharsets.UTF_8.name());}}
     // UiAutomation executes a tokenized command, not a shell script; quotes become literal data.
     private static String token(String value){if(!value.matches("[A-Za-z0-9_./:]+"))throw new IllegalArgumentException("Unexpected emulator command token");return value;}

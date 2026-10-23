@@ -10,10 +10,12 @@ import android.os.Looper;
 import android.provider.Settings;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
+import android.view.accessibility.AccessibilityWindowInfo;
 import com.wangc.bill.reference.Json;
 import com.wangc.bill.reference.ReferenceApplication;
 import com.wangc.bill.reference.ui.CaptureOverlay;
 import java.lang.ref.WeakReference;
+import java.util.List;
 import org.json.JSONObject;
 
 public final class ReferenceCaptureService extends AccessibilityService {
@@ -38,32 +40,73 @@ public final class ReferenceCaptureService extends AccessibilityService {
         String pkg = event.getPackageName().toString(); if (!AutoApps.accepts(pkg)) return;
         String page = event.getClassName() == null ? "" : event.getClassName().toString();
         ReferenceDiagnostics.event(pkg, page);
-        AccessibilityNodeInfo source;
-        try {
-            source = ReferenceApplication.prefs().getBoolean("use_active_window", false) ? getRootInActiveWindow() : event.getSource();
-        } catch (RuntimeException error) { ReferenceDiagnostics.result("SOURCE_UNAVAILABLE"); return; }
-        if (source != null && source.getPackageName() != null && !pkg.equals(source.getPackageName().toString())) { recycle(source); ReferenceDiagnostics.result("WINDOW_CHANGED"); return; }
-        long receivedAt=System.nanoTime();int eventType=event.getEventType();
-        EventBacklog.Result queued=EventBacklog.enqueue(YimuKernel.WORKER,new EventBacklog.EventTask(pkg,eventType==AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED){
-            @Override protected void process(){ReferenceCaptureService.this.process(pkg,page,source,(System.nanoTime()-receivedAt)/1_000_000,eventType);}
-            @Override protected void closeResource(){recycle(source);}
-        });
+        // An event can carry package/class information while its virtual source is unavailable.
+        // Capture the owned source now; the framework owns the event after this callback returns.
+        long receivedAt=System.nanoTime();
+        AccessibilityNodeInfo source=null;
+        RuntimeException failure=null;
+        try{source=event.getSource();}catch(RuntimeException error){failure=error;}
+        ReferenceDiagnostics.eventSource(source!=null,failure);
+        EventBacklog.Result queued=EventBacklog.enqueue(YimuKernel.WORKER,
+            new SourceEvent(pkg,page,event.getEventType(),event.getWindowId(),receivedAt,source));
         ReferenceDiagnostics.queueChanged(queued.coalesced,queued.evicted);
         if(!queued.accepted){if(queued.rejection==EventBacklog.Rejection.QUEUE_FULL)ReferenceDiagnostics.skipped();else ReferenceDiagnostics.result("WORKER_STOPPED");}
     }
-    private void process(String pkg, String page, AccessibilityNodeInfo source,long waited,int eventType) {
-        try {
-            if (current() != this || !AutoApps.accepts(pkg)) return;
-            ReferenceDiagnostics.processingStarted(pkg,page,waited,eventType);
-            long beforeRead = ReferenceDiagnostics.readCount(), beforeAttempt = ReferenceDiagnostics.attemptCount();
-            YimuKernel.SOURCE.set(pkg);
-            OriginalDispatch.accept(this, pkg, page, source);
-            if (ReferenceDiagnostics.attemptCount() == beforeAttempt) ReferenceDiagnostics.result(
-                source == null ? "SOURCE_UNAVAILABLE" : ReferenceDiagnostics.readCount() == beforeRead ? "PAGE_GATE_NOT_MATCHED" : ReferenceDiagnostics.snapshot().optInt("textCount")==0?"EMPTY_TREE":"NO_BILL_FROM_ORIGINAL_RULES");
-        } catch (NodeReader.Aborted error) { ReferenceDiagnostics.failure("NODE_READ_"+error.reason.name(),error); }
-        catch (Exception error) { ReferenceDiagnostics.failure("PROCESSING_FAILED",error); }
-        finally { YimuKernel.SOURCE.remove(); ReferenceDiagnostics.processingFinished(); }
+    private final class SourceEvent extends EventBacklog.EventTask {
+        private final String page;
+        private final int eventType,windowId;
+        private final long receivedAt;
+        private AccessibilityNodeInfo owned;
+        SourceEvent(String pkg,String page,int eventType,int windowId,long receivedAt,AccessibilityNodeInfo source){
+            super(pkg,eventType==AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED);
+            this.page=page;this.eventType=eventType;this.windowId=windowId;this.receivedAt=receivedAt;owned=source;
+        }
+        @Override protected void process(){
+            if(current()!=ReferenceCaptureService.this||!AutoApps.accepts(packageName))return;
+            long waited=(System.nanoTime()-receivedAt)/1_000_000;
+            ReferenceDiagnostics.processingStarted(packageName,page,waited,eventType);
+            try{
+                ReferenceDiagnostics.resolvingSource();
+                AccessibilityNodeInfo initial=owned;owned=null; // Resolver consumes this reference.
+                EventSourceResolver.Result<AccessibilityNodeInfo> resolved=EventSourceResolver.resolve(
+                    initial,packageName,windowId,waited,windows,()->System.nanoTime()/1_000_000,
+                    ReferenceApplication.prefs().getBoolean("use_active_window",false));
+                owned=resolved.node;
+                ReferenceDiagnostics.sourceResolved(resolved.route.name(),resolved.reason.name(),resolved.lookups,
+                    resolved.candidateWindows,resolved.errors,resolved.lastErrorType,windowId);
+                if(current()!=ReferenceCaptureService.this||!AutoApps.accepts(packageName))return;
+                long beforeRead=ReferenceDiagnostics.readCount(),beforeAttempt=ReferenceDiagnostics.attemptCount();
+                YimuKernel.SOURCE.set(packageName);
+                // Keep event class and null-source state transitions used by the recovered handlers.
+                OriginalDispatch.accept(ReferenceCaptureService.this,packageName,page,owned);
+                if(ReferenceDiagnostics.attemptCount()==beforeAttempt)ReferenceDiagnostics.result(
+                    owned==null?sourceFailure(resolved.reason):ReferenceDiagnostics.readCount()==beforeRead?
+                    "PAGE_GATE_NOT_MATCHED":ReferenceDiagnostics.snapshot().optInt("textCount")==0?
+                    "EMPTY_TREE":"NO_BILL_FROM_ORIGINAL_RULES");
+            }catch(NodeReader.Aborted error){ReferenceDiagnostics.failure("NODE_READ_"+error.reason.name(),error);}
+            catch(Exception error){ReferenceDiagnostics.failure("PROCESSING_FAILED",error);}
+            finally{YimuKernel.SOURCE.remove();ReferenceDiagnostics.processingFinished();}
+        }
+        @Override protected void closeResource(){AccessibilityNodeInfo node=owned;owned=null;recycle(node);}
     }
+    private static String sourceFailure(EventSourceResolver.Reason reason){return switch(reason){
+        case EXPIRED->"SOURCE_EXPIRED";case DEADLINE->"SOURCE_LOOKUP_TIMEOUT";
+        case PACKAGE_MISMATCH,WINDOW_MISMATCH->"SOURCE_WINDOW_MISMATCH";
+        case LOOKUP_FAILED->"SOURCE_LOOKUP_FAILED";default->"SOURCE_UNAVAILABLE";
+    };}
+    private final EventSourceResolver.Provider<AccessibilityNodeInfo,AccessibilityWindowInfo> windows=new EventSourceResolver.Provider<>(){
+        public AccessibilityNodeInfo activeRoot(){return getRootInActiveWindow();}
+        public List<AccessibilityWindowInfo> windows(){return getWindows();}
+        public boolean isApplication(AccessibilityWindowInfo window){return window.getType()==AccessibilityWindowInfo.TYPE_APPLICATION;}
+        public int windowId(AccessibilityWindowInfo window){return window.getId();}
+        public boolean isActive(AccessibilityWindowInfo window){return window.isActive();}
+        public boolean isFocused(AccessibilityWindowInfo window){return window.isFocused();}
+        public AccessibilityNodeInfo windowRoot(AccessibilityWindowInfo window){return window.getRoot();}
+        public String packageName(AccessibilityNodeInfo node){CharSequence value=node.getPackageName();return value==null?null:value.toString();}
+        public int nodeWindowId(AccessibilityNodeInfo node){return node.getWindowId();}
+        public void releaseNode(AccessibilityNodeInfo node){recycle(node);}
+        @SuppressWarnings("deprecation") public void releaseWindow(AccessibilityWindowInfo window){if(Build.VERSION.SDK_INT<33)window.recycle();}
+    };
     @SuppressWarnings("deprecation") private static void recycle(AccessibilityNodeInfo node) { if (node != null && Build.VERSION.SDK_INT < 33) try { node.recycle(); } catch (RuntimeException ignored) {} }
     public static JSONObject status() {
         ReferenceCaptureService service = current();
@@ -77,6 +120,7 @@ public final class ReferenceCaptureService extends AccessibilityService {
             "eventTypes", info == null ? 0 : info.eventTypes, "effectivePackages", info == null || info.packageNames == null ? new org.json.JSONArray() : new org.json.JSONArray(java.util.Arrays.asList(info.packageNames)),
             "workerQueueSize",YimuKernel.WORKER.getQueue().size(),"workerActiveCount",YimuKernel.WORKER.getActiveCount(),
             "overlayEnabled",ReferenceApplication.prefs().getBoolean("show_overlay",true),"autoSave",ReferenceApplication.prefs().getBoolean("auto_save",false),"overlay",CaptureOverlay.status(),
+            "sourcePolicy",ReferenceApplication.prefs().getBoolean("use_active_window",false)?"ACTIVE_WINDOW_FIRST":"EVENT_THEN_SAME_WINDOW", "overlayPermissionModel","CONNECTED_ACCESSIBILITY_SERVICE",
             "diagnostics", ReferenceDiagnostics.snapshot());
     }
     @Override public void onInterrupt() { ReferenceDiagnostics.result("FEEDBACK_INTERRUPTED"); }

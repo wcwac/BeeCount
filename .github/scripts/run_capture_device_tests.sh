@@ -125,6 +125,6 @@ import os,re
 text=(Path(os.environ['RUNNER_TEMP'])/'capture-device/instrumentation.txt').read_text()
 assert not any(s in text for s in ['FAILURES!!!','INSTRUMENTATION_FAILED','Process crashed','INSTRUMENTATION_RESULT: shortMsg']), 'Device tests failed or crashed'
 match=re.search(r'OK \(([0-9]+) tests?\)',text)
-assert match and int(match[1])>=20, 'Required device tests were not discovered or did not all pass'
+assert match and int(match[1])>=22, 'Required device tests were not discovered or did not all pass'
 print('Device tests verified:',match[1])
 PY_RESULTS
