@@ -55,7 +55,11 @@ import static org.junit.Assert.*;
 public final class CapturePipelineDeviceTest {
     @Rule public final TestWatcher failureMetadata=new TestWatcher(){
         @Override protected void failed(Throwable error,Description description){
-            System.out.println("REFERENCE_CAPTURE_FAILURE "+description.getMethodName()+" "+ReferenceDiagnostics.snapshot());
+            String metadata="REFERENCE_CAPTURE_FAILURE "+description.getMethodName()+" "+ReferenceDiagnostics.snapshot();
+            System.out.println(metadata);
+            // Android redirects stdout to logcat, whose bounded tail can omit an
+            // early case. Keep the same metadata in the reported failure stack too.
+            error.addSuppressed(new AssertionError(metadata));
         }
     };
     private Map<String,?> preferences;
@@ -210,12 +214,16 @@ public final class CapturePipelineDeviceTest {
         await(()->{AccessibilityNodeInfo label=overlayControl("btn_save_text");return label!=null&&label.getText()!=null&&label.getText().toString().matches("新增\\([1-5]\\)");},2500,"No automatic-add countdown before category selection");
         JSONObject selected=null;long initialCategory=Json.parse(pending.optString("payload")).optLong("category_id");
         for(JSONObject category:ReferenceApplication.store().categories("expense"))if(category.optLong("id")!=initialCategory){selected=category;break;}assertNotNull("No alternate category to exercise the real selection",selected);
-        AccessibilityNodeInfo categoryList=overlayControl("bill_parent_type_list");assertNotNull(categoryList);
-        assertNotNull("Original automatic-entry categories should expose their grid",categoryList.getCollectionInfo());
-        assertEquals("Automatic-entry categories must use the recovered six-column grid",6,categoryList.getCollectionInfo().getColumnCount());
+        // RecyclerView publishes collection metadata after its first adapter layout.
+        // Keep the six-column assertion while waiting for that actual window state.
+        await(()->{AccessibilityNodeInfo grid=overlayControl("bill_parent_type_list");return grid!=null&&grid.getCollectionInfo()!=null
+            &&grid.getCollectionInfo().getColumnCount()==6;},1500,"Automatic-entry categories did not expose the recovered six-column grid");
         // Recovered AutoAddLayout.I0 starts with a1(): cancel timer, clear it and
         // restore 新增. Inject the real category item touch, not an arbitrary tap.
-        touch(visibleOverlayCategory(selected.optString("name")));
+        Point categoryPoint=visibleOverlayCategory(selected.optString("name"));
+        assertTrue("The automatic-add timer stopped before the actual category touch",CaptureOverlay.status().optBoolean("countdownActive"));
+        assertEquals("The countdown saved before the category touch","PENDING",ReferenceApplication.store().candidate(id).optString("state"));
+        touch(categoryPoint);
         await(()->{AccessibilityNodeInfo label=overlayControl("btn_save_text");return label!=null&&"新增".contentEquals(label.getText()==null?"":label.getText());},3000,"Category selection did not cancel the countdown label");
         SystemClock.sleep(5500);assertEquals("A cancelled automatic-add countdown still saved the draft","PENDING",ReferenceApplication.store().candidate(id).optString("state"));assertTrue("Cancelling the countdown should keep its editable confirmation window",hasOverlay());
         touch(visibleOverlayControl("btn_save"));await(()->"SAVED".equals(ReferenceApplication.store().candidate(id).optString("state")),5000,"Manual save stopped working after cancelling automatic add");
@@ -408,7 +416,7 @@ public final class CapturePipelineDeviceTest {
     private Point visibleOverlayCategory(String name)throws Exception{final Point[] point={null};await(()->{AccessibilityNodeInfo grid=overlayControl("category_pager");if(grid==null)return false;for(AccessibilityNodeInfo node:grid.findAccessibilityNodeInfosByText(name)){if(!name.contentEquals(node.getText()==null?"":node.getText())||!node.isVisibleToUser())continue;Rect bounds=new Rect();node.getBoundsInScreen(bounds);if(!bounds.isEmpty()){point[0]=new Point(bounds.centerX(),bounds.centerY());return true;}}return false;},3000,"No real visible category item: "+name);return point[0];}
     private Point visibleSystemText(String text)throws Exception{final Point[] point={null};await(()->{for(AccessibilityWindowInfo window:automation.getWindows())if(window.getType()==AccessibilityWindowInfo.TYPE_SYSTEM){AccessibilityNodeInfo root=window.getRoot();if(root==null||!ReferenceApplication.app().getPackageName().contentEquals(root.getPackageName()==null?"":root.getPackageName()))continue;for(AccessibilityNodeInfo node:root.findAccessibilityNodeInfosByText(text)){if(!text.contentEquals(node.getText()==null?"":node.getText())||!node.isVisibleToUser())continue;Rect bounds=new Rect();node.getBoundsInScreen(bounds);if(!bounds.isEmpty()){point[0]=new Point(bounds.centerX(),bounds.centerY());return true;}}}return false;},5000,"No real application-overlay text: "+text);return point[0];}
     private AccessibilityNodeInfo overlayControl(String name){
-        int id=switch(name){case "btn_save"->com.wangc.bill.R.id.btn_save;case "btn_save_text"->com.wangc.bill.R.id.btn_save_text;case "close_btn"->com.wangc.bill.R.id.close_btn;case "category_pager"->com.wangc.bill.R.id.category_pager;case "account_book_layout"->com.wangc.bill.R.id.account_book_layout;case "account_book_name"->com.wangc.bill.R.id.account_book_name;case "check_layout"->com.wangc.bill.R.id.check_layout;case "confirm"->com.wangc.bill.R.id.confirm;case "background"->com.wangc.bill.R.id.background;case "content_layout"->com.wangc.bill.R.id.content_layout;default->throw new IllegalArgumentException("Unknown overlay control");};
+        int id=switch(name){case "btn_save"->com.wangc.bill.R.id.btn_save;case "btn_save_text"->com.wangc.bill.R.id.btn_save_text;case "close_btn"->com.wangc.bill.R.id.close_btn;case "category_pager"->com.wangc.bill.R.id.category_pager;case "bill_parent_type_list"->com.wangc.bill.R.id.bill_parent_type_list;case "account_book_layout"->com.wangc.bill.R.id.account_book_layout;case "account_book_name"->com.wangc.bill.R.id.account_book_name;case "check_layout"->com.wangc.bill.R.id.check_layout;case "confirm"->com.wangc.bill.R.id.confirm;case "background"->com.wangc.bill.R.id.background;case "content_layout"->com.wangc.bill.R.id.content_layout;default->throw new IllegalArgumentException("Unknown overlay control");};
         String resource=ReferenceApplication.app().getResources().getResourceName(id);
         // AccessibilityWindowInfo uses its own small type enum: a WM application
         // overlay (2038) is a TYPE_SYSTEM window here, not the integer 2038.
