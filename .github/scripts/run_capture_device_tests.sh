@@ -103,7 +103,7 @@ import os,subprocess
 root=Path(os.environ['GITHUB_WORKSPACE'])/'cloud-apks'
 analyzer=Path(os.environ['ANDROID_HOME'])/'cmdline-tools/latest/bin/apkanalyzer'
 adb=Path(os.environ['ANDROID_HOME'])/'platform-tools/adb'
-expected={'io.github.wcwac.yimu.reference.debug','io.github.wcwac.yimu.reference.debug.test','com.tencent.mm','com.taobao.taobao','io.github.wcwac.paymentfixture.ignored'}
+expected={'io.github.wcwac.yimu.reference.debug','io.github.wcwac.yimu.reference.debug.test','com.tencent.mm','com.taobao.taobao','com.eg.android.AlipayGphone','io.github.wcwac.paymentfixture.ignored'}
 found={}
 for apk in root.rglob('*.apk'):
     package=subprocess.check_output([str(analyzer),'manifest','application-id',str(apk)],text=True).strip()
@@ -125,6 +125,6 @@ import os,re
 text=(Path(os.environ['RUNNER_TEMP'])/'capture-device/instrumentation.txt').read_text()
 assert not any(s in text for s in ['FAILURES!!!','INSTRUMENTATION_FAILED','Process crashed','INSTRUMENTATION_RESULT: shortMsg']), 'Device tests failed or crashed'
 match=re.search(r'OK \(([0-9]+) tests?\)',text)
-assert match and int(match[1])>=18, 'Required device tests were not discovered or did not all pass'
+assert match and int(match[1])>=20, 'Required device tests were not discovered or did not all pass'
 print('Device tests verified:',match[1])
 PY_RESULTS

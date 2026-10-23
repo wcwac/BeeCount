@@ -14,7 +14,6 @@ import com.wangc.bill.reference.Json;
 import com.wangc.bill.reference.ReferenceApplication;
 import com.wangc.bill.reference.ui.CaptureOverlay;
 import java.lang.ref.WeakReference;
-import java.util.concurrent.RejectedExecutionException;
 import org.json.JSONObject;
 
 public final class ReferenceCaptureService extends AccessibilityService {
@@ -44,19 +43,26 @@ public final class ReferenceCaptureService extends AccessibilityService {
             source = ReferenceApplication.prefs().getBoolean("use_active_window", false) ? getRootInActiveWindow() : event.getSource();
         } catch (RuntimeException error) { ReferenceDiagnostics.result("SOURCE_UNAVAILABLE"); return; }
         if (source != null && source.getPackageName() != null && !pkg.equals(source.getPackageName().toString())) { recycle(source); ReferenceDiagnostics.result("WINDOW_CHANGED"); return; }
-        try { YimuKernel.WORKER.execute(() -> process(pkg, page, source)); }
-        catch (RejectedExecutionException error) { recycle(source); ReferenceDiagnostics.skipped(); }
+        long receivedAt=System.nanoTime();int eventType=event.getEventType();
+        EventBacklog.Result queued=EventBacklog.enqueue(YimuKernel.WORKER,new EventBacklog.EventTask(pkg,eventType==AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED){
+            @Override protected void process(){ReferenceCaptureService.this.process(pkg,page,source,(System.nanoTime()-receivedAt)/1_000_000,eventType);}
+            @Override protected void closeResource(){recycle(source);}
+        });
+        ReferenceDiagnostics.queueChanged(queued.coalesced,queued.evicted);
+        if(!queued.accepted){if(queued.rejection==EventBacklog.Rejection.QUEUE_FULL)ReferenceDiagnostics.skipped();else ReferenceDiagnostics.result("WORKER_STOPPED");}
     }
-    private void process(String pkg, String page, AccessibilityNodeInfo source) {
+    private void process(String pkg, String page, AccessibilityNodeInfo source,long waited,int eventType) {
         try {
             if (current() != this || !AutoApps.accepts(pkg)) return;
+            ReferenceDiagnostics.processingStarted(pkg,page,waited,eventType);
             long beforeRead = ReferenceDiagnostics.readCount(), beforeAttempt = ReferenceDiagnostics.attemptCount();
             YimuKernel.SOURCE.set(pkg);
             OriginalDispatch.accept(this, pkg, page, source);
             if (ReferenceDiagnostics.attemptCount() == beforeAttempt) ReferenceDiagnostics.result(
                 source == null ? "SOURCE_UNAVAILABLE" : ReferenceDiagnostics.readCount() == beforeRead ? "PAGE_GATE_NOT_MATCHED" : ReferenceDiagnostics.snapshot().optInt("textCount")==0?"EMPTY_TREE":"NO_BILL_FROM_ORIGINAL_RULES");
-        } catch (Exception error) { ReferenceDiagnostics.failure("PROCESSING_FAILED",error); }
-        finally { YimuKernel.SOURCE.remove(); recycle(source); }
+        } catch (NodeReader.Aborted error) { ReferenceDiagnostics.failure("NODE_READ_"+error.reason.name(),error); }
+        catch (Exception error) { ReferenceDiagnostics.failure("PROCESSING_FAILED",error); }
+        finally { YimuKernel.SOURCE.remove(); ReferenceDiagnostics.processingFinished(); }
     }
     @SuppressWarnings("deprecation") private static void recycle(AccessibilityNodeInfo node) { if (node != null && Build.VERSION.SDK_INT < 33) try { node.recycle(); } catch (RuntimeException ignored) {} }
     public static JSONObject status() {
@@ -69,6 +75,8 @@ public final class ReferenceCaptureService extends AccessibilityService {
         return Json.object("enabled", AutoApps.enabled(), "permissionGranted", granted, "connected", service != null,
             "selectedPackages", new org.json.JSONArray(AutoApps.selected()), "toolIdentity",Build.VERSION.SDK_INT>=31&&info!=null&&info.isAccessibilityTool(), "flags", info == null ? 0 : info.flags,
             "eventTypes", info == null ? 0 : info.eventTypes, "effectivePackages", info == null || info.packageNames == null ? new org.json.JSONArray() : new org.json.JSONArray(java.util.Arrays.asList(info.packageNames)),
+            "workerQueueSize",YimuKernel.WORKER.getQueue().size(),"workerActiveCount",YimuKernel.WORKER.getActiveCount(),
+            "overlayEnabled",ReferenceApplication.prefs().getBoolean("show_overlay",true),"autoSave",ReferenceApplication.prefs().getBoolean("auto_save",false),"overlay",CaptureOverlay.status(),
             "diagnostics", ReferenceDiagnostics.snapshot());
     }
     @Override public void onInterrupt() { ReferenceDiagnostics.result("FEEDBACK_INTERRUPTED"); }

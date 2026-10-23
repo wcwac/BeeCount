@@ -87,7 +87,7 @@ jobs:
         run: >-
           python3 .github/scripts/run_checked.py gradle -p android
           :app:assembleRelease :app:assembleDebug :app:assembleDebugAndroidTest
-          :captureFixture:assembleWechatDebug :captureFixture:assembleTaobaoDebug :captureFixture:assembleIgnoredDebug
+          :captureFixture:assembleWechatDebug :captureFixture:assembleTaobaoDebug :captureFixture:assembleAlipayDebug :captureFixture:assembleIgnoredDebug
           :app:testDebugUnitTest :app:lintRelease --continue --no-daemon --console=plain --stacktrace
       - name: Remove signing material before device tests
         if: always()
@@ -128,12 +128,12 @@ jobs:
           root=Path('build')
           patterns=('app/outputs/apk/debug/*.apk','app/outputs/apk/androidTest/debug/*.apk','captureFixture/outputs/apk/*/debug/*.apk')
           groups=[sorted(root.glob(pattern)) for pattern in patterns]
-          assert [len(group) for group in groups]==[1,1,3], 'Missing or duplicate project device APKs'
+          assert [len(group) for group in groups]==[1,1,4], 'Missing or duplicate project device APKs'
           destination=Path('cloud-apks')
           destination.mkdir()
           for group in groups:
               for apk in group:shutil.copy2(apk,destination/apk.name)
-          assert len(list(destination.glob('*.apk')))==5, 'Device APK filenames collided'
+          assert len(list(destination.glob('*.apk')))==6, 'Device APK filenames collided'
           PY
       - name: Prepare official emulator on the same cloud runner
         id: device_setup
@@ -181,7 +181,7 @@ jobs:
           python3 - <<'PY'
           import os
           from pathlib import Path
-          labels={'VALIDATION':'Compile, unit tests and lint','UNIT_REPORTS':'Unit test discovery and results','PACKAGED':'Packaged APK, security and signature','DEVICE_INPUTS':'Device APKs from this build','DEVICE_SETUP':'Official disposable emulator setup','DEVICE':'18 or more cloud device tests'}
+          labels={'VALIDATION':'Compile, unit tests and lint','UNIT_REPORTS':'43 or more unit tests without failures or skips','PACKAGED':'Packaged APK, security and signature','DEVICE_INPUTS':'Device APKs from this build','DEVICE_SETUP':'Official disposable emulator setup','DEVICE':'20 or more cloud device tests'}
           failed=[]
           with Path(os.environ['GITHUB_STEP_SUMMARY']).open('a') as summary:
               summary.write('## Android full validation\n\n| Check | Result |\n| --- | --- |\n')

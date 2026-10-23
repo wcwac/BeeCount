@@ -1,10 +1,11 @@
 // Yimu 6.3.0 recovered DEX/JADX; original Java SHA256 20f7c529a95df463f4b93aba6229eec44232b6ac8206d03688af417bec2a1030
 package com.wangc.bill.auto.action;
 
-import android.text.TextUtils;
+import android.os.Build;
+import android.os.SystemClock;
 import android.view.accessibility.AccessibilityNodeInfo;
-import com.blankj.utilcode.util.y;
-import java.util.ArrayList;
+import com.wangc.bill.reference.capture.NodeReader;
+import com.wangc.bill.reference.capture.ReferenceDiagnostics;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -116,123 +117,56 @@ public class c {
     }
 
     protected List<String> g(AccessibilityNodeInfo accessibilityNodeInfo) {
-        this.c = 0;
-        List<String> observed = i(accessibilityNodeInfo);
-        com.wangc.bill.reference.capture.ReferenceDiagnostics.read(observed.size(), this.c);
-        return observed;
+        return i(accessibilityNodeInfo);
     }
 
     protected List<String> h(AccessibilityNodeInfo accessibilityNodeInfo) {
-        this.c = 0;
-        List<String> observed = j(accessibilityNodeInfo);
-        com.wangc.bill.reference.capture.ReferenceDiagnostics.read(observed.size(), this.c);
-        return observed;
+        return j(accessibilityNodeInfo);
     }
 
     protected List<String> i(AccessibilityNodeInfo accessibilityNodeInfo) {
-        this.c++;
-        ArrayList arrayList = new ArrayList();
-        if (accessibilityNodeInfo != null) {
-            for (int i6 = 0; i6 < accessibilityNodeInfo.getChildCount(); i6++) {
-                AccessibilityNodeInfo child = accessibilityNodeInfo.getChild(i6);
-                if (child != null && child.getChildCount() > 0) {
-                    if (arrayList.size() > 99 || this.c > 999) {
-                        return arrayList;
-                    }
-                    if (child != accessibilityNodeInfo) {
-                        arrayList.addAll(i(child));
-                    }
-                } else if (child != null && !TextUtils.isEmpty(child.getText())) {
-                    s6.b.a("nodeInfo1:" + ((Object) child.getText()));
-                    arrayList.add(child.getText().toString());
-                }
-            }
-        }
-        return arrayList;
+        return read(accessibilityNodeInfo, false);
     }
 
     protected List<String> j(AccessibilityNodeInfo accessibilityNodeInfo) {
-        this.c++;
-        ArrayList arrayList = new ArrayList();
-        if (accessibilityNodeInfo != null) {
-            for (int i6 = 0; i6 < accessibilityNodeInfo.getChildCount(); i6++) {
-                AccessibilityNodeInfo child = accessibilityNodeInfo.getChild(i6);
-                if (child != null && child.getChildCount() > 0) {
-                    if (arrayList.size() > 99 || this.c > 999) {
-                        return arrayList;
-                    }
-                    if (child != accessibilityNodeInfo) {
-                        arrayList.addAll(j(child));
-                    }
-                } else if (child != null && !TextUtils.isEmpty(child.getText())) {
-                    y.l("nodeInfo1:" + ((Object) child.getText()));
-                    arrayList.add(child.getText().toString());
-                }
-            }
-        }
-        return arrayList;
+        return read(accessibilityNodeInfo, false);
     }
 
     protected List<String> k(AccessibilityNodeInfo accessibilityNodeInfo) {
-        this.c++;
-        ArrayList arrayList = new ArrayList();
-        if (accessibilityNodeInfo != null) {
-            for (int i6 = 0; i6 < accessibilityNodeInfo.getChildCount(); i6++) {
-                AccessibilityNodeInfo child = accessibilityNodeInfo.getChild(i6);
-                if (child != null && child.getChildCount() > 0) {
-                    if (arrayList.size() > 99 || this.c > 199) {
-                        return arrayList;
-                    }
-                    if (child != accessibilityNodeInfo) {
-                        arrayList.addAll(k(child));
-                    }
-                } else if (child != null && !TextUtils.isEmpty(child.getText())) {
-                    s6.b.a("nodeInfo1:" + ((Object) child.getText()));
-                    arrayList.add(child.getText().toString());
-                }
-            }
-        }
-        return arrayList;
+        return read(accessibilityNodeInfo, false);
     }
 
     protected List<String> l(AccessibilityNodeInfo accessibilityNodeInfo) {
-        this.c = 0;
-        List<String> observed = k(accessibilityNodeInfo);
-        com.wangc.bill.reference.capture.ReferenceDiagnostics.read(observed.size(), this.c);
-        return observed;
+        return k(accessibilityNodeInfo);
     }
 
     protected List<String> m(AccessibilityNodeInfo accessibilityNodeInfo) {
-        this.c = 0;
-        List<String> observed = n(accessibilityNodeInfo);
-        com.wangc.bill.reference.capture.ReferenceDiagnostics.read(observed.size(), this.c);
-        return observed;
+        return n(accessibilityNodeInfo);
     }
 
     protected List<String> n(AccessibilityNodeInfo accessibilityNodeInfo) {
-        this.c++;
-        ArrayList arrayList = new ArrayList();
-        if (accessibilityNodeInfo != null) {
-            for (int i6 = 0; i6 < accessibilityNodeInfo.getChildCount(); i6++) {
-                AccessibilityNodeInfo child = accessibilityNodeInfo.getChild(i6);
-                if (child != null && child.getChildCount() > 0) {
-                    if (arrayList.size() > 99 || this.c > 999) {
-                        return arrayList;
-                    }
-                    if (child != accessibilityNodeInfo) {
-                        arrayList.addAll(n(child));
-                    }
-                } else if (child != null && !TextUtils.isEmpty(child.getText())) {
-                    y.l("nodeInfo1:" + ((Object) child.getText()));
-                    arrayList.add(child.getText().toString());
-                } else if (child != null && !TextUtils.isEmpty(child.getContentDescription())) {
-                    y.l("nodeInfo1:" + child.getContentDescription().toString().replace(" ", ""));
-                    arrayList.add(child.getContentDescription().toString());
-                }
-            }
-        }
-        return arrayList;
+        return read(accessibilityNodeInfo, true);
     }
+
+    private List<String> read(AccessibilityNodeInfo root, boolean descriptions) {
+        this.c = 0;
+        NodeReader.Result result=NodeReader.read(root, descriptions, NODES, SystemClock::elapsedRealtime, new NodeReader.Observer() {
+            public void started() { ReferenceDiagnostics.readStarted(); }
+            public void progress(int visited) { ReferenceDiagnostics.readProgress(visited); }
+            public void finished(int texts, int branches) { c.this.c=branches; ReferenceDiagnostics.readFinished(texts, branches); }
+            public void aborted() { ReferenceDiagnostics.readAborted(); }
+        });
+        return result.texts;
+    }
+
+    private static final NodeReader.Adapter<AccessibilityNodeInfo> NODES=new NodeReader.Adapter<>() {
+        public int childCount(AccessibilityNodeInfo node) { return node.getChildCount(); }
+        public AccessibilityNodeInfo child(AccessibilityNodeInfo node, int index) { return node.getChild(index); }
+        public CharSequence text(AccessibilityNodeInfo node) { return node.getText(); }
+        public CharSequence description(AccessibilityNodeInfo node) { return node.getContentDescription(); }
+        public boolean same(AccessibilityNodeInfo first, AccessibilityNodeInfo second) { return first.equals(second); }
+        @SuppressWarnings("deprecation") public void release(AccessibilityNodeInfo node) { if (Build.VERSION.SDK_INT < 33) node.recycle(); }
+    };
 
     protected boolean o(HashMap<String, Boolean> map, String str) {
         Iterator<Map.Entry<String, Boolean>> it = map.entrySet().iterator();

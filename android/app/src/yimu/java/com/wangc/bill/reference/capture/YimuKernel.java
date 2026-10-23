@@ -25,6 +25,8 @@ public final class YimuKernel {
     private static String lastKey, lastCandidate, lastPackage;
     private static final java.util.concurrent.ConcurrentHashMap<x1.a,String> HANDLERS = new java.util.concurrent.ConcurrentHashMap<>();
     private YimuKernel() {}
+    /** Share the event submission lock so callbacks remain queue ordering barriers. */
+    public static void enqueue(Runnable task){synchronized(WORKER){WORKER.execute(task);}}
 
     public static synchronized void submit(BillInfo bill, x1.a callback) {
         ReferenceDiagnostics.attempt();
@@ -88,18 +90,18 @@ public final class YimuKernel {
         String candidate;
         synchronized (YimuKernel.class) { candidate = pkg.equals(lastPackage) ? lastCandidate : null; }
         if (candidate != null) MAIN.postDelayed(() -> {
-            try { WORKER.execute(() -> ReferenceApplication.store().updateCandidateRemark(candidate, remark)); }
+            try { enqueue(() -> ReferenceApplication.store().updateCandidateRemark(candidate, remark)); }
             catch (java.util.concurrent.RejectedExecutionException ignored) { ReferenceDiagnostics.skipped(); }
         }, 1000);
     }
     public static void dismissCallback(x1.a callback) {
         if (callback == null) return;
-        try { WORKER.execute(callback::dismiss); } catch (java.util.concurrent.RejectedExecutionException ignored) { ReferenceDiagnostics.skipped(); }
+        try { enqueue(callback::dismiss); } catch (java.util.concurrent.RejectedExecutionException ignored) { ReferenceDiagnostics.skipped(); }
     }
     public static void complete(String candidateId) {
         if(candidateId==null)return;
         for(java.util.Map.Entry<x1.a,String> entry:HANDLERS.entrySet())if(candidateId.equals(entry.getValue())){
-            try{WORKER.execute(()->{if(HANDLERS.remove(entry.getKey(),candidateId))entry.getKey().dismiss();});}
+            try{enqueue(()->{if(HANDLERS.remove(entry.getKey(),candidateId))entry.getKey().dismiss();});}
             catch(java.util.concurrent.RejectedExecutionException ignored){ReferenceDiagnostics.skipped();}
         }
     }
