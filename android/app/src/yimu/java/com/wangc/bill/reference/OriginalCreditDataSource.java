@@ -8,7 +8,7 @@ import java.util.Collections;
 import java.util.List;
 import org.json.JSONObject;
 
-/** Real current-store inputs for Bill/Refund/Reimbursement/Instalment credit projections. */
+/** Real current-store inputs for Bill/Refund/Reimbursement/Instalment/Transfer credit projections. */
 final class OriginalCreditDataSource implements OriginalCreditProjection.DataSource {
     private final ReferenceStore store;
     private final int owner;
@@ -52,8 +52,22 @@ final class OriginalCreditDataSource implements OriginalCreditProjection.DataSou
         }
     }
     /** These original domains have no table in the current experiment, hence no representable rows. */
-    public List<String> unportedDomains(){return java.util.Collections.unmodifiableList(java.util.Arrays.asList("Transfer","Lend","StockInfo","OperationIcon"));}
-    @Override public List<OriginalCreditProjection.Transfer> transfers(long asset){return Collections.emptyList();}
+    public List<String> unportedDomains(){return java.util.Collections.unmodifiableList(java.util.Arrays.asList("Lend","StockInfo","OperationIcon"));}
+    /** s2.g/l -> w2.b0: current owner, either endpoint, time DESC; no book/hide gate. */
+    @Override public List<OriginalCreditProjection.Transfer> transfers(long asset){
+        // s2 deliberately reads cost for both directions, never toCost/getCurrencyCost.
+        // w2.R showBook filtering and w2.J aggregate scopes belong to other callers.
+        synchronized(store){
+            List<OriginalCreditProjection.Transfer> result=new ArrayList<>();
+            for(OriginalTransferRecord row:new OriginalTransferRepository(store).forAsset(owner,asset)){
+                OriginalCreditProjection.Transfer value=new OriginalCreditProjection.Transfer();
+                value.fromAssetId=row.fromAssetId;value.toAssetId=row.toAssetId;
+                value.cost=row.cost;value.time=row.time;value.remark=row.remark;
+                result.add(value);
+            }
+            return result;
+        }
+    }
     @Override public List<OriginalCreditProjection.Lend> lends(long asset){return Collections.emptyList();}
     @Override public List<OriginalCreditProjection.Stock> stocks(long asset){return Collections.emptyList();}
     @Override public List<OriginalCreditProjection.Lend> interestRows(long asset,long start,long end){return Collections.emptyList();}

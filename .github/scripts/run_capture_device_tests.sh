@@ -27,6 +27,8 @@ capture_adb="$ANDROID_HOME/platform-tools/adb"
 capture_emulator="$ANDROID_HOME/emulator/emulator"
 capture_avdmanager="$ANDROID_HOME/cmdline-tools/latest/bin/avdmanager"
 capture_pid=""
+capture_logcat_pid=""
+capture_logcat_remote="/data/local/tmp/beecount-capture-logs"
 capture_evidence_attempted=false
 capture_evidence_status=1
 capture_evidence_remote="/sdcard/Android/data/io.github.wcwac.yimu.reference.debug/files/test-evidence"
@@ -78,6 +80,17 @@ cleanup() {
   trap - EXIT INT TERM
   if [[ -n "$capture_pid" ]]; then
     collect_screen_evidence || true
+    if [[ -n "$capture_logcat_pid" ]]; then
+      kill "$capture_logcat_pid" 2>/dev/null || true
+      for capture_attempt in {1..10}; do
+        kill -0 "$capture_logcat_pid" 2>/dev/null || break
+        sleep 0.1
+      done
+      kill -KILL "$capture_logcat_pid" 2>/dev/null || true
+      wait "$capture_logcat_pid" 2>/dev/null || true
+      timeout 20s "$capture_adb" -s "$capture_serial" pull "$capture_logcat_remote" "$capture_logs/logcat-rolling" \
+        > "$capture_logs/logcat-pull.txt" 2>&1 || true
+    fi
     timeout 10s "$capture_adb" -s "$capture_serial" logcat -d -v threadtime -t 2000 > "$capture_logs/logcat.txt" 2>&1 || true
     timeout 10s "$capture_adb" -s "$capture_serial" emu kill > "$capture_logs/emulator-stop.txt" 2>&1 || true
     kill "$capture_pid" 2>/dev/null || true
@@ -124,6 +137,17 @@ mapfile -t capture_devices < <(awk 'NR > 1 && NF { print $1 " " $2 }' "$capture_
 timeout 10s "$capture_adb" -s "$capture_serial" shell getprop > "$capture_logs/device-properties.txt"
 [[ "$(timeout 10s "$capture_adb" -s "$capture_serial" shell getprop ro.build.version.sdk | tr -d '\r')" == 36 ]]
 [[ "$(timeout 10s "$capture_adb" -s "$capture_serial" shell getprop ro.product.cpu.abi | tr -d '\r')" == x86_64 ]]
+
+# Keep the failure-time framework exception even when later cases overwrite the
+# emulator's ring buffer. Five 4MiB files cap this at 20MiB on this wiped emulator.
+# This starts only after the one-device/API/ABI checks; cleanup stops the stream,
+# retrieves data and destroys the same emulator on every exit path.
+if timeout 10s "$capture_adb" -s "$capture_serial" shell mkdir -p "$capture_logcat_remote"; then
+  "$capture_adb" -s "$capture_serial" shell logcat -b main -b system -b crash -v threadtime \
+    -f "$capture_logcat_remote/logcat.txt" -r 4096 -n 4 \
+    > "$capture_logs/logcat-stream.txt" 2>&1 &
+  capture_logcat_pid=$!
+fi
 
 # Use only APKs staged by the build step in this workflow run.
 python3 - <<'PY_APKS'

@@ -20,7 +20,7 @@ public final class ReferenceStore extends SQLiteOpenHelper {
     private final AssetRepository assetRepository = new AssetRepository(this);
     private final BookRepository bookRepository = new BookRepository(this);
     public ReferenceStore(Context context) { this(context,"yimu_reference.sqlite"); }
-    ReferenceStore(Context context,String name) { super(context.getApplicationContext(), name, null, 5);applicationContext=context.getApplicationContext(); }
+    ReferenceStore(Context context,String name) { super(context.getApplicationContext(), name, null, 6);applicationContext=context.getApplicationContext(); }
     public Context context(){return applicationContext;}
     @Override public synchronized void close(){OriginalFinancialEffects.close(this);super.close();}
     @Override public void onConfigure(SQLiteDatabase db) { db.setForeignKeyConstraintsEnabled(true); }
@@ -45,17 +45,19 @@ public final class ReferenceStore extends SQLiteOpenHelper {
         ReferenceSchemaV3.install(db);
         ReferenceSchemaV4.install(db);
         ReferenceSchemaV5.install(db);
+        ReferenceSchemaV6.install(db);
         BookRepository.bootstrapNewLocalOwner(db, LOCAL_OFFLINE_OWNER, System.currentTimeMillis());
     }
     @Override public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        if (oldVersion < 1 || oldVersion > 4 || newVersion != 5) throw new IllegalStateException("未知数据版本");
+        if (oldVersion < 1 || oldVersion > 5 || newVersion != 6) throw new IllegalStateException("未知数据版本");
         // ALTER preserves every local category PK and its transaction/rule/payload references.
         // The new columns default to legacy/NULL; names never imply original semantic IDs.
         if (oldVersion < 2) CategoryRepository.installV2Schema(db);
         CategoryRepository.bootstrap(db);
         if (oldVersion < 3) ReferenceSchemaV3.install(db);
         if(oldVersion<4)ReferenceSchemaV4.install(db);
-        ReferenceSchemaV5.install(db);
+        if(oldVersion<5)ReferenceSchemaV5.install(db);
+        ReferenceSchemaV6.install(db);
     }
     @Override public void onOpen(SQLiteDatabase db) {
         super.onOpen(db);
@@ -636,24 +638,25 @@ public final class ReferenceStore extends SQLiteOpenHelper {
     private static final String[] V2_BACKUP_TABLES = {"books", "accounts", "categories", "tags", "candidates", "transactions", "transaction_tags", "rules", "plans", "goals", "category_hidden_books", "category_accounts"};
     private static final String[] V3_BACKUP_TABLES = {"books", "accounts", "categories", "tags", "candidates", "transactions", "transaction_tags", "rules", "plans", "goals", "category_hidden_books", "category_accounts", "asset_show_books"};
     private static final String[] V4_BACKUP_TABLES = {"books", "accounts", "categories", "tags", "candidates", "transactions", "transaction_tags", "rules", "plans", "goals", "category_hidden_books", "category_accounts", "asset_show_books", "asset_histories", "original_refunds", "original_refund_items", "original_reimbursements", "original_reimbursement_items"};
-    private static final String[] BACKUP_TABLES = {"books", "accounts", "categories", "tags", "candidates", "transactions", "transaction_tags", "rules", "plans", "goals", "category_hidden_books", "category_accounts", "asset_show_books", "asset_histories", "original_refunds", "original_refund_items", "original_reimbursements", "original_reimbursement_items", "original_bill_related", "original_instalments", "original_curd_histories"};
+    private static final String[] V5_BACKUP_TABLES = {"books", "accounts", "categories", "tags", "candidates", "transactions", "transaction_tags", "rules", "plans", "goals", "category_hidden_books", "category_accounts", "asset_show_books", "asset_histories", "original_refunds", "original_refund_items", "original_reimbursements", "original_reimbursement_items", "original_bill_related", "original_instalments", "original_curd_histories"};
+    private static final String[] BACKUP_TABLES = {"books", "accounts", "categories", "tags", "candidates", "transactions", "transaction_tags", "rules", "plans", "goals", "category_hidden_books", "category_accounts", "asset_show_books", "asset_histories", "original_refunds", "original_refund_items", "original_reimbursements", "original_reimbursement_items", "original_bill_related", "original_instalments", "original_curd_histories", "original_transfers", "original_transfer_tags"};
     public synchronized JSONObject backup() {
         SQLiteDatabase db = getWritableDatabase(); db.beginTransaction();
         try {
             JSONObject tables = new JSONObject(); for (String table : BACKUP_TABLES) Json.put(tables, table, new JSONArray(query("SELECT * FROM " + table)));
-            JSONObject result = Json.object("format", "YimuReferenceBackup", "version", 5, "created", System.currentTimeMillis(), "tables", tables);
+            JSONObject result = Json.object("format", "YimuReferenceBackup", "version", 6, "created", System.currentTimeMillis(), "tables", tables);
             db.setTransactionSuccessful(); return result;
         } finally { db.endTransaction(); }
     }
     public synchronized void restore(JSONObject backup) {
         int version=backup.optInt("version");
-        if (!"YimuReferenceBackup".equals(backup.optString("format")) || (version<1||version>5)) throw new IllegalArgumentException("请选择本实验版的完整备份");
+        if (!"YimuReferenceBackup".equals(backup.optString("format")) || (version<1||version>6)) throw new IllegalArgumentException("请选择本实验版的完整备份");
         JSONObject tables = backup.optJSONObject("tables"); if (tables == null || tables.optJSONArray("books") == null || tables.optJSONArray("books").length() == 0) throw new IllegalArgumentException("备份缺少账本");
         SQLiteDatabase db = getWritableDatabase(); db.beginTransaction();
         try {
             db.execSQL("PRAGMA defer_foreign_keys=ON");
             for (int i = BACKUP_TABLES.length - 1; i >= 0; i--) db.delete(BACKUP_TABLES[i], null, null);
-            for (String table : version==1?V1_BACKUP_TABLES:version==2?V2_BACKUP_TABLES:version==3?V3_BACKUP_TABLES:version==4?V4_BACKUP_TABLES:BACKUP_TABLES) {
+            for (String table : version==1?V1_BACKUP_TABLES:version==2?V2_BACKUP_TABLES:version==3?V3_BACKUP_TABLES:version==4?V4_BACKUP_TABLES:version==5?V5_BACKUP_TABLES:BACKUP_TABLES) {
                 JSONArray rows = tables.optJSONArray(table); if (rows == null || rows.length() > 100000) throw new IllegalArgumentException("备份表缺失或过大：" + table);
                 List<String> allowed = new ArrayList<>();java.util.Map<String,String> types=new java.util.HashMap<>();
                 try (Cursor c = db.rawQuery("PRAGMA table_info(" + table + ")", null)) {
@@ -685,6 +688,7 @@ public final class ReferenceStore extends SQLiteOpenHelper {
             ReferenceSchemaV3.validateRestored(this);
             ReferenceSchemaV4.validateRestored(this);
             ReferenceSchemaV5.validateRestored(this);
+            ReferenceSchemaV6.validateRestored(this);
             CategoryRepository.bootstrap(db);
             try (Cursor c = db.rawQuery("PRAGMA foreign_key_check", null)) { if (c.moveToFirst()) throw new IllegalArgumentException("备份的账本或账户关联损坏"); }
             for (JSONObject book : query("SELECT * FROM books")) Money.scale(book.optString("currency"));
