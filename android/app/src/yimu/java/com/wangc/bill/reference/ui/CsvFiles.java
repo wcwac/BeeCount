@@ -23,7 +23,7 @@ public final class CsvFiles {
                 String label=cell(row,category).trim();long categoryId=store.defaultCategory(k.equals("transfer")?"expense":k);if(!label.isEmpty()&&!k.equals("transfer")){JSONObject c=store.one("SELECT id FROM categories WHERE name=? AND kind=? AND archived=0",label,k);categoryId=c==null?store.saveCategory(0,label,k,k.equals("income")?"ic_income_other":"ic_parent_other"):c.optLong("id");}
                 long accountId=accountId(store,cell(row,account),cur),destinationId=accountId(store,cell(row,to),cur);long when=parseDate(cell(row,time));
                 JSONObject data=Json.object("book_id",book,"kind",k,"amount",Money.positive(cell(row,amount),cur),"category_id",categoryId,"account_id",accountId,"to_account_id",destinationId,"remark",cell(row,note),"merchant",cell(row,merchant),"origin",cell(row,origin),"time",when,"import_key",importKey);
-                if(!cell(row,discount).isEmpty())Json.put(data,"discount",Money.signed(cell(row,discount),cur));if(!cell(row,fee).isEmpty())Json.put(data,"fee",Money.signed(cell(row,fee),cur));store.saveTransaction(data,0,null);added++;
+                if(!cell(row,discount).isEmpty())Json.put(data,"discount",Money.signed(cell(row,discount),cur));if(!cell(row,fee).isEmpty())Json.put(data,"fee",Money.signed(cell(row,fee),cur));store.saveLegacyImport(data);added++;
             }catch(Exception e){throw new IllegalArgumentException("第"+(index+1)+"行："+(e.getMessage()==null?"数据无效":e.getMessage()));}
             db.setTransactionSuccessful();return new int[]{added,skipped};
         }finally{db.endTransaction();}}

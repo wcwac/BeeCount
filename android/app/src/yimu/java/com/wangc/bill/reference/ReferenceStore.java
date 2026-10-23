@@ -19,7 +19,7 @@ public final class ReferenceStore extends SQLiteOpenHelper {
     private final AssetRepository assetRepository = new AssetRepository(this);
     private final BookRepository bookRepository = new BookRepository(this);
     public ReferenceStore(Context context) { this(context,"yimu_reference.sqlite"); }
-    ReferenceStore(Context context,String name) { super(context.getApplicationContext(), name, null, 3); }
+    ReferenceStore(Context context,String name) { super(context.getApplicationContext(), name, null, 4); }
     @Override public void onConfigure(SQLiteDatabase db) { db.setForeignKeyConstraintsEnabled(true); }
     @Override public void onCreate(SQLiteDatabase db) {
         db.execSQL("CREATE TABLE books(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT NOT NULL,currency TEXT NOT NULL DEFAULT 'CNY',budget INTEGER NOT NULL DEFAULT 0,archived INTEGER NOT NULL DEFAULT 0,created INTEGER NOT NULL)");
@@ -40,15 +40,17 @@ public final class ReferenceStore extends SQLiteOpenHelper {
         CategoryRepository.installV2Schema(db);
         CategoryRepository.bootstrap(db);
         ReferenceSchemaV3.install(db);
+        ReferenceSchemaV4.install(db);
         BookRepository.bootstrapNewLocalOwner(db, LOCAL_OFFLINE_OWNER, System.currentTimeMillis());
     }
     @Override public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        if (oldVersion < 1 || oldVersion > 2 || newVersion != 3) throw new IllegalStateException("未知数据版本");
+        if (oldVersion < 1 || oldVersion > 3 || newVersion != 4) throw new IllegalStateException("未知数据版本");
         // ALTER preserves every local category PK and its transaction/rule/payload references.
         // The new columns default to legacy/NULL; names never imply original semantic IDs.
         if (oldVersion < 2) CategoryRepository.installV2Schema(db);
         CategoryRepository.bootstrap(db);
-        ReferenceSchemaV3.install(db);
+        if (oldVersion < 3) ReferenceSchemaV3.install(db);
+        ReferenceSchemaV4.install(db);
     }
     @Override public void onOpen(SQLiteDatabase db) {
         super.onOpen(db);
@@ -101,12 +103,43 @@ public final class ReferenceStore extends SQLiteOpenHelper {
     public JSONObject book(long id) { return one("SELECT * FROM books WHERE id=?", "" + id); }
     public List<JSONObject> accounts() {
         List<JSONObject> result = query("SELECT * FROM accounts WHERE archived=0 ORDER BY id");
-        for (JSONObject row : result) Json.put(row, "balance", accountBalance(row.optLong("id")));
+        for (JSONObject row : result) {
+            Json.put(row, "balance", accountBalance(row.optLong("id")));
+            if (AssetRepository.ORIGINAL.equals(row.optString("asset_origin")) && row.optString("currency").isEmpty())
+                Json.put(row, "currency", "CNY"); // Host display only; asset_currency stays raw/nullable.
+        }
         return result;
     }
+    /** Original picker predicate/order plus explicitly retained legacy experiment accounts. */
+    public synchronized List<JSONObject> selectableAccounts(long bookRowId) {
+        List<JSONObject> result=new ArrayList<>();JSONObject book=book(bookRowId);
+        if(book!=null&&!book.isNull("semantic_id")) {
+            for(JSONObject row:assetRepository.picker(LOCAL_OFFLINE_OWNER,book.optLong("semantic_id")))
+                if(row.optInt("archived")==0)result.add(row);
+        }
+        result.addAll(assetRepository.legacyPicker());
+        for(JSONObject row:result) {
+            if(AssetRepository.ORIGINAL.equals(row.optString("asset_origin"))&&row.optString("currency").isEmpty())Json.put(row,"currency","CNY");
+            Json.put(row,"balance",accountBalance(row.optLong("id")));
+        }
+        return result;
+    }
+
+    /** Host default/rule lookup; display currency never overwrites raw asset_currency. */
+    public synchronized JSONObject accountInDisplayCurrency(long rowId,String currency) {
+        return one("SELECT * FROM accounts WHERE id=? AND archived=0 AND (CASE WHEN asset_origin='original' AND currency='' THEN 'CNY' ELSE currency END)=?", ""+rowId,currency);
+    }
     public synchronized long accountBalance(long id) {
-        JSONObject row = one("SELECT opening FROM accounts WHERE id=?", "" + id);
+        JSONObject row = one("SELECT * FROM accounts WHERE id=?", "" + id);
         if (row == null) return 0;
+        if (AssetRepository.ORIGINAL.equals(row.optString("asset_origin"))) {
+            double amount = new OriginalFinancialOrchestrator(this, row.optInt("owner_semantic_id"), LOCAL_OFFLINE_OWNER)
+                    .readBalance(row.optLong("semantic_id"));
+            String currency = row.optString("currency");
+            if (currency.isEmpty()) currency = "CNY"; // Explicit host display currency; raw nullable field remains intact.
+            return java.math.BigDecimal.valueOf(amount).movePointRight(Money.scale(currency))
+                    .setScale(0, java.math.RoundingMode.HALF_UP).longValueExact();
+        }
         return row.optLong("opening") + scalar("SELECT COALESCE(SUM(CASE WHEN account_id=? THEN CASE WHEN kind='income' THEN amount-fee ELSE -amount-fee END ELSE 0 END + CASE WHEN kind='transfer' AND to_account_id=? THEN amount ELSE 0 END),0) n FROM transactions WHERE deleted=0", "" + id, "" + id);
     }
     /** Compatibility list: original expense parents or top-level income children in the first book. */
@@ -129,6 +162,137 @@ public final class ReferenceStore extends SQLiteOpenHelper {
     }
 
     public synchronized long saveTransaction(JSONObject input, long editingId, String candidateId) {
+        JSONObject old = editingId > 0 ? transaction(editingId) : null;
+        if (old != null && OriginalBillRepository.ORIGINAL.equals(old.optString("bill_origin")))
+            return saveOriginalTransaction(input, editingId, candidateId);
+        JSONObject selectedAccount = input.optLong("account_id") > 0 ? assetRepository.byRowId(input.optLong("account_id")) : null;
+        boolean originalAccount = selectedAccount != null && AssetRepository.ORIGINAL.equals(selectedAccount.optString("asset_origin"));
+        if (editingId == 0 && usesOriginalCreation(input))
+            return saveOriginalTransaction(input, 0, candidateId);
+        JSONObject destination = input.optLong("to_account_id") > 0 ? assetRepository.byRowId(input.optLong("to_account_id")) : null;
+        if (originalAccount || destination != null && AssetRepository.ORIGINAL.equals(destination.optString("asset_origin")))
+            throw new IllegalArgumentException("此类旧账单或金融操作尚未接入原版账户流水，请使用普通收支记账");
+        return saveLegacyTransaction(input, editingId, candidateId);
+    }
+
+    private boolean usesOriginalCreation(JSONObject input) {
+        JSONObject book=book(input.optLong("book_id")),category=categoryRepository.byRowId(input.optLong("category_id"));
+        JSONObject account=input.optLong("account_id")>0?assetRepository.byRowId(input.optLong("account_id")):null;
+        return (input.optString("kind").equals("income")||input.optString("kind").equals("expense"))
+                &&input.optString("financial_type").isEmpty()&&input.optLong("fee")==0&&input.optLong("related_id")==0
+                &&book!=null&&!book.isNull("semantic_id")&&category!=null&&!CategoryRepository.LEGACY.equals(category.optString("level"))
+                &&(!input.has("owner_semantic_id")||!input.isNull("owner_semantic_id"))
+                &&(!input.has("raw_asset_semantic_id")||!input.isNull("raw_asset_semantic_id"))
+                &&(account==null||AssetRepository.ORIGINAL.equals(account.optString("asset_origin")));
+    }
+
+    /** Canonical Bill + f.t1. Preflight is read-only; financial saves are independently ordered. */
+    private long saveOriginalTransaction(JSONObject input, long editingId, String candidateId) {
+        JSONObject candidate = candidateId == null ? null : candidate(candidateId);
+        if (candidateId != null) {
+            if (candidate == null) throw new IllegalArgumentException("采集记录不存在");
+            if ("SAVED".equals(candidate.optString("state"))) return candidate.optLong("transaction_id");
+            if (!"PENDING".equals(candidate.optString("state"))) throw new IllegalArgumentException("采集记录已忽略");
+            if (editingId > 0) throw new IllegalArgumentException("采集记录不能覆盖已有账单");
+        }
+        String importKey = input.isNull("import_key") ? "" : input.optString("import_key");
+        if (!importKey.isEmpty()) {
+            if (!importKey.matches("[a-f0-9]{64}") || candidateId != null) throw new IllegalArgumentException("导入标识无效");
+            JSONObject previous = one("SELECT id FROM transactions WHERE import_key=?", importKey);
+            if (previous != null && previous.optLong("id") != editingId) {
+                if (editingId > 0) throw new IllegalArgumentException("导入标识属于其他账单");
+                return previous.optLong("id");
+            }
+        }
+        JSONObject book = book(input.optLong("book_id"));
+        if (book == null || book.optInt("archived") != 0 || book.isNull("semantic_id") || book.isNull("owner_semantic_id"))
+            throw new IllegalArgumentException("请选择具备原版身份的账本");
+        String kind = input.optString("kind"), currency = book.optString("currency");
+        if(!"CNY".equals(currency))throw new IllegalArgumentException("此原版流程的外币转换尚待接入，请先保留外币元数据");
+        if (!(kind.equals("expense") || kind.equals("income")) || !input.optString("financial_type").isEmpty()
+                || input.optLong("fee") != 0 || input.optLong("related_id") != 0)
+            throw new IllegalArgumentException("此账单使用原版普通收支流程，其他金融操作尚待接入");
+        long amount = input.optLong("amount"), discount = input.optLong("discount"), account = input.optLong("account_id");
+        if (amount <= 0 || amount > 99999999999999L || discount < 0 || discount > 99999999999999L) throw new IllegalArgumentException("请输入有效金额");
+        validateAccount(account, currency);
+        JSONObject asset = account > 0 ? assetRepository.byRowId(account) : null;
+        if (asset != null && (!AssetRepository.ORIGINAL.equals(asset.optString("asset_origin")) || asset.optInt("owner_semantic_id") != LOCAL_OFFLINE_OWNER))
+            throw new IllegalArgumentException("请选择当前离线身份的原版账户");
+        if(asset!=null&&!asset.isNull("asset_currency")&&!asset.optString("asset_currency").isEmpty())
+            throw new IllegalArgumentException("显式账户币种须经原版外币信息流程，尚待接入");
+        JSONObject category = categoryRepository.byRowId(input.optLong("category_id"));
+        if (category == null || category.optInt("archived") != 0 || !kind.equals(category.optString("kind"))
+                || CategoryRepository.LEGACY.equals(category.optString("level"))) throw new IllegalArgumentException("请选择对应收支分类");
+        long time = input.optLong("time");
+        if (time <= 0 || time > 8640000000000000L) throw new IllegalArgumentException("记账时间无效");
+        JSONArray tags = input.optJSONArray("tag_ids");
+        if (tags != null) for (int i = 0; i < tags.length(); i++)
+            if (one("SELECT id FROM tags WHERE id=?", "" + tags.optLong(i)) == null) throw new IllegalArgumentException("标签已不存在");
+        OriginalBillRepository bills = new OriginalBillRepository(this);
+        OriginalBillRecord bill = editingId > 0 ? bills.byLocalRowId(editingId) : new OriginalBillRecord();
+        JSONObject old = editingId > 0 ? transaction(editingId) : null;
+        if (editingId > 0 && (bill == null || old.optInt("deleted") != 0)) throw new IllegalArgumentException("账单已删除或不存在");
+        ContentValues values = new ContentValues();
+        values.put("book_id", book.optLong("id")); values.put("kind", kind); values.put("amount", amount); values.put("currency", currency);
+        values.put("category_id", category.optLong("id"));
+        JSONObject selection=input;
+        if(candidateId!=null&&CategoryRepository.PARENT.equals(category.optString("level"))&&!input.has("child_semantic_id")) {
+            selection=Json.copy(input);Json.put(selection,"child_semantic_id",0); // AutoAdd.S leaves new BillInfo.child at 0.
+        }
+        categoryRepository.applySelection(selection, category, values);
+        if (account > 0) values.put("account_id", account); else values.putNull("account_id");
+        values.putNull("to_account_id");
+        ReferenceSchemaV3.applyAssetReferences(this, input, account, 0, candidateId != null, values);
+        Integer assetOwner=values.getAsInteger("owner_semantic_id");
+        if(assetOwner!=null&&assetOwner!=LOCAL_OFFLINE_OWNER)throw new IllegalArgumentException("账户语义引用不属于当前离线身份");
+        for (String field : new String[]{"remark", "merchant", "origin", "asset_text"}) values.put(field, bounded(input.optString(field), 2000));
+        values.put("discount", discount); values.put("fee", 0); values.put("time", time);
+        values.put("not_total", inputFlag(input,"not_total") ? 1 : 0); values.put("not_budget", inputFlag(input,"not_budget") ? 1 : 0);
+        values.put("attachments", input.optString("attachments", "[]"));
+        if (!importKey.isEmpty()) values.put("import_key", importKey);
+        long now = System.currentTimeMillis();
+        if (editingId == 0) { values.put("created", now); if (candidateId != null) values.put("candidate_id", candidateId); bill.recordTime = now; bill.billType = candidateId == null ? 2 : 5; }
+        Long rawAsset = values.getAsLong("raw_asset_semantic_id");
+        if (rawAsset != null) bill.assetId = rawAsset;
+        else if (editingId == 0) throw new IllegalArgumentException("原版账单缺少账户语义编号");
+        bill.bookId = book.optLong("semantic_id"); bill.userId = book.optInt("owner_semantic_id");
+        bill.parentCategoryId = values.getAsInteger("parent_semantic_id"); bill.childCategoryId = values.getAsInteger("child_semantic_id");
+        bill.cost = java.math.BigDecimal.valueOf(amount, Money.scale(currency)).doubleValue();
+        bill.discountNumber = java.math.BigDecimal.valueOf(discount, Money.scale(currency)).doubleValue();
+        bill.time = time; bill.remark = values.getAsString("remark");
+        bill.notIntoTotal = inputFlag(input,"not_total"); bill.notIntoBudget = inputFlag(input,"not_budget");
+        if (editingId > 0 && bill.currencyInfo != null && !bill.currencyInfo.isEmpty())
+            throw new IllegalArgumentException("含原版外币信息的账单须等待外币编辑流程接入");
+        if(candidateId==null)bill.currencyInfo=""; // Manual AddBill's explicit base-currency branch; auto new Bill keeps null.
+        // Local tag PKs are retained only in the UI bridge. They never invent original Tag.tagId.
+        OriginalBillRepository.SaveResult result = new OriginalFinancialOrchestrator(this, LOCAL_OFFLINE_OWNER, book.optInt("owner_semantic_id"))
+                .saveNormal(bill, values);
+        if (!result.saved) throw new IllegalStateException("原版账单保存失败，账户阶段可能已完成；请检查资产历史后处理，勿直接重复提交");
+        long id = bill.localRowId;
+        SQLiteDatabase db = getWritableDatabase();
+        if (tags != null) {
+            db.beginTransaction();
+            try {
+                db.delete("transaction_tags", "transaction_id=?", new String[]{"" + id});
+                for (int i = 0; i < tags.length(); i++) db.execSQL("INSERT OR IGNORE INTO transaction_tags(transaction_id,tag_id) VALUES(?,?)", new Object[]{id, tags.optLong(i)});
+                db.setTransactionSuccessful();
+            } finally { db.endTransaction(); }
+        }
+        if (candidate != null) {
+            JSONObject confirmed = Json.copy(input); Json.put(confirmed, "currency", currency);
+            for (String key : new String[]{"parent_semantic_id", "child_semantic_id", "owner_semantic_id", "raw_asset_semantic_id", "raw_to_asset_semantic_id"}) Json.put(confirmed, key, values.getAsLong(key));
+            db.execSQL("UPDATE candidates SET state='SAVED',transaction_id=?,book_id=?,payload=? WHERE id=?", new Object[]{id, book.optLong("id"), confirmed.toString(), candidateId});
+        }
+        if (input.optBoolean("remember_rule") && !input.optString("merchant").trim().isEmpty()) {
+            ContentValues rule = new ContentValues(); rule.put("merchant", bounded(input.optString("merchant"), 2000));
+            rule.put("category_id", category.optLong("id")); rule.put("book_id", book.optLong("id")); if (account > 0) rule.put("account_id", account);
+            JSONObject previous = one("SELECT id FROM rules WHERE merchant=?", input.optString("merchant"));
+            if (previous == null) db.insertOrThrow("rules", null, rule); else db.update("rules", rule, "id=?", new String[]{"" + previous.optLong("id")});
+        }
+        return id;
+    }
+
+    private long saveLegacyTransaction(JSONObject input, long editingId, String candidateId) {
         SQLiteDatabase db = getWritableDatabase(); db.beginTransaction();
         try {
             JSONObject candidate = candidateId == null ? null : candidate(candidateId);
@@ -178,7 +342,7 @@ public final class ReferenceStore extends SQLiteOpenHelper {
             ReferenceSchemaV3.applyAssetReferences(this,input,account,kind.equals("transfer")?destination:0,candidateId!=null,values);
             for (String field : java.util.Arrays.asList("remark", "merchant", "origin", "asset_text", "financial_type")) values.put(field, bounded(input.optString(field), 2000));
             values.put("discount", discount); values.put("fee", fee); values.put("time", time);
-            values.put("not_total", input.optBoolean("not_total") ? 1 : 0); values.put("not_budget", input.optBoolean("not_budget") ? 1 : 0);
+            values.put("not_total", inputFlag(input,"not_total") ? 1 : 0); values.put("not_budget", inputFlag(input,"not_budget") ? 1 : 0);
             values.put("settled", input.optInt("settled")); values.put("attachments", input.optString("attachments", "[]"));
             if(input.optLong("related_id")>0)values.put("related_id",input.optLong("related_id"));
             if(!importKey.isEmpty())values.put("import_key",importKey);
@@ -228,7 +392,9 @@ public final class ReferenceStore extends SQLiteOpenHelper {
     private void validateAccount(long id, String currency) {
         if (id <= 0) return;
         JSONObject account = one("SELECT * FROM accounts WHERE id=? AND archived=0", "" + id);
-        if (account == null || !currency.equals(account.optString("currency"))) throw new IllegalArgumentException("账户不存在或币种与账本不同");
+        String accountCurrency=account==null?"":account.optString("currency");
+        if(account!=null&&AssetRepository.ORIGINAL.equals(account.optString("asset_origin"))&&accountCurrency.isEmpty())accountCurrency="CNY";
+        if (account == null || !currency.equals(accountCurrency)) throw new IllegalArgumentException("账户不存在或币种与账本不同");
     }
     /** Original a0.y/C2 matches the unedited captured time +/- one minute, absolute amount
      * +/- 0.0001 and income direction, across books. Transfers/debts use other original tables. */
@@ -248,6 +414,26 @@ public final class ReferenceStore extends SQLiteOpenHelper {
      * including the old candidate link, commit together; failed validation retains the old bill. */
     public synchronized long saveCandidateReplacing(JSONObject data,String candidateId,long oldId) {
         if(candidateId==null||candidateId.isEmpty())throw new IllegalArgumentException("采集记录不存在");
+        JSONObject previous=transaction(oldId);
+        if(previous!=null&&(OriginalBillRepository.ORIGINAL.equals(previous.optString("bill_origin"))||usesOriginalCreation(data))) {
+            JSONObject pending=candidate(candidateId);
+            if(pending==null)throw new IllegalArgumentException("采集记录不存在");
+            if("SAVED".equals(pending.optString("state")))return pending.optLong("transaction_id");
+            if(!"PENDING".equals(pending.optString("state")))throw new IllegalArgumentException("采集记录已处理");
+            List<JSONObject> repeats=findRepeatTransactions(data);
+            if(repeats.size()!=1||repeats.get(0).optLong("id")!=oldId)throw new IllegalArgumentException("重复账单已变化，请重新确认");
+            if(!data.isNull("import_key")&&!data.optString("import_key").isEmpty())throw new IllegalArgumentException("采集记录不能使用导入标识");
+            if(OriginalBillRepository.ORIGINAL.equals(previous.optString("bill_origin")))requireSimpleOriginalDeletion(oldId);
+            else if(previous.optLong("related_id")>0||scalar("SELECT COUNT(*) n FROM transactions WHERE related_id=?",""+oldId)>0)
+                throw new IllegalArgumentException("重复账单有关联回款，请先处理关联账单");
+            // Original AutoAdd's replacement calls a0.s before its new-save callback.
+            // Unlike the legacy compatibility path below, this is not one transaction.
+            OriginalBillRecord bill=new OriginalBillRepository(this).byLocalRowId(oldId);
+            getWritableDatabase().execSQL("UPDATE candidates SET state='DISMISSED',transaction_id=NULL WHERE transaction_id=?",new Object[]{oldId});
+            if(getWritableDatabase().delete("transactions","id=?",new String[]{""+oldId})>0&&bill!=null)
+                new OriginalFinancialOrchestrator(this,LOCAL_OFFLINE_OWNER,bill.userId).reverseDeletedBill(bill,true);
+            return saveTransaction(data,0,candidateId);
+        }
         SQLiteDatabase db=getWritableDatabase();db.beginTransaction();
         try {
             JSONObject candidate=candidate(candidateId);
@@ -265,12 +451,37 @@ public final class ReferenceStore extends SQLiteOpenHelper {
             db.setTransactionSuccessful();return id;
         } finally { db.endTransaction(); }
     }
-    public synchronized void trash(long id, boolean deleted) { getWritableDatabase().execSQL("UPDATE transactions SET deleted=? WHERE id=?", new Object[]{deleted ? 1 : 0, id}); }
-    public synchronized void purge(long id){SQLiteDatabase db=getWritableDatabase();db.beginTransaction();try{JSONObject row=transaction(id);if(row==null||row.optInt("deleted")!=1)throw new IllegalArgumentException("只能永久删除回收站中的账单");if(scalar("SELECT COUNT(*) n FROM transactions WHERE related_id=?",""+id)>0)throw new IllegalArgumentException("请先删除关联的回款账单");String candidate=row.optString("candidate_id");if(!candidate.isEmpty()&&!candidate.equals("null"))db.execSQL("UPDATE candidates SET state='DISMISSED',transaction_id=NULL WHERE id=?",new Object[]{candidate});db.delete("transactions","id=?",new String[]{""+id});db.setTransactionSuccessful();}finally{db.endTransaction();}}
+    public synchronized void trash(long id, boolean deleted) {
+        JSONObject row=transaction(id);
+        if(row==null||row.optInt("deleted")== (deleted?1:0))return;
+        OriginalBillRecord original=new OriginalBillRepository(this).byLocalRowId(id);
+        if(original==null){getWritableDatabase().execSQL("UPDATE transactions SET deleted=? WHERE id=?",new Object[]{deleted?1:0,id});return;}
+        requireSimpleOriginalDeletion(id);
+        getWritableDatabase().execSQL("UPDATE transactions SET deleted=? WHERE id=?",new Object[]{deleted?1:0,id});
+        OriginalFinancialOrchestrator command=new OriginalFinancialOrchestrator(this,LOCAL_OFFLINE_OWNER,original.userId);
+        // Reversible trash is a host extension. Original a0.r/s physically delete first.
+        // Apply/reverse the stored original amount once, rather than a legacy ledger SUM.
+        if(deleted)command.reverseDeletedBill(original,true);
+        else{original.billId=0;command.editBillAssets(original);}
+    }
+
+    private void requireSimpleOriginalDeletion(long id) {
+        JSONObject row=transaction(id);
+        if(row==null)throw new IllegalArgumentException("原账单不存在");
+        if(row.optLong("related_id")>0||scalar("SELECT COUNT(*) n FROM transactions WHERE related_id=?",""+id)>0)
+            throw new IllegalArgumentException("请先处理关联回款账单");
+        int semantic=row.optInt("bill_semantic_id");
+        if(!new OriginalRefundRepository(this).allByParent(LOCAL_OFFLINE_OWNER,semantic).isEmpty()
+                ||!new OriginalReimbursementRepository(this).allByParent(LOCAL_OFFLINE_OWNER,semantic).isEmpty())
+            throw new IllegalArgumentException("含原版退款或报销的账单删除流程尚待接入，请先保留账单");
+    }
+    public synchronized void purge(long id){SQLiteDatabase db=getWritableDatabase();db.beginTransaction();try{JSONObject row=transaction(id);if(row==null||row.optInt("deleted")!=1)throw new IllegalArgumentException("只能永久删除回收站中的账单");if(scalar("SELECT COUNT(*) n FROM transactions WHERE related_id=?",""+id)>0)throw new IllegalArgumentException("请先删除关联的回款账单");if(OriginalBillRepository.ORIGINAL.equals(row.optString("bill_origin")))requireSimpleOriginalDeletion(id);String candidate=row.optString("candidate_id");if(!candidate.isEmpty()&&!candidate.equals("null"))db.execSQL("UPDATE candidates SET state='DISMISSED',transaction_id=NULL WHERE id=?",new Object[]{candidate});db.delete("transactions","id=?",new String[]{""+id});db.setTransactionSuccessful();}finally{db.endTransaction();}}
     public synchronized void dismiss(String id) { getWritableDatabase().execSQL("UPDATE candidates SET state='DISMISSED' WHERE id=? AND state='PENDING'", new Object[]{id}); }
     public synchronized void settle(long id, boolean settled) { getWritableDatabase().execSQL("UPDATE transactions SET settled=? WHERE id=?", new Object[]{settled ? 1 : 0, id}); }
     public synchronized long outstanding(long id){JSONObject t=transaction(id);if(t==null)return 0;long returned=scalar("SELECT COALESCE(SUM(amount),0) n FROM transactions WHERE related_id=? AND deleted=0",""+id);return Math.max(0,t.optLong("amount")-returned);}
     public synchronized long financialReturn(long id,long amount,long account,long time){
+        if(new OriginalBillRepository(this).byLocalRowId(id)!=null)
+            throw new IllegalArgumentException("原版退款与报销流程尚待接入，不能替换为普通回款账单");
         SQLiteDatabase db=getWritableDatabase();db.beginTransaction();try{
             JSONObject original=transaction(id);if(original==null||original.optInt("deleted")!=0)throw new IllegalArgumentException("原账单不存在");
             if(amount<=0||amount>outstanding(id))throw new IllegalArgumentException("回款金额超过剩余金额");
@@ -301,7 +512,21 @@ public final class ReferenceStore extends SQLiteOpenHelper {
         if(old!=null&&!currency.equals(old.optString("currency"))&&(scalar("SELECT COUNT(*) n FROM candidates WHERE book_id=?",""+id)>0||hasPlanForBook(id)))throw new IllegalArgumentException("有采集记录或周期账单的账本不能更换币种");
         ContentValues v = new ContentValues(); v.put("name", name); v.put("currency", currency); v.put("budget", budget);
         if (id > 0) { if (old == null) throw new IllegalArgumentException("账本不存在"); getWritableDatabase().update("books", v, "id=?", new String[]{"" + id}); return id; }
-        v.put("created", System.currentTimeMillis()); return getWritableDatabase().insertOrThrow("books", null, v);
+        long now=System.currentTimeMillis();
+        JSONObject created=bookRepository.createOriginal(LOCAL_OFFLINE_OWNER,name,null,false,false,now);
+        long rowId=created.optLong("id");
+        getWritableDatabase().update("books",v,"id=?",new String[]{""+rowId});return rowId;
+    }
+
+    /** Explicit atomic CSV compatibility import; it does not fabricate original Bill IDs. */
+    public synchronized long saveLegacyImport(JSONObject input) {
+        if(input.isNull("import_key")||!input.optString("import_key").matches("[a-f0-9]{64}"))throw new IllegalArgumentException("导入标识无效");
+        for(String key:new String[]{"account_id","to_account_id"}) {
+            JSONObject asset=assetRepository.byRowId(input.optLong(key));
+            if(asset!=null&&AssetRepository.ORIGINAL.equals(asset.optString("asset_origin")))
+                throw new IllegalArgumentException("此CSV导入尚未接入原版账户，请使用独立旧账户");
+        }
+        return saveLegacyTransaction(input,0,null);
     }
     public synchronized void removeBook(long id) {
         if (books().size() <= 1) throw new IllegalArgumentException("至少保留一个账本");
@@ -357,29 +582,31 @@ public final class ReferenceStore extends SQLiteOpenHelper {
         }finally{db.endTransaction();}
     }
     public synchronized void deleteSimple(String table, long id) { if (!java.util.Arrays.asList("goals", "plans", "rules").contains(table)) throw new IllegalArgumentException(); getWritableDatabase().delete(table, "id=?", new String[]{"" + id}); }
+    private static boolean inputFlag(JSONObject input,String key){Object value=input.opt(key);return Boolean.TRUE.equals(value)||value instanceof Number&&((Number)value).longValue()==1||"true".equals(value);}
     private static String requiredName(String value) { String name = value == null ? "" : value.trim(); if (name.isEmpty() || name.length() > 100) throw new IllegalArgumentException("名称需要1至100个字符"); return name; }
     private static String bounded(String value, int max) { return value == null ? "" : value.substring(0, Math.min(value.length(), max)); }
 
     private static final String[] V1_BACKUP_TABLES = {"books", "accounts", "categories", "tags", "candidates", "transactions", "transaction_tags", "rules", "plans", "goals"};
     private static final String[] V2_BACKUP_TABLES = {"books", "accounts", "categories", "tags", "candidates", "transactions", "transaction_tags", "rules", "plans", "goals", "category_hidden_books", "category_accounts"};
-    private static final String[] BACKUP_TABLES = {"books", "accounts", "categories", "tags", "candidates", "transactions", "transaction_tags", "rules", "plans", "goals", "category_hidden_books", "category_accounts", "asset_show_books"};
+    private static final String[] V3_BACKUP_TABLES = {"books", "accounts", "categories", "tags", "candidates", "transactions", "transaction_tags", "rules", "plans", "goals", "category_hidden_books", "category_accounts", "asset_show_books"};
+    private static final String[] BACKUP_TABLES = {"books", "accounts", "categories", "tags", "candidates", "transactions", "transaction_tags", "rules", "plans", "goals", "category_hidden_books", "category_accounts", "asset_show_books", "asset_histories", "original_refunds", "original_refund_items", "original_reimbursements", "original_reimbursement_items"};
     public synchronized JSONObject backup() {
         SQLiteDatabase db = getWritableDatabase(); db.beginTransaction();
         try {
             JSONObject tables = new JSONObject(); for (String table : BACKUP_TABLES) Json.put(tables, table, new JSONArray(query("SELECT * FROM " + table)));
-            JSONObject result = Json.object("format", "YimuReferenceBackup", "version", 3, "created", System.currentTimeMillis(), "tables", tables);
+            JSONObject result = Json.object("format", "YimuReferenceBackup", "version", 4, "created", System.currentTimeMillis(), "tables", tables);
             db.setTransactionSuccessful(); return result;
         } finally { db.endTransaction(); }
     }
     public synchronized void restore(JSONObject backup) {
         int version=backup.optInt("version");
-        if (!"YimuReferenceBackup".equals(backup.optString("format")) || (version!=1&&version!=2&&version!=3)) throw new IllegalArgumentException("请选择本实验版的完整备份");
+        if (!"YimuReferenceBackup".equals(backup.optString("format")) || (version!=1&&version!=2&&version!=3&&version!=4)) throw new IllegalArgumentException("请选择本实验版的完整备份");
         JSONObject tables = backup.optJSONObject("tables"); if (tables == null || tables.optJSONArray("books") == null || tables.optJSONArray("books").length() == 0) throw new IllegalArgumentException("备份缺少账本");
         SQLiteDatabase db = getWritableDatabase(); db.beginTransaction();
         try {
             db.execSQL("PRAGMA defer_foreign_keys=ON");
             for (int i = BACKUP_TABLES.length - 1; i >= 0; i--) db.delete(BACKUP_TABLES[i], null, null);
-            for (String table : version==1?V1_BACKUP_TABLES:version==2?V2_BACKUP_TABLES:BACKUP_TABLES) {
+            for (String table : version==1?V1_BACKUP_TABLES:version==2?V2_BACKUP_TABLES:version==3?V3_BACKUP_TABLES:BACKUP_TABLES) {
                 JSONArray rows = tables.optJSONArray(table); if (rows == null || rows.length() > 100000) throw new IllegalArgumentException("备份表缺失或过大：" + table);
                 List<String> allowed = new ArrayList<>();java.util.Map<String,String> types=new java.util.HashMap<>();
                 try (Cursor c = db.rawQuery("PRAGMA table_info(" + table + ")", null)) {
@@ -390,10 +617,10 @@ public final class ReferenceStore extends SQLiteOpenHelper {
                 }
                 for (int i = 0; i < rows.length(); i++) {
                     JSONObject row = rows.optJSONObject(i); if (row == null) throw new IllegalArgumentException("备份记录格式错误");
-                    if(version>=2)for(String column:allowed)if(ReferenceSchemaV3.acceptsOldColumn(version,table,column)&&!row.has(column))throw new IllegalArgumentException("备份字段缺失："+table+"."+column);
+                    if(version>=2)for(String column:allowed)if(ReferenceSchemaV4.acceptsBackupColumn(version,table,column)&&!row.has(column))throw new IllegalArgumentException("备份字段缺失："+table+"."+column);
                     ContentValues values = new ContentValues();
                     for (String column : allowed) if (row.has(column)) {
-                        if(!ReferenceSchemaV3.acceptsOldColumn(version,table,column))continue;
+                        if(!ReferenceSchemaV4.acceptsBackupColumn(version,table,column))continue;
                         Object value = row.opt(column);
                         if (value == JSONObject.NULL) values.putNull(column);
                         else if ("INTEGER".equals(types.get(column))&&(value instanceof Long || value instanceof Integer)) values.put(column, ((Number)value).longValue());
@@ -409,11 +636,12 @@ public final class ReferenceStore extends SQLiteOpenHelper {
             assetRepository.validateRestored();
             bookRepository.validateRestored();
             ReferenceSchemaV3.validateRestored(this);
+            ReferenceSchemaV4.validateRestored(this);
             CategoryRepository.bootstrap(db);
             try (Cursor c = db.rawQuery("PRAGMA foreign_key_check", null)) { if (c.moveToFirst()) throw new IllegalArgumentException("备份的账本或账户关联损坏"); }
             for (JSONObject book : query("SELECT * FROM books")) Money.scale(book.optString("currency"));
             if(scalar("SELECT COUNT(*) n FROM books WHERE archived=0")==0)throw new IllegalArgumentException("备份中没有可用账本");
-            if(scalar("SELECT COUNT(*) n FROM transactions t JOIN books b ON b.id=t.book_id LEFT JOIN accounts a ON a.id=t.account_id LEFT JOIN accounts z ON z.id=t.to_account_id WHERE t.currency<>b.currency OR (a.id IS NOT NULL AND a.currency<>t.currency) OR (z.id IS NOT NULL AND z.currency<>t.currency) OR t.amount>99999999999999 OR t.fee>99999999999999 OR t.discount>99999999999999 OR t.not_total NOT IN(0,1) OR t.not_budget NOT IN(0,1) OR t.deleted NOT IN(0,1)")>0)throw new IllegalArgumentException("备份账单的币种或数值无效");
+            if(scalar("SELECT COUNT(*) n FROM transactions t JOIN books b ON b.id=t.book_id LEFT JOIN accounts a ON a.id=t.account_id LEFT JOIN accounts z ON z.id=t.to_account_id WHERE t.currency<>b.currency OR (a.id IS NOT NULL AND (CASE WHEN a.asset_origin='original' AND a.currency='' THEN 'CNY' ELSE a.currency END)<>t.currency) OR (z.id IS NOT NULL AND (CASE WHEN z.asset_origin='original' AND z.currency='' THEN 'CNY' ELSE z.currency END)<>t.currency) OR t.amount>99999999999999 OR t.fee>99999999999999 OR t.discount>99999999999999 OR t.not_total NOT IN(0,1) OR t.not_budget NOT IN(0,1) OR t.deleted NOT IN(0,1)")>0)throw new IllegalArgumentException("备份账单的币种或数值无效");
             for(JSONObject plan:query("SELECT * FROM plans")){if(!java.util.Arrays.asList("daily","weekly","monthly","yearly").contains(plan.optString("interval"))||plan.optLong("next_due")<=0)throw new IllegalArgumentException("备份周期规则无效");validatePlan(Json.parse(plan.optString("payload")));}
             for(JSONObject candidate:query("SELECT * FROM candidates")){
                 if(!java.util.Arrays.asList("PENDING","SAVED","DISMISSED").contains(candidate.optString("state")))throw new IllegalArgumentException("备份采集状态无效");

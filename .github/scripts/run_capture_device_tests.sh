@@ -157,7 +157,7 @@ import os,re,json
 text=(Path(os.environ['RUNNER_TEMP'])/'capture-device/instrumentation.txt').read_text()
 assert not any(s in text for s in ['FAILURES!!!','INSTRUMENTATION_FAILED','Process crashed','INSTRUMENTATION_RESULT: shortMsg']), 'Device tests failed or crashed'
 match=re.search(r'OK \(([0-9]+) tests?\)',text)
-assert match and int(match[1])>=108, 'Required device tests were not discovered or did not all pass'
+assert match and int(match[1])>=185, 'Required device tests were not discovered or did not all pass'
 required=set(json.loads((Path(os.environ['GITHUB_WORKSPACE'])/'.github/reference-test-cases.json').read_text())['device'])
 started=set();passed=set();case={}
 for line in text.splitlines():

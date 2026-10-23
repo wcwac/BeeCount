@@ -64,7 +64,7 @@ public final class YimuKernel {
         try { if (bill.getDiscount() != null) discount = Math.max(0, Money.signed(bill.getDiscount(), "CNY")); } catch (IllegalArgumentException ignored) {}
         try { fee = Math.max(0, Money.signed(BigDecimal.valueOf(bill.getServiceCharge()).toPlainString(), "CNY")); } catch (IllegalArgumentException ignored) {}
         long account = ReferenceApplication.prefs().getLong("default_account", 0), toAccount = 0;
-        if(account>0&&store.one("SELECT id FROM accounts WHERE id=? AND archived=0 AND currency='CNY'",""+account)==null)account=0;
+        if(account>0&&store.accountInDisplayCurrency(account,"CNY")==null)account=0;
         if (bill.isTransfer()) { account = accountNamed(store, bill.getFromAsset()); toAccount = accountNamed(store, bill.getToAsset()); }
         long category = store.defaultCategory(kind.equals("transfer") ? "expense" : kind,bookId);
         // BillInfo category IDs identify original ParentCategory/ChildCategory records,
@@ -80,7 +80,7 @@ public final class YimuKernel {
         if (rule != null && ReferenceApplication.prefs().getBoolean("remember_merchants", true)) {
             JSONObject c = store.one("SELECT * FROM categories WHERE id=? AND archived=0", "" + rule.optLong("category_id"));
             if (c != null && kind.equals(c.optString("kind"))) category = c.optLong("id");
-            JSONObject a = store.one("SELECT * FROM accounts WHERE id=? AND archived=0 AND currency='CNY'", "" + rule.optLong("account_id"));
+            JSONObject a = store.accountInDisplayCurrency(rule.optLong("account_id"),"CNY");
             if (a != null) account = a.optLong("id");
         }
         JSONArray tags = new JSONArray(); if (bill.getTagList() != null) for (Long id : bill.getTagList()) if (store.one("SELECT id FROM tags WHERE id=?", "" + id) != null) tags.put(id);
@@ -109,7 +109,7 @@ public final class YimuKernel {
             });
         } catch (Exception error) { ReferenceDiagnostics.failure("STORE_FAILED",error); MAIN.post(CaptureNotifications::error); }
     }
-    private static long accountNamed(ReferenceStore store, String value) { if (value == null || value.isEmpty()) return 0; JSONObject row = store.one("SELECT id FROM accounts WHERE name=? AND archived=0 AND currency='CNY'", value); return row == null ? 0 : row.optLong("id"); }
+    private static long accountNamed(ReferenceStore store, String value) { if (value == null || value.isEmpty()) return 0; JSONObject row = store.one("SELECT id FROM accounts WHERE name=? AND archived=0 AND (CASE WHEN asset_origin='original' AND currency='' THEN 'CNY' ELSE currency END)='CNY'", value); return row == null ? 0 : row.optLong("id"); }
     private static String safe(String value) { return value == null ? "" : value.substring(0, Math.min(2000, value.length())); }
     public static void enrichRemark(String remark) {
         String pkg = SOURCE.get();

@@ -302,7 +302,7 @@ public final class CaptureOverlay {
 
         void chooseAccount(String key) {
             cancelTimer();
-            List<JSONObject> accounts = ReferenceApplication.store().query("SELECT * FROM accounts WHERE archived=0 AND currency='CNY' ORDER BY id");
+            List<JSONObject> accounts = ReferenceApplication.store().selectableAccounts(data.optLong("book_id"));
             String[] labels = new String[accounts.size() + 1]; labels[accounts.size()] = "无账户";
             for (int i = 0; i < accounts.size(); i++) labels[i] = accounts.get(i).optString("name");
             showDialog(new AlertDialog.Builder(context, android.R.style.Theme_Material_Light_Dialog_Alert)

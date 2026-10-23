@@ -85,17 +85,42 @@ public final class AssetRepository {
      * in its surrounding Store transaction. No bootstrap accounts are created.
      */
     public long createOriginal(int ownerSemanticId, Definition definition) {
+        CreationResult result = tryCreateOriginal(ownerSemanticId, definition);
+        if (!result.saved) throw new IllegalStateException("原版账户元数据保存失败：" + result.failureType);
+        return result.rowId;
+    }
+
+    public static final class CreationResult {
+        public final long rowId, semanticId, updateTime;
+        public final int ownerSemanticId, positionWeight;
+        public final boolean saved;
+        public final String failureType;
+        private CreationResult(long row, int owner, int semantic, int weight, long time, Exception error) {
+            rowId=row;ownerSemanticId=owner;semanticId=semantic;positionWeight=weight;updateTime=time;
+            saved=error==null;failureType=error==null?"":error.getClass().getName();
+        }
+    }
+
+    /** f.d allocates identity before save(); its caller can continue after save=false. */
+    public CreationResult tryCreateOriginal(int ownerSemanticId, Definition definition) {
+        if (definition == null || !Double.isFinite(definition.assetNumber) || !Double.isFinite(definition.totalQuota))
+            throw new IllegalArgumentException("账户元数据无效");
         synchronized (store) {
-            SQLiteDatabase db=store.getWritableDatabase(); db.beginTransaction();
+            SQLiteDatabase db=store.getWritableDatabase();
+            long now=System.currentTimeMillis();
+            Random random=new Random(); int semanticId;
+            do { semanticId=random.nextInt(Integer.MAX_VALUE); }
+            while (p(semanticId,ownerSemanticId) != null);
+            JSONObject maximum=store.one("SELECT COALESCE(MAX(position_weight),0) n FROM accounts WHERE asset_origin='original' AND owner_semantic_id=?",""+ownerSemanticId);
+            int weight=maximum.optInt("n")+1;
+            long[] assignedRow={0};
             try {
-                Random random=new Random(); int semanticId;
-                do { semanticId=random.nextInt(Integer.MAX_VALUE); }
-                while (p(semanticId,ownerSemanticId) != null);
-                JSONObject maximum=store.one("SELECT COALESCE(MAX(position_weight),0) n FROM accounts WHERE asset_origin='original' AND owner_semantic_id=?",""+ownerSemanticId);
-                int weight=maximum.optInt("n")+1; // f.d uses Java int addition.
-                long rowId=insertOriginal(db,ownerSemanticId,semanticId,weight,System.currentTimeMillis(),definition);
-                db.setTransactionSuccessful(); return rowId;
-            } finally { db.endTransaction(); }
+                db.beginTransaction();
+                try {
+                    long rowId=insertOriginal(db,ownerSemanticId,semanticId,weight,now,definition,row->assignedRow[0]=row);
+                    db.setTransactionSuccessful();return new CreationResult(rowId,ownerSemanticId,semanticId,weight,now,null);
+                } finally { db.endTransaction(); }
+            } catch (Exception error) { return new CreationResult(assignedRow[0],ownerSemanticId,semanticId,weight,now,error); }
         }
     }
 
@@ -111,6 +136,9 @@ public final class AssetRepository {
     }
 
     private static long insertOriginal(SQLiteDatabase db,int owner,long semanticId,int weight,long time,Definition value) {
+        return insertOriginal(db,owner,semanticId,weight,time,value,null);
+    }
+    private static long insertOriginal(SQLiteDatabase db,int owner,long semanticId,int weight,long time,Definition value,java.util.function.LongConsumer assignedRow) {
         if (value == null || !Double.isFinite(value.assetNumber) || !Double.isFinite(value.totalQuota)) throw new IllegalArgumentException("账户元数据无效");
         ContentValues fields=new ContentValues();
         fields.put("name",value.name); fields.put("type","original");
@@ -125,6 +153,8 @@ public final class AssetRepository {
         fields.put("group_name",value.groupName); fields.put("simple_name",value.simpleName); fields.put("card_code",value.cardCode); fields.put("remark",value.remark);
         fields.put("in_account_date",value.inAccountDate); fields.put("out_account_date",value.outAccountDate);
         long rowId=db.insertOrThrow("accounts",null,fields);
+        if(rowId==-1)throw new IllegalStateException("原版账户未插入");
+        if(assignedRow!=null)assignedRow.accept(rowId);
         replaceShowBook(db,rowId,value.showBook);
         return rowId;
     }
@@ -225,9 +255,20 @@ public final class AssetRepository {
             : OriginalAssetSelection.Mapping.known(row.optLong("raw_asset_semantic_id"),local);
     }
 
-    /** Called in an ordinary Bill save's transaction. i0.a casts long raw ID to int. */
+    /** Legacy compatibility transaction; i0.a casts long raw ID to int. */
     public void learnCategoryAccount(SQLiteDatabase db,int ownerSemanticId,int parentSemanticId,int childSemanticId,
             long rawAssetSemanticId,Long accountRowId,long now) {
+        learnCategoryAccount(db,ownerSemanticId,parentSemanticId,childSemanticId,rawAssetSemanticId,accountRowId,now,false);
+    }
+
+    /** i0.b's allocation/lookup can throw; only entity save catches Exception and returns false. */
+    public boolean tryLearnCategoryAccount(SQLiteDatabase db,int ownerSemanticId,int parentSemanticId,int childSemanticId,
+            long rawAssetSemanticId,Long accountRowId,long now) {
+        return learnCategoryAccount(db,ownerSemanticId,parentSemanticId,childSemanticId,rawAssetSemanticId,accountRowId,now,true);
+    }
+
+    private boolean learnCategoryAccount(SQLiteDatabase db,int ownerSemanticId,int parentSemanticId,int childSemanticId,
+            long rawAssetSemanticId,Long accountRowId,long now,boolean ignoreSaveException) {
         synchronized (store) {
             int storedRaw=(int)rawAssetSemanticId;
             if (accountRowId!=null) {
@@ -245,8 +286,15 @@ public final class AssetRepository {
             value.put("bridge_revision",nextBridgeRevision());
             value.put("raw_asset_semantic_id",storedRaw); value.put("category_asset_semantic_id",mappingId); value.put("updated",now);
             if (accountRowId==null) value.putNull("account_row_id"); else value.put("account_row_id",accountRowId);
-            if (old==null) db.insertOrThrow("category_accounts",null,value);
-            else db.update("category_accounts",value,"id=?",new String[]{""+old.optLong("id")});
+            try {
+                if (old==null) {
+                    if(db.insertOrThrow("category_accounts",null,value)==-1)throw new IllegalStateException("分类账户映射未插入");
+                } else db.update("category_accounts",value,"id=?",new String[]{""+old.optLong("id")});
+                return true;
+            } catch(Exception error) {
+                if(ignoreSaveException)return false;
+                throw error;
+            }
         }
     }
 

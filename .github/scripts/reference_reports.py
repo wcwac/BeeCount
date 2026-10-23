@@ -19,7 +19,7 @@ for path in reports:
             message = (case.get('classname','')+'.'+case.get('name','')+'\n'+(failure.text or ''))[:6000]
             print('::error title=Unit test failed::'+message.replace('%','%25').replace('\r','%0D').replace('\n','%0A'))
 print('JUnit totals:',totals)
-assert totals['tests'] >= 132, 'Tests were not discovered or did not execute'
+assert totals['tests'] >= 146, 'Tests were not discovered or did not execute'
 assert totals['errors'] == totals['failures'] == totals['skipped'] == 0, 'Unit tests failed or skipped'
 assert observed==required, 'Unit case inventory mismatch: missing='+str(sorted(required-observed))+' unexpected='+str(sorted(observed-required))
 assert totals['tests']==len(observed), 'JUnit total does not match individual case results'
