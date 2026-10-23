@@ -22,7 +22,7 @@ public final class ReferenceCaptureService extends AccessibilityService {
     private final Handler main = new Handler(Looper.getMainLooper());
     @Override protected void onServiceConnected() { connected = new WeakReference<>(this); applySettings(); ReferenceDiagnostics.result("CONNECTED"); }
     public static ReferenceCaptureService current() { return connected.get(); }
-    public static void refresh() { ReferenceCaptureService s = current(); if (s != null) s.main.post(s::applySettings); }
+    public static void refresh() { ReferenceCaptureService s = current(); if (s != null) { if (Looper.myLooper() == Looper.getMainLooper()) s.applySettings(); else s.main.post(s::applySettings); } }
     private void applySettings() {
         AccessibilityServiceInfo info = getServiceInfo(); if (info == null) return;
         info.packageNames = AutoApps.selected().toArray(new String[0]);
