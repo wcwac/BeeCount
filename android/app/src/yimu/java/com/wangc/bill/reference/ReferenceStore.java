@@ -20,7 +20,7 @@ public final class ReferenceStore extends SQLiteOpenHelper {
     private final AssetRepository assetRepository = new AssetRepository(this);
     private final BookRepository bookRepository = new BookRepository(this);
     public ReferenceStore(Context context) { this(context,"yimu_reference.sqlite"); }
-    ReferenceStore(Context context,String name) { super(context.getApplicationContext(), name, null, 10);applicationContext=context.getApplicationContext(); }
+    ReferenceStore(Context context,String name) { super(context.getApplicationContext(), name, null, 11);applicationContext=context.getApplicationContext(); }
     public Context context(){return applicationContext;}
     @Override public synchronized void close(){OriginalFinancialEffects.close(this);super.close();}
     @Override public void onConfigure(SQLiteDatabase db) {
@@ -56,10 +56,11 @@ public final class ReferenceStore extends SQLiteOpenHelper {
         AccountingOperations.installV9Schema(db);
         AccountingTypedEntries.installSchema(db);
         AccountingFinancialFlows.installV10Schema(db);
+        installV11Schema(db);
         BookRepository.bootstrapNewLocalOwner(db, LOCAL_OFFLINE_OWNER, System.currentTimeMillis());
     }
     @Override public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        if (oldVersion < 1 || oldVersion > 9 || newVersion != 10) throw new IllegalStateException("未知数据版本");
+        if (oldVersion < 1 || oldVersion > 10 || newVersion != 11) throw new IllegalStateException("未知数据版本");
         // ALTER preserves every local category PK and its transaction/rule/payload references.
         // The new columns default to legacy/NULL; names never imply original semantic IDs.
         if (oldVersion < 2) CategoryRepository.installV2Schema(db);
@@ -71,8 +72,13 @@ public final class ReferenceStore extends SQLiteOpenHelper {
         if(oldVersion<7)ReferenceSchemaV7.install(db);
         if(oldVersion<8)ReferenceSchemaV8.install(db);
         if(oldVersion<9)AccountingOperations.installV9Schema(db);
-        AccountingTypedEntries.installSchema(db);
-        AccountingFinancialFlows.installV10Schema(db);
+        if(oldVersion<10){AccountingTypedEntries.installSchema(db);AccountingFinancialFlows.installV10Schema(db);}
+        installV11Schema(db);
+    }
+    private static void installV11Schema(SQLiteDatabase db){
+        LocalBudgets.installV11Schema(db);
+        LocalInvestments.installV11Schema(db);
+        LocalGoalPlans.installV11Schema(db);
     }
     @Override public void onOpen(SQLiteDatabase db) {
         super.onOpen(db);
@@ -177,7 +183,7 @@ public final class ReferenceStore extends SQLiteOpenHelper {
         String filter = " WHERE t.book_id=? AND t.deleted=? AND t.time>=? AND t.time<?";
         List<String> args = new ArrayList<>(java.util.Arrays.asList("" + book, trash ? "1" : "0", "" + start, "" + end));
         if (search != null && !search.trim().isEmpty()) { filter += " AND (t.remark LIKE ? ESCAPE '\\' OR t.merchant LIKE ? ESCAPE '\\' OR c.name LIKE ? ESCAPE '\\')"; String value = "%" + search.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"; args.add(value); args.add(value); args.add(value); }
-        return query("SELECT t.*,c.name category,c.icon category_icon,a.name account FROM transactions t LEFT JOIN categories c ON c.id=t.category_id LEFT JOIN accounts a ON a.id=t.account_id" + filter + " ORDER BY t.time DESC,t.id DESC LIMIT 2000", args.toArray(new String[0]));
+        return query("SELECT t.*,c.name category,c.icon category_icon,a.name account FROM transactions t LEFT JOIN categories c ON c.id=t.category_id LEFT JOIN accounts a ON a.id=t.account_id" + filter + " ORDER BY t.time DESC,t.id DESC", args.toArray(new String[0]));
     }
     public JSONObject totals(long book, long start, long end) {
         return one("SELECT COALESCE(SUM(CASE WHEN kind='income' AND not_total=0 THEN amount ELSE 0 END),0) income,COALESCE(SUM(CASE WHEN not_total=0 THEN CASE WHEN kind='expense' THEN amount+fee ELSE fee END ELSE 0 END),0) pay,COALESCE(SUM(CASE WHEN not_budget=0 THEN CASE WHEN kind='expense' THEN amount+fee ELSE fee END ELSE 0 END),0) budget_pay,COUNT(*) count FROM transactions WHERE book_id=? AND deleted=0 AND time>=? AND time<?", "" + book, "" + start, "" + end);
@@ -737,6 +743,7 @@ public final class ReferenceStore extends SQLiteOpenHelper {
         JSONObject old = book(id);
         if (old != null && !currency.equals(old.optString("currency")) && scalar("SELECT COUNT(*) n FROM transactions WHERE book_id=?", "" + id) > 0) throw new IllegalArgumentException("已有账单的账本不能更换币种");
         if(old!=null&&!currency.equals(old.optString("currency"))&&(scalar("SELECT COUNT(*) n FROM candidates WHERE book_id=?",""+id)>0||hasPlanForBook(id)))throw new IllegalArgumentException("有采集记录或周期账单的账本不能更换币种");
+        if(old!=null&&!currency.equals(old.optString("currency"))&&hasExtendedBookData(id))throw new IllegalArgumentException("已有预算、投资或目标的账本不能更换币种");
         ContentValues v = new ContentValues(); v.put("name", name); v.put("currency", currency); v.put("budget", budget);
         if (id > 0) { if (old == null) throw new IllegalArgumentException("账本不存在"); getWritableDatabase().update("books", v, "id=?", new String[]{"" + id}); return id; }
         long now=System.currentTimeMillis();
@@ -759,9 +766,11 @@ public final class ReferenceStore extends SQLiteOpenHelper {
         if (books().size() <= 1) throw new IllegalArgumentException("至少保留一个账本");
         if (scalar("SELECT COUNT(*) n FROM transactions WHERE book_id=?", "" + id) > 0 || scalar("SELECT COUNT(*) n FROM candidates WHERE book_id=?", "" + id) > 0) throw new IllegalArgumentException("账本内还有账单或采集记录，请保留或先迁移数据");
         if(hasPlanForBook(id))throw new IllegalArgumentException("请先删除关联的周期记账规则");
+        if(hasExtendedBookData(id))throw new IllegalArgumentException("请先处理此账本的预算、投资与目标");
         getWritableDatabase().delete("rules", "book_id=?", new String[]{"" + id});
         getWritableDatabase().delete("books", "id=?", new String[]{"" + id});
     }
+    private boolean hasExtendedBookData(long id){return scalar("SELECT COUNT(*) n FROM local_budgets WHERE book_id=?",""+id)>0||scalar("SELECT COUNT(*) n FROM local_investments WHERE book_id=?",""+id)>0||LocalGoalPlans.usesBook(this,id);}
     public synchronized long saveAccount(long id, String name, String type, String currency, long opening) {
         Money.scale(currency); ContentValues v = new ContentValues(); v.put("name", requiredName(name)); v.put("type", type); v.put("currency", currency); v.put("opening", opening);
         if (id > 0) {
@@ -797,17 +806,8 @@ public final class ReferenceStore extends SQLiteOpenHelper {
     }
     public synchronized void enablePlan(long id,boolean enabled){getWritableDatabase().execSQL("UPDATE plans SET enabled=? WHERE id=?",new Object[]{enabled?1:0,id});}
     private boolean hasPlanForBook(long id){for(JSONObject row:query("SELECT payload FROM plans"))if(Json.parse(row.optString("payload")).optLong("book_id")==id)return true;return false;}
-    private void validatePlan(JSONObject payload){JSONObject book=book(payload.optLong("book_id"));long amount=payload.optLong("amount");if(book==null||book.optInt("archived")!=0||amount<=0||amount>99999999999999L)throw new IllegalArgumentException("周期账单缺少有效账本或金额");if(!java.util.Arrays.asList("expense","income").contains(payload.optString("kind")))throw new IllegalArgumentException("周期账单收支方向无效");if(payload.optLong("category_id")>0&&categoryRepository.byRowId(payload.optLong("category_id"))==null)throw new IllegalArgumentException("周期账单分类不存在");Json.put(payload,"currency",book.optString("currency"));}
-    public synchronized int processPlans(long now){
-        SQLiteDatabase db=getWritableDatabase();db.beginTransaction();int count=0;try{
-            for(JSONObject plan:query("SELECT * FROM plans WHERE enabled=1 AND next_due<=? ORDER BY next_due LIMIT 50",""+now)){
-                JSONObject payload=Json.parse(plan.optString("payload"));long due=plan.optLong("next_due");int generated=0;
-                while(due<=now&&generated++<12){JSONObject draft=Json.copy(payload);validatePlan(draft);Json.put(draft,"time",due);Json.put(draft,"origin","周期记账");addCandidate(draft,"local.plan",payload.optLong("book_id"));count++;java.util.Calendar c=java.util.Calendar.getInstance();c.setTimeInMillis(due);String interval=plan.optString("interval");if(interval.equals("monthly")||interval.equals("yearly")){int day=payload.optInt("anchor_day",c.get(java.util.Calendar.DAY_OF_MONTH));c.set(java.util.Calendar.DAY_OF_MONTH,1);c.add(interval.equals("monthly")?java.util.Calendar.MONTH:java.util.Calendar.YEAR,1);c.set(java.util.Calendar.DAY_OF_MONTH,Math.min(day,c.getActualMaximum(java.util.Calendar.DAY_OF_MONTH)));}else c.add(java.util.Calendar.DATE,interval.equals("weekly")?7:1);due=c.getTimeInMillis();}
-                db.execSQL("UPDATE plans SET next_due=? WHERE id=?",new Object[]{due,plan.optLong("id")});
-            }
-            db.setTransactionSuccessful();return count;
-        }finally{db.endTransaction();}
-    }
+    private void validatePlan(JSONObject payload){LocalGoalPlans.validatePlanPayload(this,payload,false);}
+    public synchronized int processPlans(long now){return new LocalGoalPlans(this).processDue(now);}
     public synchronized void deleteSimple(String table, long id) { if (!java.util.Arrays.asList("goals", "plans", "rules").contains(table)) throw new IllegalArgumentException(); getWritableDatabase().delete(table, "id=?", new String[]{"" + id}); }
     private static boolean inputFlag(JSONObject input,String key){Object value=input.opt(key);return Boolean.TRUE.equals(value)||value instanceof Number&&((Number)value).longValue()==1||"true".equals(value);}
     private static String requiredName(String value) { String name = value == null ? "" : value.trim(); if (name.isEmpty() || name.length() > 100) throw new IllegalArgumentException("名称需要1至100个字符"); return name; }
@@ -822,7 +822,13 @@ public final class ReferenceStore extends SQLiteOpenHelper {
     private static final String[] V7_BACKUP_TABLES = {"books", "accounts", "categories", "tags", "candidates", "transactions", "transaction_tags", "rules", "plans", "goals", "category_hidden_books", "category_accounts", "asset_show_books", "asset_histories", "original_refunds", "original_refund_items", "original_reimbursements", "original_reimbursement_items", "original_bill_related", "original_instalments", "original_curd_histories", "original_transfers", "original_transfer_tags", "candidate_transfer_receipts"};
     private static final String[] V8_BACKUP_TABLES = {"books", "accounts", "categories", "tags", "candidates", "transactions", "transaction_tags", "rules", "plans", "goals", "category_hidden_books", "category_accounts", "asset_show_books", "asset_histories", "original_refunds", "original_refund_items", "original_reimbursements", "original_reimbursement_items", "original_bill_related", "original_instalments", "original_curd_histories", "original_transfers", "original_transfer_tags", "candidate_transfer_receipts", "original_lends", "candidate_lend_receipts"};
     private static final String[] V9_BACKUP_TABLES = {"books", "accounts", "categories", "tags", "candidates", "transactions", "transaction_tags", "rules", "plans", "goals", "category_hidden_books", "category_accounts", "asset_show_books", "asset_histories", "original_refunds", "original_refund_items", "original_reimbursements", "original_reimbursement_items", "original_bill_related", "original_instalments", "original_curd_histories", "original_transfers", "original_transfer_tags", "candidate_transfer_receipts", "original_lends", "candidate_lend_receipts", "accounting_operations"};
-    private static final String[] BACKUP_TABLES = {"books", "accounts", "categories", "tags", "candidates", "transactions", "transaction_tags", "rules", "plans", "goals", "category_hidden_books", "category_accounts", "asset_show_books", "asset_histories", "original_refunds", "original_refund_items", "original_reimbursements", "original_reimbursement_items", "original_bill_related", "original_instalments", "original_curd_histories", "original_transfers", "original_transfer_tags", "candidate_transfer_receipts", "original_lends", "candidate_lend_receipts", "accounting_operations", "accounting_entry_edits", "accounting_financial_operations"};
+    private static final String[] V10_BACKUP_TABLES = {"books", "accounts", "categories", "tags", "candidates", "transactions", "transaction_tags", "rules", "plans", "goals", "category_hidden_books", "category_accounts", "asset_show_books", "asset_histories", "original_refunds", "original_refund_items", "original_reimbursements", "original_reimbursement_items", "original_bill_related", "original_instalments", "original_curd_histories", "original_transfers", "original_transfer_tags", "candidate_transfer_receipts", "original_lends", "candidate_lend_receipts", "accounting_operations", "accounting_entry_edits", "accounting_financial_operations"};
+    private static final String[] BACKUP_TABLES;
+    static {
+        String[] added={"local_budgets","local_category_budgets","local_investments","local_investment_events","local_investment_operations","local_goal_config","local_goal_entries","local_plan_config"};
+        BACKUP_TABLES=java.util.Arrays.copyOf(V10_BACKUP_TABLES,V10_BACKUP_TABLES.length+added.length);
+        System.arraycopy(added,0,BACKUP_TABLES,V10_BACKUP_TABLES.length,added.length);
+    }
     private static boolean acceptsBackupColumn(int version,String table,String column){
         if(version<9&&table.equals("transactions")&&column.equals("manual_operation_id"))return false;
         if(version<9&&table.equals("candidates")&&java.util.Arrays.asList("capture_key","evidence_kind","capture_window_key").contains(column))return false;
@@ -832,19 +838,19 @@ public final class ReferenceStore extends SQLiteOpenHelper {
         SQLiteDatabase db = getWritableDatabase(); db.beginTransaction();
         try {
             JSONObject tables = new JSONObject(); for (String table : BACKUP_TABLES) Json.put(tables, table, new JSONArray(query("SELECT * FROM " + table)));
-            JSONObject result = Json.object("format", "YimuReferenceBackup", "version", 10, "created", System.currentTimeMillis(), "tables", tables);
+            JSONObject result = Json.object("format", "YimuReferenceBackup", "version", 11, "created", System.currentTimeMillis(), "tables", tables);
             db.setTransactionSuccessful(); return result;
         } finally { db.endTransaction(); }
     }
     public synchronized void restore(JSONObject backup) {
         int version=backup.optInt("version");
-        if (!"YimuReferenceBackup".equals(backup.optString("format")) || (version<1||version>10)) throw new IllegalArgumentException("请选择本实验版的完整备份");
+        if (!"YimuReferenceBackup".equals(backup.optString("format")) || (version<1||version>11)) throw new IllegalArgumentException("请选择本实验版的完整备份");
         JSONObject tables = backup.optJSONObject("tables"); if (tables == null || tables.optJSONArray("books") == null || tables.optJSONArray("books").length() == 0) throw new IllegalArgumentException("备份缺少账本");
         SQLiteDatabase db = getWritableDatabase(); db.beginTransaction();
         try {
             db.execSQL("PRAGMA defer_foreign_keys=ON");
             for (int i = BACKUP_TABLES.length - 1; i >= 0; i--) db.delete(BACKUP_TABLES[i], null, null);
-            for (String table : version==1?V1_BACKUP_TABLES:version==2?V2_BACKUP_TABLES:version==3?V3_BACKUP_TABLES:version==4?V4_BACKUP_TABLES:version==5?V5_BACKUP_TABLES:version==6?V6_BACKUP_TABLES:version==7?V7_BACKUP_TABLES:version==8?V8_BACKUP_TABLES:version==9?V9_BACKUP_TABLES:BACKUP_TABLES) {
+            for (String table : version==1?V1_BACKUP_TABLES:version==2?V2_BACKUP_TABLES:version==3?V3_BACKUP_TABLES:version==4?V4_BACKUP_TABLES:version==5?V5_BACKUP_TABLES:version==6?V6_BACKUP_TABLES:version==7?V7_BACKUP_TABLES:version==8?V8_BACKUP_TABLES:version==9?V9_BACKUP_TABLES:version==10?V10_BACKUP_TABLES:BACKUP_TABLES) {
                 JSONArray rows = tables.optJSONArray(table); if (rows == null || rows.length() > 100000) throw new IllegalArgumentException("备份表缺失或过大：" + table);
                 List<String> allowed = new ArrayList<>();java.util.Map<String,String> types=new java.util.HashMap<>();
                 try (Cursor c = db.rawQuery("PRAGMA table_info(" + table + ")", null)) {
@@ -882,6 +888,10 @@ public final class ReferenceStore extends SQLiteOpenHelper {
             AccountingOperations.validateRestored(this);
             AccountingTypedEntries.validateRestored(this);
             AccountingFinancialFlows.validateRestored(this);
+            if(version<=10)LocalBudgets.migrateLegacy(db);
+            LocalBudgets.validateRestored(this);
+            LocalInvestments.validateRestored(this);
+            LocalGoalPlans.validateRestored(this);
             CategoryRepository.bootstrap(db);
             try (Cursor c = db.rawQuery("PRAGMA foreign_key_check", null)) { if (c.moveToFirst()) throw new IllegalArgumentException("备份的账本或账户关联损坏"); }
             for (JSONObject book : query("SELECT * FROM books")) Money.scale(book.optString("currency"));

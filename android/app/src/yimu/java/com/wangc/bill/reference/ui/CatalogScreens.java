@@ -17,7 +17,7 @@ final class CatalogScreens {
         case "books"->books(a);case "edit_book"->book(a);case "accounts"->accounts(a);
         case "new_account","edit_account"->account(a);case "account_detail"->movements(a);case "credit_statements"->creditStatements(a);
         case "categories"->categories(a);case "edit_category"->category(a);
-        case "tags"->tags(a);case "edit_tag"->tag(a);case "budget"->budget(a);
+        case "tags"->tags(a);case "edit_tag"->tag(a);case "budget"->BudgetScreens.render(a);
     }}
     interface Binder {void bind(View view,JSONObject row);}
     static void list(RecyclerView list,List<JSONObject> rows,String layout,Binder binder){

@@ -25,8 +25,9 @@ final class UtilityScreens {
         if(search)field.addTextChangedListener(new TextWatcher(){public void beforeTextChanged(CharSequence s,int p,int c,int after){}public void onTextChanged(CharSequence s,int start,int before,int count){list.removeCallbacks(refresh);list.postDelayed(refresh,200);}public void afterTextChanged(Editable e){}});
     }
     static void backup(ManagerActivity a){View r=a.original("数据备份","activity_backup");Ui.click(r,"local_backup",a::requestBackup);Ui.click(r,"restore_backup",a::requestRestore);Ui.click(r,"local_backup_file_manager",a::requestRestore);Ui.text(r,"local_backup_path","通过系统文件选择器保存完整 ZIP 备份");Ui.click(r,"local_backup_move",a::requestBackup);Ui.click(r,"local_backup_path",a::requestBackup);
-        for(String name:new String[]{"switch_remote","switch_many_device","switch_file_auto","auto_webdav_backup"})disable(r,name,"网络和自动同步未接入");
-        for(String name:new String[]{"webdav_setup","webdav_backup","restore_webdav_backup","remote_backup_file_manager","webdav_sync","data_sync","auto_backup","history_data"})Ui.click(r,name,()->Ui.offline(a));
+        for(String name:new String[]{"switch_remote","switch_many_device","auto_webdav_backup"})disable(r,name,"网络和自动同步未接入");
+        for(String name:new String[]{"webdav_setup","webdav_backup","restore_webdav_backup","remote_backup_file_manager","webdav_sync","data_sync"})Ui.click(r,name,()->Ui.offline(a));
+        LocalBackupScreens.bind(a,r);
         Ui.hide(r,"data_clear","local_data_clear");
     }
     static void imports(ManagerActivity a){a.body("数据导入与导出",null,null);a.rows.addView(Ui.row(a,"导出当前账本 CSV",a.store().book(a.bookId()).optString("name")+" · UTF-8，包含账户、分类、标签和收支标志",a::requestCsvExport));a.rows.addView(Ui.row(a,"导入 CSV 账单","支持本实验版表头与常见中文表头；文件整体校验，重复文件跳过。",a::requestCsvImport));a.rows.addView(Ui.row(a,"完整备份与恢复","ZIP 包含全部账本、采集记录、周期规则、目标与附件",()->Ui.page(a,"backup")));}

@@ -21,6 +21,7 @@ COMPONENTS = {
     'com.wangc.bill.reference.ReferenceWidget',
     'com.wangc.bill.reference.OriginalRepaymentWidget',
     'com.wangc.bill.reference.OriginalRepaymentWidgetService',
+    'com.wangc.bill.reference.LocalBackupJobService',
     'com.wangc.bill.reference.OriginalCreditStatementActivity',
     'androidx.core.content.FileProvider',
 }
@@ -66,6 +67,8 @@ def manifest(path, merged=False):
             assert metadata is not None and metadata.get(A+'name') == 'android.appwidget.provider'
         elif name.endswith('OriginalRepaymentWidgetService'):
             assert c.get(A+'exported') == 'false' and c.get(A+'permission') == 'android.permission.BIND_REMOTEVIEWS'
+        elif name.endswith('LocalBackupJobService'):
+            assert c.get(A+'exported') == 'false' and c.get(A+'permission') == 'android.permission.BIND_JOB_SERVICE'
         else:
             assert c.get(A+'exported') == 'false', 'Component exposure: '+name
     assert found == COMPONENTS, 'Missing or unexpected components'

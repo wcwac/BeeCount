@@ -25,7 +25,7 @@ public final class LocalFiles {
     private LocalFiles(){}
     private static File folder(Context c){File dir=new File(c.getFilesDir(),"attachments");if(!dir.exists()&&!dir.mkdirs())throw new IllegalStateException("无法创建附件目录");return dir;}
     private static File file(Context c,String name){if(name==null||!name.matches(SAFE_FILE))throw new IllegalArgumentException("附件名称无效");return new File(folder(c),name);}
-    private static long copy(InputStream input,OutputStream output,long limit)throws IOException{byte[] buffer=new byte[8192];long total=0;int n;while((n=input.read(buffer))!=-1){total+=n;if(total>limit)throw new IOException("文件超出允许大小");output.write(buffer,0,n);}return total;}
+    private static long copy(InputStream input,OutputStream output,long limit)throws IOException{byte[] buffer=new byte[8192];long total=0;int n;while((n=input.read(buffer))!=-1){if(Thread.currentThread().isInterrupted())throw new InterruptedIOException("文件操作已中止");total+=n;if(total>limit)throw new IOException("文件超出允许大小");output.write(buffer,0,n);}return total;}
     public static JSONObject importAttachment(Context context,Uri uri)throws Exception{
         String mime=context.getContentResolver().getType(uri);if(mime==null)mime="application/octet-stream";
         String extension=switch(mime){case "image/jpeg"->"jpg";case "image/png"->"png";case "image/webp"->"webp";case "application/pdf"->"pdf";case "text/plain"->"txt";case "text/csv"->"csv";default->throw new IllegalArgumentException("附件支持图片、PDF和文本文件");};

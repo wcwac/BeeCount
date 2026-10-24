@@ -218,4 +218,15 @@ jobs:
           GH_REPO: ${{ github.repository }}
           TAG: ${{ needs.android.outputs.tag }}
           COMMIT: ${{ github.sha }}
-        run: gh release create "$TAG" dist/*.apk --target "$COMMIT" --prerelease --title "$TAG" --notes "Android 本地采集对比实验。跳过云同步、广告、会员及联网 SDK。"
+        run: |
+          set -euo pipefail
+          cat > "$RUNNER_TEMP/reference-release-notes.md" <<'EOF'
+          Android 一木离线行为对比实验，最低 Android 8.0，独立包名和数据库。
+
+          本批包含自动采集与确认浮窗、账本与账户、转账还款、借贷与结算、退款报销、消费分期、分类与自定义预算、本地投资持仓、目标与周期规则，以及 CSV 和完整 ZIP 备份、每日本地自动备份与应用锁。
+
+          无 INTERNET 权限，不接入联网、广告或会员授权服务。分类权重和词典来自静态恢复，分词采用近似实现。投资持仓日志独立于现金账户。部分高级设置与原版细节尚未复刻。
+
+          此 APK 已通过本次完整云端流水线；设备检查使用项目自有支付窗口，不能代替真实支付应用版本与手机系统的兼容性验证。
+          EOF
+          gh release create "$TAG" dist/*.apk --target "$COMMIT" --prerelease --title "$TAG" --notes-file "$RUNNER_TEMP/reference-release-notes.md"

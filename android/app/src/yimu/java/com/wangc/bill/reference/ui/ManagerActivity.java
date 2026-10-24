@@ -20,7 +20,7 @@ public final class ManagerActivity extends AppCompatActivity {
         // Live result lists follow MAIN events. Replacing an edit form here would
         // erase unsubmitted text on an unrelated balance/credit callback.
         if(java.util.Arrays.asList("accounts","account_detail","lending","reimbursement","loans","investments",
-                "search","range_records","trash","inbox","budget","credit_statements").contains(page))reload();
+                "search","range_records","trash","inbox","budget","credit_statements","goals","plans","investment_detail").contains(page))reload();
     };
     public ReferenceStore store(){return ReferenceApplication.store();}
     public long bookId(){long id=ReferenceApplication.prefs().getLong("current_book",1);return store().book(id)!=null?id:store().books().get(0).optLong("id");}
@@ -56,7 +56,10 @@ public final class ManagerActivity extends AppCompatActivity {
             }
             case "capture", "capture_settings", "apps", "diagnostics", "inbox", "rules"->CaptureScreens.render(this);
             case "books", "edit_book", "accounts", "new_account", "edit_account", "account_detail", "credit_statements", "categories", "edit_category", "tags", "edit_tag", "budget"->CatalogScreens.render(this);
-            case "goals", "edit_goal", "plans", "edit_plan", "lending", "reimbursement", "investments", "loans"->FinancialScreens.render(this);
+            case "goals", "edit_goal", "plans", "edit_plan"->GoalPlanScreens.render(this);
+            case "investments", "investment_detail"->InvestmentScreens.render(this);
+            case "lending", "reimbursement", "loans"->FinancialScreens.render(this);
+            case "backup_history"->LocalBackupScreens.history(this);
             case "search", "range_records", "trash", "backup", "import", "attachments", "settings", "quick_entry", "theme", "profile", "widgets", "help", "about"->UtilityScreens.render(this);
             default->{body("本地功能",null,null);rows.addView(Ui.row(this,"此入口未接入","可以继续使用本地记账、统计和自动采集功能。",null));}
         }
@@ -66,9 +69,21 @@ public final class ManagerActivity extends AppCompatActivity {
     public void open(String name,long id){startActivity(new Intent(this,ManagerActivity.class).putExtra("page",name).putExtra("id",id));}
     public void requestBackup(){pendingBook=bookId();startActivityForResult(new Intent(Intent.ACTION_CREATE_DOCUMENT).setType("application/zip").addCategory(Intent.CATEGORY_OPENABLE).putExtra(Intent.EXTRA_TITLE,"一木实验版备份-"+Ui.date(System.currentTimeMillis(),"yyyyMMdd-HHmm")+".zip"),501);}
     public void requestRestore(){startActivityForResult(new Intent(Intent.ACTION_OPEN_DOCUMENT).setType("*/*").addCategory(Intent.CATEGORY_OPENABLE),502);}
+    public void requestBackupDirectory(){startActivityForResult(new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION|Intent.FLAG_GRANT_WRITE_URI_PERMISSION|Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION|Intent.FLAG_GRANT_PREFIX_URI_PERMISSION),505);}
     public void requestCsvExport(){pendingBook=bookId();startActivityForResult(new Intent(Intent.ACTION_CREATE_DOCUMENT).setType("text/csv").addCategory(Intent.CATEGORY_OPENABLE).putExtra(Intent.EXTRA_TITLE,"账单-"+Ui.date(System.currentTimeMillis(),"yyyyMMdd")+".csv"),503);}
     public void requestCsvImport(){pendingBook=bookId();startActivityForResult(new Intent(Intent.ACTION_OPEN_DOCUMENT).setType("*/*").addCategory(Intent.CATEGORY_OPENABLE),504);}
-    @Override protected void onActivityResult(int request,int result,Intent data){super.onActivityResult(request,result,data);if(result!=RESULT_OK||data==null||data.getData()==null)return;android.net.Uri uri=data.getData();
+    @Override protected void onActivityResult(int request,int result,Intent data){super.onActivityResult(request,result,data);if(GoalPlanScreens.handleActivityResult(this,request,result,data))return;if(result!=RESULT_OK||data==null||data.getData()==null)return;android.net.Uri uri=data.getData();
+        if(request==505){try{
+            if(!"content".equals(uri.getScheme())||!android.provider.DocumentsContract.isTreeUri(uri))throw new IllegalArgumentException("请选择备份文件夹");
+            int flags=data.getFlags()&(Intent.FLAG_GRANT_READ_URI_PERMISSION|Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+            if(flags!=(Intent.FLAG_GRANT_READ_URI_PERMISSION|Intent.FLAG_GRANT_WRITE_URI_PERMISSION))throw new IllegalArgumentException("备份目录需要读取与写入授权");
+            getContentResolver().takePersistableUriPermission(uri,flags);
+            String old=ReferenceApplication.prefs().getString(LocalBackupScheduler.TREE,"");
+            ReferenceApplication.prefs().edit().putString(LocalBackupScheduler.TREE,uri.toString()).putBoolean(LocalBackupScheduler.ENABLED,true).apply();
+            LocalBackupScheduler.sync(this);
+            if(!old.isEmpty()&&!old.equals(uri.toString()))try{getContentResolver().releasePersistableUriPermission(android.net.Uri.parse(old),flags);}catch(SecurityException ignored){}
+            reload();Ui.toast(this,"已启用每日本地备份，可以立即备份验证");
+        }catch(Exception error){Ui.error(this,error);}return;}
         if(request==501)FileTasks.run(this,"正在创建完整备份",()->{LocalFiles.exportBackup(this,uri);return true;},done->Ui.toast(this,"备份完成，包含账单和附件"));
         if(request==502)Ui.confirm(this,"恢复完整备份","恢复会替换当前本地数据并关闭自动采集。建议先导出当前备份。",()->FileTasks.run(this,"正在恢复本地数据",()->{LocalFiles.restoreBackup(this,uri);return true;},done->{PlanScheduler.sync();reload();Ui.toast(this,"恢复完成，请重新核对采集设置");}));
         if(request==503)FileTasks.run(this,"正在导出CSV",()->{LocalFiles.writeText(this,uri,CsvFiles.exportBook(pendingBook));return true;},done->Ui.toast(this,"CSV导出完成"));

@@ -23,6 +23,7 @@ public final class ReferenceApplication extends Application {
         });
         com.wangc.bill.reference.ui.LocalAppLock.install(this);
         LocalCategoryClassifier.warmUp(this);
+        LocalBackupScheduler.sync(this);
         com.wangc.bill.reference.capture.PlanScheduler.sync();
         com.wangc.bill.reference.ui.QuickEntryWindow.refresh();
     }

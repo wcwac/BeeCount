@@ -47,6 +47,7 @@
         <receiver android:name="com.wangc.bill.reference.ReferenceWidget" android:exported="false"><intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE"/></intent-filter><meta-data android:name="android.appwidget.provider" android:resource="@xml/reference_widget_info"/></receiver>
         <receiver android:name="com.wangc.bill.reference.OriginalRepaymentWidget" android:label="近期还款" android:exported="true"><intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE"/></intent-filter><meta-data android:name="android.appwidget.provider" android:resource="@xml/reference_repayment_widget_info"/></receiver>
         <service android:name="com.wangc.bill.reference.OriginalRepaymentWidgetService" android:permission="android.permission.BIND_REMOTEVIEWS" android:exported="false"/>
+        <service android:name="com.wangc.bill.reference.LocalBackupJobService" android:permission="android.permission.BIND_JOB_SERVICE" android:exported="false"/>
         <provider android:name="androidx.core.content.FileProvider" android:authorities="${applicationId}.files" android:exported="false" android:grantUriPermissions="true"><meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/reference_file_paths"/></provider>
         <provider android:name="androidx.startup.InitializationProvider" tools:node="remove" tools:ignore="MissingClass"/>
         <receiver android:name="androidx.profileinstaller.ProfileInstallReceiver" tools:node="remove" tools:ignore="MissingClass"/>

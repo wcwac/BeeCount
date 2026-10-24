@@ -33,7 +33,7 @@ public final class CategoryStoreDeviceTest {
     }
 
     @Test public void freshDatabaseUsesOriginalSeedsAndKeepsRowIdsSeparateFromSemanticIds() {
-        assertEquals(10,store.getReadableDatabase().getVersion());
+        assertEquals(11,store.getReadableDatabase().getVersion());
         assertEquals(10,store.scalar("SELECT COUNT(*) n FROM categories WHERE level='parent' AND category_type=1"));
         assertEquals(66,store.scalar("SELECT COUNT(*) n FROM categories WHERE level='child' AND category_type=1"));
         assertEquals(0,store.scalar("SELECT COUNT(*) n FROM categories WHERE level='legacy'"));
@@ -50,7 +50,7 @@ public final class CategoryStoreDeviceTest {
         context.deleteDatabase(database);
         try(ReferenceStore fresh=new ReferenceStore(context,database)) {
             // This database never receives the compatibility fixture installed in @Before.
-            assertEquals(10,fresh.getWritableDatabase().getVersion());
+            assertEquals(11,fresh.getWritableDatabase().getVersion());
             assertEquals(0,fresh.scalar("SELECT COUNT(*) n FROM accounts"));
             assertTrue(fresh.accounts().isEmpty());
             assertEquals(0,fresh.scalar("SELECT COUNT(*) n FROM category_accounts"));
@@ -63,7 +63,7 @@ public final class CategoryStoreDeviceTest {
     @Test public void realVersionOneUpgradePreservesEveryOldRowAndReferenceWithoutNameInference() {
         store.close();context.deleteDatabase(DATABASE);createV1(DATABASE);
         store=new ReferenceStore(context,DATABASE);store.getWritableDatabase();
-        assertEquals(10,store.getReadableDatabase().getVersion());
+        assertEquals(11,store.getReadableDatabase().getVersion());
         assertLegacyReferences();
         JSONObject original=categories().parent(8);
         assertNotNull(original);assertNotEquals(8,original.optLong("id"));
@@ -152,7 +152,7 @@ public final class CategoryStoreDeviceTest {
 
     @Test public void versionThreeBackupKeepsHierarchyHiddenBooksSemanticPairsAndMapping() {
         JSONObject child=categories().child(8,811);long saved=store.saveTransaction(draft(child.optLong("id")),0,null);
-        categories().setHiddenInBook(child.optLong("id"),1,true);JSONObject backup=store.backup();assertEquals(10,backup.optInt("version"));
+        categories().setHiddenInBook(child.optLong("id"),1,true);JSONObject backup=store.backup();assertEquals(11,backup.optInt("version"));
         store.restore(backup);assertEquals(child.optLong("id"),categories().child(8,811).optLong("id"));
         assertTrue(categories().isHiddenInBook(child.optLong("id"),1));assertEquals(811,store.transaction(saved).optInt("child_semantic_id"));assertEquals(1,categories().rememberedAccountRowId(8,811));
         assertEquals(0,foreignKeyErrors());
