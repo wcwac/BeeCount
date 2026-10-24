@@ -34,6 +34,7 @@ import androidx.test.core.app.ActivityScenario;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.platform.app.InstrumentationRegistry;
 import com.wangc.bill.reference.ReferenceApplication;
+import com.wangc.bill.reference.ReferenceWindowGeometry;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -46,7 +47,10 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 import org.junit.runner.RunWith;
 import static org.junit.Assert.*;
 
@@ -60,6 +64,16 @@ public final class OriginalPermissionGuidanceDeviceTest {
     private Map<String,?> settingsBefore;
     private final AtomicReference<DialogFragment> fragment=new AtomicReference<>();
     private final AtomicReference<Dialog> dialog=new AtomicReference<>();
+    private final List<String> uiEvidence=new ArrayList<>();
+    private volatile String lastWindowState="No window sampled";
+    @Rule public final TestWatcher failedWindowEvidence=new TestWatcher(){
+        @Override protected void failed(Throwable error,Description description){
+            String metadata;
+            synchronized(uiEvidence){metadata="REFERENCE_GUIDANCE_UI "+description.getMethodName()+",actions="+uiEvidence+",last="+lastWindowState;}
+            error.addSuppressed(new AssertionError(metadata));
+            android.util.Log.e("ReferencePermissionUi",metadata.substring(0,Math.min(3900,metadata.length())));
+        }
+    };
 
     @Before public void open(){
         automation=InstrumentationRegistry.getInstrumentation().getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES);
@@ -91,11 +105,11 @@ public final class OriginalPermissionGuidanceDeviceTest {
     private void await(BooleanSupplier condition){long until=SystemClock.uptimeMillis()+5000;while(SystemClock.uptimeMillis()<until){if(condition.getAsBoolean())return;SystemClock.sleep(25);}assertTrue("Actual permission guidance timed out",condition.getAsBoolean());}
     private void show(DialogFragment value){
         fragment.set(value);dialog.set(null);scenario.onActivity(a->value.show(a.getSupportFragmentManager(),"original-guidance"));
-        await(()->{scenario.onActivity(a->{if(value.isResumed()&&value.getDialog()!=null&&value.getDialog().isShowing()
+        await(()->{scenario.onActivity(a->{lastWindowState=ReferenceWindowGeometry.describeWindow(value.getDialog());if(value.isResumed()&&value.getDialog()!=null&&value.getDialog().isShowing()
                 &&value.getDialog().getWindow()!=null&&value.getDialog().getWindow().getDecorView().hasWindowFocus()
                 &&value.getView()!=null&&value.getView().isAttachedToWindow()&&value.getView().isLaidOut())dialog.set(value.getDialog());});return dialog.get()!=null;});
     }
-    private void hidden(){await(()->{AtomicBoolean showing=new AtomicBoolean();scenario.onActivity(a->showing.set(dialog.get().isShowing()));return !showing.get();});InstrumentationRegistry.getInstrumentation().waitForIdleSync();}
+    private void hidden(){Dialog expected=dialog.get();assertNotNull(expected);await(()->{AtomicBoolean showing=new AtomicBoolean();scenario.onActivity(a->{lastWindowState=ReferenceWindowGeometry.describeWindow(expected);showing.set(expected.isShowing());});return !showing.get();});InstrumentationRegistry.getInstrumentation().waitForIdleSync();}
     private void stillShowing(){scenario.onActivity(a->assertTrue(dialog.get().isShowing()));}
     private void unchanged(){assertEquals("A guidance action must not mutate local feature settings",settingsBefore,ReferenceApplication.prefs().getAll());}
     private void size(int margin,boolean top){scenario.onActivity(a->{
@@ -106,15 +120,14 @@ public final class OriginalPermissionGuidanceDeviceTest {
         assertEquals(ViewGroup.LayoutParams.WRAP_CONTENT,attrs.height);if(top)assertEquals(Gravity.TOP,attrs.gravity);
     });}
     private void tap(String name){AtomicReference<Point> target=new AtomicReference<>();scenario.onActivity(a->{
-        View view=Ui.view(fragment.get().requireView(),name);assertNotNull(view);assertTrue(view.isShown());
-        Rect bounds=new Rect();assertTrue(view.getGlobalVisibleRect(bounds));assertFalse(bounds.isEmpty());
-        int[] location=new int[2];view.getLocationOnScreen(location);target.set(new Point(location[0]+view.getWidth()/2,location[1]+view.getHeight()/2));
+        View view=Ui.view(fragment.get().requireView(),name);noteUi("tap:"+name+","+ReferenceWindowGeometry.describe(view));
+        target.set(ReferenceWindowGeometry.center(view));noteUi("tap:"+name+",target="+target.get()+","+ReferenceWindowGeometry.describeWindow(dialog.get()));
     });touch(target.get());}
     private void touch(Point point){long at=SystemClock.uptimeMillis();MotionEvent down=MotionEvent.obtain(at,at,MotionEvent.ACTION_DOWN,point.x,point.y,0),up=MotionEvent.obtain(at,at+60,MotionEvent.ACTION_UP,point.x,point.y,0);try{down.setSource(InputDevice.SOURCE_TOUCHSCREEN);up.setSource(InputDevice.SOURCE_TOUCHSCREEN);assertTrue(automation.injectInputEvent(down,true));assertTrue(automation.injectInputEvent(up,true));}finally{down.recycle();up.recycle();}InstrumentationRegistry.getInstrumentation().waitForIdleSync();}
-    private void back(){InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(KeyEvent.KEYCODE_BACK);InstrumentationRegistry.getInstrumentation().waitForIdleSync();}
+    private void back(){scenario.onActivity(a->{assertTrue(dialog.get().isShowing());assertTrue(dialog.get().getWindow().getDecorView().hasWindowFocus());noteUi("back,"+ReferenceWindowGeometry.describeWindow(dialog.get()));});InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(KeyEvent.KEYCODE_BACK);InstrumentationRegistry.getInstrumentation().waitForIdleSync();}
     private void outside(){AtomicReference<Point> target=new AtomicReference<>();scenario.onActivity(a->{
-        View decor=dialog.get().getWindow().getDecorView();int[] position=new int[2];decor.getLocationOnScreen(position);assertTrue(position[0]>0);
-        target.set(new Point(Math.max(1,position[0]/2),position[1]+decor.getHeight()/2));
+        View hostDecor=a.getWindow().getDecorView();target.set(ReferenceWindowGeometry.outside(dialog.get(),hostDecor));
+        noteUi("outside,target="+target.get()+","+ReferenceWindowGeometry.describeWindow(dialog.get())+",host="+ReferenceWindowGeometry.describe(hostDecor));
     });touch(target.get());}
     private void span(String name,int start,int end,String expected){
         AtomicReference<Point> target=new AtomicReference<>();scenario.onActivity(a->{
@@ -130,9 +143,12 @@ public final class OriginalPermissionGuidanceDeviceTest {
             int[] position=new int[2];view.getLocationOnScreen(position);
             int x=position[0]+view.getTotalPaddingLeft()-view.getScrollX()+Math.round((first+second)/2.0f);
             int y=position[1]+view.getTotalPaddingTop()-view.getScrollY()+(layout.getLineTop(line)+layout.getLineBottom(line))/2;
-            Rect visible=new Rect();assertTrue(view.getGlobalVisibleRect(visible));assertTrue(visible.contains(x,y));target.set(new Point(x,y));
+            Rect visible=ReferenceWindowGeometry.visibleBoundsInScreen(view);
+            noteUi("span:"+name+",target="+x+":"+y+",screenVisible="+visible+","+ReferenceWindowGeometry.describe(view));
+            assertTrue("Clickable span point is clipped: target="+x+":"+y+",screenVisible="+visible+","+ReferenceWindowGeometry.describe(view),visible.contains(x,y));target.set(new Point(x,y));
         });touch(target.get());
     }
+    private void noteUi(String value){synchronized(uiEvidence){if(uiEvidence.size()==4)uiEvidence.remove(0);uiEvidence.add(value.substring(0,Math.min(1200,value.length())));}}
     private String resource(String name){return ReferenceApplication.app().getResources().getResourceName(Ui.id(ReferenceApplication.app(),name));}
     private Rect activeBounds(String name){
         AccessibilityNodeInfo root=automation.getRootInActiveWindow();if(root==null)return null;

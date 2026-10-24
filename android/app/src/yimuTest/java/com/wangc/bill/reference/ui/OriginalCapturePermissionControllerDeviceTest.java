@@ -10,7 +10,6 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.graphics.Point;
-import android.graphics.Rect;
 import android.os.Build;
 import android.os.SystemClock;
 import android.provider.Settings;
@@ -25,6 +24,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.platform.app.InstrumentationRegistry;
 import com.wangc.bill.reference.OriginalSettings;
 import com.wangc.bill.reference.ReferenceApplication;
+import com.wangc.bill.reference.ReferenceWindowGeometry;
 import com.wangc.bill.reference.capture.AutoApps;
 import com.wangc.bill.reference.capture.OriginalServiceState;
 import com.wangc.bill.reference.capture.ReferenceCaptureService;
@@ -44,7 +44,10 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 import org.junit.runner.RunWith;
 import static org.junit.Assert.*;
 
@@ -64,6 +67,16 @@ public final class OriginalCapturePermissionControllerDeviceTest {
     private ActivityScenario<ManagerActivity> scenario;
     private final AtomicReference<DialogFragment> tip = new AtomicReference<>();
     private final AtomicReference<Dialog> dialog = new AtomicReference<>();
+    private final List<String> uiEvidence = new ArrayList<>();
+    private volatile String lastWindowState = "No window sampled";
+    @Rule public final TestWatcher failedWindowEvidence = new TestWatcher() {
+        @Override protected void failed(Throwable error, Description description) {
+            String metadata;
+            synchronized (uiEvidence) { metadata = "REFERENCE_PERMISSION_UI " + description.getMethodName() + ",actions=" + uiEvidence + ",last=" + lastWindowState; }
+            error.addSuppressed(new AssertionError(metadata));
+            android.util.Log.e("ReferencePermissionUi", metadata.substring(0, Math.min(3900, metadata.length())));
+        }
+    };
 
     @Before public void open() throws Exception {
         assertEquals("true", InstrumentationRegistry.getArguments().getString("reference_cloud_only"));
@@ -338,6 +351,8 @@ public final class OriginalCapturePermissionControllerDeviceTest {
     private void shown(Class<? extends DialogFragment> expected, String tag) {
         await(() -> { scenario.onActivity(host -> {
             androidx.fragment.app.Fragment value = host.getSupportFragmentManager().findFragmentByTag(tag);
+            lastWindowState = "tag=" + tag + ",fragment=" + (value == null ? "null" : value.getClass().getName()) + ","
+                    + ReferenceWindowGeometry.describeWindow(value instanceof DialogFragment current ? current.getDialog() : null);
             if (expected.isInstance(value) && value.isResumed()) {
                 DialogFragment current = (DialogFragment) value;
                 if (current.getDialog() != null && current.getDialog().isShowing() && current.getDialog().getWindow().getDecorView().hasWindowFocus()
@@ -345,18 +360,35 @@ public final class OriginalCapturePermissionControllerDeviceTest {
             }
         }); return dialog.get() != null; }, "The actual source guidance was not attached");
     }
-    private void hidden() { await(() -> { AtomicBoolean showing = new AtomicBoolean(); scenario.onActivity(host -> showing.set(dialog.get().isShowing())); return !showing.get(); }, "Guidance did not dismiss"); }
+    private void hidden() {
+        Dialog expected = dialog.get(); assertNotNull(expected);
+        await(() -> { AtomicBoolean showing = new AtomicBoolean(); scenario.onActivity(host -> {
+            lastWindowState = ReferenceWindowGeometry.describeWindow(expected); showing.set(expected.isShowing());
+        }); return !showing.get(); }, "Guidance did not dismiss");
+    }
     private void clearTip() { scenario.onActivity(host -> host.getSupportFragmentManager().executePendingTransactions()); tip.set(null); dialog.set(null); }
-    private void tapTip(String id) { AtomicReference<Point> target = new AtomicReference<>(); scenario.onActivity(host -> target.set(center(Ui.view(tip.get().requireView(), id)))); touch(target.get()); }
+    private void tapTip(String id) {
+        AtomicReference<Point> target = new AtomicReference<>();
+        scenario.onActivity(host -> {
+            assertTrue(dialog.get().isShowing()); View control = Ui.view(tip.get().requireView(), id);
+            noteUi("tapTip:" + id + "," + ReferenceWindowGeometry.describe(control));
+            target.set(ReferenceWindowGeometry.center(control));
+            noteUi("tapTip:" + id + ",target=" + target.get() + "," + ReferenceWindowGeometry.describeWindow(dialog.get()));
+        }); touch(target.get());
+    }
     private void tapMain(String id) {
         AtomicReference<Point> target = new AtomicReference<>();
-        await(() -> { scenario.onActivity(host -> { if (host.hasWindowFocus()) target.set(center(control(host, id))); }); return target.get() != null; }, "Main control has no focused window");
+        await(() -> { scenario.onActivity(host -> { if (host.hasWindowFocus()) {
+            View control = control(host, id); noteUi("tapMain:" + id + "," + ReferenceWindowGeometry.describe(control));
+            target.set(ReferenceWindowGeometry.center(control)); noteUi("tapMain:" + id + ",target=" + target.get());
+        } }); return target.get() != null; }, "Main control has no focused window");
         touch(target.get());
     }
-    private static Point center(View control) {
-        assertNotNull(control); assertTrue(control.isShown()); assertTrue(control.isEnabled()); Rect visible = new Rect(); assertTrue(control.getGlobalVisibleRect(visible));
-        int[] position = new int[2]; control.getLocationOnScreen(position); int x = position[0] + control.getWidth() / 2, y = position[1] + control.getHeight() / 2;
-        assertTrue("Original control center is clipped", visible.contains(x, y)); return new Point(x, y);
+    private void noteUi(String value) {
+        synchronized (uiEvidence) {
+            if (uiEvidence.size() == 4) uiEvidence.remove(0);
+            uiEvidence.add(value.substring(0, Math.min(1200, value.length())));
+        }
     }
     private void touch(Point point) {
         long now = SystemClock.uptimeMillis(); MotionEvent down = MotionEvent.obtain(now, now, MotionEvent.ACTION_DOWN, point.x, point.y, 0);

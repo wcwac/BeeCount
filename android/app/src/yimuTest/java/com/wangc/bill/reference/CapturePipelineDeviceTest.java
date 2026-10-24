@@ -421,7 +421,7 @@ public final class CapturePipelineDeviceTest {
         scenario.onActivity(a->{
             CompoundButton button=a.findViewById(com.wangc.bill.R.id.switch_auto_bill);assertNotNull(button);assertTrue("Master switch is hidden",button.isShown());assertTrue(button.isEnabled());assertEquals(checked,button.isChecked());assertTrue(a.hasWindowFocus());
             Rect global=new Rect(),local=new Rect(),window=new Rect();assertTrue(button.getGlobalVisibleRect(global));assertFalse(global.isEmpty());assertTrue(button.getLocalVisibleRect(local));assertTrue("Master switch center is clipped",local.contains(button.getWidth()/2,button.getHeight()/2));
-            int[] location=new int[2];button.getLocationOnScreen(location);point.set(location[0]+button.getWidth()/2,location[1]+button.getHeight()/2);a.getWindow().getDecorView().getWindowVisibleDisplayFrame(window);assertTrue("Master switch is outside the screen",window.contains(point.x,point.y));
+            Point center=ReferenceWindowGeometry.center(button);point.set(center.x,center.y);a.getWindow().getDecorView().getWindowVisibleDisplayFrame(window);assertTrue("Master switch is outside the screen",window.contains(point.x,point.y));
         });return point;
     }
     private void touchMaster(ActivityScenario<ManagerActivity> scenario,boolean checked)throws Exception{
@@ -444,10 +444,12 @@ public final class CapturePipelineDeviceTest {
             androidx.fragment.app.Fragment fragment=a.getSupportFragmentManager().findFragmentByTag("tip");
             if(!(fragment instanceof OriginalPermissionTipDialog tip)||!tip.isResumed()||tip.getDialog()==null
                     ||!tip.getDialog().isShowing()||!tip.getDialog().getWindow().getDecorView().hasWindowFocus()||tip.getView()==null)return;
-            View cancel=tip.getView().findViewById(com.wangc.bill.R.id.cancel);Rect visible=new Rect();
-            if(cancel==null||!cancel.isShown()||!cancel.isEnabled()||!cancel.getGlobalVisibleRect(visible)||visible.isEmpty())return;
-            int[] at=new int[2];cancel.getLocationOnScreen(at);int x=at[0]+cancel.getWidth()/2,y=at[1]+cancel.getHeight()/2;
-            if(!visible.contains(x,y))return;point.set(x,y);pending[0]=tip.getDialog();
+            View cancel=tip.getView().findViewById(com.wangc.bill.R.id.cancel);Rect local=new Rect();
+            if(cancel==null||!cancel.isShown()||!cancel.isEnabled()||!cancel.getLocalVisibleRect(local)
+                    ||!local.contains(cancel.getWidth()/2,cancel.getHeight()/2))return;
+            // A Dialog's global visible rectangle is in its root/window space;
+            // the injected pointer must instead use the shared screen mapping.
+            Point center=ReferenceWindowGeometry.center(cancel);point.set(center.x,center.y);pending[0]=tip.getDialog();
         });return pending[0]!=null;},5000,"Denied SAW did not show its real capture onStart permission prompt");
         touch(point);
         await(()->{boolean[] dismissed={false};scenario.onActivity(a->dismissed[0]=!pending[0].isShowing()&&a.hasWindowFocus());return dismissed[0];},5000,"Actual permission cancellation did not return focus to the capture page");
@@ -464,7 +466,7 @@ public final class CapturePipelineDeviceTest {
     }
     private void touchRow(ActivityScenario<ManagerActivity> scenario,String title)throws Exception{
         scenario.onActivity(a->{View label=findText(a.getWindow().getDecorView(),title);assertNotNull("Missing diagnostic action: "+title,label);label.requestRectangleOnScreen(new Rect(0,0,label.getWidth(),label.getHeight()),true);});
-        final Point[] point={null};await(()->{scenario.onActivity(a->{View label=findText(a.getWindow().getDecorView(),title);Rect bounds=new Rect();if(label!=null&&label.isShown()&&a.hasWindowFocus()&&label.getGlobalVisibleRect(bounds)&&!bounds.isEmpty())point[0]=new Point(bounds.centerX(),bounds.centerY());});return point[0]!=null;},5000,"Diagnostic action is not visible: "+title);touch(point[0]);
+        final Point[] point={null};await(()->{scenario.onActivity(a->{View label=findText(a.getWindow().getDecorView(),title);Rect bounds=new Rect();if(label!=null&&label.isShown()&&a.hasWindowFocus()&&label.getGlobalVisibleRect(bounds)&&!bounds.isEmpty())point[0]=ReferenceWindowGeometry.center(label);});return point[0]!=null;},5000,"Diagnostic action is not visible: "+title);touch(point[0]);
     }
     private static View findText(View root,String text){if(root instanceof TextView label&&text.contentEquals(label.getText()))return root;if(root instanceof ViewGroup group)for(int i=0;i<group.getChildCount();i++){View found=findText(group.getChildAt(i),text);if(found!=null)return found;}return null;}
     private static boolean hasTextContaining(View root,String text){if(root instanceof TextView label&&label.getText().toString().contains(text))return true;if(root instanceof ViewGroup group)for(int i=0;i<group.getChildCount();i++)if(hasTextContaining(group.getChildAt(i),text))return true;return false;}

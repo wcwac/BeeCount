@@ -9,7 +9,6 @@ import android.content.ComponentName;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.Point;
-import android.graphics.Rect;
 import android.os.Build;
 import android.os.PowerManager;
 import android.os.SystemClock;
@@ -22,6 +21,7 @@ import androidx.test.core.app.ActivityScenario;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.platform.app.InstrumentationRegistry;
 import com.wangc.bill.reference.ReferenceApplication;
+import com.wangc.bill.reference.ReferenceWindowGeometry;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -168,8 +168,7 @@ public final class OriginalOemPermissionGuidanceDeviceTest {
         instrumentation.sendKeyDownUpSync(KeyEvent.KEYCODE_BACK); hidden();
         resetDialog(); show("other", 36, "FLYME", (host, intent) -> launches.incrementAndGet());
         AtomicReference<Point> outside = new AtomicReference<>();
-        scenario.onActivity(host -> { View decor = dialog.get().getWindow().getDecorView(); int[] at = new int[2]; decor.getLocationOnScreen(at);
-            assertTrue(at[0] > 0); outside.set(new Point(Math.max(1, at[0] / 2), at[1] + decor.getHeight() / 2)); });
+        scenario.onActivity(host -> outside.set(ReferenceWindowGeometry.outside(dialog.get(), host.getWindow().getDecorView())));
         touch(outside.get()); hidden(); assertEquals(0, launches.get());
     }
 
@@ -224,9 +223,7 @@ public final class OriginalOemPermissionGuidanceDeviceTest {
     }
     private void tap(String id) {
         AtomicReference<Point> point = new AtomicReference<>();
-        scenario.onActivity(host -> { View control = Ui.view(fragment.get().requireView(), id); Rect bounds = new Rect();
-            assertTrue(control.isShown()); assertTrue(control.getGlobalVisibleRect(bounds)); assertFalse(bounds.isEmpty());
-            int[] at = new int[2]; control.getLocationOnScreen(at); point.set(new Point(at[0] + control.getWidth() / 2, at[1] + control.getHeight() / 2)); });
+        scenario.onActivity(host -> point.set(ReferenceWindowGeometry.center(Ui.view(fragment.get().requireView(), id))));
         touch(point.get());
     }
     private void touch(Point point) {

@@ -200,30 +200,36 @@ run_instrumentation_phase() {
     "$capture_adb" -s "$capture_serial" shell am instrument -w -r \
     -e reference_cloud_only true -e timeout_msec 180000 -e class "$capture_case_filter" \
     io.github.wcwac.yimu.reference.debug.test/androidx.test.runner.AndroidJUnitRunner \
+    < /dev/null \
     | tee -a "$capture_logs/instrumentation.txt" || capture_instrument_status=$?
   return 0
 }
 timeout 15s "$capture_adb" -s "$capture_serial" shell pm clear-permission-flags --user current \
-  io.github.wcwac.yimu.reference.debug android.permission.POST_NOTIFICATIONS user-set user-fixed
+  io.github.wcwac.yimu.reference.debug android.permission.POST_NOTIFICATIONS user-set user-fixed < /dev/null
 timeout 15s "$capture_adb" -s "$capture_serial" shell pm grant --user current \
-  io.github.wcwac.yimu.reference.debug android.permission.POST_NOTIFICATIONS
+  io.github.wcwac.yimu.reference.debug android.permission.POST_NOTIFICATIONS < /dev/null
 run_instrumentation_phase "$capture_main_classes"
-while IFS=$'\t' read -r capture_notification_case capture_notification_state; do
+# Read all case rows before starting adb: adb shell can consume inherited stdin,
+# which previously drained the remaining rows after the first notification case.
+# The array owns iteration; neither pm nor am receives the case-list descriptor.
+mapfile -t capture_notification_rows < "$capture_logs/notification-cases.txt"
+for capture_notification_row in "${capture_notification_rows[@]}"; do
+  IFS=$'\t' read -r capture_notification_case capture_notification_state <<< "$capture_notification_row"
   timeout 15s "$capture_adb" -s "$capture_serial" shell pm clear-permission-flags --user current \
-    io.github.wcwac.yimu.reference.debug android.permission.POST_NOTIFICATIONS user-set user-fixed
+    io.github.wcwac.yimu.reference.debug android.permission.POST_NOTIFICATIONS user-set user-fixed < /dev/null
   if [[ "$capture_notification_state" == granted ]]; then
     timeout 15s "$capture_adb" -s "$capture_serial" shell pm grant --user current \
-      io.github.wcwac.yimu.reference.debug android.permission.POST_NOTIFICATIONS
+      io.github.wcwac.yimu.reference.debug android.permission.POST_NOTIFICATIONS < /dev/null
   else
     timeout 15s "$capture_adb" -s "$capture_serial" shell pm revoke --user current \
-      io.github.wcwac.yimu.reference.debug android.permission.POST_NOTIFICATIONS
+      io.github.wcwac.yimu.reference.debug android.permission.POST_NOTIFICATIONS < /dev/null
     if [[ "$capture_notification_state" == denied_user_fixed ]]; then
       timeout 15s "$capture_adb" -s "$capture_serial" shell pm set-permission-flags --user current \
-        io.github.wcwac.yimu.reference.debug android.permission.POST_NOTIFICATIONS user-set user-fixed
+        io.github.wcwac.yimu.reference.debug android.permission.POST_NOTIFICATIONS user-set user-fixed < /dev/null
     fi
   fi
   run_instrumentation_phase "$capture_notification_case"
-done < "$capture_logs/notification-cases.txt"
+done
 collect_screen_evidence || capture_evidence_status=$?
 capture_results_status=0
 python3 - <<'PY_RESULTS' || capture_results_status=$?
