@@ -77,11 +77,11 @@ public final class ManagerActivity extends AppCompatActivity {
             if(!"content".equals(uri.getScheme())||!android.provider.DocumentsContract.isTreeUri(uri))throw new IllegalArgumentException("请选择备份文件夹");
             int flags=data.getFlags()&(Intent.FLAG_GRANT_READ_URI_PERMISSION|Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
             if(flags!=(Intent.FLAG_GRANT_READ_URI_PERMISSION|Intent.FLAG_GRANT_WRITE_URI_PERMISSION))throw new IllegalArgumentException("备份目录需要读取与写入授权");
-            getContentResolver().takePersistableUriPermission(uri,flags);
+            getContentResolver().takePersistableUriPermission(uri,Intent.FLAG_GRANT_READ_URI_PERMISSION|Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
             String old=ReferenceApplication.prefs().getString(LocalBackupScheduler.TREE,"");
             ReferenceApplication.prefs().edit().putString(LocalBackupScheduler.TREE,uri.toString()).putBoolean(LocalBackupScheduler.ENABLED,true).apply();
             LocalBackupScheduler.sync(this);
-            if(!old.isEmpty()&&!old.equals(uri.toString()))try{getContentResolver().releasePersistableUriPermission(android.net.Uri.parse(old),flags);}catch(SecurityException ignored){}
+            if(!old.isEmpty()&&!old.equals(uri.toString()))try{getContentResolver().releasePersistableUriPermission(android.net.Uri.parse(old),Intent.FLAG_GRANT_READ_URI_PERMISSION|Intent.FLAG_GRANT_WRITE_URI_PERMISSION);}catch(SecurityException ignored){}
             reload();Ui.toast(this,"已启用每日本地备份，可以立即备份验证");
         }catch(Exception error){Ui.error(this,error);}return;}
         if(request==501)FileTasks.run(this,"正在创建完整备份",()->{LocalFiles.exportBackup(this,uri);return true;},done->Ui.toast(this,"备份完成，包含账单和附件"));

@@ -89,11 +89,7 @@ public final class Ui {
                     new AlertDialog.Builder(context).setTitle(title).setItems(choices.toArray(new String[0]),(more,index)->{
                         if(choices.get(index).equals("收回借款")||choices.get(index).equals("偿还借款"))RecordActions.settle(context,value);
                         else if(choices.get(index).equals("查看结清记录")){
-                            java.util.List<org.json.JSONObject> children=new java.util.ArrayList<>();
-                            for(org.json.JSONObject entry:ReferenceApplication.store().accountingEntries(value.optLong("book_id"),0,Long.MAX_VALUE,null,false))if(entry.optString("entry_kind").equals("lend")&&entry.optLong("related_id")==value.optLong("entry_id"))children.add(entry);
-                            if(children.isEmpty()){toast(context,"暂无结清记录");return;}
-                            String[] names=new String[children.size()];for(int i=0;i<names.length;i++)names[i]=date(children.get(i).optLong("time"),"yyyy-MM-dd")+" · "+com.wangc.bill.reference.Money.text(children.get(i).optLong("amount"),currency);
-                            new AlertDialog.Builder(context).setTitle("结清记录").setItems(names,(list,position)->record(context,children.get(position))).show();
+                            context.startActivity(new Intent(context,ManagerActivity.class).putExtra("page","range_records").putExtra("history_book",value.optLong("book_id")).putExtra("parent_lend",value.optLong("entry_id")));
                         }else if(choices.get(index).equals("删除记录"))confirm(context,"删除记录","余额变更会一并撤销，记录可在回收站恢复。",()->{ReferenceApplication.store().trashAccountingEntry(type,value.optLong("entry_id"),true);refresh(context);});
                         else attachmentList(context,files);
                     }).show();

@@ -3,6 +3,7 @@ package com.wangc.bill.reference.capture;
 import android.content.ContentValues;
 import com.wangc.bill.reference.AccountingCommitScope;
 import com.wangc.bill.reference.Json;
+import com.wangc.bill.reference.LocalPlanCandidates;
 import com.wangc.bill.reference.ReferenceStore;
 import java.util.HashSet;
 import java.util.Set;
@@ -15,6 +16,7 @@ public final class CaptureInboxActions {
         return AccountingCommitScope.run(store,()->{
             JSONObject candidate=store.candidate(candidateId),book=store.book(chosenBook);
             if(candidate==null||!"PENDING".equals(candidate.optString("state")))throw new IllegalArgumentException("采集记录已处理或不存在");
+            if(LocalPlanCandidates.isLocalPlan(candidate))return resolveLocalPlanBook(store,candidate,book);
             if(book==null||book.optInt("archived")!=0||!"CNY".equals(book.optString("currency")))
                 throw new IllegalArgumentException("请选择有效的人民币账本");
             JSONObject payload=Json.parse(candidate.optString("payload"));
@@ -42,6 +44,26 @@ public final class CaptureInboxActions {
                     "id=? AND state='PENDING'",new String[]{candidateId}));
             return store.candidate(candidateId);
         });
+    }
+    /** Only the selected local draft changes; neither rule nor capture-book preferences change. */
+    private static JSONObject resolveLocalPlanBook(ReferenceStore store,JSONObject candidate,JSONObject book){
+        LocalPlanCandidates.requireBook(candidate,book);long chosenBook=book.optLong("id");
+        JSONObject payload=Json.parse(candidate.optString("payload"));String currency=LocalPlanCandidates.currency(candidate),kind=payload.optString("kind");
+        Json.put(payload,"book_id",chosenBook);Json.put(payload,"currency",currency);
+        Json.put(payload,"capture_target_book_unresolved",false);Json.put(payload,"capture_requires_confirmation",true);
+        if(!kind.equals("transfer")){
+            JSONObject category=store.categoryRepository().byRowId(payload.optLong("category_id"));
+            if(category==null||category.optInt("archived")!=0||!kind.equals(category.optString("kind"))||store.categoryRepository().isHiddenInBook(category.optLong("id"),chosenBook)){
+                Json.put(payload,"category_id",store.defaultCategory(kind,chosenBook));payload.remove("parent_semantic_id");payload.remove("child_semantic_id");
+            }
+        }
+        Set<Long> available=new HashSet<>();
+        for(JSONObject account:CaptureAccountMappings.choices(store,chosenBook))if(LocalPlanCandidates.accountInCurrency(account,currency))available.add(account.optLong("id"));
+        for(String field:new String[]{"account_id","to_account_id"})if(payload.optLong(field)>0&&!available.contains(payload.optLong(field)))store.selectAccountForInput(payload,field,0,true);
+        Json.put(payload,"capture_account_requires_confirmation",true);Json.put(payload,"capture_account_resolution","LOCAL_PLAN_BOOK_CHANGED_REVIEW");
+        ContentValues update=new ContentValues();update.put("book_id",chosenBook);update.put("payload",payload.toString());
+        AccountingCommitScope.requireChanged(store,store.getWritableDatabase().update("candidates",update,"id=? AND state='PENDING'",new String[]{candidate.optString("id")}));
+        return store.candidate(candidate.optString("id"));
     }
     public static JSONObject reopen(ReferenceStore store,String candidateId) {
         return AccountingCommitScope.run(store,()->{

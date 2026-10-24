@@ -48,6 +48,9 @@ public final class CaptureOverlay {
     public static JSONObject status() {
         Session session = active;
         return Json.object("attached", session != null && session.view.isAttachedToWindow(),
+            // Opaque local identity ties diagnostics/physical UI actions to the
+            // actual displayed draft; no amount, node text or merchant is exposed.
+            "candidateId", session == null || session.preview ? "" : session.id,
             "lastResult", lastResult, "lastChangedAt", lastChanged,
             "windowType", WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
             "permissionGranted", OverlayPermission.granted(),
@@ -92,6 +95,11 @@ public final class CaptureOverlay {
     }
 
     private static void display(String id, JSONObject row, boolean preview) {
+        // This layout/keyboard and its raw transfer parser operate in CNY only.
+        // Check the stored local-plan declaration before Session writes display currency.
+        if(!preview&&!LocalPlanCandidates.canShowCnyOverlay(ReferenceApplication.store(),row)){
+            state("MANUAL_CURRENCY_CONFIRMATION_REQUIRED");Ui.toast(ReferenceApplication.app(),"此周期记录请在待确认列表打开编辑页，按原币种人工确认");return;
+        }
         if (!preview && !ready(ReferenceCaptureService.current())) return;
         // Original x1.h also treats an added, not-yet-attached view as an existing window.
         Session previous = active;

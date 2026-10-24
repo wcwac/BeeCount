@@ -285,7 +285,7 @@ public final class AccountingOperations {
             append(result,seen,loan,start,end,null);
         result.sort(Comparator.comparingLong((JSONObject item) -> item.optLong("time")).reversed()
                 .thenComparing(item -> item.optString("entry_key")));
-        return result.size()>2000?new ArrayList<>(result.subList(0,2000)):result;
+        return result;
     }
 
     private static void append(List<JSONObject> output, Set<String> seen, JSONObject row, long start, long end, String search) {

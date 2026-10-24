@@ -223,7 +223,12 @@ public final class LocalInvestments {
         return rounded(BigInteger.valueOf(value).multiply(BigInteger.valueOf(part)),BigInteger.valueOf(whole));
     }
     private static long rounded(BigInteger numerator,BigInteger denominator){
-        try { long result=numerator.add(denominator.divide(BigInteger.valueOf(2))).divide(denominator).longValueExact();moneyRange(result);return result; }
+        try {
+            BigInteger rounded=numerator.add(denominator.divide(BigInteger.valueOf(2))).divide(denominator);
+            if(rounded.compareTo(BigInteger.valueOf(-MAX_MONEY))<0||rounded.compareTo(BigInteger.valueOf(MAX_MONEY))>0)
+                throw new IllegalArgumentException("投资金额超出可保存范围");
+            return rounded.longValue();
+        }
         catch(ArithmeticException overflow){throw new IllegalArgumentException("投资金额超出可保存范围",overflow);}
     }
     private static long add(long left,long right){

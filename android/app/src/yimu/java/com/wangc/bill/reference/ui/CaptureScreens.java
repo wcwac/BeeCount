@@ -118,7 +118,7 @@ final class CaptureScreens {
                     new AlertDialog.Builder(a).setTitle("处理采集记录").setItems(new String[]{"核对并记账","选择目标账本","显示确认浮窗","配置付款账户映射","忽略此记录"},(dialog,which)->{
                         if(which==0)editCandidate(a,row);
                         else if(which==1)chooseCandidateBook(a,row,()->a.reload());
-                        else if(which==2)withCandidateBook(a,row,()->{if(!AutoApps.enabled()||!OverlayPermission.granted()||!ReferenceApplication.prefs().getBoolean("show_overlay",true)){Ui.toast(a,"请先启用自动记账和确认浮窗，或直接选择核对并记账");return;}CaptureOverlay.show(row.optString("id"),null);});
+                        else if(which==2)withCandidateBook(a,row,()->{JSONObject current=a.store().candidate(row.optString("id"));if(!LocalPlanCandidates.canShowCnyOverlay(a.store(),current)){Ui.toast(a,"此周期记录请在编辑页按原币种人工确认");return;}if(!AutoApps.enabled()||!OverlayPermission.granted()||!ReferenceApplication.prefs().getBoolean("show_overlay",true)){Ui.toast(a,"请先启用自动记账和确认浮窗，或直接选择核对并记账");return;}CaptureOverlay.show(row.optString("id"),null);});
                         else if(which==3){AutoApps.App app=appFor(row.optString("package_name"));if(app==null)mappingPicker(a);else mappingMethod(a,app);}
                         else Ui.confirm(a,"忽略此记录","不会记入账本；之后可在已忽略列表恢复。",()->{ignoreCandidate(a,row.optString("id"));a.reload();});
                     }).show();return true;});
@@ -127,20 +127,23 @@ final class CaptureScreens {
     }
     private static AutoApps.App appFor(String pkg){for(AutoApps.App app:AutoApps.ALL)if(app.packageName.equals(pkg))return app;return null;}
     private static boolean needsBook(ManagerActivity a,JSONObject row){
+        if(LocalPlanCandidates.isLocalPlan(row))return LocalPlanCandidates.needsBook(a.store(),row);
         JSONObject data=Json.parse(row.optString("payload")),book=a.store().book(row.optLong("book_id"));
         return data.optBoolean("capture_target_book_unresolved")||book==null||book.optInt("archived")!=0||!"CNY".equals(book.optString("currency"));
     }
     private static void withCandidateBook(ManagerActivity a,JSONObject row,Runnable ready){if(needsBook(a,row))chooseCandidateBook(a,row,ready);else ready.run();}
     private static void editCandidate(ManagerActivity a,JSONObject row){withCandidateBook(a,row,()->{CaptureOverlay.close();Ui.edit(a,0,row.optString("id"));});}
     private static void chooseCandidateBook(ManagerActivity a,JSONObject row,Runnable ready){
-        List<JSONObject> books=new ArrayList<>();for(JSONObject book:a.store().books())if("CNY".equals(book.optString("currency")))books.add(book);
-        if(books.isEmpty()){new AlertDialog.Builder(a).setTitle("需要人民币账本").setMessage("采集记录已经保留，请先建立人民币账本，再回来选择。")
+        boolean localPlan=LocalPlanCandidates.isLocalPlan(row);String currency;
+        try{currency=localPlan?LocalPlanCandidates.currency(row):"CNY";}catch(IllegalArgumentException error){Ui.error(a,error);return;}
+        List<JSONObject> books=new ArrayList<>();for(JSONObject book:a.store().books())if(localPlan?LocalPlanCandidates.canUseBook(row,book):"CNY".equals(book.optString("currency")))books.add(book);
+        if(books.isEmpty()){new AlertDialog.Builder(a).setTitle(localPlan?"需要同币种账本":"需要人民币账本").setMessage(localPlan?"周期记录已保留，请建立可用的 "+currency+" 账本后回来选择；金额不会自动换算。":"采集记录已经保留，请先建立人民币账本，再回来选择。")
                 .setPositiveButton("新建账本",(dialog,which)->a.open("edit_book",0)).setNegativeButton("暂不处理",null).show();return;}
-        String[] names=new String[books.size()];for(int i=0;i<names.length;i++)names[i]=books.get(i).optString("name");
-        CheckBox future=new CheckBox(a);future.setText("同时作为后续采集的目标账本");future.setChecked(true);
-        new AlertDialog.Builder(a).setTitle("选择此记录的目标账本").setView(future).setItems(names,(dialog,which)->{
+        String[] names=new String[books.size()];for(int i=0;i<names.length;i++)names[i]=books.get(i).optString("name")+(localPlan?" · "+currency:"");
+        CheckBox future=new CheckBox(a);future.setText("同时作为后续采集的目标账本");future.setChecked(!localPlan);
+        new AlertDialog.Builder(a).setTitle(localPlan?"选择周期记录的同币种账本":"选择此记录的目标账本").setView(localPlan?null:future).setItems(names,(dialog,which)->{
             try{long chosen=books.get(which).optLong("id");CaptureInboxActions.resolveBook(a.store(),row.optString("id"),chosen);
-                if(future.isChecked())ReferenceApplication.prefs().edit().putLong("capture_book",chosen).apply();ready.run();}
+                if(!localPlan&&future.isChecked())ReferenceApplication.prefs().edit().putLong("capture_book",chosen).apply();ready.run();}
             catch(Exception error){Ui.error(a,error);}
         }).setNegativeButton("取消",null).show();
     }

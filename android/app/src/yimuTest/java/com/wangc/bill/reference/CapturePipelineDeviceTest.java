@@ -150,7 +150,7 @@ public final class CapturePipelineDeviceTest {
         observeWindows();
         try(ActivityScenario<ManagerActivity> scenario=manager("diagnostics")){touchMaster(scenario,false);assertRuntimeEnabled(true);}
         SystemClock.sleep(1300);long began=System.currentTimeMillis();launchAmount("com.eg.android.AlipayGphone/com.alipay.android.msp.ui.views.MspContainerActivity","19.80");
-        JSONObject saved=waitDraft("com.eg.android.AlipayGphone",began);String savedId=saved.optString("id");
+        JSONObject saved=waitDisplayedDraft("com.eg.android.AlipayGphone",began,1980);String savedId=saved.optString("id");
         Point save=visibleOverlayControl("btn_save");
         assertTrue("Overlay option unexpectedly disabled",ReferenceApplication.prefs().getBoolean("show_overlay",false));
         assertEquals("A visible overlay must already have a persisted draft","PENDING",ReferenceApplication.store().candidate(savedId).optString("state"));
@@ -159,7 +159,7 @@ public final class CapturePipelineDeviceTest {
         JSONObject row=ReferenceApplication.store().candidate(savedId);assertTrue(row.optLong("transaction_id")>0);assertEquals(1980,ReferenceApplication.store().transaction(row.optLong("transaction_id")).optLong("amount"));
         await(()->!hasOverlay(),5000,"Saved overlay did not close");
         SystemClock.sleep(1300);began=System.currentTimeMillis();launchAmount("com.eg.android.AlipayGphone/com.alipay.android.msp.ui.views.MspContainerActivity","20.80");
-        JSONObject pending=waitDraft("com.eg.android.AlipayGphone",began);String pendingId=pending.optString("id");visibleOverlayControl("btn_save");
+        JSONObject pending=waitDisplayedDraft("com.eg.android.AlipayGphone",began,2080);String pendingId=pending.optString("id");visibleOverlayControl("btn_save");
         AccessibilityNodeInfo background=overlayControl("background"),content=overlayControl("content_layout");assertNotNull(background);assertNotNull(content);
         Rect outside=new Rect(),sheet=new Rect();background.getBoundsInScreen(outside);content.getBoundsInScreen(sheet);
         assertTrue("No exposed overlay background to exercise",sheet.top>outside.top+2);touch(new Point(outside.centerX(),outside.top+(sheet.top-outside.top)/2));
@@ -479,13 +479,30 @@ public final class CapturePipelineDeviceTest {
     private Point visibleOverlayCategory(String name)throws Exception{final Point[] point={null};await(()->{AccessibilityNodeInfo grid=overlayControl("category_pager");if(grid==null)return false;for(AccessibilityNodeInfo node:grid.findAccessibilityNodeInfosByText(name)){if(!name.contentEquals(node.getText()==null?"":node.getText())||!node.isVisibleToUser())continue;Rect bounds=new Rect();node.getBoundsInScreen(bounds);if(!bounds.isEmpty()){point[0]=new Point(bounds.centerX(),bounds.centerY());return true;}}return false;},3000,"No real visible category item: "+name);return point[0];}
     private Point visibleSystemText(String text)throws Exception{final Point[] point={null};await(()->{for(AccessibilityWindowInfo window:automation.getWindows())if(window.getType()==AccessibilityWindowInfo.TYPE_SYSTEM){AccessibilityNodeInfo root=window.getRoot();if(root==null||!ReferenceApplication.app().getPackageName().contentEquals(root.getPackageName()==null?"":root.getPackageName()))continue;for(AccessibilityNodeInfo node:root.findAccessibilityNodeInfosByText(text)){if(!text.contentEquals(node.getText()==null?"":node.getText())||!node.isVisibleToUser())continue;Rect bounds=new Rect();node.getBoundsInScreen(bounds);if(!bounds.isEmpty()){point[0]=new Point(bounds.centerX(),bounds.centerY());return true;}}}return false;},5000,"No real application-overlay text: "+text);return point[0];}
     private AccessibilityNodeInfo overlayControl(String name){
-        int id=switch(name){case "btn_save"->com.wangc.bill.R.id.btn_save;case "btn_save_text"->com.wangc.bill.R.id.btn_save_text;case "close_btn"->com.wangc.bill.R.id.close_btn;case "category_pager"->com.wangc.bill.R.id.category_pager;case "bill_parent_type_list"->com.wangc.bill.R.id.bill_parent_type_list;case "account_book_layout"->com.wangc.bill.R.id.account_book_layout;case "account_book_name"->com.wangc.bill.R.id.account_book_name;case "check_layout"->com.wangc.bill.R.id.check_layout;case "confirm"->com.wangc.bill.R.id.confirm;case "background"->com.wangc.bill.R.id.background;case "content_layout"->com.wangc.bill.R.id.content_layout;default->throw new IllegalArgumentException("Unknown overlay control");};
+        int id=switch(name){case "cost"->com.wangc.bill.R.id.cost;case "btn_save"->com.wangc.bill.R.id.btn_save;case "btn_save_text"->com.wangc.bill.R.id.btn_save_text;case "close_btn"->com.wangc.bill.R.id.close_btn;case "category_pager"->com.wangc.bill.R.id.category_pager;case "bill_parent_type_list"->com.wangc.bill.R.id.bill_parent_type_list;case "account_book_layout"->com.wangc.bill.R.id.account_book_layout;case "account_book_name"->com.wangc.bill.R.id.account_book_name;case "check_layout"->com.wangc.bill.R.id.check_layout;case "confirm"->com.wangc.bill.R.id.confirm;case "background"->com.wangc.bill.R.id.background;case "content_layout"->com.wangc.bill.R.id.content_layout;default->throw new IllegalArgumentException("Unknown overlay control");};
         String resource=ReferenceApplication.app().getResources().getResourceName(id);
         // AccessibilityWindowInfo uses its own small type enum: a WM application
         // overlay (2038) is a TYPE_SYSTEM window here, not the integer 2038.
         for(AccessibilityWindowInfo window:automation.getWindows())if(window.getType()==AccessibilityWindowInfo.TYPE_SYSTEM){AccessibilityNodeInfo root=window.getRoot();if(root==null||!ReferenceApplication.app().getPackageName().contentEquals(root.getPackageName()==null?"":root.getPackageName()))continue;List<AccessibilityNodeInfo> found=root.findAccessibilityNodeInfosByViewId(resource);if(!found.isEmpty())return found.get(0);}return null;
     }
     private boolean hasOverlay(){return overlayControl("btn_save")!=null;}
+    private JSONObject waitDisplayedDraft(String pkg,long since,long expectedMinor)throws Exception{
+        final JSONObject[] found={null};
+        await(()->{
+            JSONObject overlay=CaptureOverlay.status();if(!overlay.optBoolean("attached"))return false;
+            String id=overlay.optString("candidateId");if(id.isEmpty())return false;
+            JSONObject candidate=ReferenceApplication.store().candidate(id);
+            if(candidate==null||!"PENDING".equals(candidate.optString("state"))||!pkg.equals(candidate.optString("package_name"))||candidate.optLong("created")<since)return false;
+            JSONObject payload=Json.parse(candidate.optString("payload"));if(payload.optLong("amount")!=expectedMinor)return false;
+            AccessibilityNodeInfo cost=overlayControl("cost");
+            if(cost==null||!cost.isVisibleToUser()||cost.getText()==null||!Money.text(expectedMinor,"CNY").contentEquals(cost.getText()))return false;
+            // A same-package repaint may preserve a different review-only PENDING
+            // row. Bind only the real window being touched, never the newest row.
+            if(!id.equals(CaptureOverlay.status().optString("candidateId")))return false;
+            found[0]=candidate;return true;
+        },12000,"No actual overlay attached to the expected synthetic payment");
+        drafts.add(found[0].optString("id"));return found[0];
+    }
     private JSONObject waitDraft(String pkg,long since)throws Exception{return waitCandidate(pkg,since,"PENDING");}
     private JSONObject waitCandidate(String pkg,long since,String state)throws Exception{final JSONObject[] found={null};await(()->{found[0]=ReferenceApplication.store().one("SELECT * FROM candidates WHERE package_name=? AND created>=? AND state=? ORDER BY created DESC LIMIT 1",pkg,""+since,state);return found[0]!=null;},12000,"No "+state+" candidate for "+pkg+": "+ReferenceCaptureService.status());drafts.add(found[0].optString("id"));return found[0];}
     interface Check{boolean ready();}

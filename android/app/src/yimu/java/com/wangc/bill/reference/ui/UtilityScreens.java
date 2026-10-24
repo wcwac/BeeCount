@@ -20,8 +20,8 @@ import java.util.*;
 final class UtilityScreens {
     private UtilityScreens(){}
     static void render(ManagerActivity a){switch(a.page){case "search","range_records","trash"->records(a);case "backup"->backup(a);case "import"->imports(a);case "attachments"->attachments(a);case "settings"->settings(a);case "quick_entry"->QuickEntrySettings.render(a);case "theme"->theme(a);case "profile"->profile(a);case "widgets"->widgets(a);case "help"->help(a);case "about"->about(a);}}
-    static void records(ManagerActivity a){boolean trash=a.page.equals("trash"),search=a.page.equals("search");LinearLayout root=Ui.column(a);root.addView(Ui.toolbar(a,trash?"回收站":search?"搜索账单":"账单明细",null,null));EditText field=new EditText(a);field.setSingleLine(true);field.setHint("搜索备注、商户或分类");if(search)root.addView(field);RecyclerView list=new RecyclerView(a);list.setLayoutManager(new LinearLayoutManager(a));root.addView(list,new LinearLayout.LayoutParams(-1,0,1));Ui.content(a,root);long start=a.getIntent().getLongExtra("start",0),end=a.getIntent().getLongExtra("end",Long.MAX_VALUE);
-        Runnable refresh=()->{List<JSONObject> rows=a.store().accountingEntries(a.bookId(),start,end,search?field.getText().toString():null,trash);RecordAdapter adapter=new RecordAdapter(rows,null,row->{JSONObject owner=row.optString("entry_kind","bill").equals("bill")?AccountingLinks.ownerOfBill(a.store(),row.optLong("id")):null;if(owner!=null){Ui.record(a,owner);return;}if(!trash||!row.optString("entry_kind","bill").equals("bill")){Ui.record(a,row);return;}new AlertDialog.Builder(a).setTitle("回收站账单").setItems(new String[]{"恢复账单","永久删除"},(d,w)->{if(w==0){a.store().trash(row.optLong("id"),false);a.reload();}else Ui.confirm(a,"永久删除账单","此操作无法撤销；有关联回款的账单必须先删除关联账单。",()->{a.store().purge(row.optLong("id"));a.reload();});}).show();});adapter.allowTrash=!trash;list.setAdapter(adapter);};refresh.run();
+    static void records(ManagerActivity a){boolean trash=a.page.equals("trash"),search=a.page.equals("search");LinearLayout root=Ui.column(a);root.addView(Ui.toolbar(a,trash?"回收站":search?"搜索账单":a.getIntent().getLongExtra("parent_lend",0)>0?"结清记录":"账单明细",null,null));EditText field=new EditText(a);field.setSingleLine(true);field.setHint("搜索备注、商户或分类");if(search)root.addView(field);RecyclerView list=new RecyclerView(a);list.setLayoutManager(new LinearLayoutManager(a));root.addView(list,new LinearLayout.LayoutParams(-1,0,1));Ui.content(a,root);long start=a.getIntent().getLongExtra("start",0),end=a.getIntent().getLongExtra("end",Long.MAX_VALUE);
+        Runnable refresh=()->{AccountingHistory.Filter filter=new AccountingHistory.Filter();filter.book=a.getIntent().getLongExtra("history_book",a.bookId());filter.start=start;filter.end=end;filter.search=search?field.getText().toString():null;filter.trash=trash;filter.parentLoan=a.getIntent().getLongExtra("parent_lend",0);HistoryRecordList.bind(a,list,null,filter,row->{JSONObject owner=row.optString("entry_kind","bill").equals("bill")?AccountingLinks.ownerOfBill(a.store(),row.optLong("id")):null;if(owner!=null){Ui.record(a,owner);return;}if(!trash||!row.optString("entry_kind","bill").equals("bill")){Ui.record(a,row);return;}new AlertDialog.Builder(a).setTitle("回收站账单").setItems(new String[]{"恢复账单","永久删除"},(d,w)->{if(w==0){a.store().trash(row.optLong("id"),false);a.reload();}else Ui.confirm(a,"永久删除账单","此操作无法撤销；有关联回款的账单必须先删除关联账单。",()->{a.store().purge(row.optLong("id"));a.reload();});}).show();},!trash);};refresh.run();
         if(search)field.addTextChangedListener(new TextWatcher(){public void beforeTextChanged(CharSequence s,int p,int c,int after){}public void onTextChanged(CharSequence s,int start,int before,int count){list.removeCallbacks(refresh);list.postDelayed(refresh,200);}public void afterTextChanged(Editable e){}});
     }
     static void backup(ManagerActivity a){View r=a.original("数据备份","activity_backup");Ui.click(r,"local_backup",a::requestBackup);Ui.click(r,"restore_backup",a::requestRestore);Ui.click(r,"local_backup_file_manager",a::requestRestore);Ui.text(r,"local_backup_path","通过系统文件选择器保存完整 ZIP 备份");Ui.click(r,"local_backup_move",a::requestBackup);Ui.click(r,"local_backup_path",a::requestBackup);
@@ -32,16 +32,10 @@ final class UtilityScreens {
     }
     static void imports(ManagerActivity a){a.body("数据导入与导出",null,null);a.rows.addView(Ui.row(a,"导出当前账本 CSV",a.store().book(a.bookId()).optString("name")+" · UTF-8，包含账户、分类、标签和收支标志",a::requestCsvExport));a.rows.addView(Ui.row(a,"导入 CSV 账单","支持本实验版表头与常见中文表头；文件整体校验，重复文件跳过。",a::requestCsvImport));a.rows.addView(Ui.row(a,"完整备份与恢复","ZIP 包含全部账本、采集记录、周期规则、目标与附件",()->Ui.page(a,"backup")));}
     static void attachments(ManagerActivity a){
-        a.body("账单附件",null,null);int count=0;
-        for(JSONObject book:a.store().books())for(JSONObject entry:a.store().accountingEntries(book.optLong("id"),0,Long.MAX_VALUE,null,false)){
-            JSONArray files=Json.array(entry.optString("attachments","[]"));
-            for(int i=0;i<files.length();i++){
-                JSONObject file=files.optJSONObject(i);if(file==null)continue;count++;
-                LinearLayout row=Ui.row(a,file.optString("name","附件"),Ui.date(entry.optLong("time"),"yyyy-MM-dd")+" · "+entry.optString("remark"),()->LocalFiles.openAttachment(a,file));
-                row.setOnLongClickListener(v->{Ui.record(a,entry);return true;});a.rows.addView(row);
-            }
-        }
-        if(count==0)a.rows.addView(Ui.row(a,"暂无附件","在记账页面点击附件按钮添加图片、PDF或文本。",null));
+        LinearLayout root=Ui.column(a);root.addView(Ui.toolbar(a,"账单附件",null,null));
+        RecyclerView list=new RecyclerView(a);root.addView(list,new LinearLayout.LayoutParams(-1,0,1));Ui.content(a,root);
+        // All books, including archived ones, are covered by the bounded identity query.
+        AccountingHistory.Filter filter=new AccountingHistory.Filter();HistoryRecordList.attachments(a,list,filter);
     }
     static void settings(ManagerActivity a){View r=a.original("设置","activity_setting");
         View remarkMain=Ui.view(r,"switch_remark_main");if(remarkMain instanceof CompoundButton button){button.setChecked(OriginalSettings.remarkMain(ReferenceApplication.prefs()));button.setOnCheckedChangeListener((view,value)->ReferenceApplication.prefs().edit().putBoolean(OriginalSettings.REMARK_MAIN,value).apply());}

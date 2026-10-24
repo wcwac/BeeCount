@@ -164,6 +164,13 @@ public final class LocalGoalPlans {
         long from=payload.optLong("account_id"),to=payload.optLong("to_account_id");
         if(forSave&&from>0)validateAccount(store,from,book.optString("currency"),true);if(forSave&&to>0)validateAccount(store,to,book.optString("currency"),true);
         if(kind.equals("transfer")&&(from<=0||to<=0||from==to))throw new IllegalArgumentException("周期转账需要不同的转出和转入账户");
+        // A generated draft is confirmed through the typed transfer receipt path.
+        // Restore may retain dormant old rules; saving/generating must be confirmable.
+        if(forSave&&kind.equals("transfer")){
+            if(!canConfirmTransferBook(book))throw new IllegalArgumentException("周期转账暂仅支持本地人民币账本");
+            if(!canConfirmTransferAccount(store.assetRepository().byRowId(from))||!canConfirmTransferAccount(store.assetRepository().byRowId(to)))
+                throw new IllegalArgumentException("此账户暂不支持周期转账，请新建人民币资金或信用账户");
+        }
         long fee=integer(payload,"fee",0);if(fee< -MAX||fee>MAX||!kind.equals("transfer")&&fee!=0)throw new IllegalArgumentException("普通周期收支不支持额外手续费，请单独记账");
         JSONArray tags=array(payload,"tag_ids");for(int i=0;i<tags.length();i++)if(forSave&&store.one("SELECT id FROM tags WHERE id=?",""+longId(tags,i))==null)throw new IllegalArgumentException("周期标签已删除");
         Object raw=payload.opt("attachments");JSONArray files=raw==null||raw==JSONObject.NULL?new JSONArray():raw instanceof String?Json.array((String)raw):raw instanceof JSONArray?(JSONArray)raw:null;
@@ -171,6 +178,9 @@ public final class LocalGoalPlans {
         for(int i=0;i<files.length();i++){JSONObject file=files.optJSONObject(i);if(file==null||!file.optString("file").matches("[A-Za-z0-9_-]{20,60}\\.(jpg|png|webp|pdf|txt|csv)"))throw new IllegalArgumentException("周期附件路径无效");}
         Json.put(payload,"attachments",files.toString());Json.put(payload,"currency",book.optString("currency"));Json.put(payload,"tag_ids",tags);
     }}
+    /** Eligibility shared by recurring-rule validation and its actual account picker. */
+    public static boolean canConfirmTransferBook(JSONObject book){return book!=null&&book.optInt("archived")==0&&"CNY".equals(book.optString("currency"))&&!book.isNull("owner_semantic_id")&&book.optInt("owner_semantic_id")==ReferenceStore.LOCAL_OFFLINE_OWNER;}
+    public static boolean canConfirmTransferAccount(JSONObject row){return row!=null&&AssetRepository.ORIGINAL.equals(row.optString("asset_origin"))&&!row.isNull("owner_semantic_id")&&row.optInt("owner_semantic_id")==ReferenceStore.LOCAL_OFFLINE_OWNER&&!row.isNull("semantic_id")&&row.optInt("archived")==0&&row.optInt("asset_type")!=9&&(row.isNull("asset_currency")||row.optString("asset_currency").isEmpty())&&"CNY".equals(displayCurrency(row));}
     private static void validateAccount(ReferenceStore store,long id,String currency,boolean active){JSONObject row=store.assetRepository().byRowId(id);if(row==null||!displayCurrency(row).equals(currency)||active&&row.optInt("archived")!=0||row.optInt("asset_type")==9||active&&AssetRepository.ORIGINAL.equals(row.optString("asset_origin"))&&!row.isNull("asset_currency")&&!row.optString("asset_currency").isEmpty())throw new IllegalArgumentException("周期账户不可用或币种不同");}
     private static void validateSelection(ReferenceStore store,String currency,JSONArray books,JSONArray accounts){if(books.length()+accounts.length()>900)throw new IllegalArgumentException("单目标所选账本与账户合计最多900个；留空可跟踪全部同币种数据");for(int i=0;i<books.length();i++){JSONObject book=store.book(longId(books,i));if(book==null||!currency.equals(book.optString("currency")))throw new IllegalArgumentException("目标账本币种不一致");}for(int i=0;i<accounts.length();i++){JSONObject account=store.assetRepository().byRowId(longId(accounts,i));if(account==null||!currency.equals(displayCurrency(account)))throw new IllegalArgumentException("目标账户币种不一致");}}
     public static boolean usesBook(ReferenceStore store,long id){synchronized(store){for(JSONObject row:store.query("SELECT book_ids FROM local_goal_config"))if(contains(ids(row.optString("book_ids")),id))return true;return false;}}
