@@ -171,10 +171,11 @@ public final class GoalPlanScreens {
     private static void remember(ManagerActivity a,JSONObject value){a.getIntent().putExtra(DRAFT,value.toString());}
     private static EditText field(ManagerActivity a,JSONObject data,String key,String hint,String initial,boolean decimal){return field(a,data,key,hint,initial,decimal,false);}
     private static EditText field(ManagerActivity a,JSONObject data,String key,String hint,String initial,boolean decimal,boolean integer){
-        a.rows.addView(Ui.label(a,hint,13));EditText view=new EditText(a);view.setSingleLine(true);view.setHint(hint);view.setContentDescription(hint);
+        a.rows.addView(Ui.formLabel(a,hint));EditText view=new EditText(a);view.setSingleLine(true);view.setHint(hint);view.setContentDescription(hint);Ui.formInput(view);
         if(decimal||integer)view.setInputType(InputType.TYPE_CLASS_NUMBER|(decimal?InputType.TYPE_NUMBER_FLAG_DECIMAL|InputType.TYPE_NUMBER_FLAG_SIGNED:0));
         String text=data.has(key)?data.optString(key):initial;view.setText(text);Json.put(data,key,text);remember(a,data);
-        view.addTextChangedListener(new TextWatcher(){public void beforeTextChanged(CharSequence value,int start,int count,int after){}public void onTextChanged(CharSequence value,int start,int before,int count){Json.put(data,key,value.toString());remember(a,data);}public void afterTextChanged(Editable value){}});a.rows.addView(view);return view;
+        view.addTextChangedListener(new TextWatcher(){public void beforeTextChanged(CharSequence value,int start,int count,int after){}public void onTextChanged(CharSequence value,int start,int before,int count){Json.put(data,key,value.toString());remember(a,data);}public void afterTextChanged(Editable value){}});
+        LinearLayout.LayoutParams layout=new LinearLayout.LayoutParams(-1,-2);layout.setMargins(Ui.dp(a,16),0,Ui.dp(a,16),Ui.dp(a,12));a.rows.addView(view,layout);return view;
     }
     private static void action(ManagerActivity a,String title,Runnable save){TextView button=Ui.label(a,title,17);button.setPadding(Ui.dp(a,16),Ui.dp(a,18),Ui.dp(a,16),Ui.dp(a,18));button.setTextColor(Ui.GREEN);button.setContentDescription(title);a.rows.addView(button);boolean[] busy={false};button.setOnClickListener(view->{if(busy[0])return;busy[0]=true;try{save.run();if(a.isFinishing()||a.isDestroyed())button.setEnabled(false);else busy[0]=false;}catch(Exception error){busy[0]=false;Ui.error(a,error);}});}
     private static void date(ManagerActivity a,JSONObject data,String key,String title,boolean end,boolean optional){

@@ -23,7 +23,7 @@ public final class RecordAdapter extends RecyclerView.Adapter<RecordAdapter.Hold
     public RecordAdapter(List<JSONObject> rows, View header, Click click) { this.rows=rows;this.header=header;this.click=click; }
     @Override public int getItemCount(){return rows.size()+(header==null?0:1);}
     @Override public int getItemViewType(int position){return header!=null&&position==0?0:1;}
-    @Override public Holder onCreateViewHolder(ViewGroup parent,int type){return new Holder(type==0?header:Ui.layout(parent.getContext(),"item_bill_main_list"));}
+    @Override public Holder onCreateViewHolder(ViewGroup parent,int type){return new Holder(type==0?header:Ui.layout(parent.getContext(),"item_bill_main_list",parent));}
     @Override public void onBindViewHolder(Holder holder,int position){
         if(getItemViewType(position)==0)return;
         int at=position-(header==null?0:1);JSONObject row=rows.get(at);View v=holder.itemView;String kind=row.optString("kind"),currency=row.optString("currency","CNY");long time=row.optLong("time");

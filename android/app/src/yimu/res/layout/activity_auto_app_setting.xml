@@ -2,6 +2,7 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android" android:background="@color/backgroundLight" android:layout_width="match_parent" android:layout_height="match_parent">
     <androidx.core.widget.NestedScrollView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="15dp" android:layout_marginBottom="60dp" android:layout_marginStart="15dp" android:layout_marginEnd="15dp">
         <LinearLayout android:orientation="vertical" android:background="@drawable/shape_bg_setting" android:layout_width="match_parent" android:layout_height="wrap_content">
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:padding="16dp" android:text="选择需要采集的应用，长按应用可配置来源标签。" android:textSize="13sp" android:textColor="@color/textGray" />
             <androidx.recyclerview.widget.RecyclerView android:id="@+id/app_list" android:layout_width="match_parent" android:layout_height="wrap_content" android:overScrollMode="never" />
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>

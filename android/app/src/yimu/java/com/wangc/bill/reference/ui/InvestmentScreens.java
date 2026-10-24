@@ -158,9 +158,10 @@ public final class InvestmentScreens {
     }
     private static LinearLayout form(ManagerActivity a){LinearLayout body=Ui.column(a);body.setPadding(Ui.dp(a,18),Ui.dp(a,10),Ui.dp(a,18),Ui.dp(a,14));return body;}
     private static EditText field(ManagerActivity a,LinearLayout parent,String title,String value,boolean decimal){
-        TextView label=Ui.label(a,title,13);label.setPadding(0,Ui.dp(a,10),0,0);parent.addView(label);
+        TextView label=Ui.formLabel(a,title);label.setPadding(0,Ui.dp(a,14),0,Ui.dp(a,6));parent.addView(label);
         EditText input=new EditText(a);input.setSingleLine(true);input.setInputType(decimal?InputType.TYPE_CLASS_NUMBER|InputType.TYPE_NUMBER_FLAG_DECIMAL:InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
-        input.setText(value);parent.addView(input,new LinearLayout.LayoutParams(-1,-2));return input;
+        input.setHint(title);input.setContentDescription(title);input.setText(value);Ui.formInput(input);
+        LinearLayout.LayoutParams layout=new LinearLayout.LayoutParams(-1,-2);layout.bottomMargin=Ui.dp(a,12);parent.addView(input,layout);return input;
     }
     private static void fieldVisible(LinearLayout parent,View field,boolean visible){int index=parent.indexOfChild(field);field.setVisibility(visible?View.VISIBLE:View.GONE);parent.getChildAt(index-1).setVisibility(visible?View.VISIBLE:View.GONE);}
     private interface Save{JSONObject run();}

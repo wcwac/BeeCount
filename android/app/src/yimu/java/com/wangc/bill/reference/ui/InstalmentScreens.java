@@ -70,7 +70,12 @@ public final class InstalmentScreens {
             if(raw==null){Ui.toast(context,"原消费账单已不存在");return;}show(context,raw.localRowId);
         }catch(Exception error){Ui.error(context,error);}
     }
-    private static EditText number(Context context,LinearLayout parent,String hint,String value,boolean decimal){parent.addView(Ui.label(context,hint,13));EditText input=new EditText(context);input.setSingleLine(true);input.setHint(hint);input.setContentDescription(hint);input.setInputType(InputType.TYPE_CLASS_NUMBER|(decimal?InputType.TYPE_NUMBER_FLAG_DECIMAL:0));input.setText(value);parent.addView(input);return input;}
+    private static EditText number(Context context,LinearLayout parent,String hint,String value,boolean decimal){
+        TextView label=Ui.formLabel(context,hint);label.setPadding(0,Ui.dp(context,14),0,Ui.dp(context,6));parent.addView(label);
+        EditText input=new EditText(context);input.setSingleLine(true);input.setHint(hint);input.setContentDescription(hint);
+        input.setInputType(InputType.TYPE_CLASS_NUMBER|(decimal?InputType.TYPE_NUMBER_FLAG_DECIMAL:0));input.setText(value);Ui.formInput(input);
+        LinearLayout.LayoutParams layout=new LinearLayout.LayoutParams(-1,-2);layout.bottomMargin=Ui.dp(context,12);parent.addView(input,layout);return input;
+    }
     private static JSONObject input(EditText amount,EditText count,EditText fee,Spinner mode,String month){
         int periods;try{periods=Integer.parseInt(count.getText().toString().trim());}catch(NumberFormatException invalid){throw new IllegalArgumentException("请输入有效期数");}
         return Json.object("amount",Money.positive(amount.getText().toString(),"CNY"),"periods",periods,"fee",Money.signed(fee.getText().toString(),"CNY"),"fee_mode",mode.getSelectedItemPosition()==0?"each":"once","first_month",month);

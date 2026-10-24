@@ -83,7 +83,58 @@ final class CaptureScreens {
                 .setNeutralButton("移除此映射",(d,w)->{CaptureAccountMappings.remove(app.packageName,method);Ui.toast(a,"映射已移除");}).setNegativeButton("取消",null).show();
     }
     private static String accountName(ManagerActivity a,long id){JSONObject row=a.store().one("SELECT name FROM accounts WHERE id=?",""+id);return row==null?"无账户":row.optString("name");}
-    private static void apps(ManagerActivity a){View v=a.original("配置支持的应用","activity_auto_app_setting");RecyclerView list=Ui.view(v,"app_list");list.setLayoutManager(new LinearLayoutManager(a));list.setAdapter(new RecyclerView.Adapter<MainActivity.SimpleHolder>(){@Override public int getItemCount(){return AutoApps.ALL.length;}@Override public MainActivity.SimpleHolder onCreateViewHolder(ViewGroup p,int type){LinearLayout row=Ui.row(a,"","",null);Switch toggle=new Switch(a);row.addView(toggle);return new MainActivity.SimpleHolder(row);}@Override public void onBindViewHolder(MainActivity.SimpleHolder h,int position){AutoApps.App app=AutoApps.ALL[position];LinearLayout row=(LinearLayout)h.itemView;((TextView)row.getChildAt(0)).setText(app.name);((TextView)row.getChildAt(1)).setText(app.description+"\n"+app.packageName+"\n长按配置来源标签");Switch toggle=(Switch)row.getChildAt(2);toggle.setContentDescription(app.name+"采集开关");toggle.setOnCheckedChangeListener(null);toggle.setChecked(AutoApps.selected().contains(app.packageName));toggle.setOnCheckedChangeListener((b,on)->AutoApps.select(app.packageName,on));row.setOnLongClickListener(view->{List<JSONObject> tags=a.store().query("SELECT * FROM tags ORDER BY id");String[] labels=new String[tags.size()+1];labels[0]="不自动添加标签";for(int i=0;i<tags.size();i++)labels[i+1]=tags.get(i).optString("name");new AlertDialog.Builder(a).setTitle(app.name+"来源标签").setItems(labels,(d,w)->ReferenceApplication.prefs().edit().putString("source_tag_"+app.packageName,w==0?"":""+tags.get(w-1).optLong("id")).apply()).show();return true;});}});}
+    private static void apps(ManagerActivity a) {
+        View screen = a.original("配置支持的应用", "activity_auto_app_setting");
+        RecyclerView list = Ui.view(screen, "app_list");
+        list.setLayoutManager(new LinearLayoutManager(a));
+        list.setAdapter(new RecyclerView.Adapter<MainActivity.SimpleHolder>() {
+            @Override public int getItemCount() { return AutoApps.ALL.length; }
+            @Override public MainActivity.SimpleHolder onCreateViewHolder(ViewGroup parent, int type) {
+                LinearLayout row = new LinearLayout(a);
+                row.setOrientation(LinearLayout.HORIZONTAL);
+                row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+                row.setPadding(Ui.dp(a,16), Ui.dp(a,12), Ui.dp(a,12), Ui.dp(a,12));
+                row.setBackgroundColor(Ui.color(a,"white",0xffffffff));
+                LinearLayout copy = new LinearLayout(a);
+                copy.setOrientation(LinearLayout.VERTICAL);
+                copy.setPadding(0,0,Ui.dp(a,12),0);
+                copy.addView(Ui.label(a,"",15));
+                TextView detail = Ui.label(a,"",12);
+                detail.setTextColor(Ui.color(a,"textGray",0xff8a8a8a));
+                detail.setPadding(0,Ui.dp(a,5),0,0);
+                copy.addView(detail);
+                row.addView(copy,new LinearLayout.LayoutParams(0,-2,1));
+                Switch toggle = new Switch(a);
+                toggle.setMinWidth(Ui.dp(a,48)); toggle.setMinHeight(Ui.dp(a,48));
+                row.addView(toggle,new LinearLayout.LayoutParams(-2,-2));
+                RecyclerView.LayoutParams bounds = new RecyclerView.LayoutParams(-1,-2);
+                bounds.bottomMargin = Ui.dp(a,1); row.setLayoutParams(bounds);
+                row.setOnClickListener(view -> toggle.performClick());
+                return new MainActivity.SimpleHolder(row);
+            }
+            @Override public void onBindViewHolder(MainActivity.SimpleHolder holder, int position) {
+                AutoApps.App app = AutoApps.ALL[position];
+                LinearLayout row = (LinearLayout) holder.itemView;
+                LinearLayout copy = (LinearLayout) row.getChildAt(0);
+                ((TextView)copy.getChildAt(0)).setText(app.name);
+                ((TextView)copy.getChildAt(1)).setText(app.description+"\n"+app.packageName);
+                Switch toggle = (Switch) row.getChildAt(1);
+                toggle.setContentDescription(app.name+"采集开关");
+                toggle.setOnCheckedChangeListener(null);
+                toggle.setChecked(AutoApps.selected().contains(app.packageName));
+                toggle.setOnCheckedChangeListener((button,on) -> AutoApps.select(app.packageName,on));
+                row.setOnLongClickListener(view -> {
+                    List<JSONObject> tags = a.store().query("SELECT * FROM tags ORDER BY id");
+                    String[] labels = new String[tags.size()+1]; labels[0]="不自动添加标签";
+                    for(int i=0;i<tags.size();i++) labels[i+1]=tags.get(i).optString("name");
+                    new AlertDialog.Builder(a).setTitle(app.name+"来源标签").setItems(labels,(dialog,which) ->
+                        ReferenceApplication.prefs().edit().putString("source_tag_"+app.packageName,
+                            which==0?"":""+tags.get(which-1).optLong("id")).apply()).show();
+                    return true;
+                });
+            }
+        });
+    }
     private static void inbox(ManagerActivity a){
         boolean dismissed=a.getIntent().getBooleanExtra("show_dismissed",false);
         List<JSONObject> rows=dismissed?a.store().query("SELECT * FROM candidates WHERE state='DISMISSED' ORDER BY created DESC LIMIT 1000"):a.store().candidates();

@@ -15,6 +15,8 @@ import android.view.ViewGroup;
 import android.view.WindowInsets;
 import android.widget.*;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
 import com.wangc.bill.reference.ReferenceApplication;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -26,7 +28,12 @@ public final class Ui {
     public static int dp(Context c, float value) { return Math.round(value * c.getResources().getDisplayMetrics().density); }
     public static int id(Context c, String name) { return res(c,"id",name); }
     public static int res(Context c, String type, String name) { if (name == null || !name.matches("[A-Za-z_][A-Za-z0-9_]*")) return 0; int id=c.getResources().getIdentifier(name,type,c.getPackageName());return id!=0?id:c.getResources().getIdentifier(name,type,"com.wangc.bill"); }
-    public static View layout(Context c, String name) { int id=res(c,"layout",name);if(id==0)throw new IllegalArgumentException("界面资源不存在："+name);return LayoutInflater.from(c).inflate(id,null,false); }
+    public static View layout(Context c, String name) { return layout(c,name,null); }
+    /** Preserve the XML root dimensions and margins when a list owns the view. */
+    public static View layout(Context c,String name,ViewGroup parent) {
+        int id=res(c,"layout",name);if(id==0)throw new IllegalArgumentException("界面资源不存在："+name);
+        return LayoutInflater.from(c).inflate(id,parent,false);
+    }
     @SuppressWarnings("unchecked") public static <T extends View> T view(View root,String name) { int id=id(root.getContext(),name);return id==0?null:(T)root.findViewById(id); }
     public static void text(View root,String name,CharSequence value) { View v=view(root,name);if(v instanceof TextView t)t.setText(value); }
     public static void image(View root,String name,String resource) { View v=view(root,name);if(v instanceof ImageView i){int id=res(root.getContext(),"mipmap",resource);if(id==0)id=res(root.getContext(),"drawable",resource);if(id!=0)i.setImageResource(id);} }
@@ -39,11 +46,28 @@ public final class Ui {
             if(Build.VERSION.SDK_INT>=30){android.graphics.Insets i=insets.getInsets(WindowInsets.Type.systemBars());v.setPadding(left+i.left,top+i.top,right+i.right,bottom+i.bottom);return WindowInsets.CONSUMED;}
             v.setPadding(left+insets.getSystemWindowInsetLeft(),top+insets.getSystemWindowInsetTop(),right+insets.getSystemWindowInsetRight(),bottom+insets.getSystemWindowInsetBottom());return insets.consumeSystemWindowInsets();
         });
-        activity.setContentView(root);root.requestApplyInsets();
+        activity.setContentView(root);
+        // Every local page uses a light surface, including recovered layouts whose
+        // activity theme formerly left white status icons on a pale background.
+        WindowInsetsControllerCompat bars=WindowCompat.getInsetsController(activity.getWindow(),root);
+        bars.setAppearanceLightStatusBars(true);bars.setAppearanceLightNavigationBars(true);
+        root.requestApplyInsets();
     }
     public static LinearLayout column(Context context) { LinearLayout c=new LinearLayout(context);c.setOrientation(LinearLayout.VERTICAL);c.setBackgroundColor(color(context,"backgroundLight",0xfff4f4f4));return c; }
     public static int color(Context c,String name,int fallback) { int r=res(c,"color",name);return r==0?fallback:c.getColor(r); }
     public static TextView label(Context c,String text,int size) { TextView t=new TextView(c);t.setText(text);t.setTextSize(size);t.setTextColor(color(c,"black",Color.BLACK));return t; }
+    /** Styling only: callers retain input types, listeners and parent layout parameters. */
+    public static void formInput(EditText input) {
+        Context context=input.getContext();
+        input.setTextSize(16);input.setTextColor(color(context,"reference_text_primary",0xff202a27));
+        input.setHintTextColor(color(context,"reference_text_secondary",0xff5d6a65));
+        input.setMinHeight(dp(context,48));input.setPadding(dp(context,16),dp(context,12),dp(context,16),dp(context,12));
+        input.setBackgroundTintList(null);input.setBackgroundResource(res(context,"drawable","reference_form_input"));
+    }
+    public static TextView formLabel(Context context,String text) {
+        TextView label=label(context,text,13);label.setTextColor(color(context,"reference_text_secondary",0xff5d6a65));
+        label.setPadding(dp(context,16),dp(context,14),dp(context,16),dp(context,6));return label;
+    }
     public static GradientDrawable rounded(int color,int radius,Context c) { GradientDrawable d=new GradientDrawable();d.setColor(color);d.setCornerRadius(dp(c,radius));return d; }
     public static LinearLayout row(Context c,String title,String detail,Runnable action) {
         LinearLayout r=new LinearLayout(c);r.setOrientation(LinearLayout.VERTICAL);r.setPadding(dp(c,18),dp(c,14),dp(c,18),dp(c,14));r.setBackgroundColor(color(c,"white",Color.WHITE));

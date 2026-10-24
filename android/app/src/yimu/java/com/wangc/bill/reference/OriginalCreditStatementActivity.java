@@ -31,7 +31,7 @@ public final class OriginalCreditStatementActivity extends Activity implements O
     private final class Details extends RecyclerView.Adapter<Holder>{
         private final List<OriginalCreditBillInfo> rows;Details(List<OriginalCreditBillInfo> rows){this.rows=rows;}
         @Override public int getItemCount(){return rows.size();}
-        @Override public Holder onCreateViewHolder(ViewGroup parent,int type){return new Holder(Ui.layout(parent.getContext(),"item_credit_bill_info"));}
+        @Override public Holder onCreateViewHolder(ViewGroup parent,int type){return new Holder(Ui.layout(parent.getContext(),"item_credit_bill_info",parent));}
         @Override public void onBindViewHolder(Holder holder,int index){OriginalCreditBillInfo row=rows.get(index);View view=holder.itemView;Ui.text(view,"category",row.getTitle());Ui.text(view,"remark",row.getRemark());Ui.show(view,"remark",row.getRemark()!=null&&!row.getRemark().isEmpty());Ui.text(view,"cost",OriginalCreditFormatting.amount(row.getNumber()));Ui.text(view,"date",OriginalInstalmentSchedule.format(row.getDate(),"MM月dd日"));Ui.image(view,"icon",row.getIcon());Ui.hide(view,"refund","reimbursement");view.setOnClickListener(row.getBillId()>0&&row.getNumber()<0?v->com.wangc.bill.reference.ui.InstalmentScreens.openCreditItem(v.getContext(),row.getBillId(),owner,bookOwner):null);}
     }
     private static final class Holder extends RecyclerView.ViewHolder{Holder(View view){super(view);}}

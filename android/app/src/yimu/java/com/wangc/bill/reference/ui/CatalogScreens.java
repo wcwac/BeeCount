@@ -24,7 +24,7 @@ final class CatalogScreens {
         list.setLayoutManager(new LinearLayoutManager(list.getContext()));
         list.setAdapter(new RecyclerView.Adapter<RecordAdapter.Holder>(){
             public int getItemCount(){return rows.size();}
-            public RecordAdapter.Holder onCreateViewHolder(ViewGroup parent,int type){return new RecordAdapter.Holder(Ui.layout(parent.getContext(),layout));}
+            public RecordAdapter.Holder onCreateViewHolder(ViewGroup parent,int type){return new RecordAdapter.Holder(Ui.layout(parent.getContext(),layout,parent));}
             public void onBindViewHolder(RecordAdapter.Holder h,int p){binder.bind(h.itemView,rows.get(p));}
         });
     }
@@ -58,6 +58,16 @@ final class CatalogScreens {
         opening.setInputType(android.text.InputType.TYPE_CLASS_NUMBER|android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL|android.text.InputType.TYPE_NUMBER_FLAG_SIGNED);
         opening.setText(Money.text(old==null?0:original?a.store().accountBalance(a.entity):old.optLong("opening"),currency));
         Ui.hide(r,"night_icon_layout","auto_income_layout","account_book_layout","switch_add_total","remark","card_code","remark_title","card_code_title","type_simple_name","type_simple_title");
+        // These fields live inside fixed-height rows. Hiding only the EditText
+        // leaves three empty 50dp rows and the obsolete card-number help text.
+        for(String field:new String[]{"type_simple_name","remark","card_code"}){
+            View input=Ui.view(r,field);if(input!=null&&input.getParent() instanceof View row)row.setVisibility(View.GONE);
+        }
+        View card=Ui.view(r,"card_code");
+        if(card!=null&&card.getParent() instanceof ViewGroup row&&row.getParent() instanceof ViewGroup fields)
+            for(int i=0;i<fields.getChildCount();i++){View child=fields.getChildAt(i);if(child instanceof TextView&&!(child instanceof EditText))child.setVisibility(View.GONE);}
+        View total=Ui.view(r,"switch_add_total");
+        if(total!=null&&total.getParent() instanceof ViewGroup row&&row.getParent() instanceof ViewGroup group)group.setVisibility(View.GONE);
         Ui.text(r,"currency",currency);Ui.show(r,"currency_layout",true);Ui.text(r,"content_title","账户名称");
         ViewGroup typeRow=Ui.view(r,"group_name_layout");
         for(int i=0;i<typeRow.getChildCount();i++)if(typeRow.getChildAt(i) instanceof TextView text&&text.getId()!=Ui.id(a,"group_name"))text.setText("账户类型");
@@ -111,7 +121,7 @@ final class CatalogScreens {
         RecyclerView list=Ui.view(root,"credit_bill_list");list.setLayoutManager(new LinearLayoutManager(a));
         list.setAdapter(new RecyclerView.Adapter<RecordAdapter.Holder>(){
             @Override public int getItemCount(){return bills.size();}
-            @Override public RecordAdapter.Holder onCreateViewHolder(ViewGroup parent,int type){return new RecordAdapter.Holder(Ui.layout(parent.getContext(),"item_credit_bill"));}
+            @Override public RecordAdapter.Holder onCreateViewHolder(ViewGroup parent,int type){return new RecordAdapter.Holder(Ui.layout(parent.getContext(),"item_credit_bill",parent));}
             @Override public void onBindViewHolder(RecordAdapter.Holder holder,int position){
                 OriginalCreditBill bill=bills.get(position);View row=holder.itemView;
                 Ui.text(row,"title",bill.getTitle());Ui.show(row,"current_tag",bill.isCurrent());
@@ -167,6 +177,11 @@ final class CatalogScreens {
         new AlertDialog.Builder(a).setTitle("选择上级分类").setItems(labels,(d,w)->newCategory(a,CategoryRepository.CHILD,income?9:parents.get(w).optInt("semantic_id"),income?parents.get(w).optInt("semantic_id"):0)).show();
     }
     static void category(ManagerActivity a){JSONObject old=a.entity>0?a.store().categoryRepository().byRowId(a.entity):null;if(a.entity>0&&old==null)throw new IllegalArgumentException("分类不存在");View r=a.original(a.entity==0?"新增分类":"编辑分类","activity_add_category");EditText name=Ui.view(r,"name");name.setText(old==null?"":old.optString("name"));String kind=old==null?a.getIntent().getStringExtra("kind"):old.optString("kind");if(kind==null)kind="expense";final String selectedKind=kind;String level=old==null?a.getIntent().getStringExtra("category_level"):old.optString("level");final String selectedLevel=level==null?(kind.equals("income")?CategoryRepository.CHILD:CategoryRepository.PARENT):level;final int parentId=old==null?a.getIntent().getIntExtra("parent_semantic_id",kind.equals("income")?9:0):old.optInt("parent_semantic_id");final int parentChildId=old==null?a.getIntent().getIntExtra("parent_child_semantic_id",0):old.optInt("parent_child_semantic_id");String[] icon={old==null?(kind.equals("income")?"ic_income_other":"ic_parent_other"):old.optString("icon")};Ui.image(r,"icon",icon[0]);Ui.hide(r,"menu_list","icon_list","night_icon_layout");
+        // The icon is chosen from the working row above. The recovered browser
+        // below has no bound adapter; collapse its entire tabbed card.
+        View iconList=Ui.view(r,"icon_list");
+        if(iconList!=null&&iconList.getParent() instanceof ViewGroup pane&&pane.getParent() instanceof ViewGroup card)card.setVisibility(View.GONE);
+        name.setBackgroundColor(android.graphics.Color.TRANSPARENT);
         CompoundButton hide=Ui.view(r,"switch_hide_account_book");hide.setChecked(old!=null&&a.store().categoryRepository().isHiddenInBook(old.optLong("id"),a.bookId()));
         ViewGroup hideLayout=Ui.view(r,"hide_layout");if(hideLayout.getChildAt(0) instanceof ViewGroup labels&&labels.getChildAt(0) instanceof TextView label)label.setText("在当前账本隐藏");Ui.text(r,"hide_tip","隐藏后不出现在当前账本的分类选择列表");
         Ui.click(r,"choice_icon",()->new AlertDialog.Builder(a).setTitle("选择图标").setItems(new String[]{"餐饮","购物","交通","住房","医疗","教育","礼物","工资","其他"},(d,w)->{icon[0]=new String[]{"ic_parent_restaurant","ic_parent_shopping","ic_parent_traffic","ic_parent_home","ic_parent_medical","ic_parent_education","ic_parent_gift","ic_income_wages","ic_parent_other"}[w];Ui.image(r,"icon",icon[0]);}).show());

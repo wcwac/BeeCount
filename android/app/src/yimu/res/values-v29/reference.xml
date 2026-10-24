@@ -1,0 +1,14 @@
+<resources>
+    <!-- Compatibility guard for a fixed light UI. The reported light-mode
+         artwork corruption is fixed in the nine-patch resource pipeline. -->
+    <style name="ReferenceTheme" parent="BaseReferenceTheme">
+        <item name="android:windowLightNavigationBar">true</item>
+        <item name="android:forceDarkAllowed">false</item>
+    </style>
+    <style name="ReferenceFrameworkDialogTheme" parent="BaseReferenceFrameworkDialogTheme">
+        <item name="android:forceDarkAllowed">false</item>
+    </style>
+    <style name="ReferenceAppCompatDialogTheme" parent="BaseReferenceAppCompatDialogTheme">
+        <item name="android:forceDarkAllowed">false</item>
+    </style>
+</resources>
