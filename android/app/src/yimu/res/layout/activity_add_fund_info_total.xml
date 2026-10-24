@@ -62,7 +62,7 @@
                     <Switch android:id="@+id/switch_add_bill" android:layout_width="wrap_content" android:layout_height="wrap_content" android:checked="false" android:layout_centerVertical="true" android:layout_alignParentEnd="true" />
                 </RelativeLayout>
             </LinearLayout>
-            <TextView android:textSize="12sp" android:textColor="@color/grey" android:id="@+id/add_bill_tip" android:visibility="gone" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="提示：\10打开“生成收益账单”后，只需编辑当前基金最后一条自动生成的收益账单，后续账单的分类、账本、标签、是否计入收支和预算，将自动沿用" android:lineSpacingExtra="5dp" android:layout_marginStart="15dp" android:layout_marginEnd="15dp" />
+            <TextView android:textSize="12sp" android:textColor="@color/grey" android:id="@+id/add_bill_tip" android:visibility="gone" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="提示：\n打开“生成收益账单”后，只需编辑当前基金最后一条自动生成的收益账单，后续账单的分类、账本、标签、是否计入收支和预算，将自动沿用" android:lineSpacingExtra="5dp" android:layout_marginStart="15dp" android:layout_marginEnd="15dp" />
         </LinearLayout>
     </ScrollView>
 </LinearLayout>

@@ -15,6 +15,6 @@
             <ImageView android:id="@+id/export_path_more" android:layout_width="18dp" android:layout_height="18dp" android:src="@mipmap/ic_more" android:tint="@color/grey" android:layout_centerVertical="true" android:layout_marginEnd="10dp" android:layout_alignParentEnd="true" />
         </RelativeLayout>
     </LinearLayout>
-    <TextView android:textSize="12sp" android:textColor="@color/grey" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="提示：\101.日期，收支类型，金额列必填\102.收支类型仅支持“支出”和“收入”\103.复制金额和日期数据后，建议统一格式化一下金额和日期列数据\104.多个标签请用空格隔开\105.建议使用Office编辑文档" android:lineSpacingExtra="5dp" android:layout_marginStart="15dp" android:layout_marginEnd="15dp" />
+    <TextView android:textSize="12sp" android:textColor="@color/grey" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="提示：\n1.日期，收支类型，金额列必填\n2.收支类型仅支持“支出”和“收入”\n3.复制金额和日期数据后，建议统一格式化一下金额和日期列数据\n4.多个标签请用空格隔开\n5.建议使用Office编辑文档" android:lineSpacingExtra="5dp" android:layout_marginStart="15dp" android:layout_marginEnd="15dp" />
     <TextView android:textSize="15sp" android:textColor="@color/textColorLight" android:gravity="center" android:id="@+id/start_export" android:background="@drawable/selectable_item_primary_background" android:layout_width="match_parent" android:layout_height="45dp" android:layout_marginTop="50dp" android:text="生成模板" android:layout_marginStart="20dp" android:layout_marginEnd="20dp" />
 </LinearLayout>

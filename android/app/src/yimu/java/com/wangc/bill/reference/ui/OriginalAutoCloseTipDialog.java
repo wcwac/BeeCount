@@ -50,7 +50,7 @@ public final class OriginalAutoCloseTipDialog extends DialogFragment {
     @Override public void onResume(){
         Dialog dialog=requireDialog();Window window=OriginalAutoTipDialog.window(this);
         WindowManager.LayoutParams attributes=window.getAttributes();
-        attributes.width=OriginalAutoTipDialog.screenWidth(requireContext())-Ui.dp(requireContext(),40);
+        attributes.width=OriginalAutoTipDialog.screenWidth(requireContext())-OriginalDimensions.dp(40f);
         attributes.height=ViewGroup.LayoutParams.WRAP_CONTENT;window.setAttributes(attributes);
         dialog.setCancelable(true);dialog.setCanceledOnTouchOutside(true);
         span(OriginalAutoTipDialog.text(requireView(),"tip_content"),16,24,true);

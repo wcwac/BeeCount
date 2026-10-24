@@ -2,7 +2,6 @@ package com.wangc.bill.reference.ui;
 
 import android.annotation.SuppressLint;
 import android.app.Dialog;
-import android.content.ComponentName;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
@@ -45,11 +44,20 @@ public final class OriginalOemPermissionGuidance {
             Supplier<String> displayId, Launcher launcher) {
         Kind kind = select(manufacturer, sdk, displayId);
         if (kind == Kind.NONE) return null;
+        return showExplicit(host, kind, manufacturer, launcher);
+    }
+
+    /** Explicit dialog callsites keep their own SDK/ROM gates (AutoWork is not AutoStart). */
+    static GuidanceDialog showExplicit(FragmentActivity host, Kind kind, String manufacturer, Launcher launcher) {
+        if (kind == Kind.NONE) throw new IllegalArgumentException("No OEM dialog selected");
         GuidanceDialog dialog = new GuidanceDialog(); Bundle args = new Bundle();
         args.putString("kind", kind.name()); args.putString("manufacturer", manufacturer);
         dialog.setArguments(args); dialog.launcher = launcher;
         dialog.show(host.getSupportFragmentManager(), "auto_tip"); return dialog;
     }
+
+    // This wrapper is outside the immutable, hash-reviewed property lookup block.
+    static String sourceDisplayId() { return displayId(); }
 
     /** Fixed, read-only platform ROM query from floatPermission.c.c/b.i; no arbitrary inputs. */
     private static String displayId() {
@@ -115,29 +123,15 @@ public final class OriginalOemPermissionGuidance {
         }
         @Override public void onResume() {
             Dialog dialog = requireDialog(); WindowManager.LayoutParams size = dialog.getWindow().getAttributes();
-            size.width = OriginalAutoTipDialog.screenWidth(requireContext()) - Ui.dp(requireContext(), 40);
+            size.width = OriginalAutoTipDialog.screenWidth(requireContext()) - OriginalDimensions.dp(40f);
             size.height = ViewGroup.LayoutParams.WRAP_CONTENT; dialog.getWindow().setAttributes(size);
             dialog.setCancelable(true); dialog.setCanceledOnTouchOutside(true); super.onResume();
         }
     }
 
     private static void openWhitelist(FragmentActivity host, String manufacturer, Launcher launcher) {
-        // t1.a's other manufacturers are unreachable through this AutoActivity branch.
-        String[] entries = "HUAWEI".equalsIgnoreCase(manufacturer) ? new String[]{
-                "com.huawei.systemmanager/.startupmgr.ui.StartupNormalAppListActivity",
-                "com.huawei.systemmanager/.appcontrol.activity.StartupAppControlActivity",
-                "com.huawei.systemmanager/.optimize.process.ProtectActivity",
-                "com.huawei.systemmanager/.optimize.bootstart.BootStartActivity", "com.huawei.systemmanager"}
-                : new String[]{"com.hihonor.systemmanager/com.huawei.systemmanager.startupmgr.ui.StartupNormalAppListActivity", "com.hihonor.systemmanager"};
-        for (String entry : entries) {
-            try {
-                Intent intent;
-                if (entry.contains("/")) {
-                    intent = new Intent().putExtra("packageName", host.getPackageName()).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                            .setComponent(ComponentName.unflattenFromString(entry));
-                } else intent = launcher.packageIntent(host, entry);
-                launcher.launch(host, intent); break;
-            } catch (Exception ignored) { /* Source tries the next entry; no grant or generic fallback is invented. */ }
-        }
+        // AutoStart still selects only Huawei/Honor here; the shared t1 source table
+        // preserves their original candidates and is also needed by AutoWork.
+        OriginalOemSettingsLauncher.open(host, manufacturer, launcher);
     }
 }

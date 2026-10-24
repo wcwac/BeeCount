@@ -18,6 +18,10 @@ public final class OriginalSettings {
     public static final boolean DEFAULT_NOTIFY_SHOW = true;
     public static final String AUTO_BACKGROUND_TIP_SHOWN = "original_auto_background_tip_shown";
 
+    // Host storage key for the source AutoSetting.oppoFloat field; primitive default is false.
+    public static final String OPPO_FLOAT = "original_oppo_float";
+    public static final boolean DEFAULT_OPPO_FLOAT = false;
+
     private OriginalSettings() {}
 
     public static boolean remarkMain(SharedPreferences preferences) {

@@ -29,7 +29,7 @@
                     <TextView android:textSize="13sp" android:textColor="@color/black" android:textColorHint="@color/grey" android:gravity="center" android:id="@+id/do_time" android:layout_width="wrap_content" android:layout_height="50dp" android:text="选择日期" android:singleLine="true" android:layout_toStartOf="@+id/do_time_more" />
                 </RelativeLayout>
             </LinearLayout>
-            <TextView android:textSize="12sp" android:textColor="@color/grey" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="提示：\10编辑当前账户最后一条自动生成的收益账单，后续账单的分类、账本、标签、是否计入收支和预算，将自动沿用\10点击「余额宝」，在页面左上角查看绑定的货币型基金\10点击「零钱通」，在「七日年化收益率」下方查看绑定的货币型基金" android:lineSpacingExtra="5dp" android:layout_marginStart="15dp" android:layout_marginEnd="15dp" />
+            <TextView android:textSize="12sp" android:textColor="@color/grey" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="提示：\n编辑当前账户最后一条自动生成的收益账单，后续账单的分类、账本、标签、是否计入收支和预算，将自动沿用\n点击「余额宝」，在页面左上角查看绑定的货币型基金\n点击「零钱通」，在「七日年化收益率」下方查看绑定的货币型基金" android:lineSpacingExtra="5dp" android:layout_marginStart="15dp" android:layout_marginEnd="15dp" />
         </LinearLayout>
     </ScrollView>
 </LinearLayout>

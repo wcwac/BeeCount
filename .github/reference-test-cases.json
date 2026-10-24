@@ -606,6 +606,20 @@
     "com.wangc.bill.reference.capture.OriginalMasterLifecycleDeviceTest.runningProbeCatchesExceptionsAcrossLookupAndIterationButPropagatesErrors",
     "com.wangc.bill.reference.capture.OriginalMasterLifecycleDeviceTest.runningProbeUsesTheExactClassAndMaximumCountRatherThanConnectionOrPermission",
     "com.wangc.bill.reference.capture.OriginalMasterLifecycleDeviceTest.theExistingHostEnableFalseOnlyPausesFilteringAndLeavesTheActualServiceAuthorized",
+    "com.wangc.bill.reference.ui.OriginalAutoWorkDeviceTest.aConditionalRowStartsRealApplicationSettingsAndReturnRetainsTheSamePageWithoutGrantingAnything",
+    "com.wangc.bill.reference.ui.OriginalAutoWorkDeviceTest.actualSwitchTouchesPersistBeforeTheMasterSelectedEffectForAllFourCellsAndKeepTinyGeometry",
+    "com.wangc.bill.reference.ui.OriginalAutoWorkDeviceTest.deniedRealSawPersistsTheOptionWithoutInventingAWindowOrPermissionDialog",
+    "com.wangc.bill.reference.ui.OriginalAutoWorkDeviceTest.exactLockImageSelectionLoadsARealBitmapAndSurvivesDialogRecreationWithoutClaimingGlideParity",
+    "com.wangc.bill.reference.ui.OriginalAutoWorkDeviceTest.freshAttachedPagesPreserveCaseSensitiveOemApiAndFlymePrioritySelectors",
+    "com.wangc.bill.reference.ui.OriginalAutoWorkDeviceTest.paymentProtectionShowsAllFiveLocalGuideRowsAndClosingItRetainsTheWorkPage",
+    "com.wangc.bill.reference.ui.OriginalAutoWorkDeviceTest.realRowTouchesEmitExactConditionalIntentsAndOnlyTheSourceOldAutostartFallback",
+    "com.wangc.bill.reference.ui.OriginalAutoWorkDeviceTest.realServiceCreateAndDestroyUseOnlyTheStoredOptionIncludingTheFalsePreferenceRetainedWindowQuirk",
+    "com.wangc.bill.reference.ui.OriginalAutoWorkDeviceTest.samsungGuidanceUsesTheActualCancelableWindowAndOriginalCompiledLineFeedWithoutGrantingAnything",
+    "com.wangc.bill.reference.ui.OriginalAutoWorkDeviceTest.syntheticCanvasRoundedCornersKeepDimensionsCenterAndEdgesWhileClearingCornersAndRejectingNonpositiveRadius",
+    "com.wangc.bill.reference.ui.OriginalAutoWorkDeviceTest.theActualAutoCloseGuideSpanNavigatesToWorkAndReturnsToTheStillShownParent",
+    "com.wangc.bill.reference.ui.OriginalAutoWorkDeviceTest.theActualNonFocusableTinyWindowCoexistsWithPaymentFixtureFallbackAndProducesAPendingCandidate",
+    "com.wangc.bill.reference.ui.OriginalAutoWorkDeviceTest.theDistinctCaptureBackgroundEntryShowsCancelableCommonGuidanceAndUnknownHidesItsRealRow",
+    "com.wangc.bill.reference.ui.OriginalAutoWorkDeviceTest.theRealNotWorkingRowOpensTheActualWorkPageAndBackKeepsTheCaptureControls",
     "com.wangc.bill.reference.ui.OriginalCapturePermissionControllerDeviceTest.aDisabledActualCapturePageSkipsTheRunningProbeAndPromptsButSynchronizesSawsWithItsListenerDetached",
     "com.wangc.bill.reference.ui.OriginalCapturePermissionControllerDeviceTest.aGrantedFirstStartStoresTheMarkerBeforeOemSelectionAndNeverRepeatsItOnTheNextStart",
     "com.wangc.bill.reference.ui.OriginalCapturePermissionControllerDeviceTest.aRunningActualCapturePageShowsSawsTipThenPersistsTheFirstStartMarkerAfterRealGrantAndRestart",
@@ -652,7 +666,9 @@
     "com.wangc.bill.reference.ui.OriginalPermissionGuidanceDeviceTest.autoTipRealClickableSpanOpensAllSixOriginalBrandRowsAndClosingTheSheetKeepsTheParent",
     "com.wangc.bill.reference.ui.OriginalPermissionGuidanceDeviceTest.autoTipUsesItsOriginalContentImageWidthAndCancelWithoutChangingSettings",
     "com.wangc.bill.reference.ui.OriginalPermissionGuidanceDeviceTest.topInfoOutcomeDismissalIsSynchronousBeforeTheCallerContinuesAndItsArgumentsSurviveRecreation",
-    "com.wangc.bill.reference.ui.OriginalPermissionGuidanceDeviceTest.topInfoRendersItsOriginalTopWindowAndRejectsBackAndOutsideCancellation"
+    "com.wangc.bill.reference.ui.OriginalPermissionGuidanceDeviceTest.topInfoRendersItsOriginalTopWindowAndRejectsBackAndOutsideCancellation",
+    "com.wangc.bill.reference.ui.OriginalResourceLiteralDeviceTest.allTwentySevenCompiledLiteralAttributesMatchTheOriginalRawAndTypedLineFeeds",
+    "com.wangc.bill.reference.ui.OriginalResourceLiteralDeviceTest.isolatedRealTextViewsAndEditTextHintsKeepNewlinesAndFollowingDigits"
   ],
   "screen_checkpoints": {
     "com.wangc.bill.reference.ScreenDeviceTest.primaryTabsInflateAndBindActualTemplates": [

@@ -13,6 +13,8 @@ import android.view.accessibility.AccessibilityNodeInfo;
 import android.view.accessibility.AccessibilityWindowInfo;
 import com.wangc.bill.reference.Json;
 import com.wangc.bill.reference.ReferenceApplication;
+import com.wangc.bill.reference.OriginalSettings;
+import com.wangc.bill.reference.ui.OriginalOppoCompatibilityWindow;
 import com.wangc.bill.reference.ui.CaptureOverlay;
 import com.wangc.bill.reference.ui.OverlayPermission;
 import java.lang.ref.WeakReference;
@@ -25,7 +27,12 @@ public final class ReferenceCaptureService extends AccessibilityService {
     private static volatile WeakReference<ReferenceCaptureService> created = new WeakReference<>(null);
     private static volatile WeakReference<ReferenceCaptureService> connected = new WeakReference<>(null);
     private final Handler main = new Handler(Looper.getMainLooper());
-    @Override public void onCreate() { super.onCreate(); created = new WeakReference<>(this); }
+    @Override public void onCreate() {
+        super.onCreate(); created = new WeakReference<>(this);
+        // Source checks only s.n here, independently of OEM/API and the autoBill master.
+        if (ReferenceApplication.prefs().getBoolean(OriginalSettings.OPPO_FLOAT, OriginalSettings.DEFAULT_OPPO_FLOAT))
+            OriginalOppoCompatibilityWindow.instance(ReferenceApplication.app()).show();
+    }
     @Override protected void onServiceConnected() { connected = new WeakReference<>(this); applySettings(); ReferenceDiagnostics.result("CONNECTED"); }
     public static ReferenceCaptureService current() { return connected.get(); }
     public static void requestOriginalMasterOff() {
@@ -139,6 +146,11 @@ public final class ReferenceCaptureService extends AccessibilityService {
     }
     @Override public void onInterrupt() { ReferenceDiagnostics.result("FEEDBACK_INTERRUPTED"); }
     @Override public boolean onUnbind(Intent intent) { disconnect(); return super.onUnbind(intent); }
-    @Override public void onDestroy() { if (created.get() == this) created.clear(); disconnect(); super.onDestroy(); }
+    @Override public void onDestroy() {
+        if (created.get() == this) created.clear(); disconnect(); super.onDestroy();
+        // Preserve the source quirk: a stored false option skips removal even if a prior toggle showed the window.
+        if (ReferenceApplication.prefs().getBoolean(OriginalSettings.OPPO_FLOAT, OriginalSettings.DEFAULT_OPPO_FLOAT))
+            OriginalOppoCompatibilityWindow.instance(ReferenceApplication.app()).remove();
+    }
     private void disconnect() { if (current() == this) { connected.clear(); CaptureOverlay.close(); ReferenceDiagnostics.result("DISCONNECTED"); } }
 }

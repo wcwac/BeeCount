@@ -56,7 +56,7 @@ public final class OriginalPermissionTipDialog extends DialogFragment {
         Dialog dialog = requireDialog(); Window window = dialog.getWindow();
         if (window == null) throw new IllegalStateException("原版权限弹窗窗口缺失");
         WindowManager.LayoutParams attributes = window.getAttributes();
-        attributes.width = getResources().getDisplayMetrics().widthPixels - Ui.dp(requireContext(), 60);
+        attributes.width = OriginalAutoTipDialog.screenWidth(requireContext()) - OriginalDimensions.dp(60f);
         attributes.height = ViewGroup.LayoutParams.WRAP_CONTENT;
         window.setAttributes(attributes);
         dialog.setCancelable(false); dialog.setCanceledOnTouchOutside(false);

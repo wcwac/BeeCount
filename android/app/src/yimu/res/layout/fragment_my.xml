@@ -8,7 +8,7 @@
                     <ImageView android:id="@+id/my_background" android:layout_width="match_parent" android:layout_height="match_parent" android:scaleType="fitXY" />
                     <LinearLayout android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_centerInParent="true">
                         <TextView android:textSize="16dp" android:textStyle="bold" android:layout_gravity="center_horizontal" android:id="@+id/nick_name" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="30dp" android:text="一木川川" android:singleLine="true" android:layout_marginStart="20dp" android:layout_marginEnd="20dp" />
-                        <TextView android:textSize="12dp" android:gravity="center" android:layout_gravity="center_horizontal" android:id="@+id/record_day_num" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:text="坚持记账的第21天\10已记录1875条账单" android:lineSpacingExtra="3dp" android:layout_marginStart="20dp" android:layout_marginEnd="20dp" android:letterSpacing="0.2" />
+                        <TextView android:textSize="12dp" android:gravity="center" android:layout_gravity="center_horizontal" android:id="@+id/record_day_num" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:text="坚持记账的第21天\n已记录1875条账单" android:lineSpacingExtra="3dp" android:layout_marginStart="20dp" android:layout_marginEnd="20dp" android:letterSpacing="0.2" />
                     </LinearLayout>
                 </RelativeLayout>
             </androidx.constraintlayout.widget.ConstraintLayout>

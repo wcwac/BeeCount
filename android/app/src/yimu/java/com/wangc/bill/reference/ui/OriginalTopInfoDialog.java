@@ -25,7 +25,7 @@ public final class OriginalTopInfoDialog extends DialogFragment {
     @Override public void onResume(){
         Dialog dialog=requireDialog();Window window=OriginalAutoTipDialog.window(this);
         WindowManager.LayoutParams attributes=window.getAttributes();
-        attributes.width=OriginalAutoTipDialog.screenWidth(requireContext())-Ui.dp(requireContext(),20);
+        attributes.width=OriginalAutoTipDialog.screenWidth(requireContext())-OriginalDimensions.dp(20f);
         attributes.height=ViewGroup.LayoutParams.WRAP_CONTENT;attributes.gravity=Gravity.TOP;window.setAttributes(attributes);
         dialog.setCancelable(false);dialog.setCanceledOnTouchOutside(false);super.onResume();
     }

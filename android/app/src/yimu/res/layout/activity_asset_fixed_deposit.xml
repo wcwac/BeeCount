@@ -51,7 +51,7 @@
                     <TextView android:textSize="13sp" android:textColor="@color/black" android:textColorHint="@color/grey" android:gravity="center" android:id="@+id/projected_revenue" android:layout_width="wrap_content" android:layout_height="50dp" android:text="0" android:singleLine="true" android:layout_marginEnd="10dp" android:layout_alignParentEnd="true" />
                 </RelativeLayout>
             </LinearLayout>
-            <TextView android:textSize="12sp" android:textColor="@color/grey" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="提示：\10定存不会影响当前账户金额，到期后将自动生成一笔收益账单\10如要计入总资产，可手动将定存金额加入账户余额中" android:lineSpacingExtra="5dp" android:layout_marginStart="15dp" android:layout_marginEnd="15dp" />
+            <TextView android:textSize="12sp" android:textColor="@color/grey" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="提示：\n定存不会影响当前账户金额，到期后将自动生成一笔收益账单\n如要计入总资产，可手动将定存金额加入账户余额中" android:lineSpacingExtra="5dp" android:layout_marginStart="15dp" android:layout_marginEnd="15dp" />
         </LinearLayout>
     </ScrollView>
 </LinearLayout>

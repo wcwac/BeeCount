@@ -60,7 +60,7 @@
                     <ImageView android:id="@+id/ic_book_more" android:layout_width="18dp" android:layout_height="18dp" android:src="@mipmap/ic_more" android:tint="@color/grey" android:layout_centerVertical="true" android:layout_marginEnd="10dp" android:layout_alignParentEnd="true" />
                 </RelativeLayout>
             </LinearLayout>
-            <TextView android:textSize="12sp" android:textColor="@color/grey" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="提示：\10盈亏偏差：部分平台会将分红或手续费计入盈亏，设置该数值使累计盈亏与三方平台相同\10初次创建理财账户不会生成交易记录，如要生成，可将持仓份额设为0，再添加买入卖出记录" android:lineSpacingExtra="5dp" android:layout_marginStart="15dp" android:layout_marginEnd="15dp" />
+            <TextView android:textSize="12sp" android:textColor="@color/grey" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="提示：\n盈亏偏差：部分平台会将分红或手续费计入盈亏，设置该数值使累计盈亏与三方平台相同\n初次创建理财账户不会生成交易记录，如要生成，可将持仓份额设为0，再添加买入卖出记录" android:lineSpacingExtra="5dp" android:layout_marginStart="15dp" android:layout_marginEnd="15dp" />
         </LinearLayout>
     </ScrollView>
 </LinearLayout>

@@ -14,6 +14,7 @@ public final class ManagerActivity extends AppCompatActivity {
     public String page;public long entity;public View template;public LinearLayout rows;
     private long pendingBook;
     private OriginalCapturePermissionController capturePermissions;
+    private OriginalAutoWorkController autoWorkController;
     OriginalCapturePermissionController capturePermissions(){if(capturePermissions==null)capturePermissions=new OriginalCapturePermissionController(this);return capturePermissions;}
     private final OriginalFinancialEffects.Listener financialListener=event->{
         // Live result lists follow MAIN events. Replacing an edit form here would
@@ -24,8 +25,14 @@ public final class ManagerActivity extends AppCompatActivity {
     public ReferenceStore store(){return ReferenceApplication.store();}
     public long bookId(){long id=ReferenceApplication.prefs().getLong("current_book",1);return store().book(id)!=null?id:store().books().get(0).optLong("id");}
     public String currency(){return store().book(bookId()).optString("currency");}
-    @Override protected void onCreate(Bundle state){super.onCreate(state);page=getIntent().getStringExtra("page");if(page==null)page="settings";entity=getIntent().getLongExtra("id",0);pendingBook=state==null?bookId():state.getLong("pendingBook",bookId());}
-    @Override protected void onResume(){super.onResume();if(!"capture".equals(page))reload();}
+    @Override protected void onCreate(Bundle state){super.onCreate(state);page=getIntent().getStringExtra("page");if(page==null)page="settings";entity=getIntent().getLongExtra("id",0);pendingBook=state==null?bookId():state.getLong("pendingBook",bookId());
+        if("auto_work".equals(page)){
+            // Explicit host bridge for the original protected onCreate; known X/bind runs once per instance.
+            setRequestedOrientation(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+            autoWorkController=OriginalAutoWorkScreen.render(this);
+        }
+    }
+    @Override protected void onResume(){super.onResume();if(!"capture".equals(page)&&!"auto_work".equals(page))reload();}
     @Override protected void onStart(){super.onStart();OriginalNotificationPermission.onHostStarted(this);OriginalFinancialEffects.subscribe(store(),financialListener);
         if("capture".equals(page)){
             // Host initialization bridge for the original native onCreate. Keep
@@ -38,9 +45,15 @@ public final class ManagerActivity extends AppCompatActivity {
         }
     }
     @Override protected void onStop(){OriginalFinancialEffects.unsubscribe(store(),financialListener);super.onStop();}
+    @Override protected void onDestroy(){if(autoWorkController!=null)autoWorkController.close();super.onDestroy();}
     @Override protected void onSaveInstanceState(Bundle out){super.onSaveInstanceState(out);out.putLong("pendingBook",pendingBook);}
     public void reload(){if(isFinishing())return;try{
         switch(page){
+            case "auto_work"->{if(autoWorkController==null)autoWorkController=OriginalAutoWorkScreen.render(this);}
+            case "original_user_guide"->{
+                // The original URL payload is retained by the caller; this host never loads online content.
+                body("使用指南",null,null);rows.addView(Ui.row(this,"当前无法加载在线说明","请返回上一页查看后台运行设置。",null));
+            }
             case "capture", "capture_settings", "apps", "diagnostics", "inbox", "rules"->CaptureScreens.render(this);
             case "books", "edit_book", "accounts", "new_account", "edit_account", "account_detail", "credit_statements", "categories", "edit_category", "tags", "edit_tag", "budget"->CatalogScreens.render(this);
             case "goals", "edit_goal", "plans", "edit_plan", "lending", "reimbursement", "investments", "loans"->FinancialScreens.render(this);
