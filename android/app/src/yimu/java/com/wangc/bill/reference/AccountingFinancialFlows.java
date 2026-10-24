@@ -240,6 +240,7 @@ public final class AccountingFinancialFlows {
 
     private JSONObject markReimbursementInScope(long billRow,boolean marked) {
         OriginalBillRecord raw=bill(billRow);JSONObject host=store.transaction(billRow);
+        if(marked)AccountingInstalments.requireNoSchedule(store,billRow);
         if(raw.parentCategoryId==9)throw new IllegalArgumentException("收入账单不能标记为报销支出");
         OriginalRefundRepository.Snapshot refund=new OriginalRefundRepository(store).firstByParent(OWNER,raw.billId);
         if(marked&&refund!=null&&refund.data.refundNumber!=0)throw new IllegalArgumentException("已有退款的账单请先处理退款再报销");

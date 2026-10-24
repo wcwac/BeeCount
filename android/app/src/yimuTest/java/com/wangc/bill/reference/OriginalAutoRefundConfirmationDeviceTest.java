@@ -80,12 +80,14 @@ public final class OriginalAutoRefundConfirmationDeviceTest {
         assertEquals(difference.billId, info.relatedBillId); assertEquals(100.0d, info.restoreCostNum, 0);
         store.restore(store.backup()); assertEquals(2, store.scalar("SELECT COUNT(*) n FROM transactions"));
     }
-    @Test public void differenceRawAssetZeroCanAffectAnActualSemanticZeroAssetWithoutUsingReceiverFk() {
+    @Test public void differenceRawAssetZeroDoesNotCreditAnUnselectedSemanticZeroAsset() {
         AssetRepository.Definition zero = new AssetRepository.Definition("合成语义零账户", 1, null); zero.assetNumber = 50;
         long zeroRow = store.assetRepository().insertRecovered(0, 0, 1, 0, zero);
         long account = fund(100), row = expense(account); OriginalBillRecord parent = bills.byLocalRowId(row);
         JSONObject input = input(15000, account); confirm(input, candidate(input), parent, semantic(account));
-        assertEquals(150.0d, balance(account), 0); assertEquals(100.0d, balance(zeroRow), 0);
+        assertEquals(150.0d, balance(account), 0); assertEquals(50.0d, balance(zeroRow), 0);
+        assertEquals(0,store.scalar("SELECT COUNT(*) n FROM asset_histories WHERE asset_semantic_id=0"));
+        assertEquals(3,histories().size());
         int differenceId = new OriginalBillRelatedRepository(store).forBill(0, parent.billId).get(0).twoBillId;
         OriginalBillRecord difference = bills.byExactUser(0, differenceId);
         assertEquals(0, difference.assetId); assertTrue(store.transaction(difference.localRowId).isNull("account_id"));

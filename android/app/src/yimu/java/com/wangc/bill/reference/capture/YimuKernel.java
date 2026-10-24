@@ -84,10 +84,19 @@ public final class YimuKernel {
         boolean trustedMerchant=!merchant.isEmpty() && !merchant.equals(safe(bill.getOrigin()))
                 && !merchant.equals("淘宝") && !merchant.equals("美团") && !merchant.equals("微信") && !merchant.equals("支付宝");
         Long merchantAccount=null;
+        boolean merchantCategory=false;
         if (trustedMerchant && rule != null && ReferenceApplication.prefs().getBoolean("remember_merchants", true)) {
             JSONObject c = store.one("SELECT * FROM categories WHERE id=? AND archived=0", "" + rule.optLong("category_id"));
-            if (c != null && kind.equals(c.optString("kind"))) category = c.optLong("id");
+            if (c != null && kind.equals(c.optString("kind"))){category = c.optLong("id");merchantCategory=true;}
             if(!rule.isNull("account_id"))merchantAccount=rule.optLong("account_id");
+        }
+        // Explicit parser categories and a remembered merchant rule win. Classification
+        // uses only local fixed resources and stays on this capture worker.
+        com.wangc.bill.reference.LocalCategoryClassifier.Choice classified=null;
+        if(!unresolvedBook&&!bill.isTransfer()&&capturedCategory==null&&!merchantCategory){
+            String classificationText=safe(bill.getRemark());if(classificationText.isEmpty())classificationText=merchant;
+            classified=com.wangc.bill.reference.LocalCategoryClassifier.suggestOnWorker(ReferenceApplication.app(),store,bookId,kind,classificationText,bill.getTime());
+            if(classified.found())category=classified.categoryRowId;
         }
         CapturedAccountResolver.Resolution accountResolution=CaptureAccountMappings.resolve(store,bookId,pkg,
                 bill.isTransfer()?bill.getFromAsset():bill.getAsset(),bill.isTransfer()?null:merchantAccount,!bill.isTransfer());
@@ -130,7 +139,21 @@ public final class YimuKernel {
         if(capturedCategory!=null&&capturedCategory.optLong("id")==category){
             Json.put(data,"parent_semantic_id",bill.getParentCategoryId());Json.put(data,"child_semantic_id",bill.getChildCategoryId());
         }
+        if(classified!=null){
+            Json.put(data,"classification_status",classified.status);
+            if(classified.found())classified.apply(data);
+        }
         try {
+            // A completed weak observation is not proof that a later payment is the
+            // same transaction. Preserve another manual draft, but do not reopen a
+            // focus-taking window for the same already-handled page repaint.
+            JSONObject handledWindow=CaptureIdentity.WINDOW_RECEIPT.equals(identity.kind)&&identity.windowKey!=null
+                    ?store.one("SELECT id FROM candidates WHERE package_name=? AND state IN('SAVED','DISMISSED') AND (capture_window_key=? OR capture_key=?) ORDER BY created DESC LIMIT 1",
+                            pkg,identity.windowKey,identity.windowKey):null;
+            if(handledWindow!=null){
+                Json.put(data,"capture_duplicate_hint",true);Json.put(data,"capture_requires_confirmation",true);
+                Json.put(data,"capture_review_only",true);Json.put(data,"capture_review_after_candidate_id",handledWindow.optString("id"));
+            }
             JSONObject prior=identity.key==null?null:store.captureIdentity(identity.key);
             if(prior==null&&identity.windowKey!=null)prior=store.captureIdentity(identity.windowKey);
             String id = store.upsertCapturedCandidate(data,pkg,bookId,identity.key,identity.kind);
@@ -146,14 +169,21 @@ public final class YimuKernel {
             lastCandidate=id;lastPackage=pkg;
             if(callback!=null)HANDLERS.putIfAbsent(id,callback);
             boolean reused=prior!=null&&id.equals(prior.optString("id"));
+            boolean upgraded=reused&&CaptureIdentity.PAYMENT_ID.equals(identity.kind)&&!CaptureIdentity.PAYMENT_ID.equals(prior.optString("evidence_kind"));
+            boolean reviewOnly=!CaptureIdentity.PAYMENT_ID.equals(identity.kind)&&Json.parse(persisted.optString("payload")).optBoolean("capture_review_only");
             ReferenceDiagnostics.result(reused?"DRAFT_REUSED":"DRAFT_SAVED");
             if(unresolvedBook)ReferenceDiagnostics.result("DRAFT_WAITING_FOR_BOOK");
+            else if(reviewOnly)ReferenceDiagnostics.result("DRAFT_REVIEW_ONLY");
             // AutoSetting.autoAdd belongs to the attached entry window: it counts down for 5s
             // and invokes the same validated save action as a manual click. Never bypass it here.
             long epoch=restoreEpoch;
             MAIN.post(() -> {
                 if(epoch!=restoreEpoch)return;
-                if (!unresolvedBook && ReferenceApplication.prefs().getBoolean("show_overlay", true)) CaptureOverlay.show(id, callback);
+                // A later reuse never cancels the first queued display. Only that
+                // original observation (or genuinely new payment-ID evidence) offers
+                // a window. Repaints remain reachable through the persisted inbox.
+                if ((!reused||upgraded) && !reviewOnly && !unresolvedBook
+                        && ReferenceApplication.prefs().getBoolean("show_overlay", true)) CaptureOverlay.show(id, callback);
                 CaptureNotifications.update();
             });
         } catch (Exception error) { ReferenceDiagnostics.failure("STORE_FAILED",error); MAIN.post(CaptureNotifications::error); }

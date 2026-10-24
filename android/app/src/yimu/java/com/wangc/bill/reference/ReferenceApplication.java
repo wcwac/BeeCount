@@ -22,6 +22,7 @@ public final class ReferenceApplication extends Application {
             public void onActivityDestroyed(android.app.Activity a){}
         });
         com.wangc.bill.reference.ui.LocalAppLock.install(this);
+        LocalCategoryClassifier.warmUp(this);
         com.wangc.bill.reference.capture.PlanScheduler.sync();
         com.wangc.bill.reference.ui.QuickEntryWindow.refresh();
     }

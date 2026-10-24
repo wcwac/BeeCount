@@ -9,7 +9,8 @@ import java.util.TreeMap;
  * The recovered classifier's numeric path, independent of Android, tokenization and model I/O.
  * Labels are the original catalog in weight-column order. The actual serialized liblinear
  * label array is 0..69; AbstractClassifier.predict maps probability columns to that catalog.
- * This class does not load objects or tokenize text, and is not connected to capture or UI.
+ * This numeric core is wired through LocalCategoryClassifier; RecoveredCategoryModel
+ * supplies bounded primitive data loading and tokenization.
  */
 public final class OfflineLinearClassifier {
     public static final int CLASS_COUNT = 70;

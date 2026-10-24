@@ -1,6 +1,6 @@
 package com.wangc.bill.reference.ui;
 
-import android.app.Activity;
+import androidx.appcompat.app.AppCompatActivity;
 import android.app.KeyguardManager;
 import android.content.ActivityNotFoundException;
 import android.content.Context;
@@ -15,7 +15,7 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 /** Opaque lock gate: cancel never finishes into an unverified ledger screen. */
-public final class LocalUnlockActivity extends Activity {
+public final class LocalUnlockActivity extends AppCompatActivity {
     private static final int CONFIRM=6103;
     private boolean waiting;
     private boolean credentialWaiting;
@@ -23,7 +23,6 @@ public final class LocalUnlockActivity extends Activity {
     private android.os.CancellationSignal biometric;
     private TextView status;
     private Button unlock;
-    private Object back;
     @Override protected void onCreate(Bundle state){
         super.onCreate(state);getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);
         LocalAppLock.shown();credentialWaiting=state!=null&&state.getBoolean("credentialWaiting");waiting=credentialWaiting;
@@ -38,7 +37,7 @@ public final class LocalUnlockActivity extends Activity {
         Button settings=new Button(this);settings.setText("设备安全设置");settings.setOnClickListener(view->LocalAppLock.openSecurity(this));page.addView(settings,new LinearLayout.LayoutParams(-1,-2));
         Button exit=new Button(this);exit.setText("返回桌面");exit.setOnClickListener(view->leaveTask());page.addView(exit,new LinearLayout.LayoutParams(-1,-2));
         setContentView(page);
-        if(Build.VERSION.SDK_INT>=33){android.window.OnBackInvokedCallback callback=this::leaveTask;back=callback;getOnBackInvokedDispatcher().registerOnBackInvokedCallback(android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT,callback);}
+        getOnBackPressedDispatcher().addCallback(this,new androidx.activity.OnBackPressedCallback(true){@Override public void handleOnBackPressed(){leaveTask();}});
         render();if(state==null&&LocalAppLock.needsUnlock())page.post(this::confirm);
     }
     @Override protected void onNewIntent(Intent intent){super.onNewIntent(intent);setIntent(intent);LocalAppLock.shown();render();}
@@ -92,10 +91,8 @@ public final class LocalUnlockActivity extends Activity {
     }
     @Override protected void onSaveInstanceState(Bundle state){super.onSaveInstanceState(state);state.putBoolean("credentialWaiting",credentialWaiting);}
     private void leaveTask(){moveTaskToBack(true);}
-    @Override public void onBackPressed(){leaveTask();}
     @Override protected void onDestroy(){
         if(biometric!=null){biometric.cancel();biometric=null;}
-        if(Build.VERSION.SDK_INT>=33&&back!=null)getOnBackInvokedDispatcher().unregisterOnBackInvokedCallback((android.window.OnBackInvokedCallback)back);
         super.onDestroy();
     }
 }

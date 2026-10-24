@@ -192,7 +192,7 @@ public final class ReferenceStore extends SQLiteOpenHelper {
     }
 
     private long saveTransactionInScope(JSONObject input, long editingId, String candidateId) {
-        if(editingId>0)input=AccountingFinancialFlows.prepareBillEdit(this,editingId,input);
+        if(editingId>0){input=AccountingFinancialFlows.prepareBillEdit(this,editingId,input);AccountingInstalments.validateBillEdit(this,editingId,input);}
         if (candidateId != null) rejectTransferReceipt(candidateId == null ? null : candidate(candidateId));
         JSONObject old = editingId > 0 ? transaction(editingId) : null;
         if (old != null && OriginalBillRepository.ORIGINAL.equals(old.optString("bill_origin")))

@@ -37,6 +37,7 @@ final class RecordActions {
         if(expense&&row.optLong("amount")>0)actions.add("记录退款");
         if(expense)actions.add(marked?"取消待报销":"标记待报销");
         if(marked)actions.add("记录报销到账");
+        if(InstalmentScreens.available(row.optLong("id")))actions.add("消费分期");
         if(Json.array(row.optString("attachments","[]")).length()>0)actions.add("查看附件");
         actions.add("删除账单");
         new AlertDialog.Builder(context).setTitle("账单操作").setItems(actions.toArray(new String[0]),(dialog,index)->{
@@ -49,7 +50,8 @@ final class RecordActions {
             else if(action.equals("标记待报销")||action.equals("取消待报销")){
                 try{new AccountingFinancialFlows(ReferenceApplication.store()).markReimbursement(row.optLong("id"),!marked,UUID.randomUUID().toString());Ui.refresh(context);Ui.toast(context,marked?"已取消待报销":"已标记待报销");}
                 catch(Exception error){Ui.error(context,error);}
-            }else if(action.equals("查看附件"))attachments(context,Json.array(row.optString("attachments","[]")));
+            }else if(action.equals("消费分期"))InstalmentScreens.show(context,row.optLong("id"));
+            else if(action.equals("查看附件"))attachments(context,Json.array(row.optString("attachments","[]")));
             else Ui.confirm(context,"删除账单","余额变更会一并撤销，账单可在回收站恢复。",()->{ReferenceApplication.store().trash(row.optLong("id"),true);Ui.refresh(context);});
         }).show();
     }

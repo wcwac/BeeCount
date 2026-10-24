@@ -500,8 +500,14 @@ public final class OriginalNotificationPermissionDeviceTest {
         return pending.get();
     }
     private SystemButton focusedSystemButton(String resource) {
+        // UiAutomator may reconfigure its shared observer between real OS requests.
+        // Read IDs from the observer used for this query, never the capture service flags.
+        AccessibilityServiceInfo observer=automation.getServiceInfo();
+        assertNotNull("The real UI observer must stay connected",observer);
+        int required=AccessibilityServiceInfo.FLAG_REPORT_VIEW_IDS|AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS;
+        if((observer.flags&required)!=required){observer.flags|=required;automation.setServiceInfo(observer);}
         List<AccessibilityWindowInfo> windows = automation.getWindows();
-        StringBuilder metadata = new StringBuilder("button=").append(resource);
+        StringBuilder metadata = new StringBuilder("button=").append(resource).append(":observerFlags=").append(observer.flags);
         SystemButton selected = null;
         try {
             for (AccessibilityWindowInfo window : windows) {
@@ -516,18 +522,28 @@ public final class OriginalNotificationPermissionDeviceTest {
                     if (metadata.length() < 1800) metadata.append(":package=").append(root.getPackageName());
                     if (!permissionWindow || window.getType() != AccessibilityWindowInfo.TYPE_APPLICATION
                             || !window.isActive() || !window.isFocused()) continue;
-                    List<AccessibilityNodeInfo> buttons = root.findAccessibilityNodeInfosByViewId("com.android.permissioncontroller:id/" + resource);
-                    try {
-                        for (AccessibilityNodeInfo button : buttons) {
-                            Rect bounds = new Rect(); button.getBoundsInScreen(bounds);
-                            if (metadata.length() < 1800) metadata.append(":buttonBounds=").append(bounds)
-                                    .append(":visible=").append(button.isVisibleToUser()).append(":enabled=").append(button.isEnabled())
-                                    .append(":clickable=").append(button.isClickable());
-                            if (button.isVisibleToUser() && button.isEnabled() && button.isClickable() && !bounds.isEmpty()
-                                    && windowBounds.contains(bounds.centerX(), bounds.centerY()))
-                                selected = new SystemButton(window.getId(), new Rect(bounds), new Rect(windowBounds));
-                        }
-                    } finally { for (AccessibilityNodeInfo button : buttons) button.recycle(); }
+                    // A second platform request can reuse the permission-controller
+                    // process while replacing its window/tree. Refresh this owned root.
+                    boolean refreshed=root.refresh();
+                    if(metadata.length()<1800)metadata.append(":refreshed=").append(refreshed);
+                    if(!refreshed)continue;
+                    String[] controls=resource.equals("permission_deny_button")
+                            ?new String[]{"permission_deny_button","permission_deny_and_dont_ask_again_button"}:new String[]{resource};
+                    for(String control:controls){
+                        List<AccessibilityNodeInfo> buttons = root.findAccessibilityNodeInfosByViewId("com.android.permissioncontroller:id/" + control);
+                        try {
+                            for (AccessibilityNodeInfo button : buttons) {
+                                Rect bounds = new Rect(); button.getBoundsInScreen(bounds);
+                                if (metadata.length() < 1800) metadata.append(":matchedId=").append(control).append(":buttonBounds=").append(bounds)
+                                        .append(":visible=").append(button.isVisibleToUser()).append(":enabled=").append(button.isEnabled())
+                                        .append(":clickable=").append(button.isClickable());
+                                if (button.getWindowId()==window.getId()&&button.isVisibleToUser() && button.isEnabled() && button.isClickable() && !bounds.isEmpty()
+                                        && "com.android.permissioncontroller".contentEquals(button.getPackageName()==null?"":button.getPackageName())
+                                        && windowBounds.contains(bounds.centerX(), bounds.centerY()))
+                                    selected = new SystemButton(window.getId(), new Rect(bounds), new Rect(windowBounds));
+                            }
+                        } finally { for (AccessibilityNodeInfo button : buttons) button.recycle(); }
+                    }
                 } finally { root.recycle(); }
             }
         } finally { for (AccessibilityWindowInfo window : windows) window.recycle(); }
