@@ -40,6 +40,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -64,6 +65,7 @@ public final class OriginalPermissionGuidanceDeviceTest {
     private Map<String,?> settingsBefore;
     private final AtomicReference<DialogFragment> fragment=new AtomicReference<>();
     private final AtomicReference<Dialog> dialog=new AtomicReference<>();
+    private final Map<View,Integer> viewResumes=new IdentityHashMap<>();
     private final List<String> uiEvidence=new ArrayList<>();
     private volatile String lastWindowState="No window sampled";
     @Rule public final TestWatcher failedWindowEvidence=new TestWatcher(){
@@ -82,6 +84,13 @@ public final class OriginalPermissionGuidanceDeviceTest {
         observer.flags|=AccessibilityServiceInfo.FLAG_REPORT_VIEW_IDS|AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS;
         automation.setServiceInfo(observer);
         scenario=ActivityScenario.launch(new Intent(ReferenceApplication.app(),ManagerActivity.class).putExtra("page","settings"));
+        scenario.onActivity(a->a.getSupportFragmentManager().registerFragmentLifecycleCallbacks(
+                new androidx.fragment.app.FragmentManager.FragmentLifecycleCallbacks(){
+                    @Override public void onFragmentViewCreated(androidx.fragment.app.FragmentManager manager,
+                            androidx.fragment.app.Fragment value,View root,android.os.Bundle saved){viewResumes.put(root,0);}
+                    @Override public void onFragmentResumed(androidx.fragment.app.FragmentManager manager,
+                            androidx.fragment.app.Fragment value){View root=value.getView();if(root!=null)viewResumes.put(root,viewResumes.getOrDefault(root,0)+1);}
+                },false));
         settingsBefore=ReferenceApplication.prefs().getAll();
     }
     @After public void close(){
@@ -133,18 +142,22 @@ public final class OriginalPermissionGuidanceDeviceTest {
         AtomicReference<Point> target=new AtomicReference<>();scenario.onActivity(a->{
             TextView view=Ui.view(fragment.get().requireView(),name);assertTrue(view.getMovementMethod() instanceof LinkMovementMethod);
             assertTrue(view.getText() instanceof Spanned);Spanned text=(Spanned)view.getText();
-            ClickableSpan[] clicks=text.getSpans(start,end,ClickableSpan.class);assertEquals(1,clicks.length);
-            assertEquals(start,text.getSpanStart(clicks[0]));assertEquals(end,text.getSpanEnd(clicks[0]));assertEquals(Spanned.SPAN_EXCLUSIVE_EXCLUSIVE,text.getSpanFlags(clicks[0]));
+            // Original AutoTip/AutoClose onResume copies the existing Spanned text,
+            // then appends one new color/click pair. Returning from a link does not
+            // clear the earlier pairs; verify the exact observed lifecycle count.
+            int resumes=viewResumes.getOrDefault(fragment.get().requireView(),0);assertTrue("Observe the actual dialog resume before touching its span",resumes>0);
+            ClickableSpan[] clicks=text.getSpans(start,end,ClickableSpan.class);assertEquals("One original clickable span per actual view resume",resumes,clicks.length);
+            for(ClickableSpan click:clicks){assertEquals(start,text.getSpanStart(click));assertEquals(end,text.getSpanEnd(click));assertEquals(Spanned.SPAN_EXCLUSIVE_EXCLUSIVE,text.getSpanFlags(click));}
             assertEquals(expected,text.subSequence(start,end).toString());
-            ForegroundColorSpan[] colors=text.getSpans(start,end,ForegroundColorSpan.class);assertEquals(1,colors.length);
-            assertEquals(a.getColor(Ui.res(a,"color","colorPrimary")),colors[0].getForegroundColor());
+            ForegroundColorSpan[] colors=text.getSpans(start,end,ForegroundColorSpan.class);assertEquals("One original color span per actual view resume",resumes,colors.length);
+            for(ForegroundColorSpan color:colors){assertEquals(start,text.getSpanStart(color));assertEquals(end,text.getSpanEnd(color));assertEquals(Spanned.SPAN_EXCLUSIVE_EXCLUSIVE,text.getSpanFlags(color));assertEquals(a.getColor(Ui.res(a,"color","colorPrimary")),color.getForegroundColor());}
             Layout layout=view.getLayout();assertNotNull(layout);int offset=start+(end-start)/2,line=layout.getLineForOffset(offset);
             assertEquals(line,layout.getLineForOffset(offset+1));float first=layout.getPrimaryHorizontal(offset),second=layout.getPrimaryHorizontal(offset+1);
             int[] position=new int[2];view.getLocationOnScreen(position);
             int x=position[0]+view.getTotalPaddingLeft()-view.getScrollX()+Math.round((first+second)/2.0f);
             int y=position[1]+view.getTotalPaddingTop()-view.getScrollY()+(layout.getLineTop(line)+layout.getLineBottom(line))/2;
             Rect visible=ReferenceWindowGeometry.visibleBoundsInScreen(view);
-            noteUi("span:"+name+",target="+x+":"+y+",screenVisible="+visible+","+ReferenceWindowGeometry.describe(view));
+            noteUi("span:"+name+",resumes="+resumes+",pairs="+clicks.length+":"+colors.length+",target="+x+":"+y+",screenVisible="+visible+","+ReferenceWindowGeometry.describe(view));
             assertTrue("Clickable span point is clipped: target="+x+":"+y+",screenVisible="+visible+","+ReferenceWindowGeometry.describe(view),visible.contains(x,y));target.set(new Point(x,y));
         });touch(target.get());
     }
@@ -259,6 +272,20 @@ public final class OriginalPermissionGuidanceDeviceTest {
             launched.add(new Intent(intent));visible.add(dialog.get().isShowing());return new Instrumentation.ActivityResult(Activity.RESULT_CANCELED,null);
         }};instrumentation.addMonitor(monitor);
         try{show(OriginalAutoCloseTipDialog.create());span("tip_content",16,24,"自动记账保活教程");await(()->launched.size()==1);stillShowing();
+            AtomicInteger beforeResume=new AtomicInteger();AtomicReference<View> retainedView=new AtomicReference<>();
+            scenario.onActivity(a->{retainedView.set(fragment.get().requireView());beforeResume.set(viewResumes.get(retainedView.get()));});
+            // Drive an actual stop/start without creating a new view. This proves
+            // the source's accumulation rather than assuming the monitor itself
+            // necessarily caused an Activity lifecycle transition on every OS.
+            scenario.moveToState(androidx.lifecycle.Lifecycle.State.CREATED);
+            scenario.moveToState(androidx.lifecycle.Lifecycle.State.RESUMED);
+            await(()->{AtomicBoolean focused=new AtomicBoolean();scenario.onActivity(a->{
+                lastWindowState=ReferenceWindowGeometry.describeWindow(dialog.get());
+                focused.set(dialog.get().isShowing()&&dialog.get().getWindow().getDecorView().hasWindowFocus());
+            });return focused.get();});
+            scenario.onActivity(a->{assertSame(retainedView.get(),fragment.get().requireView());
+                assertEquals(beforeResume.get()+1,(int)viewResumes.get(retainedView.get()));
+                assertTrue(dialog.get().isShowing());assertTrue(dialog.get().getWindow().getDecorView().hasWindowFocus());});
             span("close_content",11,15,"点击此处");await(()->launched.size()==2);stillShowing();
             assertEquals("auto_work",launched.get(0).getStringExtra("page"));assertEquals("capture",launched.get(1).getStringExtra("page"));
             assertEquals(Arrays.asList(true,true),visible);unchanged();tap("cancel");hidden();

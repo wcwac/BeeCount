@@ -10,11 +10,15 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.content.Context;
+import android.graphics.Rect;
 import android.os.Build;
 import android.os.Looper;
 import android.os.ParcelFileDescriptor;
 import android.os.SystemClock;
 import android.provider.Settings;
+import android.view.View;
+import android.view.accessibility.AccessibilityNodeInfo;
+import android.view.accessibility.AccessibilityWindowInfo;
 import android.widget.TextView;
 import androidx.lifecycle.Lifecycle;
 import androidx.fragment.app.FragmentActivity;
@@ -36,6 +40,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -59,6 +65,9 @@ public final class OriginalNotificationPermissionDeviceTest {
     private int priorAutomationFlags, priorObserverFlags;
     private boolean controllerPreferencesSaved;
     private Boolean previousCaptureSetting, previousNotifySetting;
+    private volatile String lastSystemUi = "No system window sampled";
+    private volatile String lastBridgeUi = "No bridge window sampled";
+    private volatile Result lastResult;
 
     @Before public void open() throws Exception {
         assertEquals("true", InstrumentationRegistry.getArguments().getString("reference_cloud_only"));
@@ -124,9 +133,10 @@ public final class OriginalNotificationPermissionDeviceTest {
         instrumentation.addMonitor(monitor);
         try {
             request(result); assertTrue(result.explanationBeforeLaunch.get());
+            awaitExplanationAttached(result);
             OriginalPermissionRequestActivity bridge = (OriginalPermissionRequestActivity) monitor.waitForActivityWithTimeout(5000);
             assertNotNull("The actual permission bridge was not launched", bridge);
-            systemButton("permission_allow_button").click(); await(() -> result.granted.get() == 1);
+            clickSystemButton("permission_allow_button"); await(() -> result.granted.get() == 1);
             assertTrue(OriginalNotificationPermission.granted()); assertFinished(result, 1, 0);
             // A late contradictory dispatch cannot consume the same callback again.
             onMain(() -> bridge.onRequestPermissionsResult(999,
@@ -137,7 +147,7 @@ public final class OriginalNotificationPermissionDeviceTest {
 
     @Test public void actualOsDenialDismissesTopInfoBeforeItsDistinctDeniedCallback() throws Exception {
         requireInitialPermission(false, false); launch(); Result result = new Result(); request(result);
-        assertTrue(result.explanationBeforeLaunch.get()); systemButton("permission_deny_button").click();
+        assertTrue(result.explanationBeforeLaunch.get()); awaitExplanationAttached(result); clickSystemButton("permission_deny_button");
         await(() -> result.denied.get() == 1); assertFalse(OriginalNotificationPermission.granted());
         assertFinished(result, 0, 1);
     }
@@ -152,6 +162,8 @@ public final class OriginalNotificationPermissionDeviceTest {
             for (int i = 0; i < 2; i++) {
                 Result result = new Result(); request(result);
                 await(() -> result.denied.get() == 1); assertFinished(result, 0, 1);
+                // A user-fixed request can resolve before a first frame. Its
+                // source contract is show-before-launch, not a guaranteed draw.
                 assertEquals(1, result.launches.get()); assertTrue(result.explanationBeforeLaunch.get());
                 assertFalse(OriginalNotificationPermission.granted());
             }
@@ -209,7 +221,7 @@ public final class OriginalNotificationPermissionDeviceTest {
         // Hold only the host launch boundary so the Activity's actual saved
         // FragmentManager state can be recreated without an unrelated OS dialog.
         scenario.onActivity(host -> OriginalNotificationPermission.request(host, result, (owner, intent) -> observeExplanation(owner, result)));
-        assertTrue(result.explanationBeforeLaunch.get()); scenario.recreate();
+        assertTrue(result.explanationBeforeLaunch.get()); awaitExplanationAttached(result); scenario.recreate();
         await(() -> result.unavailable.get() == 1);
         scenario.onActivity(host -> {
             // The real ManagerActivity.onStart hook must remove the restored
@@ -257,10 +269,14 @@ public final class OriginalNotificationPermissionDeviceTest {
             assertNull(host.getSupportFragmentManager().findFragmentByTag("auto_tip"));
             assertTrue(AutoApps.enabled());
         });
-        systemButton(grant ? "permission_allow_button" : "permission_deny_button").click();
+        clickSystemButton(grant ? "permission_allow_button" : "permission_deny_button");
         await(() -> {
             scenario.onActivity(host -> {
                 Fragment fragment = host.getSupportFragmentManager().findFragmentByTag("auto_tip");
+                lastBridgeUi = "controllerFragment=" + (fragment == null ? "null" : fragment.getClass().getName())
+                        + ",explanation=" + com.wangc.bill.reference.ReferenceWindowGeometry.describeWindow(explanation.get())
+                        + ",continuation=" + com.wangc.bill.reference.ReferenceWindowGeometry.describeWindow(
+                                fragment instanceof OriginalAutoTipDialog current ? current.getDialog() : null);
                 if (fragment instanceof OriginalAutoTipDialog tip && tip.isResumed() && tip.getDialog() != null
                         && tip.getDialog().isShowing() && tip.getView() != null && tip.getView().isAttachedToWindow()
                         && tip.getView().isLaidOut() && tip.getDialog().getWindow().getDecorView().hasWindowFocus())
@@ -288,11 +304,30 @@ public final class OriginalNotificationPermissionDeviceTest {
         }));
     }
     private void observeExplanation(FragmentActivity host, Result result) {
+        lastResult = result;
         OriginalTopInfoDialog tip = (OriginalTopInfoDialog) host.getSupportFragmentManager().findFragmentByTag("tip");
         assertNotNull(tip); assertNotNull(tip.getDialog()); result.dialog.set(tip.getDialog());
         assertEquals(OriginalNotificationPermission.TITLE, ((TextView) Ui.view(tip.requireView(), "title")).getText().toString());
         assertEquals(OriginalNotificationPermission.CONTENT, ((TextView) Ui.view(tip.requireView(), "content")).getText().toString());
-        result.explanationBeforeLaunch.set(tip.getDialog().isShowing() && tip.requireView().isAttachedToWindow());
+        assertTrue("The explanation must be shown before launching the permission bridge", tip.getDialog().isShowing());
+        result.explanationView.set(tip.requireView());
+        // executePendingTransactions creates and shows the real Dialog. ViewRoot
+        // attachment/layout belongs to a later traversal, not this launch call.
+        result.explanationBeforeLaunch.set(tip.getDialog().isShowing());
+        lastBridgeUi = com.wangc.bill.reference.ReferenceWindowGeometry.describeWindow(tip.getDialog());
+    }
+    private void awaitExplanationAttached(Result result) {
+        await(() -> {
+            AtomicBoolean ready = new AtomicBoolean();
+            onMain(() -> {
+                View view = result.explanationView.get(); Dialog tip = result.dialog.get(); Rect visible = new Rect();
+                lastBridgeUi = com.wangc.bill.reference.ReferenceWindowGeometry.describeWindow(tip);
+                ready.set(tip != null && tip.isShowing() && view != null && view.isAttachedToWindow()
+                        && view.isLaidOut() && view.isShown() && view.getWidth() > 0 && view.getHeight() > 0
+                        && view.getGlobalVisibleRect(visible) && !visible.isEmpty());
+            });
+            return ready.get();
+        });
     }
     private void assertFinished(Result result, int granted, int denied) {
         instrumentation.waitForIdleSync(); assertEquals(granted, result.granted.get()); assertEquals(denied, result.denied.get());
@@ -319,10 +354,91 @@ public final class OriginalNotificationPermissionDeviceTest {
         UiObject2 button = device.wait(Until.findObject(By.res("com.android.permissioncontroller", resource)), 7000);
         assertNotNull("The actual OS notification permission control was not shown: " + resource, button); return button;
     }
+    private void clickSystemButton(String resource) {
+        long until = SystemClock.uptimeMillis() + 7000;
+        while (SystemClock.uptimeMillis() < until) {
+            SystemButton before = focusedSystemButton(resource);
+            if (before != null) {
+                long remaining = until - SystemClock.uptimeMillis();
+                if (remaining <= 0) break;
+                try {
+                    // A node can precede the interactive permission window's
+                    // input channel during its entry transition. Quietness and
+                    // a fresh focused/active-window sample share this deadline.
+                    automation.waitForIdle(Math.min(100L, remaining), remaining);
+                } catch (TimeoutException timeout) {
+                    lastSystemUi = "Permission window did not become idle within the existing readiness budget; " + lastSystemUi;
+                    break;
+                }
+                if (SystemClock.uptimeMillis() >= until) break;
+                SystemButton after = focusedSystemButton(resource);
+                if (SystemClock.uptimeMillis() >= until) break;
+                if (after != null && before.windowId == after.windowId && before.bounds.equals(after.bounds)
+                        && before.windowBounds.equals(after.windowBounds)) {
+                    int x = after.bounds.centerX(), y = after.bounds.centerY();
+                    boolean injected = device.click(x, y);
+                    assertTrue("Actual OS touch injection failed: " + diagnostic(), injected);
+                    return; // Exactly one real touch; no ACTION_CLICK or blind retry.
+                }
+            }
+            long remaining = until - SystemClock.uptimeMillis();
+            if (remaining > 0) SystemClock.sleep(Math.min(25L, remaining));
+        }
+        fail("Actual OS permission button was not in a stable focused interactive window: " + resource + "; " + diagnostic());
+    }
+    private SystemButton focusedSystemButton(String resource) {
+        List<AccessibilityWindowInfo> windows = automation.getWindows();
+        StringBuilder metadata = new StringBuilder("button=").append(resource);
+        SystemButton selected = null;
+        try {
+            for (AccessibilityWindowInfo window : windows) {
+                Rect windowBounds = new Rect(); window.getBoundsInScreen(windowBounds);
+                if (metadata.length() < 1800) metadata.append(";window=").append(window.getId()).append(":type=")
+                        .append(window.getType()).append(":active=").append(window.isActive()).append(":focus=")
+                        .append(window.isFocused()).append(":bounds=").append(windowBounds);
+                AccessibilityNodeInfo root = window.getRoot();
+                if (root == null) continue;
+                try {
+                    boolean permissionWindow = "com.android.permissioncontroller".contentEquals(root.getPackageName() == null ? "" : root.getPackageName());
+                    if (metadata.length() < 1800) metadata.append(":package=").append(root.getPackageName());
+                    if (!permissionWindow || window.getType() != AccessibilityWindowInfo.TYPE_APPLICATION
+                            || !window.isActive() || !window.isFocused()) continue;
+                    List<AccessibilityNodeInfo> buttons = root.findAccessibilityNodeInfosByViewId("com.android.permissioncontroller:id/" + resource);
+                    try {
+                        for (AccessibilityNodeInfo button : buttons) {
+                            Rect bounds = new Rect(); button.getBoundsInScreen(bounds);
+                            if (metadata.length() < 1800) metadata.append(":buttonBounds=").append(bounds)
+                                    .append(":visible=").append(button.isVisibleToUser()).append(":enabled=").append(button.isEnabled())
+                                    .append(":clickable=").append(button.isClickable());
+                            if (button.isVisibleToUser() && button.isEnabled() && button.isClickable() && !bounds.isEmpty()
+                                    && windowBounds.contains(bounds.centerX(), bounds.centerY()))
+                                selected = new SystemButton(window.getId(), new Rect(bounds), new Rect(windowBounds));
+                        }
+                    } finally { for (AccessibilityNodeInfo button : buttons) button.recycle(); }
+                } finally { root.recycle(); }
+            }
+        } finally { for (AccessibilityWindowInfo window : windows) window.recycle(); }
+        lastSystemUi = metadata.substring(0, Math.min(2000, metadata.length()));
+        return selected;
+    }
+    private String diagnostic() {
+        AtomicInteger pending = new AtomicInteger(); onMain(() -> pending.set(OriginalNotificationPermission.pendingRequestCount()));
+        String value = "pending=" + pending.get() + ",bridgeFailure=" + OriginalNotificationPermission.lastBridgeFailureCode()
+                + ",permissionGranted=" + OriginalNotificationPermission.granted()
+                + ",result=" + (lastResult == null ? "controller/outcome tracked by its actual continuation"
+                        : lastResult.granted.get() + ":" + lastResult.denied.get() + ":" + lastResult.unavailable.get()
+                                + ":launches=" + lastResult.launches.get() + ":showBeforeLaunch=" + lastResult.explanationBeforeLaunch.get())
+                + ",system=" + lastSystemUi + ",bridge=" + lastBridgeUi;
+        return value.substring(0, Math.min(3500, value.length()));
+    }
+    private static final class SystemButton {
+        final int windowId; final Rect bounds, windowBounds;
+        SystemButton(int windowId, Rect bounds, Rect windowBounds) { this.windowId = windowId; this.bounds = bounds; this.windowBounds = windowBounds; }
+    }
     private void await(BooleanSupplier condition) {
         long until = SystemClock.uptimeMillis() + 7000;
         while (SystemClock.uptimeMillis() < until) { if (condition.getAsBoolean()) return; SystemClock.sleep(25); }
-        assertTrue("Actual notification permission flow timed out", condition.getAsBoolean());
+        assertTrue("Actual notification permission flow timed out: " + diagnostic(), condition.getAsBoolean());
     }
     private static void onMain(Runnable action) { InstrumentationRegistry.getInstrumentation().runOnMainSync(action); }
     private static String packageName() { return ReferenceApplication.app().getPackageName(); }
@@ -342,6 +458,7 @@ public final class OriginalNotificationPermissionDeviceTest {
         final AtomicInteger granted = new AtomicInteger(), denied = new AtomicInteger(), unavailable = new AtomicInteger(), launches = new AtomicInteger();
         final AtomicBoolean onMain = new AtomicBoolean(), dismissedBeforeCallback = new AtomicBoolean(), explanationBeforeLaunch = new AtomicBoolean();
         final AtomicReference<Dialog> dialog = new AtomicReference<>();
+        final AtomicReference<View> explanationView = new AtomicReference<>();
         final AtomicReference<String> failure = new AtomicReference<>();
         private void observed() { onMain.set(Looper.myLooper() == Looper.getMainLooper()); dismissedBeforeCallback.set(dialog.get() == null || !dialog.get().isShowing()); }
         @Override public void granted() { observed(); granted.incrementAndGet(); }
