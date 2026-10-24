@@ -48,8 +48,9 @@ public final class OriginalCurdHistoryRepository {
             ContentValues fields=new ContentValues();fields.put("owner_semantic_id",value.ownerSemanticId);fields.put("entity_type",value.type);fields.put("entity_semantic_id",value.typeId);fields.put("action_type",value.actionType);fields.put("bill_book_semantic_id",value.billBookSemanticId);fields.put("bill_owner_semantic_id",value.billOwnerSemanticId);
             try{
                 long row=db.insertOrThrow(TABLE,null,fields);
+                if(row==-1&&AccountingCommitScope.active(store))throw new IllegalStateException("操作历史未保存");
                 return row==-1?new SaveResult(false,false,0,"java.lang.IllegalStateException"):new SaveResult(true,false,row,"");
-            }catch(Exception error){return new SaveResult(false,false,0,error.getClass().getName());}
+            }catch(Exception error){ AccountingCommitScope.failed(store,error);return new SaveResult(false,false,0,error.getClass().getName());}
         }
     }
     public JSONObject exact(Data value){

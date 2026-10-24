@@ -120,7 +120,7 @@ public final class AssetRepository {
                     long rowId=insertOriginal(db,ownerSemanticId,semanticId,weight,now,definition,row->assignedRow[0]=row);
                     db.setTransactionSuccessful();return new CreationResult(rowId,ownerSemanticId,semanticId,weight,now,null);
                 } finally { db.endTransaction(); }
-            } catch (Exception error) { return new CreationResult(assignedRow[0],ownerSemanticId,semanticId,weight,now,error); }
+            } catch (Exception error) { AccountingCommitScope.failed(store,error); return new CreationResult(assignedRow[0],ownerSemanticId,semanticId,weight,now,error); }
         }
     }
 
@@ -289,9 +289,9 @@ public final class AssetRepository {
             try {
                 if (old==null) {
                     if(db.insertOrThrow("category_accounts",null,value)==-1)throw new IllegalStateException("分类账户映射未插入");
-                } else db.update("category_accounts",value,"id=?",new String[]{""+old.optLong("id")});
+                } else AccountingCommitScope.requireChanged(store,db.update("category_accounts",value,"id=?",new String[]{""+old.optLong("id")}));
                 return true;
-            } catch(Exception error) {
+            } catch(Exception error) { AccountingCommitScope.failed(store,error);
                 if(ignoreSaveException)return false;
                 throw error;
             }

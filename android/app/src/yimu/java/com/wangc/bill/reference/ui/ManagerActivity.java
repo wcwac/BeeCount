@@ -57,7 +57,7 @@ public final class ManagerActivity extends AppCompatActivity {
             case "capture", "capture_settings", "apps", "diagnostics", "inbox", "rules"->CaptureScreens.render(this);
             case "books", "edit_book", "accounts", "new_account", "edit_account", "account_detail", "credit_statements", "categories", "edit_category", "tags", "edit_tag", "budget"->CatalogScreens.render(this);
             case "goals", "edit_goal", "plans", "edit_plan", "lending", "reimbursement", "investments", "loans"->FinancialScreens.render(this);
-            case "search", "range_records", "trash", "backup", "import", "attachments", "settings", "theme", "profile", "widgets", "help", "about"->UtilityScreens.render(this);
+            case "search", "range_records", "trash", "backup", "import", "attachments", "settings", "quick_entry", "theme", "profile", "widgets", "help", "about"->UtilityScreens.render(this);
             default->{body("本地功能",null,null);rows.addView(Ui.row(this,"此入口未接入","可以继续使用本地记账、统计和自动采集功能。",null));}
         }
     }catch(Exception error){body("操作未完成",null,null);rows.addView(Ui.row(this,error.getMessage()==null?"读取失败":error.getMessage(),"点击重试",this::reload));}}

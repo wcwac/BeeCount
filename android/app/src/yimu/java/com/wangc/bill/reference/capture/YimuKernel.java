@@ -22,14 +22,14 @@ public final class YimuKernel {
         new ArrayBlockingQueue<>(32), task -> { Thread thread=new Thread(task,"yimu-reference");workerThread=thread;return thread; }, new ThreadPoolExecutor.AbortPolicy());
     private static final Handler MAIN = new Handler(Looper.getMainLooper());
     static final ThreadLocal<String> SOURCE = new ThreadLocal<>();
-    private static long lastSubmit;
-    private static String lastKey, lastCandidate, lastPackage;
+    private static String lastCandidate, lastPackage;
     private static volatile long restoreEpoch;
     // Parser callbacks may be singletons. Each durable candidate owns its own registration.
     private static final java.util.concurrent.ConcurrentHashMap<String,x1.a> HANDLERS = new java.util.concurrent.ConcurrentHashMap<>();
     private YimuKernel() {}
     /** Share the event submission lock so callbacks remain queue ordering barriers. */
     public static void enqueue(Runnable task){synchronized(WORKER){WORKER.execute(task);}}
+    static long observationEpoch(){return restoreEpoch;}
     public static boolean isWorkerThread(){return Thread.currentThread()==workerThread;}
     public static int registeredCallbackCount(){return HANDLERS.size();}
     public static boolean hasRegisteredCallback(String candidateId){return candidateId!=null&&HANDLERS.containsKey(candidateId);}
@@ -39,7 +39,7 @@ public final class YimuKernel {
         restoreEpoch++;
         java.util.Set<x1.a> callbacks=java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
         callbacks.addAll(HANDLERS.values());HANDLERS.clear();
-        lastSubmit=0;lastKey=null;lastCandidate=null;lastPackage=null;
+        lastCandidate=null;lastPackage=null;CaptureEvidence.clear();
         com.google.android.accessibility.selecttospeak.SelectToSpeakService.f1838j=0;
         for(x1.a callback:callbacks)try{callback.dismiss();}catch(RuntimeException error){ReferenceDiagnostics.failure("RESTORE_PARSER_RESET_FAILED",error);}
     }
@@ -48,12 +48,10 @@ public final class YimuKernel {
         ReferenceDiagnostics.attempt();
         String pkg = SOURCE.get();
         if (pkg == null || !AutoApps.accepts(pkg)) { ReferenceDiagnostics.result("STOPPED"); return; }
-        // Recovered SelectToSpeakService.l: 1s between submissions, identical
-        // captured number+time rejected for 10s. Retained for comparison.
+        // Every accepted recognition reaches durable candidate identity. A process-global
+        // clock cannot distinguish duplicate screens from different real transactions.
         long now = System.currentTimeMillis();
         if (!com.wangc.bill.utils.h2.J(bill.getNumber())) { ReferenceDiagnostics.result("INVALID_AMOUNT"); return; }
-        String key = bill.getAutoRepeatString();
-        if (now - lastSubmit <= 1000 || (key.equals(lastKey) && now - lastSubmit <= 10000)) { ReferenceDiagnostics.result("ORIGINAL_REPEAT_GATE"); return; }
         ReferenceStore store = ReferenceApplication.store();
         long bookId = ReferenceApplication.prefs().getLong("capture_book", 1);
         JSONObject book = store.book(bookId);
@@ -63,9 +61,7 @@ public final class YimuKernel {
         try { amount = CapturedAmount.minorUnits(bill.getNumber()); } catch (IllegalArgumentException ignored) {}
         try { if (bill.getDiscount() != null) discount = Math.max(0, Money.signed(bill.getDiscount(), "CNY")); } catch (IllegalArgumentException ignored) {}
         try { fee = Math.max(0, Money.signed(BigDecimal.valueOf(bill.getServiceCharge()).toPlainString(), "CNY")); } catch (IllegalArgumentException ignored) {}
-        long account = ReferenceApplication.prefs().getLong("default_account", 0), toAccount = 0;
-        if(account>0&&store.accountInDisplayCurrency(account,"CNY")==null)account=0;
-        if (bill.isTransfer()) { account = accountNamed(store, bill.getFromAsset()); toAccount = accountNamed(store, bill.getToAsset()); }
+        long account = 0, toAccount = 0;
         long category = store.defaultCategory(kind.equals("transfer") ? "expense" : kind,bookId);
         // BillInfo category IDs identify original ParentCategory/ChildCategory records,
         // never local categories.id. Keep a recognized pair through the local FK bridge.
@@ -77,12 +73,30 @@ public final class YimuKernel {
         }
         String merchant = safe(bill.getShopName());
         JSONObject rule = store.one("SELECT * FROM rules WHERE merchant=?", merchant);
-        if (rule != null && ReferenceApplication.prefs().getBoolean("remember_merchants", true)) {
+        // Generic parser origin labels are not real merchant identities.
+        boolean trustedMerchant=!merchant.isEmpty() && !merchant.equals(safe(bill.getOrigin()))
+                && !merchant.equals("淘宝") && !merchant.equals("美团") && !merchant.equals("微信") && !merchant.equals("支付宝");
+        Long merchantAccount=null;
+        if (trustedMerchant && rule != null && ReferenceApplication.prefs().getBoolean("remember_merchants", true)) {
             JSONObject c = store.one("SELECT * FROM categories WHERE id=? AND archived=0", "" + rule.optLong("category_id"));
             if (c != null && kind.equals(c.optString("kind"))) category = c.optLong("id");
-            JSONObject a = store.accountInDisplayCurrency(rule.optLong("account_id"),"CNY");
-            if (a != null) account = a.optLong("id");
+            if(!rule.isNull("account_id"))merchantAccount=rule.optLong("account_id");
         }
+        CapturedAccountResolver.Resolution accountResolution=CaptureAccountMappings.resolve(store,bookId,pkg,
+                bill.isTransfer()?bill.getFromAsset():bill.getAsset(),bill.isTransfer()?null:merchantAccount,!bill.isTransfer());
+        account=accountResolution.accountId;
+        CapturedAccountResolver.Resolution destination=null;
+        if(bill.isTransfer()) {
+            destination=CaptureAccountMappings.resolve(store,bookId,pkg,bill.getToAsset(),null,false);
+            toAccount=destination.accountId;
+        }
+        CaptureEvidence.Context evidence=CaptureEvidence.current();
+        java.util.List<String> capturedTexts=evidence==null?java.util.Collections.emptyList():evidence.tokens();
+        CaptureIdentity.Identity identity=CaptureIdentity.identify(pkg,evidence==null?"":evidence.sessionId,evidence==null?-1:evidence.windowId,kind,amount,
+                CaptureIdentity.visibleTransactionTime(bill.getTime(),capturedTexts),merchant,
+                bill.isTransfer()?safe(bill.getFromAsset())+" -> "+safe(bill.getToAsset()):bill.getAsset(),capturedTexts);
+        boolean accountManual=accountResolution.requiresConfirmation || destination!=null&&destination.requiresConfirmation
+                || bill.isTransfer()&&(account==0||toAccount==0||account==toAccount);
         JSONArray tags = new JSONArray(); if (bill.getTagList() != null) for (Long id : bill.getTagList()) if (store.one("SELECT id FROM tags WHERE id=?", "" + id) != null) tags.put(id);
         JSONObject data = Json.object("book_id", bookId, "kind", kind, "amount", amount, "currency", "CNY", "original_number", bill.getNumber(), "category_id", category,
             "account_id", account, "to_account_id", toAccount, "remark", ReferenceApplication.prefs().getBoolean("add_remark",true)?safe(bill.getRemark()):"", "merchant", merchant,
@@ -91,14 +105,37 @@ public final class YimuKernel {
             "tag_ids", tags, "originalNumberValid", amount > 0,
             // Original repeat checks keep BillInfo's captured values, including a missing time (0).
             "original_amount", amount, "original_time", bill.getTime(), "original_income", bill.isIncome(), "original_currency", "CNY", "original_remark", safe(bill.getRemark()));
+        Json.put(data,"capture_requires_confirmation",identity.requiresConfirmation||accountManual||amount<=0);
+        Json.put(data,"capture_window_key",identity.windowKey);
+        Json.put(data,"capture_identity_kind",identity.kind);
+        Json.put(data,"capture_duplicate_hint",identity.requiresConfirmation);
+        Json.put(data,"capture_payment_id",identity.paymentId);
+        Json.put(data,"capture_order_reference",identity.orderReference);
+        Json.put(data,"capture_business_type",identity.businessType);
+        Json.put(data,"capture_account_resolution",accountResolution.reason);
+        Json.put(data,"capture_account_requires_confirmation",accountManual);
+        if(destination!=null)Json.put(data,"capture_to_account_resolution",destination.reason);
+        if(evidence!=null)Json.put(data,"capture_source_route",evidence.sourceRoute);
         if(capturedCategory!=null&&capturedCategory.optLong("id")==category){
             Json.put(data,"parent_semantic_id",bill.getParentCategoryId());Json.put(data,"child_semantic_id",bill.getChildCategoryId());
         }
         try {
-            String id = store.addCandidate(data, pkg, bookId);
-            lastSubmit = now;com.google.android.accessibility.selecttospeak.SelectToSpeakService.f1838j=now; lastKey = key; lastCandidate = id; lastPackage = pkg;
-            if (callback != null) HANDLERS.put(id, callback);
-            ReferenceDiagnostics.result("DRAFT_SAVED");
+            JSONObject prior=identity.key==null?null:store.captureIdentity(identity.key);
+            if(prior==null&&identity.windowKey!=null)prior=store.captureIdentity(identity.windowKey);
+            String id = store.upsertCapturedCandidate(data,pkg,bookId,identity.key,identity.kind);
+            JSONObject persisted=store.candidate(id);
+            if(persisted==null)throw new IllegalStateException("Persisted capture disappeared");
+            if(!"PENDING".equals(persisted.optString("state"))) {
+                JSONArray conflicts=Json.parse(persisted.optString("payload")).optJSONArray("capture_conflict_fields");
+                if(conflicts!=null&&conflicts.length()>0){ReferenceDiagnostics.result("PAYMENT_EVIDENCE_CONFLICT");MAIN.post(CaptureNotifications::evidenceConflict);}
+                else ReferenceDiagnostics.result("PAYMENT_ALREADY_CAPTURED");
+                dismissCallback(callback);return;
+            }
+            com.google.android.accessibility.selecttospeak.SelectToSpeakService.f1838j=now;
+            lastCandidate=id;lastPackage=pkg;
+            if(callback!=null)HANDLERS.putIfAbsent(id,callback);
+            boolean reused=prior!=null&&id.equals(prior.optString("id"));
+            ReferenceDiagnostics.result(reused?"DRAFT_REUSED":"DRAFT_SAVED");
             // AutoSetting.autoAdd belongs to the attached entry window: it counts down for 5s
             // and invokes the same validated save action as a manual click. Never bypass it here.
             long epoch=restoreEpoch;
@@ -109,7 +146,6 @@ public final class YimuKernel {
             });
         } catch (Exception error) { ReferenceDiagnostics.failure("STORE_FAILED",error); MAIN.post(CaptureNotifications::error); }
     }
-    private static long accountNamed(ReferenceStore store, String value) { if (value == null || value.isEmpty()) return 0; JSONObject row = store.one("SELECT id FROM accounts WHERE name=? AND archived=0 AND (CASE WHEN asset_origin='original' AND currency='' THEN 'CNY' ELSE currency END)='CNY'", value); return row == null ? 0 : row.optLong("id"); }
     private static String safe(String value) { return value == null ? "" : value.substring(0, Math.min(2000, value.length())); }
     public static void enrichRemark(String remark) {
         String pkg = SOURCE.get();
@@ -131,8 +167,8 @@ public final class YimuKernel {
     }
     public static void complete(String candidateId) {
         if(candidateId==null)return;
-        // Original closeBtn/u0 restart SelectToSpeakService.j's debounce clock on dismissal.
-        synchronized(YimuKernel.class){lastSubmit=System.currentTimeMillis();com.google.android.accessibility.selecttospeak.SelectToSpeakService.f1838j=lastSubmit;}
+        // This separate timestamp belongs only to a recovered handler's page state machine.
+        com.google.android.accessibility.selecttospeak.SelectToSpeakService.f1838j=System.currentTimeMillis();
         x1.a callback=HANDLERS.get(candidateId);
         if(callback!=null){
             try{enqueue(()->{if(HANDLERS.remove(candidateId,callback))callback.dismiss();});}

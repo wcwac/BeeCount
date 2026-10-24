@@ -26,6 +26,7 @@ public final class ReferenceCaptureService extends AccessibilityService {
     // and remains subscribed after onUnbind until onDestroy.
     private static volatile WeakReference<ReferenceCaptureService> created = new WeakReference<>(null);
     private static volatile WeakReference<ReferenceCaptureService> connected = new WeakReference<>(null);
+    private final String captureSession=java.util.UUID.randomUUID().toString();
     private final Handler main = new Handler(Looper.getMainLooper());
     @Override public void onCreate() {
         super.onCreate(); created = new WeakReference<>(this);
@@ -87,15 +88,15 @@ public final class ReferenceCaptureService extends AccessibilityService {
             try{
                 ReferenceDiagnostics.resolvingSource();
                 AccessibilityNodeInfo initial=owned;owned=null; // Resolver consumes this reference.
-                EventSourceResolver.Result<AccessibilityNodeInfo> resolved=EventSourceResolver.resolve(
-                    initial,packageName,windowId,waited,windows,()->System.nanoTime()/1_000_000,
-                    ReferenceApplication.prefs().getBoolean("use_active_window",false));
+                EventSourceResolver.Result<AccessibilityNodeInfo> resolved=EventSourceResolver.resolvePage(
+                    initial,packageName,windowId,waited,windows,()->System.nanoTime()/1_000_000);
                 owned=resolved.node;
                 ReferenceDiagnostics.sourceResolved(resolved.route.name(),resolved.reason.name(),resolved.lookups,
                     resolved.candidateWindows,resolved.errors,resolved.lastErrorType,windowId);
                 if(current()!=ReferenceCaptureService.this||!AutoApps.accepts(packageName))return;
                 long beforeRead=ReferenceDiagnostics.readCount(),beforeAttempt=ReferenceDiagnostics.attemptCount();
                 YimuKernel.SOURCE.set(packageName);
+                CaptureEvidence.begin(packageName,page,windowId,eventType,resolved.route.name(),captureSession+":"+YimuKernel.observationEpoch());
                 // Keep event class and null-source state transitions used by the recovered handlers.
                 OriginalDispatch.accept(ReferenceCaptureService.this,packageName,page,owned);
                 if(ReferenceDiagnostics.attemptCount()==beforeAttempt)ReferenceDiagnostics.result(
@@ -104,7 +105,7 @@ public final class ReferenceCaptureService extends AccessibilityService {
                     "EMPTY_TREE":"NO_BILL_FROM_ORIGINAL_RULES");
             }catch(NodeReader.Aborted error){ReferenceDiagnostics.failure("NODE_READ_"+error.reason.name(),error);}
             catch(Exception error){ReferenceDiagnostics.failure("PROCESSING_FAILED",error);}
-            finally{YimuKernel.SOURCE.remove();ReferenceDiagnostics.processingFinished();}
+            finally{CaptureEvidence.clear();YimuKernel.SOURCE.remove();ReferenceDiagnostics.processingFinished();}
         }
         @Override protected void closeResource(){AccessibilityNodeInfo node=owned;owned=null;recycle(node);}
     }
@@ -141,7 +142,7 @@ public final class ReferenceCaptureService extends AccessibilityService {
             "eventTypes", info == null ? 0 : info.eventTypes, "effectivePackages", info == null || info.packageNames == null ? new org.json.JSONArray() : new org.json.JSONArray(java.util.Arrays.asList(info.packageNames)),
             "callbackRegistrations",YimuKernel.registeredCallbackCount(),"workerQueueSize",YimuKernel.WORKER.getQueue().size(),"workerActiveCount",YimuKernel.WORKER.getActiveCount(),
             "overlayEnabled",ReferenceApplication.prefs().getBoolean("show_overlay",true),"autoSave",ReferenceApplication.prefs().getBoolean("auto_save",false),"overlay",CaptureOverlay.status(),
-            "sourcePolicy",ReferenceApplication.prefs().getBoolean("use_active_window",false)?"ACTIVE_WINDOW_FIRST":"EVENT_THEN_SAME_WINDOW", "overlayPermissionModel","SYSTEM_ALERT_WINDOW", "overlayPermissionGranted",OverlayPermission.granted(),
+            "sourcePolicy","COMPLETE_SAME_WINDOW_FIRST", "overlayPermissionModel","SYSTEM_ALERT_WINDOW", "overlayPermissionGranted",OverlayPermission.granted(),
             "diagnostics", ReferenceDiagnostics.snapshot());
     }
     @Override public void onInterrupt() { ReferenceDiagnostics.result("FEEDBACK_INTERRUPTED"); }

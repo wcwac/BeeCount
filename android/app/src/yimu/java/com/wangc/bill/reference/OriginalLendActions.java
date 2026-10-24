@@ -54,7 +54,7 @@ public final class OriginalLendActions {
     }
 
     private void independent() {
-        if (store.getWritableDatabase().inTransaction())
+        if ((store.getWritableDatabase().inTransaction() && !AccountingCommitScope.active(store)))
             throw new IllegalStateException("Original Lend stages require independent saves");
     }
 }

@@ -190,8 +190,8 @@ public final class CapturePipelineDeviceTest {
         AutoApps.select("com.eg.android.AlipayGphone",true);
         ReferenceApplication.prefs().edit().putBoolean("auto_save",true).putBoolean("show_overlay",true).commit();observeWindows();
         try(ActivityScenario<ManagerActivity> scenario=manager("capture")){touchMaster(scenario,false);assertRuntimeEnabled(true);}
-        SystemClock.sleep(1300);long began=System.currentTimeMillis();launchNullSourcePayment("22.80");
-        JSONObject pending=waitDraft("com.eg.android.AlipayGphone",began);String id=pending.optString("id");long observed=SystemClock.elapsedRealtime();assertFallbackDraft();visibleOverlayControl("btn_save");
+        SystemClock.sleep(1300);String paymentId="CLOUD"+UUID.randomUUID().toString().replace("-","");long began=System.currentTimeMillis();launchNullSourcePayment("22.80",paymentId);
+        JSONObject pending=waitDraft("com.eg.android.AlipayGphone",began);String id=pending.optString("id");long observed=SystemClock.elapsedRealtime();assertStrongAutoEvidence(pending,paymentId);assertFallbackDraft();visibleOverlayControl("btn_save");
         // Original AutoAddLayout.onAttachedToWindow starts CountDownTimer(5000,1000),
         // whose onFinish clicks btnSave. onTick floors millis/1000, so the first
         // visible label can be 新增(4); do not invent an initial 新增(5) requirement.
@@ -210,8 +210,8 @@ public final class CapturePipelineDeviceTest {
         AutoApps.select("com.eg.android.AlipayGphone",true);
         ReferenceApplication.prefs().edit().putBoolean("auto_save",true).putBoolean("show_overlay",true).commit();observeWindows();
         try(ActivityScenario<ManagerActivity> scenario=manager("capture")){touchMaster(scenario,false);assertRuntimeEnabled(true);}
-        SystemClock.sleep(1300);long began=System.currentTimeMillis();launchNullSourcePayment("23.80");
-        JSONObject pending=waitDraft("com.eg.android.AlipayGphone",began);String id=pending.optString("id");assertFallbackDraft();visibleOverlayControl("btn_save");
+        SystemClock.sleep(1300);String paymentId="CLOUD"+UUID.randomUUID().toString().replace("-","");long began=System.currentTimeMillis();launchNullSourcePayment("23.80",paymentId);
+        JSONObject pending=waitDraft("com.eg.android.AlipayGphone",began);String id=pending.optString("id");assertStrongAutoEvidence(pending,paymentId);assertFallbackDraft();visibleOverlayControl("btn_save");
         await(()->{AccessibilityNodeInfo label=overlayControl("btn_save_text");return label!=null&&label.getText()!=null&&label.getText().toString().matches("新增\\([1-5]\\)");},2500,"No automatic-add countdown before category selection");
         JSONObject selected=null;long initialCategory=Json.parse(pending.optString("payload")).optLong("category_id");
         for(JSONObject category:ReferenceApplication.store().categories("expense"))if(category.optLong("id")!=initialCategory){selected=category;break;}assertNotNull("No alternate category to exercise the real selection",selected);
@@ -492,7 +492,19 @@ public final class CapturePipelineDeviceTest {
     private void await(Check check,long timeout,String message)throws Exception{long end=SystemClock.elapsedRealtime()+timeout;while(SystemClock.elapsedRealtime()<end){if(check.ready())return;SystemClock.sleep(50);}throw new AssertionError(message+"\n"+ReferenceCaptureService.status());}
     private void launch(String component)throws Exception{String result=shell("am start -W -n "+token(component));assertFalse(result,result.contains("Error:"));}
     private void launchAmount(String component,String amount)throws Exception{if(!amount.matches("[1-9][0-9]{0,3}\\.[0-9]{2}"))throw new IllegalArgumentException("Invalid synthetic amount");String result=shell("am start -W -S -n "+token(component)+" --es fixture_amount "+amount);assertFalse(result,result.contains("Error:"));}
-    private void launchNullSourcePayment(String amount)throws Exception{if(!amount.matches("[1-9][0-9]{0,3}\\.[0-9]{2}"))throw new IllegalArgumentException("Invalid synthetic amount");String result=shell("am start -W -S -n com.eg.android.AlipayGphone/com.alipay.android.msp.ui.views.MspContainerActivity --es fixture_amount "+amount+" --ez fixture_null_source true");assertFalse(result,result.contains("Error:"));}
+    private void launchNullSourcePayment(String amount)throws Exception{launchNullSourcePayment(amount,null);}
+    private void launchNullSourcePayment(String amount,String paymentId)throws Exception{
+        if(!amount.matches("[1-9][0-9]{0,3}\\.[0-9]{2}"))throw new IllegalArgumentException("Invalid synthetic amount");
+        if(paymentId!=null&&!paymentId.matches("[A-Za-z0-9_-]{8,128}"))throw new IllegalArgumentException("Invalid synthetic payment ID");
+        String result=shell("am start -W -S -n com.eg.android.AlipayGphone/com.alipay.android.msp.ui.views.MspContainerActivity --es fixture_amount "+amount+" --ez fixture_null_source true"+(paymentId==null?"":" --es fixture_payment_id "+token(paymentId)));
+        assertFalse(result,result.contains("Error:"));
+    }
+    private void assertStrongAutoEvidence(JSONObject candidate,String paymentId){
+        JSONObject payload=Json.parse(candidate.optString("payload"));
+        assertEquals("PAYMENT_ID",payload.optString("capture_identity_kind"));assertEquals(paymentId,payload.optString("capture_payment_id"));
+        assertFalse("A proved payment with explicit default account must allow the real timer",payload.optBoolean("capture_requires_confirmation"));
+        assertEquals("The fixture setup explicitly selected no balance account","USER_DEFAULT_NONE",payload.optString("capture_account_resolution"));assertEquals(0,payload.optLong("account_id"));
+    }
     private String overlayMode()throws Exception{String value=shell("appops get --user current "+token(ReferenceApplication.app().getPackageName())+" SYSTEM_ALERT_WINDOW");Matcher match=Pattern.compile("SYSTEM_ALERT_WINDOW:\\s*(allow|deny|ignore|default|foreground)\\b").matcher(value);if(match.find())return match.group(1);if(value.contains("No operations"))return "default";throw new AssertionError("Unexpected overlay app-op response: "+value);}
     private void writeOverlayMode(String mode)throws Exception{if(!Arrays.asList("allow","deny","ignore","default","foreground").contains(mode))throw new IllegalArgumentException("Unexpected overlay app-op mode");String output=shell("appops set --user current "+token(ReferenceApplication.app().getPackageName())+" SYSTEM_ALERT_WINDOW "+mode);assertFalse(output,output.contains("Error:"));}
     private void setOverlayMode(String mode,boolean granted)throws Exception{writeOverlayMode(mode);assertEquals("Overlay app-op mode was not written",mode,overlayMode());await(()->Settings.canDrawOverlays(ReferenceApplication.app())==granted,5000,"SYSTEM_ALERT_WINDOW grant did not take effect");}

@@ -49,5 +49,5 @@ public final class OriginalAssetCommands {
             if(failure!=null)throw new IllegalStateException("原版账户修改保存失败；已完成的历史记录会保留，请检查后处理");
         }
     }
-    private void independent(){if(store.getWritableDatabase().inTransaction())throw new IllegalStateException("Original Asset saves require independent stages");}
+    private void independent(){if((store.getWritableDatabase().inTransaction() && !AccountingCommitScope.active(store)))throw new IllegalStateException("Original Asset saves require independent stages");}
 }

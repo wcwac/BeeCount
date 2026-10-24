@@ -21,7 +21,7 @@ final class OriginalLendConfirmation {
                     .optLong("lend_row_id");
         }
         if (!"PENDING".equals(candidate.optString("state"))) throw new IllegalArgumentException("采集记录已忽略");
-        if (store.getWritableDatabase().inTransaction()) throw new IllegalStateException("还款各阶段需要独立保存");
+        if ((store.getWritableDatabase().inTransaction() && !AccountingCommitScope.active(store))) throw new IllegalStateException("还款各阶段需要独立保存");
         JSONObject header = store.book(input.optLong("book_id"));
         if (header == null || header.optInt("archived") != 0) throw new IllegalArgumentException("请选择有效账本");
         if (!"transfer".equals(input.optString("kind"))) throw new IllegalArgumentException("请选择转账还款类型");
@@ -72,7 +72,7 @@ final class OriginalLendConfirmation {
                     }
                 }, null);
         if (!result.saved)
-            throw new IllegalStateException("还款部分保存失败，余额、利息或借贷记录可能已改变；请先核对数据，勿重复提交");
+            throw new IllegalStateException("还款未能完整保存，可安全重试");
         OriginalLendRecord lend = result.lend;
         JSONObject confirmed = Json.copy(input);
         Json.put(confirmed, "financial_type", "original_lend");
@@ -91,12 +91,12 @@ final class OriginalLendConfirmation {
             receipt.put("resolved_lend_row_id", lend.localRowId); receipt.put("owner_semantic_id", lend.userId);
             receipt.put("lend_semantic_id", lend.lendId);
             if (db.insertOrThrow("candidate_lend_receipts", null, receipt) == -1)
-                throw new IllegalStateException("还款已完成但确认记录未写入；请核对借贷记录，勿重复提交");
+                throw new IllegalStateException("还款确认记录未能保存，可安全重试");
             ContentValues state = new ContentValues();
             state.put("state", "SAVED"); state.put("save_kind", "lend"); state.putNull("transaction_id");
             state.put("book_id", header.optLong("id")); state.put("payload", confirmed.toString());
             if (db.update("candidates", state, "id=? AND state='PENDING'", new String[]{candidateId}) != 1)
-                throw new IllegalStateException("还款已完成但确认状态保存失败；请核对借贷记录，勿重复提交");
+                throw new IllegalStateException("还款确认状态未能保存，可安全重试");
             db.setTransactionSuccessful();
         } finally { db.endTransaction(); }
         return lend.localRowId;

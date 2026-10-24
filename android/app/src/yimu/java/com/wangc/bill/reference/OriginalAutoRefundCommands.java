@@ -81,7 +81,7 @@ public final class OriginalAutoRefundCommands {
         if (parent == null || projection == null || !Double.isFinite(amountJ) || amountJ == 0.0d
                 || !Double.isFinite(parent.cost)) throw new IllegalArgumentException("请选择账单并输入非零退款金额");
         synchronized (store) {
-            if (store.getWritableDatabase().inTransaction())
+            if ((store.getWritableDatabase().inTransaction() && !AccountingCommitScope.active(store)))
                 throw new IllegalStateException("自动退款阶段需要独立保存");
             OriginalRefundRepository.Snapshot previous = refunds.firstByParent(currentOwner, parent.billId);
             OriginalRefundRepository.Data data = previous == null ? new OriginalRefundRepository.Data() : previous.data.copy();

@@ -87,7 +87,7 @@ jobs:
         run: >-
           python3 .github/scripts/run_checked.py gradle -p android
           :app:assembleRelease :app:assembleDebug :app:assembleDebugAndroidTest
-          :captureFixture:assembleWechatDebug :captureFixture:assembleTaobaoDebug :captureFixture:assembleAlipayDebug :captureFixture:assembleIgnoredDebug
+          :captureFixture:assembleWechatDebug :captureFixture:assembleTaobaoDebug :captureFixture:assembleAlipayDebug :captureFixture:assembleMeituanDebug :captureFixture:assembleIgnoredDebug
           :app:testDebugUnitTest :app:lintRelease --continue --no-daemon --console=plain --stacktrace
       - name: Remove signing material before device tests
         if: always()
@@ -133,7 +133,7 @@ jobs:
           destination.mkdir()
           for group in groups:
               for apk in group:shutil.copy2(apk,destination/apk.name)
-          assert len(list(destination.glob('*.apk')))==6, 'Device APK filenames collided'
+          assert len(list(destination.glob('*.apk')))==7, 'Device APK filenames collided'
           PY
       - name: Prepare official emulator on the same cloud runner
         id: device_setup

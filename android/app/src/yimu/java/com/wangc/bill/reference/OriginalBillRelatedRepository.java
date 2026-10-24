@@ -60,7 +60,7 @@ public final class OriginalBillRelatedRepository {
     /** Support.save catches Exception only; a normal zero-row update is still true. */
     public SaveResult trySaveOriginalRaw(OriginalBillRelatedRecord record) {
         try { saveOriginalRaw(record); return new SaveResult(true, record, null); }
-        catch (Exception error) { return new SaveResult(false, record, error); }
+        catch (Exception error) { AccountingCommitScope.failed(store,error); return new SaveResult(false, record, error); }
     }
 
     /** No allocation, timestamp, network, Bill deletion or balance side effects. */
@@ -74,7 +74,7 @@ public final class OriginalBillRelatedRepository {
                 value.put("owner_semantic_id", record.userId); value.put("related_semantic_id", record.relatedId);
                 value.put("one_bill_semantic_id", record.oneBillId); value.put("two_bill_semantic_id", record.twoBillId);
                 value.put("update_time", record.updateTime); value.put("original_delete_flag", record.originalDeleted ? 1 : 0);
-                if (record.localRowId > 0) db.update("original_bill_related", value, "id=?", new String[]{"" + record.localRowId});
+                if (record.localRowId > 0) AccountingCommitScope.requireChanged(store,db.update("original_bill_related", value, "id=?", new String[]{"" + record.localRowId}));
                 else {
                     long inserted = db.insertOrThrow("original_bill_related", null, value);
                     if (inserted == -1L) throw new IllegalStateException("关联记录未写入");

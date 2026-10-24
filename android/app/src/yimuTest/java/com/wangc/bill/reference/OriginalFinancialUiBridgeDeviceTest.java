@@ -33,7 +33,7 @@ public final class OriginalFinancialUiBridgeDeviceTest {
     private double balance(long row){return store.assetRepository().byRowId(row).optDouble("asset_number");}
     private List<JSONObject> history(){return store.query("SELECT * FROM asset_histories ORDER BY id");}
     private void saveFails(JSONObject input,String candidate) {
-        try{store.saveTransaction(input,0,candidate);fail("Expected an explicit partial-save failure");}
+        try{store.saveTransaction(input,0,candidate);fail("Expected the user entry to fail and roll back");}
         catch(IllegalStateException expected){}
     }
 
@@ -72,22 +72,37 @@ public final class OriginalFinancialUiBridgeDeviceTest {
         commands.editFund(account,"合成资金账户重命名","CNY",9,12);assertEquals(-3,history().get(1).optDouble("change_number"),0);assertEquals(9,balance(account),0);
         assertEquals(0,store.scalar("SELECT COUNT(*) n FROM transactions"));
     }
-    @Test public void failedBillSaveRetainsEarlierBalanceHistoryAndLeavesItsCandidatePending() {
+    @Test public void failedBillSaveRollsBackItsBalanceHistoryAndCandidateBeforeASafeRetry() {
         long account=fund(100);JSONObject data=input(500,account);String candidate=store.addCandidate(data,"com.eg.android.AlipayGphone",data.optLong("book_id"));
+        JSONObject before=store.backup().optJSONObject("tables");
         store.getWritableDatabase().execSQL("CREATE TEMP TRIGGER fail_original_bill BEFORE INSERT ON transactions WHEN NEW.bill_origin='original' BEGIN SELECT RAISE(ABORT,'synthetic rejection'); END");
         saveFails(data,candidate);
-        assertEquals(95,balance(account),0);assertEquals(2,history().size());assertEquals(-5,history().get(1).optDouble("change_number"),0);
-        assertEquals("PENDING",store.candidate(candidate).optString("state"));assertEquals(0,store.candidate(candidate).optLong("transaction_id"));
+        assertEquals(before.toString(),store.backup().optJSONObject("tables").toString());
+        assertEquals(100,balance(account),0);assertEquals(1,history().size());
+        assertEquals("PENDING",store.candidate(candidate).optString("state"));assertTrue(store.candidate(candidate).isNull("transaction_id"));
         assertEquals(0,store.scalar("SELECT COUNT(*) n FROM transactions"));
+        assertFalse(store.assetRepository().categoryMapping(0,99,0).exists);
+        store.getWritableDatabase().execSQL("DROP TRIGGER fail_original_bill");
+        long row=store.saveTransaction(data,0,candidate);assertEquals(95,balance(account),0);assertEquals(2,history().size());
+        assertEquals(500,store.transaction(row).optLong("amount"));assertEquals("SAVED",store.candidate(candidate).optString("state"));
         assertTrue(store.assetRepository().categoryMapping(0,99,0).exists);assertFalse(store.assetRepository().categoryMapping(0,99,-1).exists);
+        assertEquals(row,store.saveTransaction(data,0,candidate));assertEquals(95,balance(account),0);assertEquals(2,history().size());
     }
-    @Test public void failedAssetSaveKeepsItsMutatedHistoryViewAndStillAllowsTheIndependentBillSave() {
+    @Test public void failedAssetSaveRollsBackTheUserEntryAndRetryCommitsTheBillOnlyOnce() {
         long account=fund(100);JSONObject data=input(500,account);String candidate=store.addCandidate(data,"com.eg.android.AlipayGphone",data.optLong("book_id"));
+        JSONObject before=store.backup().optJSONObject("tables");
         store.getWritableDatabase().execSQL("CREATE TEMP TRIGGER fail_original_asset BEFORE UPDATE OF asset_number ON accounts BEGIN SELECT RAISE(ABORT,'synthetic rejection'); END");
+        saveFails(data,candidate);
+        assertEquals(before.toString(),store.backup().optJSONObject("tables").toString());
+        assertEquals(100,balance(account),0);assertEquals(10000,store.accountBalance(account));
+        assertEquals(1,history().size());assertEquals(0,store.scalar("SELECT COUNT(*) n FROM transactions"));
+        assertEquals("PENDING",store.candidate(candidate).optString("state"));assertTrue(store.candidate(candidate).isNull("transaction_id"));
+        store.getWritableDatabase().execSQL("DROP TRIGGER fail_original_asset");
         long row=store.saveTransaction(data,0,candidate);
-        assertEquals(100,balance(account),0);assertEquals(10000,store.accountBalance(account));assertEquals(500,store.transaction(row).optLong("amount"));
+        assertEquals(95,balance(account),0);assertEquals(9500,store.accountBalance(account));assertEquals(500,store.transaction(row).optLong("amount"));
         assertEquals(2,history().size());assertEquals(-5,history().get(1).optDouble("change_number"),0);assertEquals(95,history().get(1).optDouble("current_number"),0);
         assertEquals("SAVED",store.candidate(candidate).optString("state"));assertEquals(row,store.candidate(candidate).optLong("transaction_id"));
+        assertEquals(row,store.saveTransaction(data,0,candidate));assertEquals(95,balance(account),0);assertEquals(2,history().size());
     }
     @Test public void anOldLegacyBillStaysUnmappedWhenEditingItsOrdinaryFields() {
         ContentValues value=new ContentValues();value.put("book_id",1);value.put("kind","expense");value.put("amount",500);value.put("currency","CNY");

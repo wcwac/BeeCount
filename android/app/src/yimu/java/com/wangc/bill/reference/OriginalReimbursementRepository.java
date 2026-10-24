@@ -85,7 +85,7 @@ public final class OriginalReimbursementRepository {
         synchronized(store) {
             Data data=creation(input,now);long semantic=nextSemantic(owner);long[] assignedRow={0};
             try{return new SaveResult(true,insert(owner,semantic,data,now,assignedRow),null);}
-            catch(Exception error){return new SaveResult(false,new Snapshot(assignedRow[0],owner,semantic,now,data),error);}
+            catch(Exception error){ AccountingCommitScope.failed(store,error);return new SaveResult(false,new Snapshot(assignedRow[0],owner,semantic,now,data),error);}
         }
     }
     public SaveResult tryUpdate(Snapshot previous,Data input,long now) {
@@ -93,7 +93,7 @@ public final class OriginalReimbursementRepository {
             if(previous==null||previous.rowId<=0)throw new IllegalArgumentException("报销本地主键无效");
             Data data=checked(input);Snapshot proposed=new Snapshot(previous.rowId,previous.ownerSemanticId,previous.reimbursementSemanticId,now,data);
             try{return new SaveResult(true,update(previous,data,now),null);}
-            catch(Exception error){return new SaveResult(false,proposed,error);}
+            catch(Exception error){ AccountingCommitScope.failed(store,error);return new SaveResult(false,proposed,error);}
         }
     }
     public SaveResult tryUpdate(long row,int owner,Data input,long now) {
@@ -164,8 +164,8 @@ public final class OriginalReimbursementRepository {
             checkExistingIdentity(db,"original_reimbursements","reimbursement_semantic_id",previous.rowId,previous.ownerSemanticId,previous.reimbursementSemanticId);
             ContentValues changes=values(previous.ownerSemanticId,previous.reimbursementSemanticId,data,now);
             if(data.rawEntries==null)changes.remove("entries_is_null");
-            db.update("original_reimbursements",changes,
-                "id=? AND owner_semantic_id=? AND reimbursement_semantic_id=?",new String[]{""+previous.rowId,""+previous.ownerSemanticId,""+previous.reimbursementSemanticId});
+            AccountingCommitScope.requireChanged(store,db.update("original_reimbursements",changes,
+                "id=? AND owner_semantic_id=? AND reimbursement_semantic_id=?",new String[]{""+previous.rowId,""+previous.ownerSemanticId,""+previous.reimbursementSemanticId}));
             if(data.rawEntries!=null)replaceEntries(db,previous.rowId,data.rawEntries);
             Snapshot result=new Snapshot(previous.rowId,previous.ownerSemanticId,previous.reimbursementSemanticId,now,data);
             db.setTransactionSuccessful();return result;
@@ -178,11 +178,11 @@ public final class OriginalReimbursementRepository {
         value.put("reimbursement_num",data.reimbursementNumber);value.put("end",data.end?1:0);value.put("create_time",data.createTime);
         value.put("update_time",now);value.put("original_delete_flag",data.originalDeleted?1:0);value.put("entries_is_null",data.rawEntries==null?1:0);return value;
     }
-    private static void replaceEntries(SQLiteDatabase db,long row,List<String> entries) {
+    private void replaceEntries(SQLiteDatabase db,long row,List<String> entries) {
         db.delete("original_reimbursement_items","reimbursement_row_id=?",new String[]{""+row});if(entries==null)return;
         for(int i=0;i<entries.size();i++) {
             ContentValues value=new ContentValues();value.put("reimbursement_row_id",row);value.put("position",i);value.put("raw_info",entries.get(i));
-            db.insertOrThrow("original_reimbursement_items",null,value);
+            if(db.insertOrThrow("original_reimbursement_items",null,value)==-1&&AccountingCommitScope.active(store))throw new IllegalStateException("关联明细未保存");
         }
     }
     private Snapshot read(JSONObject row) {

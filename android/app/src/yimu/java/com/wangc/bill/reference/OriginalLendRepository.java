@@ -44,7 +44,7 @@ public final class OriginalLendRepository {
     /** LitePalSupport.save catches Exception, not Error. */
     public SaveResult trySaveOriginalRaw(OriginalLendRecord record) {
         try { saveOriginalRaw(record); return new SaveResult(true, record, null); }
-        catch (Exception error) { return new SaveResult(false, record, error); }
+        catch (Exception error) { AccountingCommitScope.failed(store,error); return new SaveResult(false, record, error); }
     }
 
     /** No owner, ID, time, event or financial inference; primitive zero/false still writes. */
@@ -56,7 +56,7 @@ public final class OriginalLendRepository {
                 ContentValues values = values(record);
                 if (record.localRowId > 0) {
                     // Original SaveHandler ignores a normal UPDATE's affected-row count.
-                    db.update(TABLE, values, "id=?", new String[]{"" + record.localRowId});
+                    AccountingCommitScope.requireChanged(store, db.update(TABLE, values, "id=?", new String[]{"" + record.localRowId}));
                 } else {
                     long inserted = db.insertOrThrow(TABLE, null, values);
                     if (inserted == -1L) throw new IllegalStateException("Lend was not inserted");

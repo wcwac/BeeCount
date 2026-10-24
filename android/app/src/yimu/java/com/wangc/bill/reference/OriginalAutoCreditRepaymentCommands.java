@@ -62,8 +62,15 @@ public final class OriginalAutoCreditRepaymentCommands {
         if (selectedFrom.longValue() == selectedTo.longValue()) throw new IllegalArgumentException("请选择不同的账户");
         if (feeText == null || projection == null || effects == null) throw new IllegalArgumentException("Repayment input is required");
         synchronized (store) {
-            if (store.getWritableDatabase().inTransaction())
+            if ((store.getWritableDatabase().inTransaction() && !AccountingCommitScope.active(store)))
                 throw new IllegalStateException("Original repayment stages require independent saves");
+            // Functional user entries cannot record a transfer whose principal was skipped.
+            // Direct raw-source callers outside the commit scope retain their recovered behavior.
+            if(AccountingCommitScope.active(store)) {
+                if(!Double.isFinite(amount)||amount<=0.0d)throw new IllegalArgumentException("转账或还款本金必须大于零");
+                if(mode==1&&!feeText.isEmpty()&&OriginalTransferAmount.isJ(feeText)
+                        &&amount<=OriginalTransferAmount.parseS(feeText))throw new IllegalArgumentException("到账金额必须大于零");
+            }
             JSONObject from = store.assetRepository().p(selectedFrom, owner), to = store.assetRepository().p(selectedTo, owner);
             double principal = amount; boolean skipped = false;
             if (mode == 0 || feeText.isEmpty() || !OriginalTransferAmount.isJ(feeText)) {

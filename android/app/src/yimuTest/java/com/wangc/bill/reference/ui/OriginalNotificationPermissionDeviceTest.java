@@ -3,6 +3,7 @@ package com.wangc.bill.reference.ui;
 import android.Manifest;
 import android.accessibilityservice.AccessibilityServiceInfo;
 import android.app.Dialog;
+import android.app.Application;
 import android.app.Activity;
 import android.app.Instrumentation;
 import android.app.UiAutomation;
@@ -12,6 +13,7 @@ import android.content.pm.PackageManager;
 import android.content.Context;
 import android.graphics.Rect;
 import android.os.Build;
+import android.os.Bundle;
 import android.os.Looper;
 import android.os.ParcelFileDescriptor;
 import android.os.SystemClock;
@@ -68,6 +70,20 @@ public final class OriginalNotificationPermissionDeviceTest {
     private volatile String lastSystemUi = "No system window sampled";
     private volatile String lastBridgeUi = "No bridge window sampled";
     private volatile Result lastResult;
+    private volatile String lastOsFlow = "No actual denial request observed";
+    private final AtomicInteger bridgeCreations = new AtomicInteger();
+    private boolean bridgeObserverRegistered;
+    private final Application.ActivityLifecycleCallbacks bridgeObserver = new Application.ActivityLifecycleCallbacks() {
+        @Override public void onActivityCreated(Activity activity, Bundle state) {
+            if (activity instanceof OriginalPermissionRequestActivity) bridgeCreations.incrementAndGet();
+        }
+        @Override public void onActivityStarted(Activity activity) {}
+        @Override public void onActivityResumed(Activity activity) {}
+        @Override public void onActivityPaused(Activity activity) {}
+        @Override public void onActivityStopped(Activity activity) {}
+        @Override public void onActivitySaveInstanceState(Activity activity, Bundle state) {}
+        @Override public void onActivityDestroyed(Activity activity) {}
+    };
 
     @Before public void open() throws Exception {
         assertEquals("true", InstrumentationRegistry.getArguments().getString("reference_cloud_only"));
@@ -82,7 +98,11 @@ public final class OriginalNotificationPermissionDeviceTest {
         observer.packageNames = new String[]{packageName(), "com.android.permissioncontroller"};
         observer.flags |= AccessibilityServiceInfo.FLAG_REPORT_VIEW_IDS | AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS;
         automation.setServiceInfo(observer); device = UiDevice.getInstance(instrumentation);
-        onMain(() -> assertEquals(0, OriginalNotificationPermission.pendingRequestCount()));
+        onMain(() -> {
+            assertEquals(0, OriginalNotificationPermission.pendingRequestCount());
+            ReferenceApplication.app().registerActivityLifecycleCallbacks(bridgeObserver);
+            bridgeObserverRegistered = true;
+        });
     }
 
     @After public void restore() throws Exception {
@@ -105,6 +125,10 @@ public final class OriginalNotificationPermissionDeviceTest {
                     assertTrue(editor.commit()); ReferenceCaptureService.refresh(); onMain(() -> {});
                 }
             } finally {
+                if (bridgeObserverRegistered) onMain(() -> {
+                    ReferenceApplication.app().unregisterActivityLifecycleCallbacks(bridgeObserver);
+                    bridgeObserverRegistered = false;
+                });
                 if (automation != null) {
                     AccessibilityServiceInfo observer = automation.getServiceInfo(); observer.packageNames = priorObserverPackages;
                     observer.flags = priorObserverFlags;
@@ -161,9 +185,10 @@ public final class OriginalNotificationPermissionDeviceTest {
         try {
             for (int i = 0; i < 2; i++) {
                 Result result = new Result(); request(result);
-                await(() -> result.denied.get() == 1); assertFinished(result, 0, 1);
-                // A user-fixed request can resolve before a first frame. Its
-                // source contract is show-before-launch, not a guaranteed draw.
+                driveActualOsDenial(result); assertFinished(result, 0, 1);
+                // The source requires another real request with no app cooldown
+                // or Settings shortcut. USER_FIXED does not define whether this
+                // particular OS image will draw another permission window.
                 assertEquals(1, result.launches.get()); assertTrue(result.explanationBeforeLaunch.get());
                 assertFalse(OriginalNotificationPermission.granted());
             }
@@ -250,7 +275,8 @@ public final class OriginalNotificationPermissionDeviceTest {
         previousCaptureSetting = preferences.contains("capture_enabled") ? preferences.getBoolean("capture_enabled", false) : null;
         previousNotifySetting = preferences.contains(OriginalSettings.NOTIFY_SHOW) ? preferences.getBoolean(OriginalSettings.NOTIFY_SHOW, false) : null;
         controllerPreferencesSaved = true; assertTrue(preferences.edit().putBoolean(OriginalSettings.NOTIFY_SHOW, true).commit());
-        launch(); AtomicReference<Dialog> explanation = new AtomicReference<>(), continuation = new AtomicReference<>();
+        launch(); Result actualOutcome = new Result();
+        AtomicReference<Dialog> explanation = new AtomicReference<>(), continuation = new AtomicReference<>();
         AtomicBoolean hiddenBeforeAutoTipAttach = new AtomicBoolean(); AtomicInteger settingsStarts = new AtomicInteger(), oemStarts = new AtomicInteger();
         FragmentManager.FragmentLifecycleCallbacks observer = new FragmentManager.FragmentLifecycleCallbacks() {
             @Override public void onFragmentPreAttached(FragmentManager manager, Fragment fragment, Context context) {
@@ -262,14 +288,16 @@ public final class OriginalNotificationPermissionDeviceTest {
             host.getSupportFragmentManager().registerFragmentLifecycleCallbacks(observer, false);
             // Only the running-service branch is controlled. The real permission
             // delegate and real controller continuation run without outcome injection.
-            new OriginalCapturePermissionController(host, () -> false, OriginalNotificationPermission::request,
+            new OriginalCapturePermissionController(host, () -> false,
+                    (owner, outcome) -> launchObservedRequest(owner, actualOutcome, observeAndForward(actualOutcome, outcome)),
                     intent -> settingsStarts.incrementAndGet(), owner -> oemStarts.incrementAndGet()).onMasterChanged(true);
             OriginalTopInfoDialog top = (OriginalTopInfoDialog) host.getSupportFragmentManager().findFragmentByTag("tip");
             assertNotNull(top); assertNotNull(top.getDialog()); explanation.set(top.getDialog()); assertTrue(top.getDialog().isShowing());
             assertNull(host.getSupportFragmentManager().findFragmentByTag("auto_tip"));
             assertTrue(AutoApps.enabled());
         });
-        clickSystemButton(grant ? "permission_allow_button" : "permission_deny_button");
+        if (grant) clickSystemButton("permission_allow_button");
+        else driveActualOsDenial(actualOutcome);
         await(() -> {
             scenario.onActivity(host -> {
                 Fragment fragment = host.getSupportFragmentManager().findFragmentByTag("auto_tip");
@@ -284,6 +312,8 @@ public final class OriginalNotificationPermissionDeviceTest {
             });
             return continuation.get() != null;
         });
+        assertFinished(actualOutcome, grant ? 1 : 0, grant ? 0 : 1);
+        assertSame(explanation.get(), actualOutcome.dialog.get());
         assertEquals(grant, OriginalNotificationPermission.granted()); assertTrue(hiddenBeforeAutoTipAttach.get());
         assertFalse(explanation.get().isShowing()); assertEquals(0, settingsStarts.get()); assertEquals(0, oemStarts.get());
         onMain(() -> assertEquals(0, OriginalNotificationPermission.pendingRequestCount()));
@@ -296,12 +326,25 @@ public final class OriginalNotificationPermissionDeviceTest {
     }
 
     private void request(Result result) {
-        scenario.onActivity(host -> OriginalNotificationPermission.request(host, result, (owner, intent) -> {
-            assertSame(host, owner); observeExplanation(owner, result); result.launches.incrementAndGet();
+        scenario.onActivity(host -> launchObservedRequest(host, result, result));
+    }
+    private void launchObservedRequest(FragmentActivity host, Result observation, OriginalNotificationPermission.Outcome outcome) {
+        OriginalNotificationPermission.request(host, outcome, (owner, intent) -> {
+            assertSame(host, owner); observeExplanation(owner, observation); observation.launches.incrementAndGet();
+            observation.bridgeCreationsBefore.set(bridgeCreations.get());
             assertNotNull(intent.getComponent()); assertEquals(OriginalPermissionRequestActivity.class.getName(), intent.getComponent().getClassName());
             assertEquals(Intent.FLAG_ACTIVITY_NEW_TASK, intent.getFlags());
             assertNotNull(intent.getStringExtra(OriginalPermissionRequestActivity.EXTRA_TOKEN)); owner.startActivity(intent);
-        }));
+        });
+    }
+    private static OriginalNotificationPermission.Outcome observeAndForward(Result observation, OriginalNotificationPermission.Outcome continuation) {
+        // Passive observation of the real bridge callback. Never manufacture an
+        // outcome or call the controller directly to complete the request.
+        return new OriginalNotificationPermission.Outcome() {
+            @Override public void granted() { observation.granted(); continuation.granted(); }
+            @Override public void denied() { observation.denied(); continuation.denied(); }
+            @Override public void unavailable(String code) { observation.unavailable(code); continuation.unavailable(code); }
+        };
     }
     private void observeExplanation(FragmentActivity host, Result result) {
         lastResult = result;
@@ -386,6 +429,76 @@ public final class OriginalNotificationPermissionDeviceTest {
         }
         fail("Actual OS permission button was not in a stable focused interactive window: " + resource + "; " + diagnostic());
     }
+    private void driveActualOsDenial(Result result) {
+        long until = SystemClock.uptimeMillis() + 7000;
+        boolean observedOsUi = false; int physicalTouches = 0;
+        while (SystemClock.uptimeMillis() < until) {
+            lastOsFlow = "observedOSUI=" + observedOsUi + ",physicalTouches=" + physicalTouches
+                    + ",bridgeCreated=" + (bridgeCreations.get() - result.bridgeCreationsBefore.get());
+            if (result.granted.get() != 0) fail("A denial scenario must not become granted: " + diagnostic());
+            if (result.unavailable.get() != 0) fail("A bridge failure is not an OS denial: " + diagnostic());
+            if (result.denied.get() > 1) fail("Duplicate actual denied callbacks: " + diagnostic());
+            if (result.denied.get() == 1) {
+                assertEquals("The request must really launch its bridge", 1, result.launches.get());
+                assertTrue("The launch observation must precede Activity creation", result.bridgeCreationsBefore.get() >= 0);
+                assertEquals("Exactly one real bridge Activity must be created per request",
+                        1, bridgeCreations.get() - result.bridgeCreationsBefore.get());
+                assertFalse("Actual OS denied callback must reflect the current permission", OriginalNotificationPermission.granted());
+                assertTrue(result.onMain.get()); assertTrue(result.dismissedBeforeCallback.get());
+                assertNotNull(result.dialog.get()); assertFalse(result.dialog.get().isShowing());
+                onMain(() -> assertEquals(0, OriginalNotificationPermission.pendingRequestCount()));
+                android.util.Log.i("ReferenceNotificationFlow", lastOsFlow + ",actualOutcome=DENIED");
+                return;
+            }
+            // Pending==0 alone never satisfies this test: a real callback plus
+            // fresh denied permission and bridge lifecycle are required above.
+            int pending = actualPendingRequests();
+            if (pending != 0 && pending != 1) fail("Unexpected pending request count: " + diagnostic());
+            if (pending == 1 && physicalTouches == 0) {
+                SystemButton before = focusedSystemButton("permission_deny_button");
+                if (before != null) {
+                    observedOsUi = true;
+                    lastOsFlow = "observedOSUI=true,physicalTouches=" + physicalTouches
+                            + ",bridgeCreated=" + (bridgeCreations.get() - result.bridgeCreationsBefore.get());
+                    long remaining = until - SystemClock.uptimeMillis();
+                    if (remaining <= 0) break;
+                    try { automation.waitForIdle(Math.min(100L, remaining), remaining); }
+                    catch (TimeoutException timeout) {
+                        lastSystemUi = "Permission window did not become idle within the existing readiness budget; " + lastSystemUi;
+                        break;
+                    }
+                    if (SystemClock.uptimeMillis() >= until) break;
+                    // The OS may already have completed a noninteractive denial.
+                    // Do not click an underlying app window after that result.
+                    if (result.denied.get() != 0 || result.granted.get() != 0 || result.unavailable.get() != 0) continue;
+                    SystemButton after = focusedSystemButton("permission_deny_button");
+                    int freshPending = actualPendingRequests();
+                    // Both calls above can cross process/thread boundaries. They
+                    // cannot extend the deadline or permit a late physical tap.
+                    if (SystemClock.uptimeMillis() >= until) break;
+                    if (after != null && before.windowId == after.windowId && before.bounds.equals(after.bounds)
+                            && before.windowBounds.equals(after.windowBounds) && freshPending == 1
+                            && result.denied.get() == 0 && result.granted.get() == 0 && result.unavailable.get() == 0) {
+                        physicalTouches++;
+                        lastOsFlow = "observedOSUI=true,physicalTouches=" + physicalTouches
+                                + ",bridgeCreated=" + (bridgeCreations.get() - result.bridgeCreationsBefore.get());
+                        if (!device.click(after.bounds.centerX(), after.bounds.centerY()))
+                            fail("Actual OS deny touch injection failed: " + diagnostic());
+                        // Never inject again. Wait for this actual OS result
+                        // within the same original seven-second deadline.
+                    }
+                }
+            }
+            long remaining = until - SystemClock.uptimeMillis();
+            if (remaining > 0) SystemClock.sleep(Math.min(25L, remaining));
+        }
+        fail("The real OS denial did not complete within its original budget: " + diagnostic());
+    }
+    private int actualPendingRequests() {
+        AtomicInteger pending = new AtomicInteger();
+        onMain(() -> pending.set(OriginalNotificationPermission.pendingRequestCount()));
+        return pending.get();
+    }
     private SystemButton focusedSystemButton(String resource) {
         List<AccessibilityWindowInfo> windows = automation.getWindows();
         StringBuilder metadata = new StringBuilder("button=").append(resource);
@@ -422,13 +535,18 @@ public final class OriginalNotificationPermissionDeviceTest {
         return selected;
     }
     private String diagnostic() {
-        AtomicInteger pending = new AtomicInteger(); onMain(() -> pending.set(OriginalNotificationPermission.pendingRequestCount()));
+        AtomicInteger pending = new AtomicInteger(); onMain(() -> {
+            pending.set(OriginalNotificationPermission.pendingRequestCount());
+            Result result = lastResult;
+            if (result != null && result.dialog.get() != null)
+                lastBridgeUi = com.wangc.bill.reference.ReferenceWindowGeometry.describeWindow(result.dialog.get());
+        });
         String value = "pending=" + pending.get() + ",bridgeFailure=" + OriginalNotificationPermission.lastBridgeFailureCode()
                 + ",permissionGranted=" + OriginalNotificationPermission.granted()
                 + ",result=" + (lastResult == null ? "controller/outcome tracked by its actual continuation"
                         : lastResult.granted.get() + ":" + lastResult.denied.get() + ":" + lastResult.unavailable.get()
                                 + ":launches=" + lastResult.launches.get() + ":showBeforeLaunch=" + lastResult.explanationBeforeLaunch.get())
-                + ",system=" + lastSystemUi + ",bridge=" + lastBridgeUi;
+                + ",osFlow=" + lastOsFlow + ",system=" + lastSystemUi + ",bridge=" + lastBridgeUi;
         return value.substring(0, Math.min(3500, value.length()));
     }
     private static final class SystemButton {
@@ -456,6 +574,7 @@ public final class OriginalNotificationPermissionDeviceTest {
     }
     private static final class Result implements OriginalNotificationPermission.Outcome {
         final AtomicInteger granted = new AtomicInteger(), denied = new AtomicInteger(), unavailable = new AtomicInteger(), launches = new AtomicInteger();
+        final AtomicInteger bridgeCreationsBefore = new AtomicInteger(-1);
         final AtomicBoolean onMain = new AtomicBoolean(), dismissedBeforeCallback = new AtomicBoolean(), explanationBeforeLaunch = new AtomicBoolean();
         final AtomicReference<Dialog> dialog = new AtomicReference<>();
         final AtomicReference<View> explanationView = new AtomicReference<>();

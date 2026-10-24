@@ -115,39 +115,48 @@ public final class OriginalAutoRefundConfirmationDeviceTest {
         assertEquals(row, store.candidate(firstCandidate).optLong("transaction_id")); assertEquals(row, store.candidate(nextCandidate).optLong("transaction_id"));
         store.restore(store.backup()); assertEquals("SAVED", store.candidate(purchaseCandidate).optString("state"));
     }
-    @Test public void parentSaveFailureLeavesEarlierEffectsAndCandidatePendingWithAnExplicitWarning() {
-        long account = fund(100), row = expense(account); OriginalBillRecord parent = bills.byLocalRowId(row);
-        JSONObject input = input(3000, account); String candidate = candidate(input);
+    @Test public void parentSaveFailureRollsBackRefundEffectsAndTheSameSelectedHandleCanRetrySafely() {
+        long account=fund(100),row=expense(account);OriginalBillRecord parent=bills.byLocalRowId(row);
+        JSONObject input=input(3000,account);String candidate=candidate(input);JSONObject before=store.backup().optJSONObject("tables");
         store.getWritableDatabase().execSQL("CREATE TRIGGER synthetic_refund_parent_failure BEFORE UPDATE OF bill_cost ON transactions BEGIN SELECT RAISE(ABORT,'synthetic'); END");
-        try { confirm(input, candidate, parent, semantic(account)); fail("partial source save was reported successful"); }
-        catch (IllegalStateException expected) { assertTrue(expected.getMessage().contains("勿重复提交")); }
-        assertEquals(30.0d, balance(account), 0); assertEquals(100.0d, bills.byLocalRowId(row).cost, 0);
-        assertEquals(30.0d, aggregate(parent).data.refundNumber, 0); assertEquals(3, histories().size());
-        assertEquals("PENDING", store.candidate(candidate).optString("state")); assertTrue(store.candidate(candidate).isNull("refund_item_raw"));
+        try{confirm(input,candidate,parent,semantic(account));fail("The failed refund was reported as saved");}catch(RuntimeException expected){}
+        assertEquals(before.toString(),store.backup().optJSONObject("tables").toString());
+        assertEquals(0,balance(account),0);assertEquals(100,bills.byLocalRowId(row).cost,0);assertEquals(100,parent.cost,0);
+        assertNull(aggregate(parent));assertEquals(2,histories().size());
+        assertEquals("PENDING",store.candidate(candidate).optString("state"));assertTrue(store.candidate(candidate).isNull("refund_item_raw"));
+        store.getWritableDatabase().execSQL("DROP TRIGGER synthetic_refund_parent_failure");
+        assertEquals(row,confirm(input,candidate,parent,semantic(account)));
+        assertEquals(30,balance(account),0);assertEquals(70,bills.byLocalRowId(row).cost,0);assertEquals(100,parent.cost,0);
+        assertEquals(30,aggregate(parent).data.refundNumber,0);assertEquals(3,histories().size());
+        assertEquals("SAVED",store.candidate(candidate).optString("state"));
+        JSONObject committed=store.backup().optJSONObject("tables");assertEquals(row,confirm(input,candidate,parent,semantic(account)));
+        assertEquals(committed.toString(),store.backup().optJSONObject("tables").toString());
     }
-    @Test public void retainedParentRewritesItsProjectionAndNullRemarkStillOmitsExistingText() {
-        long firstAccount = fund(100), secondAccount = fund(0), row = expense(firstAccount);
-        OriginalBillRecord selected = bills.byLocalRowId(row);
-        long anotherBook = store.saveBook(0, "后改合成账本", "CNY", 0);
-        OriginalBillRecord changed = bills.byLocalRowId(row); changed.bookId = store.book(anotherBook).optLong("semantic_id");
-        changed.assetId = semantic(secondAccount); changed.parentCategoryId = 1; changed.childCategoryId = 101;
-        changed.time = TIME + 3600000; changed.remark = "后改备注"; changed.discountNumber = 2; changed.notIntoTotal = true; changed.notIntoBudget = true;
-        ContentValues projection = new ContentValues(); projection.put("book_id", anotherBook); projection.put("account_id", secondAccount);
-        projection.put("category_id", store.categoryRepository().child(1, 101).optLong("id")); projection.put("parent_semantic_id", 1); projection.put("child_semantic_id", 101);
-        projection.put("raw_asset_semantic_id", changed.assetId); projection.put("owner_semantic_id", 0); projection.put("remark", changed.remark);
-        projection.put("merchant", "保留宿主商户"); projection.put("time", changed.time); projection.put("discount", 200); projection.put("not_total", 1); projection.put("not_budget", 1);
-        bills.saveOriginalRaw(changed, projection);
-        JSONObject input = input(3000, 0); confirm(input, candidate(input), selected, null);
-        JSONObject restored = store.transaction(row);
-        assertEquals(book, restored.optLong("book_id")); assertEquals(firstAccount, restored.optLong("account_id"));
-        assertEquals(store.categoryRepository().parent(99).optLong("id"), restored.optLong("category_id"));
-        assertEquals("原始备注", restored.optString("remark")); assertEquals("保留宿主商户", restored.optString("merchant"));
-        assertEquals(TIME, restored.optLong("time")); assertEquals(0, restored.optLong("discount"));
-        assertEquals(0, restored.optInt("not_total")); assertEquals(0, restored.optInt("not_budget")); assertEquals(7000, restored.optLong("amount"));
-        OriginalBillRecord nullRemark = bills.byLocalRowId(row); nullRemark.remark = null;
-        store.getWritableDatabase().execSQL("UPDATE transactions SET bill_remark='必须保留',remark='必须保留' WHERE id=?", new Object[]{row});
-        JSONObject next = input(100, 0); confirm(next, candidate(next), nullRemark, null);
-        assertEquals("必须保留", bills.byLocalRowId(row).remark); assertEquals("必须保留", store.transaction(row).optString("remark"));
+    @Test public void refundUsesTheCurrentParentWithoutOverwritingConcurrentEditsOrMutatingTheSelectedHandle() {
+        long firstAccount=fund(100),secondAccount=fund(0),row=expense(firstAccount);
+        OriginalBillRecord selected=bills.byLocalRowId(row);
+        long anotherBook=store.saveBook(0,"后改合成账本","CNY",0);
+        OriginalBillRecord changed=bills.byLocalRowId(row);changed.bookId=store.book(anotherBook).optLong("semantic_id");
+        changed.assetId=semantic(secondAccount);changed.parentCategoryId=1;changed.childCategoryId=101;
+        changed.time=TIME+3600000;changed.remark="后改备注";changed.discountNumber=2;changed.notIntoTotal=true;changed.notIntoBudget=true;
+        ContentValues projection=new ContentValues();projection.put("book_id",anotherBook);projection.put("account_id",secondAccount);
+        projection.put("category_id",store.categoryRepository().child(1,101).optLong("id"));projection.put("parent_semantic_id",1);projection.put("child_semantic_id",101);
+        projection.put("raw_asset_semantic_id",changed.assetId);projection.put("owner_semantic_id",0);projection.put("remark",changed.remark);
+        projection.put("merchant","保留宿主商户");projection.put("time",changed.time);projection.put("discount",200);projection.put("not_total",1);projection.put("not_budget",1);
+        bills.saveOriginalRaw(changed,projection);
+        JSONObject input=input(3000,0);confirm(input,candidate(input),selected,null);
+        JSONObject saved=store.transaction(row);
+        assertEquals(anotherBook,saved.optLong("book_id"));assertEquals(secondAccount,saved.optLong("account_id"));
+        assertEquals(store.categoryRepository().child(1,101).optLong("id"),saved.optLong("category_id"));
+        assertEquals("后改备注",saved.optString("remark"));assertEquals("保留宿主商户",saved.optString("merchant"));
+        assertEquals(TIME+3600000,saved.optLong("time"));assertEquals(200,saved.optLong("discount"));
+        assertEquals(1,saved.optInt("not_total"));assertEquals(1,saved.optInt("not_budget"));assertEquals(7000,saved.optLong("amount"));
+        assertEquals(100,selected.cost,0);assertEquals(book,store.bookRepository().byIdentity(selected.userId,selected.bookId).optLong("id"));
+        OriginalBillRecord nullRemark=bills.byLocalRowId(row);nullRemark.remark=null;
+        store.getWritableDatabase().execSQL("UPDATE transactions SET bill_remark='必须保留',remark='必须保留' WHERE id=?",new Object[]{row});
+        JSONObject next=input(100,0);confirm(next,candidate(next),nullRemark,null);
+        assertEquals("必须保留",bills.byLocalRowId(row).remark);assertEquals("必须保留",store.transaction(row).optString("remark"));
+        assertEquals(6900,store.transaction(row).optLong("amount"));assertNull(nullRemark.remark);
     }
     @Test public void receiptCannotBeReboundToDifferentOwnerWithSameSemanticBillAndRestoreRollsBack() {
         long account = fund(100), row = expense(account); OriginalBillRecord parent = bills.byLocalRowId(row);
@@ -205,28 +214,24 @@ public final class OriginalAutoRefundConfirmationDeviceTest {
         assertEquals(parentRow, store.saveCandidateRefundReplacing(refund, nextCandidate, parent, semantic(account), oldRow));
         assertEquals(5, histories().size()); assertEquals(1, aggregate(parent).data.rawInfos.size());
     }
-    @Test public void replacingTheSelectedIncomeParentKeepsItsRetainedZeroRowSaveAndAnOrphanReceipt() {
-        long account = fund(100); JSONObject oldIncome = input(3000, account); Json.put(oldIncome, "kind", "income");
-        Json.put(oldIncome, "category_id", store.categoryRepository().child(9, 911).optLong("id"));
-        String oldCandidate = candidate(oldIncome); long oldRow = store.saveTransaction(oldIncome, 0, oldCandidate);
-        OriginalBillRecord retainedParent = bills.byLocalRowId(oldRow);
-        JSONObject refund = Json.copy(oldIncome); Json.put(refund, "original_amount", 3000); Json.put(refund, "original_currency", "CNY");
-        String nextCandidate = candidate(refund);
-        assertEquals(oldRow, store.saveCandidateRefundReplacing(refund, nextCandidate, retainedParent, semantic(account), oldRow));
-        assertNull(store.transaction(oldRow)); assertEquals(oldRow, retainedParent.localRowId); assertEquals(0.0d, retainedParent.cost, 0);
-        assertEquals(70.0d, balance(account), 0); assertEquals("DISMISSED", store.candidate(oldCandidate).optString("state"));
-        JSONObject receipt = store.candidate(nextCandidate); assertEquals("SAVED", receipt.optString("state"));
-        assertEquals("refund", receipt.optString("save_kind")); assertEquals(oldRow, receipt.optLong("transaction_id"));
-        OriginalRefundRepository.Snapshot raw = aggregate(retainedParent); assertNotNull(raw);
-        assertNull(raw.data.parentTransactionRowId); assertEquals(retainedParent.billId, raw.data.parentBillSemanticId);
-        assertEquals(-30.0d, OriginalRefundCodec.decodeStrict(raw.data.rawInfos.get(0)).number, 0);
-        assertEquals(4, histories().size()); assertEquals(-30.0d, histories().get(2).optDouble("change_number"), 0);
-        assertEquals(-30.0d, histories().get(3).optDouble("change_number"), 0);
-        // This host receipt establishes metadata consistency, not proof that an
-        // externally supplied backup's absent historical row once existed.
-        store.restore(store.backup()); assertNull(store.transaction(oldRow));
-        assertEquals(oldRow, store.saveCandidateRefundReplacing(refund, nextCandidate, retainedParent, semantic(account), oldRow));
-        assertEquals(70.0d, balance(account), 0); assertEquals(4, histories().size());
+    @Test public void replacingTheSelectedRefundParentRejectsAndRollsBackInsteadOfCreatingAnOrphanReceipt() {
+        long account=fund(100);JSONObject oldIncome=input(3000,account);Json.put(oldIncome,"kind","income");
+        Json.put(oldIncome,"category_id",store.categoryRepository().child(9,911).optLong("id"));
+        String oldCandidate=candidate(oldIncome);long oldRow=store.saveTransaction(oldIncome,0,oldCandidate);
+        OriginalBillRecord retained=bills.byLocalRowId(oldRow);
+        JSONObject refund=Json.copy(oldIncome);Json.put(refund,"original_amount",3000);Json.put(refund,"original_currency","CNY");
+        String nextCandidate=candidate(refund);JSONObject before=store.backup().optJSONObject("tables");
+        try{store.saveCandidateRefundReplacing(refund,nextCandidate,retained,semantic(account),oldRow);fail("Deleted the refund's own selected parent");}
+        catch(RuntimeException expected){}
+        assertEquals(before.toString(),store.backup().optJSONObject("tables").toString());
+        assertNotNull(store.transaction(oldRow));assertEquals(30,bills.byLocalRowId(oldRow).cost,0);assertEquals(30,retained.cost,0);
+        assertEquals(130,balance(account),0);assertEquals("SAVED",store.candidate(oldCandidate).optString("state"));
+        assertEquals("PENDING",store.candidate(nextCandidate).optString("state"));assertNull(aggregate(retained));
+        // The safe alternative is an ordinary refund without deleting its own parent.
+        assertEquals(oldRow,confirm(refund,nextCandidate,retained,semantic(account)));
+        assertEquals(100,balance(account),0);assertEquals(0,bills.byLocalRowId(oldRow).cost,0);assertEquals(30,retained.cost,0);
+        long history=histories().size();assertEquals(oldRow,confirm(refund,nextCandidate,retained,semantic(account)));
+        assertEquals(history,histories().size());assertEquals(100,balance(account),0);
     }
     @Test public void unsupportedHostCurrencyAndInvalidAmountAreRejectedBeforeDeletingARepeatedBill() {
         long account = fund(100); JSONObject oldIncome = input(3000, account); Json.put(oldIncome, "kind", "income");
@@ -236,6 +241,10 @@ public final class OriginalAutoRefundConfirmationDeviceTest {
         for (int scenario = 0; scenario < 3; scenario++) {
             JSONObject refund = Json.copy(oldIncome); Json.put(refund, "original_amount", 3000); Json.put(refund, "original_currency", "CNY");
             selected.currencyInfo = scenario == 0 ? "USD 30" : "";
+            // The user entry intentionally reloads the current parent. Persist
+            // the invalid FX metadata instead of changing only a stale UI object.
+            store.getWritableDatabase().execSQL("UPDATE transactions SET bill_currency_info=? WHERE id=?",new Object[]{selected.currencyInfo,oldRow});
+            assertEquals(selected.currencyInfo,bills.byLocalRowId(oldRow).currencyInfo);
             if (scenario == 1) Json.put(refund, "amount", 0);
             if (scenario == 2) store.getWritableDatabase().execSQL("UPDATE accounts SET asset_currency='CNY',currency='CNY' WHERE id=?", new Object[]{account});
             String nextCandidate = candidate(refund);
@@ -247,31 +256,31 @@ public final class OriginalAutoRefundConfirmationDeviceTest {
             assertEquals(0, store.scalar("SELECT COUNT(*) n FROM original_refunds"));
         }
     }
-    @Test public void restoringAnOrphanReceiptIntoAFreshDatabaseReservesItsDeletedLocalRowId() {
-        long account = fund(100); JSONObject oldIncome = input(3000, account); Json.put(oldIncome, "kind", "income");
-        Json.put(oldIncome, "category_id", store.categoryRepository().child(9, 911).optLong("id"));
-        String oldCandidate = candidate(oldIncome); long oldRow = store.saveTransaction(oldIncome, 0, oldCandidate);
-        OriginalBillRecord retained = bills.byLocalRowId(oldRow); JSONObject refund = Json.copy(oldIncome);
-        Json.put(refund, "original_currency", "CNY"); String receiptId = candidate(refund);
-        store.saveCandidateRefundReplacing(refund, receiptId, retained, semantic(account), oldRow);
-        assertEquals(0, store.scalar("SELECT COUNT(*) n FROM transactions"));
-        JSONObject backup = store.backup(); String freshName = DATABASE + ".fresh.sqlite";
-        context.deleteDatabase(freshName);
-        try (ReferenceStore restored = new ReferenceStore(context, freshName)) {
-            restored.getWritableDatabase(); restored.restore(backup);
-            assertNull(restored.transaction(oldRow)); assertEquals(oldRow, restored.candidate(receiptId).optLong("transaction_id"));
-            long restoredBook = restored.books().get(0).optLong("id");
-            JSONObject next = Json.object("book_id", restoredBook, "kind", "expense", "amount", 100, "currency", "CNY",
-                    "category_id", restored.categoryRepository().parent(99).optLong("id"), "account_id", account,
-                    "time", TIME + 1000, "remark", "恢复后新增账单", "discount", 0, "fee", 0);
-            long nextRow = restored.saveTransaction(next, 0, null);
-            assertTrue("A new Bill reused an orphan receipt's historical local PK", nextRow > oldRow);
-            assertNull(restored.transaction(oldRow));
-            assertEquals(69.0d, restored.assetRepository().byRowId(account).optDouble("asset_number"), 0);
-            restored.restore(restored.backup());
-            assertEquals(nextRow, restored.transaction(nextRow).optLong("id"));
-            assertEquals(oldRow, restored.candidate(receiptId).optLong("transaction_id"));
-            assertEquals("refund", restored.candidate(receiptId).optString("save_kind"));
-        } finally { context.deleteDatabase(freshName); }
+    @Test public void restoringAHistoricalOrphanReceiptStillReservesItsDeletedLocalRowId() {
+        long account=fund(100);JSONObject oldIncome=input(3000,account);Json.put(oldIncome,"kind","income");
+        Json.put(oldIncome,"category_id",store.categoryRepository().child(9,911).optLong("id"));
+        String oldCandidate=candidate(oldIncome);long oldRow=store.saveTransaction(oldIncome,0,oldCandidate);
+        OriginalBillRecord retained=bills.byLocalRowId(oldRow);JSONObject refund=Json.copy(oldIncome);
+        Json.put(refund,"original_currency","CNY");String receiptId=candidate(refund);
+        confirm(refund,receiptId,retained,semantic(account));assertEquals(0,bills.byLocalRowId(oldRow).cost,0);assertEquals(100,balance(account),0);
+        // Explicit historical-data fixture: an earlier version may have accepted
+        // a now-deleted zero-cost parent. This is not an enabled user workflow.
+        store.getWritableDatabase().execSQL("UPDATE candidates SET state='DISMISSED',transaction_id=NULL WHERE id=?",new Object[]{oldCandidate});
+        assertEquals(1,store.getWritableDatabase().delete("transactions","id=?",new String[]{""+oldRow}));
+        assertNull(aggregate(retained).data.parentTransactionRowId);
+        JSONObject backup=store.backup();String freshName=DATABASE+".fresh.sqlite";context.deleteDatabase(freshName);
+        try(ReferenceStore restored=new ReferenceStore(context,freshName)) {
+            restored.getWritableDatabase();restored.restore(backup);
+            assertNull(restored.transaction(oldRow));assertEquals(oldRow,restored.candidate(receiptId).optLong("transaction_id"));
+            long restoredBook=restored.books().get(0).optLong("id");
+            JSONObject next=Json.object("book_id",restoredBook,"kind","expense","amount",100,"currency","CNY",
+                    "category_id",restored.categoryRepository().parent(99).optLong("id"),"account_id",account,
+                    "time",TIME+1000,"remark","恢复后新增账单","discount",0,"fee",0);
+            long nextRow=restored.saveTransaction(next,0,null);
+            assertTrue("A new Bill reused an orphan receipt's historical local PK",nextRow>oldRow);assertNull(restored.transaction(oldRow));
+            assertEquals(99,restored.assetRepository().byRowId(account).optDouble("asset_number"),0);
+            restored.restore(restored.backup());assertEquals(nextRow,restored.transaction(nextRow).optLong("id"));
+            assertEquals(oldRow,restored.candidate(receiptId).optLong("transaction_id"));assertEquals("refund",restored.candidate(receiptId).optString("save_kind"));
+        } finally {context.deleteDatabase(freshName);}
     }
 }

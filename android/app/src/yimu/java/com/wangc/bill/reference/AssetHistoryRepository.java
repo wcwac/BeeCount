@@ -60,7 +60,7 @@ public final class AssetHistoryRepository {
                 // SQLite IGNORE path returns normally without an exception.
                 if(row==-1)throw new IllegalStateException("账户历史未插入");
                 return new SavedHistory(row,owner,semantic,time,updated,true,"");
-            } catch(Exception error) {
+            } catch(Exception error) { AccountingCommitScope.failed(store,error);
                 // Privacy adaptation: preserve save=false without the original stack trace.
                 return new SavedHistory(0,owner,semantic,time,updated,false,error.getClass().getName());
             }

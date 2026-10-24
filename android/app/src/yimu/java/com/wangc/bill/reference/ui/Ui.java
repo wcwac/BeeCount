@@ -59,6 +59,20 @@ public final class Ui {
     }
     public static void page(Context c,String page) { c.startActivity(new Intent(c,ManagerActivity.class).putExtra("page",page)); }
     public static void edit(Context c,long transaction,String candidate) { Intent i=new Intent(c,EditorActivity.class);if(transaction>0)i.putExtra("transaction",transaction);if(candidate!=null)i.putExtra("candidate",candidate);c.startActivity(i); }
+    public static void record(Context context,org.json.JSONObject value) {
+        String type=value.optString("entry_kind","bill");
+        if(type.equals("bill")){edit(context,value.optLong("id"),null);return;}
+        String currency=value.optString("currency","CNY");
+        String title=type.equals("lend")?"还款记录":"转账记录";
+        org.json.JSONObject from=ReferenceApplication.store().assetRepository().byRowId(value.optLong("account_id")),
+                to=ReferenceApplication.store().assetRepository().byRowId(value.optLong("to_account_id"));
+        String detail="金额："+com.wangc.bill.reference.Money.text(value.optLong("amount"),currency)
+                +"\n转出："+(from==null?"未指定":from.optString("name"))+"\n转入："+(to==null?"未指定":to.optString("name"))
+                +"\n手续费："+com.wangc.bill.reference.Money.text(value.optLong("fee"),currency)
+                +"\n时间："+date(value.optLong("time"),"yyyy-MM-dd HH:mm")
+                +(value.optString("remark").isEmpty()?"":"\n备注："+value.optString("remark"));
+        new AlertDialog.Builder(context).setTitle(title).setMessage(detail).setPositiveButton("关闭",null).show();
+    }
     public static void error(Context c,Exception e) { Toast.makeText(c,e.getMessage()==null?"操作失败，请重试":e.getMessage(),Toast.LENGTH_LONG).show(); }
     public static void toast(Context c,String text) { Toast.makeText(c,text,Toast.LENGTH_SHORT).show(); }
     public static void confirm(Context c,String title,String message,Runnable action) { new AlertDialog.Builder(c).setTitle(title).setMessage(message).setNegativeButton("取消",null).setPositiveButton("确定",(d,w)->{try{action.run();}catch(Exception e){error(c,e);}}).show(); }

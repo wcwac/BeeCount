@@ -15,6 +15,7 @@ public final class CaptureNotifications {
         if (count == 0) { manager().cancel(6300); return; }
         post("有 " + count + " 条自动记账待确认", "点击核对采集结果并保存", false);
     }
+    public static void evidenceConflict() { post("同一支付凭据的识别结果不一致", "未重复入账，请核对已保存账单及采集诊断", true); }
     public static void error() { post("自动记账未能保存采集结果", "请打开自动记账诊断查看状态", true); }
     private static NotificationManager manager() { return (NotificationManager) ReferenceApplication.app().getSystemService(android.content.Context.NOTIFICATION_SERVICE); }
     private static void post(String title, String message, boolean failure) {

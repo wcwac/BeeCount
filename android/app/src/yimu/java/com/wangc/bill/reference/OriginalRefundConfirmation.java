@@ -30,7 +30,7 @@ final class OriginalRefundConfirmation {
 
     /** Host-only scope/input guards precede a destructive repeat replacement. */
     static Prepared preflight(ReferenceStore store,JSONObject input,OriginalBillRecord selectedParent,Long receiverSemanticId) {
-        if (store.getWritableDatabase().inTransaction()) throw new IllegalStateException("退款阶段需要独立保存");
+        if ((store.getWritableDatabase().inTransaction() && !AccountingCommitScope.active(store))) throw new IllegalStateException("退款阶段需要独立保存");
         if (selectedParent == null) throw new IllegalArgumentException("请选择退款账单");
         JSONObject projectedParent = store.transaction(selectedParent.localRowId);
         OriginalBillRecord persisted = new OriginalBillRepository(store).byLocalRowId(selectedParent.localRowId);
@@ -78,7 +78,7 @@ final class OriginalRefundConfirmation {
         OriginalAutoRefundCommands.Result result = command.save(selectedParent, receiverSemanticId,
                 BigDecimal.valueOf(minor, 2).doubleValue(), input.optString("remark"), time, inTime,
                 (bill, difference) -> project(store, bill, difference,projectedParent.optLong("book_id")));
-        if (!result.saved) throw new IllegalStateException("退款部分保存失败，余额、历史或原账单可能已改变；请先核对数据，勿重复提交");
+        if (!result.saved) throw new IllegalStateException("退款未能完整保存，可安全重试");
         OriginalRefundRepository.Snapshot refund = result.refundSave.record;
         String itemRaw = refund.data.rawInfos.get(0);
         JSONObject confirmed = Json.copy(input);
@@ -94,7 +94,7 @@ final class OriginalRefundConfirmation {
         receipt.put("payload", confirmed.toString()); receipt.put("refund_owner_semantic_id", refund.ownerSemanticId);
         receipt.put("refund_semantic_id", refund.refundSemanticId); receipt.put("refund_item_raw", itemRaw);
         if (store.getWritableDatabase().update("candidates", receipt, "id=? AND state='PENDING'", new String[]{candidateId}) != 1)
-            throw new IllegalStateException("退款已完成但确认状态保存失败；请核对退款历史，勿重复提交");
+            throw new IllegalStateException("退款确认状态未能保存，可安全重试");
         return selectedParent.localRowId;
     }
 

@@ -69,6 +69,6 @@ public final class OriginalInstalmentCommands {
         if (asset != null && asset.optInt("asset_type") == 2) effects.creditRefresh(asset.optLong("semantic_id"));
     }
     private void independent() {
-        if (store.getWritableDatabase().inTransaction()) throw new IllegalStateException("Original Instalment stages require independent saves");
+        if ((store.getWritableDatabase().inTransaction() && !AccountingCommitScope.active(store))) throw new IllegalStateException("Original Instalment stages require independent saves");
     }
 }

@@ -23,7 +23,7 @@ final class OriginalTransferConfirmation {
                     .optLong("transfer_row_id");
         }
         if (!"PENDING".equals(candidate.optString("state"))) throw new IllegalArgumentException("采集记录已忽略");
-        if (store.getWritableDatabase().inTransaction()) throw new IllegalStateException("转账各阶段需要独立保存");
+        if ((store.getWritableDatabase().inTransaction() && !AccountingCommitScope.active(store))) throw new IllegalStateException("转账各阶段需要独立保存");
         int owner = ReferenceStore.LOCAL_OFFLINE_OWNER;
         JSONObject header = store.book(input.optLong("book_id"));
         if (header == null || header.optInt("archived") != 0) throw new IllegalArgumentException("请选择有效账本");
@@ -72,7 +72,7 @@ final class OriginalTransferConfirmation {
         OriginalAutoTransferCommands.Result result = command.save(fromSemantic, toSemantic, amount, fee, mode,
                 input.optString("remark"), time, bill -> projectFee(store, bill),
                 () -> { if (warning != null) warning.run(); }, null);
-        if (!result.saved) throw new IllegalStateException("转账部分保存失败，余额、手续费或转账记录可能已改变；请先核对数据，勿重复提交");
+        if (!result.saved) throw new IllegalStateException("转账未能完整保存，可安全重试");
         OriginalTransferRecord transfer = result.transfer;
         JSONObject confirmed = Json.copy(input);
         Json.put(confirmed, "financial_type", "original_transfer");
@@ -81,8 +81,8 @@ final class OriginalTransferConfirmation {
         Json.put(confirmed, "transfer_semantic_id", transfer.transferId);
         Json.put(confirmed, "raw_asset_semantic_id", transfer.fromAssetId);
         Json.put(confirmed, "raw_to_asset_semantic_id", transfer.toAssetId);
-        // This small host-only transaction follows all source financial stages.
-        // It cannot roll back a principal change, a fee Bill or w2.g's event tail.
+        // The functional Store entry already owns the outer transaction. This nested
+        // receipt stage and all preceding financial writes commit or roll back together.
         SQLiteDatabase db = store.getWritableDatabase();
         db.beginTransaction();
         try {
@@ -91,12 +91,12 @@ final class OriginalTransferConfirmation {
             receipt.put("resolved_transfer_row_id", transfer.localRowId); receipt.put("owner_semantic_id", transfer.userId);
             receipt.put("transfer_semantic_id", transfer.transferId);
             if (db.insertOrThrow("candidate_transfer_receipts", null, receipt) == -1)
-                throw new IllegalStateException("转账已完成但确认记录未写入；请核对转账记录，勿重复提交");
+                throw new IllegalStateException("转账确认记录未能保存，可安全重试");
             ContentValues state = new ContentValues();
             state.put("state", "SAVED"); state.put("save_kind", "transfer"); state.putNull("transaction_id");
             state.put("book_id", header.optLong("id")); state.put("payload", confirmed.toString());
             if (db.update("candidates", state, "id=? AND state='PENDING'", new String[]{candidateId}) != 1)
-                throw new IllegalStateException("转账已完成但确认状态保存失败；请核对转账记录，勿重复提交");
+                throw new IllegalStateException("转账确认状态未能保存，可安全重试");
             db.setTransactionSuccessful();
         } finally { db.endTransaction(); }
         return transfer.localRowId;

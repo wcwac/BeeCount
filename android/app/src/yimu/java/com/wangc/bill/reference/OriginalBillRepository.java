@@ -112,7 +112,7 @@ public final class OriginalBillRepository {
         try {
             saveOriginalRaw(record, bridgeProjection);
             return new SaveResult(true, record, "");
-        } catch (Exception error) {
+        } catch (Exception error) { AccountingCommitScope.failed(store,error);
             return new SaveResult(false, record, error.getClass().getName());
         }
     }
@@ -139,7 +139,7 @@ public final class OriginalBillRepository {
                 writeScalarFields(record, values);
                 if (record.localRowId > 0) {
                     // SaveHandler.updating ignores the affected-row count, even when zero.
-                    db.update("transactions", values, "id=?", new String[]{"" + record.localRowId});
+                    AccountingCommitScope.requireChanged(store, db.update("transactions", values, "id=?", new String[]{"" + record.localRowId}));
                 } else {
                     long inserted = db.insertOrThrow("transactions", null, values);
                     // A trigger's RAISE(IGNORE) can return -1 without throwing.
@@ -152,7 +152,7 @@ public final class OriginalBillRepository {
                 if (record.tags != null) {
                     ContentValues tags = new ContentValues();
                     tags.put("bill_tags", encodeTags(record.tags));
-                    db.update("transactions", tags, "id=?", new String[]{"" + record.localRowId});
+                    AccountingCommitScope.requireChanged(store, db.update("transactions", tags, "id=?", new String[]{"" + record.localRowId}));
                 }
                 db.setTransactionSuccessful();
                 return record.localRowId;

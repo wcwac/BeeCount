@@ -54,13 +54,22 @@ public final class EventSourceResolver {
     /** The comparison mode prefers a fresh active root, while retaining a valid event source. */
     public static <N, W> Result<N> resolve(N initialNode, String expectedPackage, int eventWindowId,
             long eventAgeMs, Provider<N, W> provider, Clock clock, boolean preferActive) {
+        return resolveInternal(initialNode,expectedPackage,eventWindowId,eventAgeMs,provider,clock,preferActive,false);
+    }
+    /** Reads a complete same-package, same-window page before retaining the source subtree. */
+    public static <N,W> Result<N> resolvePage(N initialNode,String expectedPackage,int eventWindowId,
+            long eventAgeMs,Provider<N,W> provider,Clock clock) {
+        return resolveInternal(initialNode,expectedPackage,eventWindowId,eventAgeMs,provider,clock,true,true);
+    }
+    private static <N,W> Result<N> resolveInternal(N initialNode,String expectedPackage,int eventWindowId,
+            long eventAgeMs,Provider<N,W> provider,Clock clock,boolean preferActive,boolean completePage) {
         Objects.requireNonNull(expectedPackage, "expectedPackage");
         if (expectedPackage.isEmpty()) throw new IllegalArgumentException("Empty event package");
         State<N, W> state=new State<>(expectedPackage,eventWindowId,eventAgeMs,provider,clock);
         state.ownNode(initialNode);
         boolean deliver=false;
         try {
-            try { resolveOwned(initialNode,eventWindowId,eventAgeMs,provider,preferActive,state); }
+            try { resolveOwned(initialNode,eventWindowId,eventAgeMs,provider,preferActive,completePage,state); }
             catch (RuntimeException error) { state.failure(error); }
             deliver=true;
         } finally { state.finish(deliver); }
@@ -68,7 +77,7 @@ public final class EventSourceResolver {
         return state.result();
     }
     private static <N, W> void resolveOwned(N initialNode,int eventWindowId,long eventAgeMs,
-            Provider<N,W> provider,boolean preferActive,State<N,W> state) {
+            Provider<N,W> provider,boolean preferActive,boolean completePage,State<N,W> state) {
         if (initialNode != null) {
             if (state.accept(initialNode,false)) {
                 if (!preferActive) { state.select(initialNode,Route.EVENT_SOURCE); return; }
@@ -85,7 +94,7 @@ public final class EventSourceResolver {
                 state.select(active,Route.ACTIVE_ROOT);
             }
         } catch (RuntimeException error) { state.failure(error); }
-        if (state.selected != null || state.retainedSource != null) return;
+        if (state.selected != null || (!completePage && state.retainedSource != null)) return;
         if (!state.withinBudget()) return;
 
         try {

@@ -47,7 +47,7 @@ public final class OriginalTransferRepository {
     /** Support.save catches Exception only; Error still unwinds the entity transaction. */
     public SaveResult trySaveOriginalRaw(OriginalTransferRecord record) {
         try { saveOriginalRaw(record); return new SaveResult(true, record, null); }
-        catch (Exception error) { return new SaveResult(false, record, error); }
+        catch (Exception error) { AccountingCommitScope.failed(store,error); return new SaveResult(false, record, error); }
     }
 
     /** No owner normalization, semantic allocation, timestamp, balance, files or UI effects. */
@@ -59,7 +59,7 @@ public final class OriginalTransferRepository {
                 ContentValues values = values(record);
                 if (record.localRowId > 0) {
                     // SaveHandler writes primitive zero and ignores the UPDATE row count.
-                    db.update(TABLE, values, "id=?", new String[]{"" + record.localRowId});
+                    AccountingCommitScope.requireChanged(store, db.update(TABLE, values, "id=?", new String[]{"" + record.localRowId}));
                 } else {
                     values.put("tags_is_null", record.tags == null ? 1 : 0);
                     long inserted = db.insertOrThrow(TABLE, null, values);
@@ -90,7 +90,7 @@ public final class OriginalTransferRepository {
         return v;
     }
 
-    private static void replaceTags(SQLiteDatabase db, long rowId, List<Long> tags) {
+    private void replaceTags(SQLiteDatabase db, long rowId, List<Long> tags) {
         db.delete(TAGS_TABLE, "transfer_row_id=?", new String[]{"" + rowId});
         long position = 0;
         for (int i = 0; i < tags.size(); i++) {
@@ -102,7 +102,9 @@ public final class OriginalTransferRepository {
             // The bundled SaveHandler ignores generic SQLiteDatabase.insert's -1.
             // Keep the successful subsequence ordered without inventing a missing
             // position in our additional ordering metadata. Never change the model list.
-            if (db.insert(TAGS_TABLE, null, v) != -1L) position++;
+            long inserted = db.insert(TAGS_TABLE, null, v);
+            if(inserted == -1L && AccountingCommitScope.active(store)) throw new IllegalStateException("转账标签保存失败");
+            if (inserted != -1L) position++;
         }
     }
 

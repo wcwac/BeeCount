@@ -94,7 +94,7 @@ public final class OriginalRefundRepository {
             Data data=checked(input);long semantic=nextSemantic(owner);
             long[] assignedRow={0};
             try {return new SaveResult(true,insert(owner,semantic,data,now,assignedRow),null);}
-            catch(Exception error){return new SaveResult(false,new Snapshot(assignedRow[0],owner,semantic,now,data),error);}
+            catch(Exception error){ AccountingCommitScope.failed(store,error);return new SaveResult(false,new Snapshot(assignedRow[0],owner,semantic,now,data),error);}
         }
     }
     /**
@@ -107,7 +107,7 @@ public final class OriginalRefundRepository {
             Data data=checked(input);
             Snapshot proposed=new Snapshot(previous.rowId,previous.ownerSemanticId,previous.refundSemanticId,now,data);
             try {return new SaveResult(true,update(previous,data,now),null);}
-            catch(Exception error){return new SaveResult(false,proposed,error);}
+            catch(Exception error){ AccountingCommitScope.failed(store,error);return new SaveResult(false,proposed,error);}
         }
     }
     public SaveResult tryUpdate(long rowId,int owner,Data input,long now) {
@@ -173,8 +173,8 @@ public final class OriginalRefundRepository {
             // Ignore affected-row count like original SaveHandler.updating. Never reassign ownership.
             ContentValues changes=values(previous.ownerSemanticId,previous.refundSemanticId,data,now);
             if(data.rawInfos==null)changes.remove("infos_is_null");
-            db.update("original_refunds",changes,
-                "id=? AND owner_semantic_id=? AND refund_semantic_id=?",new String[]{""+previous.rowId,""+previous.ownerSemanticId,""+previous.refundSemanticId});
+            AccountingCommitScope.requireChanged(store,db.update("original_refunds",changes,
+                "id=? AND owner_semantic_id=? AND refund_semantic_id=?",new String[]{""+previous.rowId,""+previous.ownerSemanticId,""+previous.refundSemanticId}));
             // Original updateGenericTables omits null collections; [] explicitly clears.
             if(data.rawInfos!=null)replaceEntries(db,previous.rowId,data.rawInfos);
             Snapshot result=new Snapshot(previous.rowId,previous.ownerSemanticId,previous.refundSemanticId,now,data);
@@ -187,12 +187,12 @@ public final class OriginalRefundRepository {
         values.put("refund_num",data.refundNumber);values.put("update_time",now);values.put("original_delete_flag",data.originalDeleted?1:0);
         values.put("infos_is_null",data.rawInfos==null?1:0);return values;
     }
-    private static void replaceEntries(SQLiteDatabase db,long row,List<String> entries) {
+    private void replaceEntries(SQLiteDatabase db,long row,List<String> entries) {
         db.delete("original_refund_items","refund_row_id=?",new String[]{""+row});
         if(entries==null)return;
         for(int i=0;i<entries.size();i++) {
             ContentValues values=new ContentValues();values.put("refund_row_id",row);values.put("position",i);values.put("raw_json",entries.get(i));
-            db.insertOrThrow("original_refund_items",null,values);
+            if(db.insertOrThrow("original_refund_items",null,values)==-1&&AccountingCommitScope.active(store))throw new IllegalStateException("关联明细未保存");
         }
     }
     private Snapshot read(JSONObject row) {

@@ -185,7 +185,10 @@ public final class OriginalAutoWorkDeviceTest {
                 assertEquals(View.VISIBLE, Ui.view(work.template, "right_text").getVisibility());
                 assertEquals("", text(work.template, "right_text")); assertEquals(View.GONE, Ui.view(work.template, "right_icon").getVisibility());
             });
-            assertTrue(device.pressBack()); await(() -> focused(host.get()));
+            oneRealBackThen("Work-to-original-capture", () -> {
+                AtomicBoolean ready = new AtomicBoolean(); main(() -> ready.set(work.isDestroyed() && host.get().hasWindowFocus()
+                        && attached(host.get().template) && original.get() == Ui.view(host.get().template, "switch_auto_bill"))); return ready.get();
+            });
             scenario.onActivity(activity -> assertSame(original.get(), Ui.view(activity.template, "switch_auto_bill")));
             assertFalse(AutoApps.enabled());
         } finally { instrumentation.removeMonitor(monitor); }
@@ -200,9 +203,19 @@ public final class OriginalAutoWorkDeviceTest {
             Point point = spanPoint(value, "tip_content", 16, 24, "自动记账保活教程");
             assertTrue(device.click(point.x, point.y)); Activity opened = monitor.waitForActivityWithTimeout(7000);
             assertTrue(opened instanceof ManagerActivity); ManagerActivity work = (ManagerActivity) opened; childActivities.add(work);
-            await(() -> focused(work)); main(() -> { assertEquals("auto_work", work.page); assertTrue(parent.isShowing()); });
-            assertTrue(device.pressBack()); await(() -> { AtomicBoolean ready = new AtomicBoolean(); main(() -> ready.set(parent.isShowing()
-                    && parent.getWindow().getDecorView().hasWindowFocus())); return ready.get(); });
+            await(() -> focused(work)); main(() -> {
+                assertEquals("auto_work", work.page);
+                // The original DialogFragment.onStop hides its dialog while the
+                // opaque child Activity covers it. The source link does not dismiss
+                // or replace that retained Fragment/Dialog; visibility returns below.
+                assertTrue(value.isAdded()); assertFalse(value.isRemoving());
+                assertSame(value, host.get().getSupportFragmentManager().findFragmentByTag("draft-parent"));
+                assertSame(parent, value.getDialog());
+            });
+            oneRealBackThen("Work-to-retained-parent-dialog", () -> {
+                AtomicBoolean ready = new AtomicBoolean(); main(() -> ready.set(work.isDestroyed() && value.isResumed()
+                        && value.getDialog() == parent && parent.isShowing() && parent.getWindow().getDecorView().hasWindowFocus())); return ready.get();
+            });
             assertFalse(AutoApps.enabled()); main(() -> assertTrue(value.requireView().isAttachedToWindow()));
         } finally { instrumentation.removeMonitor(monitor); }
     }
@@ -253,7 +266,10 @@ public final class OriginalAutoWorkDeviceTest {
         }; instrumentation.addMonitor(monitor);
         try {
             tap(Ui.view(root, "allow_all_run_background")); await(() -> observed.get() != null && focusedPackage("com.android.settings"));
-            assertDetails(observed.get()); assertTrue(device.pressBack()); await(() -> focused(host.get()));
+            assertDetails(observed.get()); oneRealBackThen("Settings-to-original-Work", () -> {
+                AtomicBoolean ready = new AtomicBoolean(); main(() -> ready.set(host.get().hasWindowFocus()
+                        && host.get().template == root && attached(root))); return ready.get();
+            });
             main(() -> assertSame(root, host.get().template));
             assertEquals(saw, OverlayPermission.granted()); assertEquals(exempt, power.isIgnoringBatteryOptimizations(packageName()));
             assertFalse(AutoApps.enabled());
@@ -294,8 +310,8 @@ public final class OriginalAutoWorkDeviceTest {
             OriginalCaptureBackgroundDialog value = fragment("tip", OriginalCaptureBackgroundDialog.class); common.set(shown(value));
             main(() -> { assertEquals("允许后台运行", text(value.requireView(), "title")); assertEquals("点击「耗电管理」-「允许完全后台行为」", text(value.requireView(), "content")); assertWindow(common.get(), 60); });
             if (action == 0) tap(Ui.view(value.requireView(), "cancel"));
-            else if (action == 1) assertTrue(device.pressBack());
-            else if (action == 2) { AtomicReference<Point> point = new AtomicReference<>(); main(() -> point.set(ReferenceWindowGeometry.outside(common.get(), host.get().getWindow().getDecorView()))); assertTrue(device.click(point.get().x, point.get().y)); }
+            else if (action == 1) dismissWithOneRealBack(value, common.get());
+            else if (action == 2) dismissWithOneRealOutside(value, common.get());
             else tap(Ui.view(value.requireView(), "confirm"));
             await(() -> !common.get().isShowing());
         }
@@ -399,7 +415,7 @@ public final class OriginalAutoWorkDeviceTest {
             tap(Ui.view(controller.root(), "samsung_setting")); OriginalSamsungTipDialog value = fragment("auto_tip", OriginalSamsungTipDialog.class); Dialog dialog = shown(value);
             main(() -> { assertWindow(dialog, 40); assertTrue(hasText(value.requireView(), "三星系统更新至最新版本后，会默认开启“高耗电限制”选项，您需要手动关闭后，再重新配置自动记账：\n电池-后台控制-右上角更多设置-关闭高耗电限制")); });
             if (action == 0) tap(Ui.view(value.requireView(), "cancel")); else if (action == 1) tap(Ui.view(value.requireView(), "confirm"));
-            else if (action == 2) assertTrue(device.pressBack()); else { AtomicReference<Point> point = new AtomicReference<>(); main(() -> point.set(ReferenceWindowGeometry.outside(dialog, host.get().getWindow().getDecorView()))); assertTrue(device.click(point.get().x, point.get().y)); }
+            else if (action == 2) dismissWithOneRealBack(value, dialog); else dismissWithOneRealOutside(value, dialog);
             await(() -> !dialog.isShowing());
         }
         assertEquals(0, launches.get()); assertFalse(AutoApps.enabled()); before.assertUnchanged();
@@ -467,6 +483,56 @@ public final class OriginalAutoWorkDeviceTest {
                 && view.isLaidOut() && view.getLocalVisibleRect(local) && local.contains(view.getWidth() / 2, view.getHeight() / 2)) point.set(ReferenceWindowGeometry.center(view)); }); return point.get() != null; });
         assertTrue("Real focused-view touch was rejected", device.click(point.get().x, point.get().y)); instrumentation.waitForIdleSync();
     }
+    private void oneRealBackThen(String target, BooleanSupplier effect) {
+        oneRealBackThen(target, effect, null);
+    }
+    private void oneRealBackThen(String target, BooleanSupplier effect, Dialog affectedDialog) {
+        // API36 can dispose a Dialog's input receiver after its real back callback
+        // removes the root, so the trailing key-up acknowledgement can be false.
+        // Never send a second Back: require the actual destination/dismissal instead.
+        boolean keyAcknowledged = device.pressBack();
+        awaitActualInputEffect(target, keyAcknowledged, effect, affectedDialog);
+    }
+    private void awaitActualInputEffect(String target, boolean acknowledged, BooleanSupplier effect, Dialog affectedDialog) {
+        try { await(effect); }
+        catch (AssertionError failure) {
+            AtomicReference<String> state = new AtomicReference<>();
+            main(() -> state.set("host=" + ReferenceWindowGeometry.describe(host.get().getWindow().getDecorView())
+                    + ",affectedDialog=" + ReferenceWindowGeometry.describeWindow(affectedDialog)));
+            failure.addSuppressed(new AssertionError("Single system input target=" + target
+                    + ",acknowledged=" + acknowledged + ",state=" + state.get())); throw failure;
+        }
+        android.util.Log.i("AutoWorkInput", "target=" + target + ",acknowledged=" + acknowledged + ",effectSettled=true");
+    }
+    private void dismissWithOneRealBack(DialogFragment fragment, Dialog dialog) {
+        oneRealBackThen("Back-dialog-" + fragment.getTag(), () -> actualDialogRemoved(fragment, dialog), dialog);
+        assertDialogRemoved(fragment, dialog);
+    }
+    private void dismissWithOneRealOutside(DialogFragment fragment, Dialog dialog) {
+        AtomicReference<Point> point = new AtomicReference<>();
+        // Preserve the shared screen-domain/slop-expanded geometry. No direct
+        // dismiss(), accessibility ACTION_CLICK, alternate point, or touch retry.
+        main(() -> point.set(ReferenceWindowGeometry.outside(dialog, host.get().getWindow().getDecorView())));
+        boolean touchAcknowledged = device.click(point.get().x, point.get().y);
+        awaitActualInputEffect("outside-dialog-" + fragment.getTag(), touchAcknowledged, () -> actualDialogRemoved(fragment, dialog), dialog);
+        assertDialogRemoved(fragment, dialog);
+    }
+    private boolean actualDialogRemoved(DialogFragment fragment, Dialog dialog) {
+        AtomicBoolean dismissed = new AtomicBoolean();
+        main(() -> dismissed.set(!dialog.isShowing() && !dialog.getWindow().getDecorView().isAttachedToWindow()
+                && !fragment.isAdded() && host.get().hasWindowFocus() && attached(host.get().template)));
+        return dismissed.get();
+    }
+    private void assertDialogRemoved(DialogFragment fragment, Dialog dialog) {
+        main(() -> {
+            String state = "fragmentAdded=" + fragment.isAdded() + ",fragmentRemoving=" + fragment.isRemoving()
+                    + ",window=" + ReferenceWindowGeometry.describeWindow(dialog);
+            assertFalse("The actual dialog stayed showing after one input; " + state, dialog.isShowing());
+            assertFalse("The old dialog window stayed attached; " + state, dialog.getWindow().getDecorView().isAttachedToWindow());
+            assertFalse("The source fragment stayed in its manager; " + state, fragment.isAdded());
+            assertTrue("Input did not return focus to the original page; " + state, host.get().hasWindowFocus());
+        });
+    }
     private Point spanPoint(DialogFragment fragment, String id, int start, int end, String expected) {
         AtomicReference<Point> point = new AtomicReference<>(); main(() -> {
             TextView view = Ui.view(fragment.requireView(), id); assertTrue(view.getText() instanceof Spanned); Spanned text = (Spanned) view.getText();
@@ -491,7 +557,13 @@ public final class OriginalAutoWorkDeviceTest {
             int width = ((WindowManager) ReferenceApplication.app().getSystemService(android.content.Context.WINDOW_SERVICE)).getCurrentWindowMetrics().getBounds().width();
             assertEquals(dp(2), p.width); assertEquals(dp(5), p.height); assertEquals(width - dp(2), p.x); assertEquals(firstParameters ? (height / 5) * 4 : height / 2, p.y);
             assertEquals(dp(2), view.getWidth()); assertEquals(dp(5), view.getHeight());
-            assertEquals(2038, p.type); assertEquals(524328, p.flags); assertEquals(PixelFormat.RGBA_8888, p.format); assertEquals(Gravity.START | Gravity.TOP, p.gravity);
+            assertEquals(2038, p.type);
+            // Cloud66's real addView appended only FLAG_HARDWARE_ACCELERATED
+            // (0x01000000). Keep all source bits exact and reject every other bit;
+            // the production snapshot must still report unmodified live attributes.
+            assertEquals(524328, p.flags & ~WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED);
+            assertEquals(p.flags, ((WindowManager.LayoutParams) view.getLayoutParams()).flags);
+            assertEquals(PixelFormat.RGBA_8888, p.format); assertEquals(Gravity.START | Gravity.TOP, p.gravity);
             assertFalse(view.hasWindowFocus()); assertEquals(0.01f, ((ViewGroup) ((ViewGroup) view).getChildAt(0)).getChildAt(0).getAlpha(), 0f);
             p.width = 9999; assertEquals("Inspection must not mutate live parameters", dp(2), window().retainedParams().width);
         });

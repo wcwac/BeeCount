@@ -14,7 +14,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import static org.junit.Assert.*;
 
-/** Store's checked repayment API and the independent receipt after original X's writes. */
+/** Atomic checked repayment API and idempotent receipt; raw X stages are tested separately. */
 @RunWith(AndroidJUnit4.class)
 public final class OriginalLendConfirmationDeviceTest {
     private static final String DATABASE = "reference_lend_confirmation_test.sqlite";
@@ -80,12 +80,16 @@ public final class OriginalLendConfirmationDeviceTest {
         assertEquals("收款合成信贷账户 还款优惠", discount.remark); assertEquals(92, balance(from), 0); assertEquals(15, balance(to), 0);
     }
 
-    @Test public void arrivalWarningStillSavesTheInterestAndLendWithoutChangingThePrincipal() {
-        prefs.edit().putInt("original_transfer_mode", 1).commit();
-        JSONObject input = input("1", "2"); String id = candidate(input); AtomicInteger warnings = new AtomicInteger();
-        OriginalLendRecord repayment = lend(store.saveCandidateCreditRepayment(input, id, warnings::incrementAndGet));
-        assertEquals(1, warnings.get()); assertEquals(1, repayment.number, 0); assertEquals(2, repayment.interest, 0);
-        assertEquals(98, balance(from), 0); assertEquals(5, balance(to), 0); assertEquals("SAVED", store.candidate(id).optString("state"));
+    @Test public void nonPositiveRepaymentArrivalRejectsBeforeWarningsOrAnyFinancialEffects() {
+        prefs.edit().putInt("original_transfer_mode",1).commit();
+        for(String amount:new String[]{"1","2"}) {
+            JSONObject input=input(amount,"2");String id=candidate(input);AtomicInteger warnings=new AtomicInteger();
+            JSONObject before=store.backup().optJSONObject("tables");
+            try{store.saveCandidateCreditRepayment(input,id,warnings::incrementAndGet);fail("Saved a nonpositive repayment arrival");}
+            catch(IllegalArgumentException expected){assertTrue(expected.getMessage().contains("到账"));}
+            assertEquals(0,warnings.get());assertEquals(before.toString(),store.backup().optJSONObject("tables").toString());
+            assertEquals(100,balance(from),0);assertEquals(5,balance(to),0);assertPendingWithoutReceipt(id);
+        }
     }
 
     @Test public void differingFeePredicatesPreservePrincipalDeductionAndInterestClassification() {
@@ -98,11 +102,15 @@ public final class OriginalLendConfirmationDeviceTest {
         assertEquals(1, store.scalar("SELECT COUNT(*) n FROM transactions"));
     }
 
-    @Test public void signedAndZeroPrincipalBecomeAbsoluteLendNumbersWithoutABillAmountGate() {
-        JSONObject negative = input("-10", ""); OriginalLendRecord first = lend(confirm(negative, candidate(negative)));
-        assertEquals(10, first.number, 0); assertEquals(-1, first.billId); assertEquals(90, balance(from), 0); assertEquals(15, balance(to), 0);
-        JSONObject zero = input("0", ""); assertEquals(0, lend(confirm(zero, candidate(zero))).number, 0);
-        assertEquals(0, store.scalar("SELECT COUNT(*) n FROM transactions"));
+    @Test public void nonPositiveRepaymentPrincipalRejectsWithoutCreatingAnAbsoluteDebtRecord() {
+        for(String amount:new String[]{"-10","0","-0.00"}) {
+            JSONObject input=input(amount,"");String id=candidate(input);JSONObject before=store.backup().optJSONObject("tables");
+            try{confirm(input,id);fail("Saved a nonpositive repayment principal");}
+            catch(IllegalArgumentException expected){assertTrue(expected.getMessage().contains("本金"));}
+            assertEquals(before.toString(),store.backup().optJSONObject("tables").toString());
+            assertEquals(100,balance(from),0);assertEquals(5,balance(to),0);assertPendingWithoutReceipt(id);
+        }
+        assertEquals(0,store.scalar("SELECT COUNT(*) n FROM original_lends"));assertEquals(0,store.scalar("SELECT COUNT(*) n FROM transactions"));
     }
 
     @Test public void theExplicitRepaymentRouteDoesNotRecheckTheFreshDestinationType() {
@@ -111,15 +119,17 @@ public final class OriginalLendConfirmationDeviceTest {
         assertEquals(4, lend(confirm(input, id)).type); assertEquals(0, store.scalar("SELECT COUNT(*) n FROM original_transfers"));
     }
 
-    @Test public void aRetainedMissingSourceCanReachTheOriginalWarningAndZeroInterestBranch() {
-        prefs.edit().putInt("original_transfer_mode", 1).commit();
-        JSONObject input = input(".1", ".5"); String id = candidate(input);
-        store.getWritableDatabase().delete("accounts", "id=?", new String[]{"" + from});
-        AtomicInteger warnings = new AtomicInteger(); OriginalLendRecord repayment = lend(store.saveCandidateCreditRepayment(input, id, warnings::incrementAndGet));
-        assertEquals(1, warnings.get()); assertEquals(0, repayment.repaymentAssetId); assertEquals(.1, repayment.number, 0);
-        assertEquals(0, repayment.interest, 0); assertEquals(-1, repayment.billId); assertEquals(5, balance(to), 0);
-        JSONObject payload = Json.parse(store.candidate(id).optString("payload")); assertEquals(1001, payload.optLong("raw_asset_semantic_id"));
-        store.restore(store.backup()); assertEquals(repayment.localRowId, confirm(input, id));
+    @Test public void aRetainedMissingSourceCannotCreateARepaymentWhoseArrivalWouldBeSkipped() {
+        prefs.edit().putInt("original_transfer_mode",1).commit();
+        JSONObject input=input(".1",".5");String id=candidate(input);
+        store.getWritableDatabase().delete("accounts","id=?",new String[]{""+from});
+        JSONObject before=store.backup().optJSONObject("tables");AtomicInteger warnings=new AtomicInteger();
+        try{store.saveCandidateCreditRepayment(input,id,warnings::incrementAndGet);fail("Saved a skipped-principal repayment");}
+        catch(IllegalArgumentException expected){assertTrue(expected.getMessage().contains("到账"));}
+        assertEquals(0,warnings.get());assertEquals(5,balance(to),0);assertPendingWithoutReceipt(id);
+        assertEquals(before.toString(),store.backup().optJSONObject("tables").toString());
+        assertEquals(0,store.scalar("SELECT COUNT(*) n FROM original_lends"));assertEquals(0,store.scalar("SELECT COUNT(*) n FROM transactions"));
+        assertEquals(1001,Json.parse(store.candidate(id).optString("payload")).optLong("raw_asset_semantic_id"));
     }
 
     @Test public void filesForeignCurrencyAndInvalidHostInputsRejectBeforeFinancialChanges() {
@@ -132,25 +142,22 @@ public final class OriginalLendConfirmationDeviceTest {
         assertEquals("PENDING", store.candidate(id).optString("state"));
     }
 
-    @Test public void failedLendSaveRetainsEarlierPrincipalAndInterestWithoutAConfirmationReceipt() {
+    @Test public void failedLendSaveRollsBackPrincipalAndInterestBeforeASafeRetry() {
         store.getWritableDatabase().execSQL("CREATE TRIGGER synthetic_lend_failure BEFORE INSERT ON original_lends BEGIN SELECT RAISE(ABORT,'synthetic'); END");
-        JSONObject input = input("10", "2"); String id = candidate(input); expectPartial(input, id);
-        assertEquals(88, balance(from), 0); assertEquals(15, balance(to), 0); assertEquals(1, store.scalar("SELECT COUNT(*) n FROM transactions"));
-        assertEquals(0, store.scalar("SELECT COUNT(*) n FROM original_lends")); assertPendingWithoutReceipt(id);
+        JSONObject input=input("10","2");String id=candidate(input);
+        assertRollbackAndRetry(input,id,"synthetic_lend_failure",88,2);
     }
 
-    @Test public void failedInterestSaveStillPersistsTheSourceLendAndEarlierBalances() {
+    @Test public void failedInterestSaveCannotLeaveALendOrBalanceChangeAndCanRetryOnce() {
         store.getWritableDatabase().execSQL("CREATE TRIGGER synthetic_interest_failure BEFORE INSERT ON transactions BEGIN SELECT RAISE(ABORT,'synthetic'); END");
-        JSONObject input = input("10", "2"); String id = candidate(input); expectPartial(input, id);
-        assertEquals(88, balance(from), 0); assertEquals(15, balance(to), 0); assertEquals(0, store.scalar("SELECT COUNT(*) n FROM transactions"));
-        assertEquals(1, store.scalar("SELECT COUNT(*) n FROM original_lends")); assertPendingWithoutReceipt(id);
+        JSONObject input=input("10","2");String id=candidate(input);
+        assertRollbackAndRetry(input,id,"synthetic_interest_failure",88,2);
     }
 
-    @Test public void ignoredReceiptInsertCannotUndoFinancialStagesOrMarkTheCandidateSaved() {
+    @Test public void anIgnoredRepaymentReceiptRollsBackAllFinancialStagesBeforeRetry() {
         store.getWritableDatabase().execSQL("CREATE TRIGGER synthetic_lend_receipt_ignored BEFORE INSERT ON candidate_lend_receipts BEGIN SELECT RAISE(IGNORE); END");
-        JSONObject input = input("10", ""); String id = candidate(input); expectPartial(input, id);
-        assertEquals(90, balance(from), 0); assertEquals(15, balance(to), 0); assertEquals(1, store.scalar("SELECT COUNT(*) n FROM original_lends"));
-        assertPendingWithoutReceipt(id);
+        JSONObject input=input("10","");String id=candidate(input);
+        assertRollbackAndRetry(input,id,"synthetic_lend_receipt_ignored",90,0);
     }
 
     @Test public void repaymentReceiptsCannotEscapeThroughBillRefundRepeatOrTransferApis() {
@@ -167,11 +174,23 @@ public final class OriginalLendConfirmationDeviceTest {
     private void expectRejected(JSONObject input, String id) {
         try { confirm(input, id); fail("invalid host input changed financial state"); } catch (IllegalArgumentException expected) {}
     }
-    private void expectPartial(JSONObject input, String id) {
-        try { confirm(input, id); fail("partial financial save was reported as complete"); }
-        catch (IllegalStateException expected) { assertTrue(expected.getMessage().contains("勿重复提交")); }
-    }
     private void assertPendingWithoutReceipt(String id) {
         assertEquals("PENDING", store.candidate(id).optString("state")); assertEquals(0, store.scalar("SELECT COUNT(*) n FROM candidate_lend_receipts"));
     }
+    private void assertRollbackAndRetry(JSONObject input,String id,String trigger,double expectedFrom,double interest) {
+        JSONObject before=store.backup().optJSONObject("tables");
+        try{confirm(input,id);fail("The injected SQL failure was reported as saved");}catch(RuntimeException expected){}
+        assertEquals(before.toString(),store.backup().optJSONObject("tables").toString());
+        assertEquals(100,balance(from),0);assertEquals(5,balance(to),0);assertPendingWithoutReceipt(id);
+        store.getWritableDatabase().execSQL("DROP TRIGGER "+trigger);
+        long row=confirm(input,id);OriginalLendRecord repayment=lend(row);assertNotNull(repayment);
+        assertEquals(4,repayment.type);assertEquals(10,repayment.number,0);assertEquals(interest,repayment.interest,0);
+        assertEquals(expectedFrom,balance(from),0);assertEquals(15,balance(to),0);
+        assertEquals(1,store.scalar("SELECT COUNT(*) n FROM original_lends"));assertEquals(interest==0?0:1,store.scalar("SELECT COUNT(*) n FROM transactions"));
+        assertEquals("SAVED",store.candidate(id).optString("state"));assertTrue(store.candidate(id).isNull("transaction_id"));
+        assertEquals(row,store.one("SELECT lend_row_id FROM candidate_lend_receipts WHERE candidate_id=?",id).optLong("lend_row_id"));
+        JSONObject committed=store.backup().optJSONObject("tables");assertEquals(row,confirm(input,id));
+        assertEquals(committed.toString(),store.backup().optJSONObject("tables").toString());
+    }
+
 }

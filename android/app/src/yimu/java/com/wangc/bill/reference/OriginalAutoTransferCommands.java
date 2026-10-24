@@ -74,8 +74,15 @@ public final class OriginalAutoTransferCommands {
         if (selectedFrom.longValue() == selectedTo.longValue()) throw new IllegalArgumentException("请选择不同的账户");
         if (feeText == null || projection == null || effects == null) throw new IllegalArgumentException("Transfer input is required");
         synchronized (store) {
-            if (store.getWritableDatabase().inTransaction())
+            if ((store.getWritableDatabase().inTransaction() && !AccountingCommitScope.active(store)))
                 throw new IllegalStateException("Original Transfer stages require independent saves");
+            // Functional user entries cannot record a transfer whose principal was skipped.
+            // Direct raw-source callers outside the commit scope retain their recovered behavior.
+            if(AccountingCommitScope.active(store)) {
+                if(!Double.isFinite(j)||j<=0.0d)throw new IllegalArgumentException("转账或还款本金必须大于零");
+                if(mode==1&&!feeText.isEmpty()&&OriginalTransferAmount.isJ(feeText)
+                        &&j<=OriginalTransferAmount.parseS(feeText))throw new IllegalArgumentException("到账金额必须大于零");
+            }
             // f.P ignores showBook, hide and type. Missing freshly queried objects
             // are not replaced with selected/stale objects or an invented account.
             JSONObject from = store.assetRepository().p(selectedFrom, owner);

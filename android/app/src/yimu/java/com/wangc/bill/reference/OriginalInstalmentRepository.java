@@ -75,7 +75,7 @@ public final class OriginalInstalmentRepository {
     }
     public SaveResult trySaveOriginalRaw(OriginalInstalmentRecord record) {
         try { saveOriginalRaw(record); return new SaveResult(true, record, null); }
-        catch (Exception error) { return new SaveResult(false, record, error); }
+        catch (Exception error) { AccountingCommitScope.failed(store,error); return new SaveResult(false, record, error); }
     }
 
     /** Save's primitive-zero/null-reference behavior, without g1.d/E timestamps or callbacks. */
@@ -87,7 +87,7 @@ public final class OriginalInstalmentRepository {
                 ContentValues values = values(record);
                 if (record.localRowId > 0) {
                     // Original SaveHandler ignores the number of affected rows.
-                    db.update(TABLE, values, "id=?", new String[]{"" + record.localRowId});
+                    AccountingCommitScope.requireChanged(store, db.update(TABLE, values, "id=?", new String[]{"" + record.localRowId}));
                 } else {
                     long inserted = db.insertOrThrow(TABLE, null, values);
                     if (inserted == -1L) throw new IllegalStateException("Instalment was not inserted");

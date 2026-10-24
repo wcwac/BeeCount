@@ -13,7 +13,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import static org.junit.Assert.*;
 
-/** Actual Store dispatcher, typed receipt, fee book and independently committed source stages. */
+/** Atomic user-entry dispatcher, typed receipt, fee book and safe retry; raw commands are tested separately. */
 @RunWith(AndroidJUnit4.class)
 public final class OriginalTransferConfirmationDeviceTest {
     private static final String DATABASE = "reference_transfer_confirmation_test.sqlite";
@@ -75,22 +75,26 @@ public final class OriginalTransferConfirmationDeviceTest {
         assertEquals(header, store.candidate(id).optLong("book_id")); assertEquals(9, fee.parentCategoryId); assertEquals(911, fee.childCategoryId);
         assertEquals("转出合成账户 转账优惠", fee.remark); assertEquals(92.0d, balance(from), 0); assertEquals(15.0d, balance(to), 0);
     }
-    @Test public void nonPositiveArrivalWarnsButStillPersistsTheSourceFeeAndTransfer() {
-        prefs.edit().putInt("original_transfer_mode", 1).commit();
-        JSONObject input = input("1", "2"); String id = candidate(input); AtomicInteger warnings = new AtomicInteger();
-        long row = store.saveCandidateTransfer(input, id, warnings::incrementAndGet);
-        assertEquals(1, warnings.get()); assertEquals(98.0d, balance(from), 0); assertEquals(5.0d, balance(to), 0);
-        OriginalTransferRecord transfer = new OriginalTransferRepository(store).byLocalRowId(row);
-        assertEquals(1.0d, transfer.cost, 0); assertEquals(2.0d, transfer.serviceCharge, 0);
-        assertEquals("SAVED", store.candidate(id).optString("state"));
+    @Test public void nonPositiveArrivalIsRejectedBeforeWarningsOrAnyTransferEffects() {
+        prefs.edit().putInt("original_transfer_mode",1).commit();
+        for(String amount:new String[]{"1","2"}) {
+            JSONObject input=input(amount,"2");String id=candidate(input);AtomicInteger warnings=new AtomicInteger();
+            JSONObject before=store.backup().optJSONObject("tables");
+            try{store.saveCandidateTransfer(input,id,warnings::incrementAndGet);fail("Saved a nonpositive arrival");}
+            catch(IllegalArgumentException expected){assertTrue(expected.getMessage().contains("到账"));}
+            assertEquals(0,warnings.get());assertEquals(before.toString(),store.backup().optJSONObject("tables").toString());
+            assertEquals(100,balance(from),0);assertEquals(5,balance(to),0);assertEquals("PENDING",store.candidate(id).optString("state"));
+        }
     }
-    @Test public void signedAndZeroPrincipalRemainRawWithoutInventingAPositiveBillAmountGate() {
-        JSONObject negative = input("-10", ""); String first = candidate(negative); long row = confirm(negative, first);
-        assertEquals(-10.0d, new OriginalTransferRepository(store).byLocalRowId(row).cost, 0);
-        assertEquals(90.0d, balance(from), 0); assertEquals(15.0d, balance(to), 0);
-        JSONObject zero = input("0", ""); long zeroRow = confirm(zero, candidate(zero));
-        assertEquals(0.0d, new OriginalTransferRepository(store).byLocalRowId(zeroRow).cost, 0);
-        assertEquals(0, store.scalar("SELECT COUNT(*) n FROM transactions"));
+    @Test public void nonPositiveTransferPrincipalIsRejectedWithoutAnyFinancialMutation() {
+        for(String amount:new String[]{"-10","0","-0.00"}) {
+            JSONObject input=input(amount,"");String id=candidate(input);JSONObject before=store.backup().optJSONObject("tables");
+            try{confirm(input,id);fail("Saved a nonpositive transfer principal");}
+            catch(IllegalArgumentException expected){assertTrue(expected.getMessage().contains("本金"));}
+            assertEquals(before.toString(),store.backup().optJSONObject("tables").toString());
+            assertEquals(100,balance(from),0);assertEquals(5,balance(to),0);assertEquals("PENDING",store.candidate(id).optString("state"));
+        }
+        assertEquals(0,store.scalar("SELECT COUNT(*) n FROM transactions"));assertEquals(0,store.scalar("SELECT COUNT(*) n FROM original_transfers"));
     }
     @Test public void checkedRepaymentAndUnportedFilesFailBeforeAnyFinancialMutation() {
         store.getWritableDatabase().execSQL("UPDATE accounts SET asset_type=2 WHERE id=?", new Object[]{to});
@@ -114,22 +118,15 @@ public final class OriginalTransferConfirmationDeviceTest {
         assertEquals(2, store.scalar("SELECT COUNT(*) n FROM original_transfers"));
         assertEquals(0, store.scalar("SELECT COUNT(*) n FROM original_lends"));
     }
-    @Test public void failedTransferSavePreservesEarlierPrincipalAndFeeWithoutASuccessReceipt() {
+    @Test public void failedTransferSaveRollsBackPrincipalAndFeeAndCanRetryOnce() {
         store.getWritableDatabase().execSQL("CREATE TRIGGER synthetic_transfer_save_failure BEFORE INSERT ON original_transfers BEGIN SELECT RAISE(ABORT,'synthetic'); END");
-        JSONObject input = input("10", "2"); String id = candidate(input);
-        try { confirm(input, id); fail("partial save was reported as complete"); }
-        catch (IllegalStateException expected) { assertTrue(expected.getMessage().contains("勿重复提交")); }
-        assertEquals(88.0d, balance(from), 0); assertEquals(15.0d, balance(to), 0);
-        assertEquals(1, store.scalar("SELECT COUNT(*) n FROM transactions")); assertEquals(0, store.scalar("SELECT COUNT(*) n FROM original_transfers"));
-        assertEquals("PENDING", store.candidate(id).optString("state")); assertEquals(0, store.scalar("SELECT COUNT(*) n FROM candidate_transfer_receipts"));
+        JSONObject input=input("10","2");String id=candidate(input);
+        assertRollbackAndRetry(input,id,"synthetic_transfer_save_failure",88,2);
     }
-    @Test public void receiptFailureCannotRollBackTheAlreadySavedFinancialStages() {
+    @Test public void receiptFailureRollsBackTheTransferAndRetryDoesNotDebitTwice() {
         store.getWritableDatabase().execSQL("CREATE TRIGGER synthetic_transfer_receipt_failure BEFORE INSERT ON candidate_transfer_receipts BEGIN SELECT RAISE(ABORT,'synthetic'); END");
-        JSONObject input = input("10", ""); String id = candidate(input);
-        try { confirm(input, id); fail("receipt failure was ignored"); } catch (RuntimeException expected) { /* actual SQL failure */ }
-        assertEquals(90.0d, balance(from), 0); assertEquals(15.0d, balance(to), 0);
-        assertEquals(1, store.scalar("SELECT COUNT(*) n FROM original_transfers")); assertEquals("PENDING", store.candidate(id).optString("state"));
-        assertEquals(0, store.scalar("SELECT COUNT(*) n FROM candidate_transfer_receipts"));
+        JSONObject input=input("10","");String id=candidate(input);
+        assertRollbackAndRetry(input,id,"synthetic_transfer_receipt_failure",90,0);
     }
     @Test public void restoringAMissingOrTruncatedSemanticIdentityRejectsAndRollsBackTheWholeBackup() {
         JSONObject input = input("10", ""); String id = candidate(input); confirm(input, id); JSONObject backup = store.backup();
@@ -140,13 +137,10 @@ public final class OriginalTransferConfirmationDeviceTest {
         assertEquals("SAVED", store.candidate(id).optString("state")); assertEquals(1, store.scalar("SELECT COUNT(*) n FROM original_transfers"));
     }
 
-    @Test public void anIgnoredReceiptInsertCannotMarkTheCandidateSavedWithoutItsTypedAnchor() {
+    @Test public void anIgnoredReceiptInsertRollsBackTheTransferBeforeAnIdempotentRetry() {
         store.getWritableDatabase().execSQL("CREATE TRIGGER synthetic_transfer_receipt_ignored BEFORE INSERT ON candidate_transfer_receipts BEGIN SELECT RAISE(IGNORE); END");
-        JSONObject input = input("10", ""); String id = candidate(input);
-        try { confirm(input, id); fail("the ignored receipt insert was reported as saved"); }
-        catch (IllegalStateException expected) { assertTrue(expected.getMessage().contains("勿重复提交")); }
-        assertEquals(90.0d, balance(from), 0); assertEquals(1, store.scalar("SELECT COUNT(*) n FROM original_transfers"));
-        assertEquals("PENDING", store.candidate(id).optString("state")); assertEquals(0, store.scalar("SELECT COUNT(*) n FROM candidate_transfer_receipts"));
+        JSONObject input=input("10","");String id=candidate(input);
+        assertRollbackAndRetry(input,id,"synthetic_transfer_receipt_ignored",90,0);
     }
 
     @Test public void savedTransferReceiptsCannotBeReplayedThroughTheBillRefundOrRepeatEntryPoints() {
@@ -160,4 +154,21 @@ public final class OriginalTransferConfirmationDeviceTest {
         catch (IllegalArgumentException expected) { assertTrue(expected.getMessage().contains("转账")); }
         assertEquals(history, store.scalar("SELECT COUNT(*) n FROM asset_histories")); assertEquals(row, confirm(input, id));
     }
+    private void assertRollbackAndRetry(JSONObject input,String id,String trigger,double expectedFrom,double fee) {
+        JSONObject before=store.backup().optJSONObject("tables");
+        try{confirm(input,id);fail("The injected SQL failure was reported as saved");}catch(RuntimeException expected){}
+        assertEquals(before.toString(),store.backup().optJSONObject("tables").toString());
+        assertEquals(100,balance(from),0);assertEquals(5,balance(to),0);
+        assertEquals("PENDING",store.candidate(id).optString("state"));assertEquals(0,store.scalar("SELECT COUNT(*) n FROM candidate_transfer_receipts"));
+        store.getWritableDatabase().execSQL("DROP TRIGGER "+trigger);
+        long row=confirm(input,id);OriginalTransferRecord transfer=new OriginalTransferRepository(store).byLocalRowId(row);
+        assertNotNull(transfer);assertEquals(10,transfer.cost,0);assertEquals(fee,transfer.serviceCharge,0);
+        assertEquals(expectedFrom,balance(from),0);assertEquals(15,balance(to),0);
+        assertEquals(1,store.scalar("SELECT COUNT(*) n FROM original_transfers"));assertEquals(fee==0?0:1,store.scalar("SELECT COUNT(*) n FROM transactions"));
+        assertEquals("SAVED",store.candidate(id).optString("state"));assertTrue(store.candidate(id).isNull("transaction_id"));
+        assertEquals(row,store.one("SELECT transfer_row_id FROM candidate_transfer_receipts WHERE candidate_id=?",id).optLong("transfer_row_id"));
+        JSONObject committed=store.backup().optJSONObject("tables");assertEquals(row,confirm(input,id));
+        assertEquals(committed.toString(),store.backup().optJSONObject("tables").toString());
+    }
+
 }

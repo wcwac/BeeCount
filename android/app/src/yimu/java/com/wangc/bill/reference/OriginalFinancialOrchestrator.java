@@ -6,8 +6,9 @@ import org.json.JSONObject;
 
 /**
  * Executable offline financial stages from a0.g/h and f.t1/r/s/h/o1.
- * This adapter never wraps the whole action in a transaction: an earlier balance
- * save/history can survive a later save=false. Network calls are deliberately absent.
+ * Raw calls retain the recovered independent-save behavior. Functional Store entries
+ * join AccountingCommitScope, which rolls back every persisted stage on failure.
+ * Network calls are deliberately absent.
  * The default effects implement local credit projections, operation history and
  * MAIN subscriptions. BillFiles/AutoTag/BillGroup and remaining domains are explicit
  * unfinished ports; the hooks preserve their original position in the call sequence.
@@ -55,7 +56,10 @@ public final class OriginalFinancialOrchestrator {
             if (bill.userId == 0) bill.userId = currentBookOwner;
             if (bill.userId != currentOwner) bill.fromUserId = currentOwner;
             bill.updateTime = clock.getAsLong();
-            editBillAssets(bill);
+            long retainedAsset=bill.assetId;
+            boolean noSelectedAccount=AccountingCommitScope.active(store)&&projection!=null&&projection.containsKey("account_id")&&projection.getAsLong("account_id")==null;
+            if(noSelectedAccount)bill.assetId=-1L;
+            try{editBillAssets(bill);}finally{bill.assetId=retainedAsset;}
             if (bill.localRowId == 0) bill.billId = bills.allocateSemanticId(currentOwner);
             effects.beforeBillEntitySave(bill);
             OriginalBillRepository.SaveResult result = bills.trySaveOriginalRaw(bill, projection);
@@ -75,12 +79,13 @@ public final class OriginalFinancialOrchestrator {
         synchronized (store) {
             requireIndependentAction();
             String description = description(incoming);
-            double refund = incoming.billId == 0 || !empty(incoming.currencyInfo) ? 0.0d : refundAmount(incoming);
+            boolean existing=AccountingCommitScope.active(store)?incoming.localRowId>0:incoming.billId!=0;
+            double refund = !existing || !empty(incoming.currencyInfo) ? 0.0d : refundAmount(incoming);
             boolean oldPath = false, accountChanged = false;
             double oldDelta = 0.0d;
-            OriginalBillRecord old = incoming.billId == 0 ? null
-                    : bills.findAccessible(currentOwner, currentBookOwner, incoming.billId);
-            if (old != null && old.assetId != -1L) {
+            OriginalBillRecord old = !existing ? null : AccountingCommitScope.active(store)
+                    ? bills.byLocalRowId(incoming.localRowId) : bills.findAccessible(currentOwner, currentBookOwner, incoming.billId);
+            if (old != null && old.assetId != -1L && (!AccountingCommitScope.active(store)||store.transaction(old.localRowId).optLong("account_id")>0)) {
                 old.cost = Math.abs(old.cost) + refund; // This object is not persisted here.
                 OriginalAssetBalanceStore.LoadedAsset asset = balances.load(currentOwner, old.assetId);
                 if (asset != null) {
@@ -203,7 +208,7 @@ public final class OriginalFinancialOrchestrator {
         return child == null ? name : name + "-" + child.optString("name");
     }
     private void requireIndependentAction() {
-        if (store.getWritableDatabase().inTransaction()) throw new IllegalStateException("Original financial stages require independent saves");
+        if ((store.getWritableDatabase().inTransaction() && !AccountingCommitScope.active(store))) throw new IllegalStateException("Original financial stages require independent saves");
     }
     private static boolean empty(String value) { return value == null || value.isEmpty(); }
 }

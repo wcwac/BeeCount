@@ -52,7 +52,7 @@ public final class OriginalTransferActions {
         synchronized (store) {
             // A surrounding transaction would hide save rollback/commit from the
             // following effect and change these independently saved source stages.
-            if (store.getWritableDatabase().inTransaction())
+            if ((store.getWritableDatabase().inTransaction() && !AccountingCommitScope.active(store)))
                 throw new IllegalStateException("Original Transfer stages require independent saves");
             if (assignIdentity) record.userId = currentOwner;
             record.updateTime = clock.getAsLong();

@@ -43,18 +43,58 @@ final class CatalogScreens {
     static void accounts(ManagerActivity a){a.body("账户管理","新增",()->a.open("new_account",0));for(JSONObject row:a.store().accounts()){
         LinearLayout view=Ui.row(a,row.optString("name"),row.optString("currency")+" · "+Money.text(row.optLong("balance"),row.optString("currency")),()->a.open("account_detail",row.optLong("id")));view.setOnLongClickListener(v->{a.open("edit_account",row.optLong("id"));return true;});a.rows.addView(view);
     }}
-    static void account(ManagerActivity a){JSONObject old=a.entity>0?a.store().one("SELECT * FROM accounts WHERE id=?",""+a.entity):null;if(a.entity>0&&old==null)throw new IllegalArgumentException("账户不存在");View r=a.original(old==null?"新增账户":"编辑账户","activity_add_capital");
-        EditText name=Ui.view(r,"type_content"),opening=Ui.view(r,"type_number");name.setText(old==null?"":old.optString("name"));String[] currency={old==null?"CNY":old.optString("currency")};String[] type={old==null?"original":old.optString("type")};boolean original=old==null||AssetRepository.ORIGINAL.equals(old.optString("asset_origin"));if(original&&currency[0].isEmpty())currency[0]="CNY";double previousGetter=old==null?0:old.optDouble("asset_number");opening.setText(Money.text(old==null?0:original?a.store().accountBalance(a.entity):old.optLong("opening"),currency[0]));Ui.text(r,"currency",currency[0]);
-        Ui.hide(r,"night_icon_layout","auto_income_layout","group_name_layout","account_book_layout","switch_add_total");Ui.text(r,"type_simple_name",original?"资金账户":"账户类型");if(!original)Ui.click(r,"asset_icon_layout",()->new AlertDialog.Builder(a).setTitle("账户类型").setItems(new String[]{"现金","电子钱包","银行卡","信用账户","投资账户"},(d,w)->{type[0]=new String[]{"cash","wallet","bank","credit","investment"}[w];Ui.toast(a,"已选择账户类型");}).show());
-        if(!original)Ui.click(r,"currency_layout",()->Dialogs.currencies(a,currency[0],value->{currency[0]=value;Ui.text(r,"currency",value);opening.setText("0");}));
-        Ui.click(r,"btn_complete",()->{try{long minor=Money.signed(opening.getText().toString(),currency[0]);if(original){OriginalAssetCommands commands=new OriginalAssetCommands(a.store(),ReferenceStore.LOCAL_OFFLINE_OWNER);double number=java.math.BigDecimal.valueOf(minor,Money.scale(currency[0])).doubleValue();if(old==null)commands.createFund(name.getText().toString(),null,number);else commands.editFund(a.entity,name.getText().toString(),old.isNull("asset_currency")?null:old.optString("asset_currency"),number,previousGetter);}else a.store().saveAccount(a.entity,name.getText().toString(),type[0],currency[0],minor);a.finish();}catch(Exception e){Ui.error(a,e);}});
-        Ui.hide(r,"remark","card_code","remark_title","card_code_title","type_simple_name","type_simple_title");Ui.text(r,"content_title","账户名称");Ui.text(r,"type_title",original?"账户余额":"期初余额");
+    static void account(ManagerActivity a){
+        JSONObject old=a.entity>0?a.store().one("SELECT * FROM accounts WHERE id=?",""+a.entity):null;
+        if(a.entity>0&&old==null)throw new IllegalArgumentException("账户不存在");
+        View r=a.original(old==null?"新增账户":"编辑账户","activity_add_capital");
+        EditText name=Ui.view(r,"type_content"),opening=Ui.view(r,"type_number");
+        name.setText(old==null?"":old.optString("name"));
+        boolean original=old==null||AssetRepository.ORIGINAL.equals(old.optString("asset_origin"));
+        String currency=old==null||old.optString("currency").isEmpty()?"CNY":old.optString("currency");
+        int[] type={old==null?1:old.optInt("asset_type")};
+        String[] statement={old==null?"1":old.optString("out_account_date","1")},repayment={old==null?"20":old.optString("in_account_date","20")};
+        if(statement[0].isEmpty()||statement[0].equals("null"))statement[0]="1";
+        if(repayment[0].isEmpty()||repayment[0].equals("null"))repayment[0]="20";
+        opening.setInputType(android.text.InputType.TYPE_CLASS_NUMBER|android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL|android.text.InputType.TYPE_NUMBER_FLAG_SIGNED);
+        opening.setText(Money.text(old==null?0:original?a.store().accountBalance(a.entity):old.optLong("opening"),currency));
+        Ui.hide(r,"night_icon_layout","auto_income_layout","account_book_layout","switch_add_total","remark","card_code","remark_title","card_code_title","type_simple_name","type_simple_title");
+        Ui.text(r,"currency",currency);Ui.text(r,"content_title","账户名称");
+        ViewGroup typeRow=Ui.view(r,"group_name_layout");
+        for(int i=0;i<typeRow.getChildCount();i++)if(typeRow.getChildAt(i) instanceof TextView text&&text.getId()!=Ui.id(a,"group_name"))text.setText("账户类型");
+        LinearLayout content=(LinearLayout)((ScrollView)((ViewGroup)r).getChildAt(1)).getChildAt(0);
+        LinearLayout credit=Ui.column(a);content.addView(credit);
+        Runnable renderType=()->{
+            Ui.text(r,"group_name",type[0]==2?"信用账户":"资金账户");Ui.text(r,"type_title",type[0]==2?"余额（欠款为负）":"账户余额");
+            credit.removeAllViews();credit.setVisibility(original&&type[0]==2?View.VISIBLE:View.GONE);
+            if(type[0]==2){credit.addView(Ui.row(a,"账单日","每月 "+statement[0]+" 日",()->chooseAccountDay(a,statement,()->accountDays(credit,a,statement,repayment))));
+                credit.addView(Ui.row(a,"还款日","每月 "+repayment[0]+" 日",()->chooseAccountDay(a,repayment,()->accountDays(credit,a,statement,repayment))));}
+        };
+        renderType.run();
+        Ui.click(r,"group_name_layout",()->{
+            if(old!=null){Ui.toast(a,"已有账户不能改变类型，请新建所需类型的账户");return;}
+            new AlertDialog.Builder(a).setTitle("账户类型").setSingleChoiceItems(new String[]{"资金账户","信用账户"},type[0]-1,(dialog,which)->{type[0]=which+1;renderType.run();dialog.dismiss();}).show();
+        });
+        Ui.click(r,"btn_complete",()->{try{
+            long minor=Money.signed(opening.getText().toString(),currency);
+            if(original)AccountingAccounts.save(a.store(),a.entity,name.getText().toString(),type[0],minor,statement[0],repayment[0]);
+            else a.store().saveAccount(a.entity,name.getText().toString(),old.optString("type"),currency,minor);
+            a.finish();
+        }catch(Exception error){Ui.error(a,error);}});
     }
-    static void movements(ManagerActivity a){JSONObject account=a.store().one("SELECT * FROM accounts WHERE id=?",""+a.entity);if(account==null)throw new IllegalArgumentException("账户不存在");if(AssetRepository.ORIGINAL.equals(account.optString("asset_origin"))&&account.optString("currency").isEmpty())Json.put(account,"currency","CNY");View r=a.original(account.optString("name"),"activity_asset_info");Ui.hide(r,"edit_layout","float_ball_layout","total_speech_layout","speech_layout","statistics","right_icon");Ui.click(r,"title",()->a.open("edit_account",a.entity));RecyclerView list=Ui.view(r,"data_list");list.setLayoutManager(new LinearLayoutManager(a));List<JSONObject> data=a.store().query("SELECT t.*,c.name category,c.icon category_icon,z.name account FROM transactions t LEFT JOIN categories c ON c.id=t.category_id LEFT JOIN accounts z ON z.id=t.account_id WHERE t.deleted=0 AND (t.account_id=? OR t.to_account_id=?) ORDER BY t.time DESC LIMIT 2000",""+a.entity,""+a.entity);
+    private static void accountDays(LinearLayout host,ManagerActivity a,String[] statement,String[] repayment){
+        host.removeAllViews();
+        host.addView(Ui.row(a,"账单日","每月 "+statement[0]+" 日",()->chooseAccountDay(a,statement,()->accountDays(host,a,statement,repayment))));
+        host.addView(Ui.row(a,"还款日","每月 "+repayment[0]+" 日",()->chooseAccountDay(a,repayment,()->accountDays(host,a,statement,repayment))));
+    }
+    private static void chooseAccountDay(ManagerActivity a,String[] value,Runnable refresh){
+        String[] labels=new String[31];for(int i=0;i<labels.length;i++)labels[i]=(i+1)+" 日";
+        new AlertDialog.Builder(a).setTitle("选择日期").setItems(labels,(dialog,index)->{value[0]=""+(index+1);refresh.run();}).show();
+    }
+    static void movements(ManagerActivity a){JSONObject account=a.store().one("SELECT * FROM accounts WHERE id=?",""+a.entity);if(account==null)throw new IllegalArgumentException("账户不存在");if(AssetRepository.ORIGINAL.equals(account.optString("asset_origin"))&&account.optString("currency").isEmpty())Json.put(account,"currency","CNY");View r=a.original(account.optString("name"),"activity_asset_info");Ui.hide(r,"edit_layout","float_ball_layout","total_speech_layout","speech_layout","statistics","right_icon");Ui.click(r,"title",()->a.open("edit_account",a.entity));RecyclerView list=Ui.view(r,"data_list");list.setLayoutManager(new LinearLayoutManager(a));List<JSONObject> data=new ArrayList<>();for(JSONObject book:a.store().books())for(JSONObject entry:a.store().accountingEntries(book.optLong("id"),0,Long.MAX_VALUE,null,false))if(entry.optLong("account_id")==a.entity||entry.optLong("to_account_id")==a.entity)data.add(entry);data.sort((left,right)->Long.compare(right.optLong("time"),left.optLong("time")));
         LinearLayout header=Ui.column(a);header.addView(Ui.row(a,"余额 "+Money.text(a.store().accountBalance(a.entity),account.optString("currency")),account.optString("currency")+" · 点击编辑账户",()->a.open("edit_account",a.entity)));
         if(AssetRepository.ORIGINAL.equals(account.optString("asset_origin"))&&account.optInt("asset_type")==2)
             header.addView(Ui.row(a,"信用账单","查看账期、待还金额与分期明细",()->a.open("credit_statements",a.entity)));
-        header.addView(Ui.row(a,"归档账户","保留已有账单，记账时不再显示此账户",()->Ui.confirm(a,"归档账户","已有账单与余额会保留。",()->{a.store().archiveAccount(a.entity);a.finish();})));list.setAdapter(new RecordAdapter(data,header,t->Ui.edit(a,t.optLong("id"),null)));
+        header.addView(Ui.row(a,"归档账户","保留已有账单，记账时不再显示此账户",()->Ui.confirm(a,"归档账户","已有账单与余额会保留。",()->{a.store().archiveAccount(a.entity);a.finish();})));list.setAdapter(new RecordAdapter(data,header,t->Ui.record(a,t)));
     }
     static void creditStatements(ManagerActivity a){
         JSONObject account=a.store().assetRepository().byRowId(a.entity);

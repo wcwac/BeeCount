@@ -8,6 +8,7 @@ android {
         wechat { dimension 'fixture'; applicationId 'com.tencent.mm' }
         taobao { dimension 'fixture'; applicationId 'com.taobao.taobao' }
         alipay { dimension 'fixture'; applicationId 'com.eg.android.AlipayGphone' }
+        meituan { dimension 'fixture'; applicationId 'com.sankuai.meituan' }
         ignored { dimension 'fixture'; applicationId 'io.github.wcwac.paymentfixture.ignored' }
     }
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }

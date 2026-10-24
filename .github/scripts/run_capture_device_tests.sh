@@ -156,7 +156,7 @@ import os,subprocess
 root=Path(os.environ['GITHUB_WORKSPACE'])/'cloud-apks'
 analyzer=Path(os.environ['ANDROID_HOME'])/'cmdline-tools/latest/bin/apkanalyzer'
 adb=Path(os.environ['ANDROID_HOME'])/'platform-tools/adb'
-expected={'io.github.wcwac.yimu.reference.debug','io.github.wcwac.yimu.reference.debug.test','com.tencent.mm','com.taobao.taobao','com.eg.android.AlipayGphone','io.github.wcwac.paymentfixture.ignored'}
+expected={'io.github.wcwac.yimu.reference.debug','io.github.wcwac.yimu.reference.debug.test','com.tencent.mm','com.taobao.taobao','com.eg.android.AlipayGphone','com.sankuai.meituan','io.github.wcwac.paymentfixture.ignored'}
 found={}
 for apk in root.rglob('*.apk'):
     package=subprocess.check_output([str(analyzer),'manifest','application-id',str(apk)],text=True).strip()
@@ -196,7 +196,7 @@ IFS= read -r capture_main_classes < "$capture_logs/main-classes.txt"
 : > "$capture_logs/instrumentation.txt"
 run_instrumentation_phase() {
   local capture_case_filter="$1"
-  timeout --signal=TERM --kill-after=20s 15m \
+  timeout --signal=TERM --kill-after=20s 25m \
     "$capture_adb" -s "$capture_serial" shell am instrument -w -r \
     -e reference_cloud_only true -e timeout_msec 180000 -e class "$capture_case_filter" \
     io.github.wcwac.yimu.reference.debug.test/androidx.test.runner.AndroidJUnitRunner \

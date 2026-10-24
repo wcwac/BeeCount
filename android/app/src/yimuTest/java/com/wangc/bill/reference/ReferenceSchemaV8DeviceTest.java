@@ -48,7 +48,7 @@ public final class ReferenceSchemaV8DeviceTest {
 
     @Test public void realVersionSevenMigrationPreservesAllTwentyFourPopulatedTablesAndTheirParentReferences() {
         JSONObject old = createVersionSevenGraph(database); openLatest();
-        assertEquals(8, store.getReadableDatabase().getVersion()); assertOldTablesEqual(old);
+        assertEquals(9, store.getReadableDatabase().getVersion()); assertOldTablesEqual(old);
         for (String table : V7_TABLES) assertTrue("The v7 fixture must populate " + table,
                 old.optJSONObject("tables").optJSONArray(table).length() > 0);
         assertEquals(0, store.scalar("SELECT COUNT(*) n FROM original_lends"));
@@ -90,7 +90,7 @@ public final class ReferenceSchemaV8DeviceTest {
     }
 
     @Test public void freshVersionEightRoundTripsTwentySixTablesAndReservesDeletedLendAnchorsInANewDatabase() {
-        openLatest(); assertEquals(8, store.getReadableDatabase().getVersion());
+        openLatest(); assertEquals(9, store.getReadableDatabase().getVersion());
         OriginalLendRecord live = lend(Integer.MIN_VALUE, Integer.MAX_VALUE); addReceipt("live-lend", live);
         OriginalLendRecord zero = lend(0, 0); addReceipt("zero-lend", zero);
         OriginalLendRecord negative = lend(Integer.MAX_VALUE, Integer.MIN_VALUE); addReceipt("negative-lend", negative);
@@ -101,7 +101,7 @@ public final class ReferenceSchemaV8DeviceTest {
         OriginalLendRecord deleted = new OriginalLendRepository(store).byLocalRowId(9000); addReceipt("deleted-lend", deleted);
         new OriginalLendRepository(store).deleteRaw(deleted);
         assertEquals(9000, receipt("deleted-lend").optLong("lend_row_id")); assertTrue(receipt("deleted-lend").isNull("resolved_lend_row_id"));
-        JSONObject backup = store.backup(); assertEquals(8, backup.optInt("version")); assertEquals(26, backup.optJSONObject("tables").length());
+        JSONObject backup = store.backup(); assertEquals(9, backup.optInt("version")); assertEquals(27, backup.optJSONObject("tables").length());
         store.close(); store = null; context.deleteDatabase(database); openLatest();
         assertEquals(0, store.scalar("SELECT COUNT(*) n FROM original_lends")); store.restore(backup); assertTablesEqual(backup);
         assertEquals(500, store.transaction(live.localRowId).optLong("amount"));
@@ -284,11 +284,20 @@ public final class ReferenceSchemaV8DeviceTest {
     }
     private void assertOldTablesEqual(JSONObject old) {
         JSONObject actual = store.backup().optJSONObject("tables"), wanted = old.optJSONObject("tables");
-        for (String table : V7_TABLES) assertEquals(table, wanted.optJSONArray(table).toString(), actual.optJSONArray(table).toString());
+        for (String table : V7_TABLES) {
+            JSONArray rows=actual.optJSONArray(table);
+            if(table.equals("candidates"))for(int i=0;i<rows.length();i++)for(String column:new String[]{"capture_key","evidence_kind","capture_window_key"}){
+                assertTrue(column,rows.optJSONObject(i).isNull(column));rows.optJSONObject(i).remove(column);
+            }
+            if(table.equals("transactions"))for(int i=0;i<rows.length();i++){
+                assertTrue(rows.optJSONObject(i).isNull("manual_operation_id"));rows.optJSONObject(i).remove("manual_operation_id");
+            }
+            assertEquals(table,wanted.optJSONArray(table).toString(),rows.toString());
+        }
     }
     private void assertTablesEqual(JSONObject expected) {
         JSONObject actual = store.backup().optJSONObject("tables"), wanted = expected.optJSONObject("tables");
-        assertEquals(26, wanted.length()); assertEquals(26, actual.length());
+        assertEquals(27, wanted.length()); assertEquals(27, actual.length());
         for (java.util.Iterator<String> keys = wanted.keys(); keys.hasNext();) {
             String table = keys.next(); assertEquals(table, wanted.optJSONArray(table).toString(), actual.optJSONArray(table).toString());
         }

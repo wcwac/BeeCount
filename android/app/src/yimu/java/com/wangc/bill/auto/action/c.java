@@ -156,6 +156,7 @@ public class c {
             public void finished(int texts, int branches) { c.this.c=branches; ReferenceDiagnostics.readFinished(texts, branches); }
             public void aborted() { ReferenceDiagnostics.readAborted(); }
         });
+        com.wangc.bill.reference.capture.CaptureEvidence.observeTexts(result.texts);
         return result.texts;
     }
 

@@ -290,7 +290,11 @@ public final class CaptureOverlay {
             JSONObject receiver = ReferenceApplication.store().assetRepository().byRowId(data.optLong("account_id"));
             Ui.show(view, "refund_in_date_layout", refundMode && receiver != null && receiver.optInt("asset_type") == 2);
             Ui.text(view, "refund_in_date", data.optLong("in_time") == 0 ? "入账日期" : Ui.date(data.optLong("in_time"), "MM.dd"));
-            Ui.show(view, "repeat_tip", repeatDetected);
+            boolean needsConfirmation = data.optBoolean("capture_requires_confirmation");
+            Ui.show(view, "repeat_tip", repeatDetected || needsConfirmation);
+            Ui.text(view, "repeat_tip", repeatDetected ? "(重复)" : "(待确认)");
+            Ui.show(view, "asset_num_tip", needsConfirmation);
+            if (needsConfirmation) Ui.text(view, "asset_num_tip", "请核对商户、金额和付款账户后保存");
             Ui.view(view, "btn_save").setBackgroundResource(Ui.res(context, "drawable", repeatDetected
                 ? "selectable_item_light_grey_background" : "selectable_item_primary_background"));
             FrameLayout container = Ui.view(view, "category_pager"); container.removeAllViews(); transferPage = null;
@@ -456,6 +460,7 @@ public final class CaptureOverlay {
 
         void startTimer() {
             if (preview || closed || closeRequested || active != this || repeatDetected
+                || data.optBoolean("capture_requires_confirmation")
                 || !com.wangc.bill.database.action.s.i() || timer != null) return;
             // AutoAddLayout.onAttachedToWindow and its $a: 5000ms, 1000ms, then the same btnSave path.
             timer = new CountDownTimer(5000, 1000) {
@@ -551,6 +556,10 @@ public final class CaptureOverlay {
             cancelTimer();
             if (closed || closeRequested || saving) return;
             if (preview) { detach(); state("CLOSED"); return; }
+            if (automatic && data.optBoolean("capture_requires_confirmation")) {
+                state("MANUAL_CONFIRMATION_REQUIRED");
+                return;
+            }
             try {
                 JSONObject value = Json.copy(data);
                 EditText cost = Ui.view(view, "cost"), remark = Ui.view(view, "remark");
@@ -656,7 +665,11 @@ public final class CaptureOverlay {
                         // Original Z0 retains an accepted manual save after its window closes.
                         // Restoration alone invalidates that save; an unaccepted click/timer
                         // is already stopped by closeRequested on the main thread.
+                        JSONObject latest = ReferenceApplication.store().candidate(id);
+                        boolean latestNeedsConfirmation = latest == null || !"PENDING".equals(latest.optString("state"))
+                                || Json.parse(latest.optString("payload")).optBoolean("capture_requires_confirmation");
                         if (generation != CLOSE_GENERATION.get()
+                            || (automatic && (value.optBoolean("capture_requires_confirmation") || latestNeedsConfirmation))
                             || (automatic && (closeRequested || !AutoApps.enabled() || ReferenceCaptureService.current() == null
                                 || !ReferenceApplication.prefs().getBoolean("show_overlay", true)
                                 || !OverlayPermission.granted()))) {
@@ -681,9 +694,7 @@ public final class CaptureOverlay {
                     } catch (RuntimeException error) {
                         ReferenceDiagnostics.failure("STORE_FAILED", error);
                         MAIN.post(() -> { if (active == null) state("SAVE_FAILED"); CaptureNotifications.update(); CaptureNotifications.error();
-                            Ui.toast(context, parent != null ? "退款保存未完成，请先核对余额、资产历史和原账单，勿重复提交"
-                                : value.optBoolean("transfer_repayment_route") ? "还款保存未完成，请先核对余额、利息和借贷记录，勿重复提交"
-                                : "transfer".equals(value.optString("kind")) ? "转账保存未完成，请先核对余额、手续费和转账记录，勿重复提交" : "新增失败，账单仍在待确认列表"); });
+                            Ui.toast(context, "保存未完成，记账变更已撤销，待确认记录保留，可安全重试"); });
                     }
                 });
                 // Original Z0/Y removes the window immediately after submitting its save task.

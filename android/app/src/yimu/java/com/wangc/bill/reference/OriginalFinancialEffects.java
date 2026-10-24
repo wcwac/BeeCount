@@ -37,46 +37,46 @@ public final class OriginalFinancialEffects implements OriginalFinancialOrchestr
     private static Manager manager(ReferenceStore store,State state,int owner,int bookOwner){String key=owner+":"+bookOwner;Manager result=state.managers.get(key);if(result==null){result=new Manager(store,state,owner);state.managers.put(key,result);result.initialize();}return result;}
     public static void subscribe(ReferenceStore store,Listener listener){if(listener==null)throw new IllegalArgumentException("Listener is required");synchronized(store){state(store).listeners.addIfAbsent(listener);}}
     public static void unsubscribe(ReferenceStore store,Listener listener){synchronized(store){State state; synchronized(STATES){state=STATES.get(store);}if(state!=null)state.listeners.remove(listener);}}
-    private static void publish(State state,Event event){long generation=state.creditGeneration;state.scheduler.executeMain(()->{if(generation==state.creditGeneration)for(Listener listener:state.listeners)listener.onFinancialEvent(event);});}
-    @Override public void schedule(Runnable callback,long delayMillis){long stamp=state.scheduler.epoch();state.scheduler.schedule(()->{synchronized(store){if(stamp==state.scheduler.epoch())callback.run();}},delayMillis);}
-    @Override public void assetChanged(OriginalAssetBalanceStore.LoadedAsset asset,boolean refreshCredit){
+    private static void publish(ReferenceStore store,State state,Event event){if(AccountingCommitScope.defer(store,()->publish(store,state,event)))return;long generation=state.creditGeneration;state.scheduler.executeMain(()->{if(generation==state.creditGeneration)for(Listener listener:state.listeners)listener.onFinancialEvent(event);});}
+    @Override public void schedule(Runnable callback,long delayMillis){if(AccountingCommitScope.defer(store,()->schedule(callback,delayMillis)))return;long stamp=state.scheduler.epoch();state.scheduler.schedule(()->{synchronized(store){if(stamp==state.scheduler.epoch())callback.run();}},delayMillis);}
+    @Override public void assetChanged(OriginalAssetBalanceStore.LoadedAsset asset,boolean refreshCredit){if(AccountingCommitScope.defer(store,()->assetChanged(asset,refreshCredit)))return;
         if(asset==null)return;synchronized(store){if(asset.assetType==2&&refreshCredit)manager().refresh(asset);asset.getAssetNumber();}
         // f.l/m's H0 getter is retained; no fake HTTP failure or eager sync debt is generated.
     }
-    @Override public void assetBalanceChangeCompleted(OriginalAssetBalanceStore.LoadedAsset asset){if(asset!=null)publish(state,Event.ASSETS_CHANGED);}
+    @Override public void assetBalanceChangeCompleted(OriginalAssetBalanceStore.LoadedAsset asset){if(asset!=null)publish(store,state,Event.ASSETS_CHANGED);}
     @Override public void assetOperationRecorded(OriginalAssetBalanceStore.LoadedAsset asset){if(asset!=null)new OriginalCurdHistoryRepository(store).recordAssetOperation(owner,asset.semanticId);}
     @Override public void beforeBillEntitySave(OriginalBillRecord bill){
         synchronized(store){newBeforeSave.put(bill,bill.localRowId==0);}
         // t.y requires original AutoTag storage; current experiment cannot represent those rows.
         // Never substitute merchant rules/local tag PKs for original AutoTag semantic identities.
     }
-    @Override public void afterBillEntitySaveBeforeLearning(OriginalBillRecord bill,boolean saved){synchronized(store){Boolean created=newBeforeSave.remove(bill);if(Boolean.FALSE.equals(created))refreshGroup(bill);refreshCredit(bill);invalidateDates(bill);}}
+    @Override public void afterBillEntitySaveBeforeLearning(OriginalBillRecord bill,boolean saved){if(AccountingCommitScope.defer(store,()->afterBillEntitySaveBeforeLearning(bill,saved)))return;synchronized(store){Boolean created=newBeforeSave.remove(bill);if(Boolean.FALSE.equals(created))refreshGroup(bill);refreshCredit(bill);invalidateDates(bill);}}
     @Override public void billSaved(OriginalBillRecord bill,boolean saved){billSaved(bill,saved,true);}
-    @Override public void billSaved(OriginalBillRecord bill,boolean saved,boolean emitNormalEvents){if(emitNormalEvents){publish(state,Event.BILLS_CHANGED);publish(state,Event.ASSETS_CHANGED);}}
+    @Override public void billSaved(OriginalBillRecord bill,boolean saved,boolean emitNormalEvents){if(emitNormalEvents){publish(store,state,Event.BILLS_CHANGED);publish(store,state,Event.ASSETS_CHANGED);}}
     /** w2.g/q0's g7.n0 tail also runs after save=false. It is not s2.A or a Bill event. */
     public void transferChanged(OriginalTransferRecord transfer,boolean saved){
         if(transfer==null)throw new IllegalArgumentException("Transfer is required");
-        publish(state,Event.TRANSFERS_CHANGED);
+        publish(store,state,Event.TRANSFERS_CHANGED);
     }
     /** AutoAdd.X posts g7.u after attachments, including save=false; i1.d/w0 do not. */
     public void lendChanged(OriginalLendRecord lend,boolean saved){
         if(lend==null)throw new IllegalArgumentException("Lend is required");
         // This notification is not s2.A: the source asset callbacks own any queued rebuild.
-        publish(state,Event.LENDS_CHANGED);
+        publish(store,state,Event.LENDS_CHANGED);
     }
     /** Date caches are invalidated even after a returned-false entity save. */
     public void parentUpdated(OriginalBillRecord parent,boolean saved){
-        invalidateDates(parent);if(parent!=null)publish(state,Event.BILLS_CHANGED);
+        invalidateDates(parent);if(parent!=null)publish(store,state,Event.BILLS_CHANGED);
     }
-    private void invalidateDates(OriginalBillRecord parent){
+    private void invalidateDates(OriginalBillRecord parent){if(AccountingCommitScope.defer(store,()->invalidateDates(parent)))return;
         if(parent==null)return;synchronized(store){String day=OriginalInstalmentSchedule.format(parent.time,"yyyy-MM-dd"),month=OriginalInstalmentSchedule.year(parent.time)+"-"+OriginalInstalmentSchedule.month(parent.time);state.homeDays.keySet().removeIf(key->key.endsWith(":"+day));state.calendarDays.keySet().removeIf(key->key.endsWith(":"+day));state.monthMaximum.remove(month);}
     }
     public void beforeSimpleBillDeletion(OriginalBillRecord bill){invalidateDates(bill);}
-    public void afterSimpleBillDeletion(OriginalBillRecord bill){if(bill!=null&&bill.assetId!=-1L)publish(state,Event.ASSETS_CHANGED);}
+    public void afterSimpleBillDeletion(OriginalBillRecord bill){if(bill!=null&&bill.assetId!=-1L)publish(store,state,Event.ASSETS_CHANGED);}
     /** s2.A: fresh lookup at this call, then retain that exact handle for the queued rebuild. */
     public void refreshCredit(OriginalBillRecord bill){if(bill==null||bill.assetId==0)return;creditRefresh(bill.assetId);}
-    public void creditRefresh(long semanticAsset){synchronized(store){OriginalAssetBalanceStore.LoadedAsset asset=new OriginalAssetBalanceStore(store).load(owner,semanticAsset);if(asset!=null&&asset.assetType==2)manager().refresh(asset);}}
-    public void refundAggregateChanged(int parentSemantic,double total,boolean saved){synchronized(store){state.refunds.put(owner+":"+parentSemantic,total);}}
+    public void creditRefresh(long semanticAsset){if(AccountingCommitScope.defer(store,()->creditRefresh(semanticAsset)))return;synchronized(store){OriginalAssetBalanceStore.LoadedAsset asset=new OriginalAssetBalanceStore(store).load(owner,semanticAsset);if(asset!=null&&asset.assetType==2)manager().refresh(asset);}}
+    public void refundAggregateChanged(int parentSemantic,double total,boolean saved){if(AccountingCommitScope.defer(store,()->refundAggregateChanged(parentSemantic,total,saved)))return;synchronized(store){state.refunds.put(owner+":"+parentSemantic,total);}}
     /** c0.B's original BillGroup rows are not representable in the current host schema. */
     public void refreshGroup(OriginalBillRecord parent){
         // Explicit remaining port: no BillGroup rows exist in this host schema. Do not emit
@@ -85,8 +85,8 @@ public final class OriginalFinancialEffects implements OriginalFinancialOrchestr
     /** f.d/q1's actual semantic metadata cache and MAIN g7.d tail. */
     public void assetCreatedOrEdited(long semanticAsset){JSONObject row;synchronized(store){row=store.assetRepository().p(semanticAsset,owner);}assetCreatedOrEdited(semanticAsset,row);}
     /** Original d/q1 still publish retained in-memory metadata when entity save returnsfalse. */
-    public void assetCreatedOrEdited(long semanticAsset,JSONObject retainedMetadata){synchronized(store){String key=owner+":"+semanticAsset;if(retainedMetadata==null)state.assets.remove(key);else state.assets.put(key,Json.copy(retainedMetadata));}publish(state,Event.ASSETS_CHANGED);}
-    public void assetDeleted(long semanticAsset){synchronized(store){state.assets.remove(owner+":"+semanticAsset);manager().remove(semanticAsset);}publish(state,Event.ASSETS_CHANGED);}
+    public void assetCreatedOrEdited(long semanticAsset,JSONObject retainedMetadata){if(AccountingCommitScope.defer(store,()->assetCreatedOrEdited(semanticAsset,retainedMetadata==null?null:Json.copy(retainedMetadata))))return;synchronized(store){String key=owner+":"+semanticAsset;if(retainedMetadata==null)state.assets.remove(key);else state.assets.put(key,Json.copy(retainedMetadata));}publish(store,state,Event.ASSETS_CHANGED);}
+    public void assetDeleted(long semanticAsset){if(AccountingCommitScope.defer(store,()->assetDeleted(semanticAsset)))return;synchronized(store){state.assets.remove(owner+":"+semanticAsset);manager().remove(semanticAsset);}publish(store,state,Event.ASSETS_CHANGED);}
     public static JSONObject cachedAsset(ReferenceStore store,int owner,long semanticAsset){synchronized(store){State state=state(store);String key=owner+":"+semanticAsset;JSONObject row=state.assets.get(key);if(row==null){row=store.assetRepository().p(semanticAsset,owner);if(row!=null)state.assets.put(key,Json.copy(row));}return row==null?null:Json.copy(row);}}
     static Double cachedRefund(ReferenceStore store,int owner,int parent){synchronized(store){State state=state(store);return state.refunds.get(owner+":"+parent);}}
     public static List<JSONObject> dayBills(ReferenceStore store,long book,long time,boolean calendar){
@@ -102,11 +102,11 @@ public final class OriginalFinancialEffects implements OriginalFinancialOrchestr
     public static List<String> unportedDomains(){return java.util.Collections.unmodifiableList(java.util.Arrays.asList("TransferCommands","TransferUI","LendCommands","LendUI","StockInfo","OperationIcon","AutoTag","BillGroup"));}
     public static Map<String,List<OriginalCreditBill>> repaymentSchedule(ReferenceStore store,int owner,int bookOwner){synchronized(store){Manager manager=manager(store,state(store),owner,bookOwner);Map<String,List<OriginalCreditBill>> result=new HashMap<>();for(Map.Entry<String,List<OriginalCreditBill>> entry:manager.byDate.entrySet()){List<OriginalCreditBill> list=new ArrayList<>();for(OriginalCreditBill bill:entry.getValue())list.add(bill.copy());result.put(entry.getKey(),list);}return result;}}
     public static void resetAfterRestore(ReferenceStore store){
-        State state;synchronized(store){synchronized(STATES){state=STATES.get(store);}if(state==null)return;state.scheduler.resetAfterRestore();state.scheduler.initializeCredit();state.managers.clear();state.homeDays.clear();state.calendarDays.clear();state.monthMaximum.clear();state.refunds.clear();state.assets.clear();}publish(state,Event.RESTORED);
+        State state;synchronized(store){synchronized(STATES){state=STATES.get(store);}if(state==null)return;state.scheduler.resetAfterRestore();state.scheduler.initializeCredit();state.managers.clear();state.homeDays.clear();state.calendarDays.clear();state.monthMaximum.clear();state.refunds.clear();state.assets.clear();}publish(store,state,Event.RESTORED);
     }
     /** Host context/epoch extension; current_book remains a local row ID, never a semantic ID. */
     public static void bookSelectionChanged(ReferenceStore store){
-        State state;synchronized(store){synchronized(STATES){state=STATES.get(store);}if(state==null)return;state.creditGeneration++;state.scheduler.initializeCredit();state.managers.clear();state.homeDays.clear();state.calendarDays.clear();state.monthMaximum.clear();manager(store,state,ReferenceStore.LOCAL_OFFLINE_OWNER,selectedBookOwner(store));}publish(state,Event.BILLS_CHANGED);publish(state,Event.ASSETS_CHANGED);publish(state,Event.CREDIT_CHANGED);
+        State state;synchronized(store){synchronized(STATES){state=STATES.get(store);}if(state==null)return;state.creditGeneration++;state.scheduler.initializeCredit();state.managers.clear();state.homeDays.clear();state.calendarDays.clear();state.monthMaximum.clear();manager(store,state,ReferenceStore.LOCAL_OFFLINE_OWNER,selectedBookOwner(store));}publish(store,state,Event.BILLS_CHANGED);publish(store,state,Event.ASSETS_CHANGED);publish(store,state,Event.CREDIT_CHANGED);
     }
     private static JSONObject selectedBook(ReferenceStore store){long row=store.context().getSharedPreferences("reference_settings",android.content.Context.MODE_PRIVATE).getLong("current_book",1);JSONObject book=store.book(row);if(book==null&&!store.books().isEmpty())book=store.books().get(0);return book;}
     private static int selectedBookOwner(ReferenceStore store){JSONObject book=selectedBook(store);return book==null||book.isNull("owner_semantic_id")?ReferenceStore.LOCAL_OFFLINE_OWNER:book.optInt("owner_semantic_id");}
@@ -134,7 +134,7 @@ public final class OriginalFinancialEffects implements OriginalFinancialOrchestr
         void removeEntries(long semantic){for(List<OriginalCreditBill> list:byDate.values())list.removeIf(bill->bill.getAssetId()==semantic);Iterator<Map.Entry<String,OriginalCreditBill>> iterator=byDateAndAsset.entrySet().iterator();while(iterator.hasNext())if(iterator.next().getValue().getAssetId()==semantic)iterator.remove();}
         void remove(long semantic){long stamp=state.scheduler.epoch();state.scheduler.executeCredit(()->{synchronized(store){if(!current(stamp))return;removeEntries(semantic);status.remove(semantic);failures.remove(semantic);}if(current(stamp))changed(stamp);});} // s2.x leaves serviceRemainder intact.
         List<OriginalCreditBill> snapshot(long semantic){List<OriginalCreditBill> result=new ArrayList<>();for(OriginalCreditBill bill:byDateAndAsset.values())if(bill.getAssetId()==semantic)result.add(bill.copy());java.util.Collections.sort(result);return result;}
-        void changed(long stamp){synchronized(store){if(!current(stamp))return;OriginalRepaymentWidget.refreshInstalled(store);publish(state,Event.CREDIT_CHANGED);}}
-        void failed(long stamp){synchronized(store){if(current(stamp))publish(state,Event.CREDIT_CHANGED);}} // Visible error metadata, no false widget-success notification.
+        void changed(long stamp){synchronized(store){if(!current(stamp))return;OriginalRepaymentWidget.refreshInstalled(store);publish(store,state,Event.CREDIT_CHANGED);}}
+        void failed(long stamp){synchronized(store){if(current(stamp))publish(store,state,Event.CREDIT_CHANGED);}} // Visible error metadata, no false widget-success notification.
     }
 }

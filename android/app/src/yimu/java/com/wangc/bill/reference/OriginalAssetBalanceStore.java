@@ -84,8 +84,9 @@ public final class OriginalAssetBalanceStore {
                 ContentValues values=new ContentValues();values.put("asset_number",asset.storedNumber);values.put("update_time",asset.updateTime);
                 int rows=store.getWritableDatabase().update("accounts",values,"id=? AND asset_origin='original' AND owner_semantic_id=? AND semantic_id=?",
                     new String[]{""+asset.rowId,""+asset.ownerSemanticId,""+asset.semanticId});
+                AccountingCommitScope.requireChanged(store,rows);
                 outcome=new SaveOutcome(true,rows,"");
-            }catch(Exception error){
+            }catch(Exception error){ AccountingCommitScope.failed(store,error);
                 // Privacy adaptation: report the class, never print financial SQL/values.
                 outcome=new SaveOutcome(false,-1,error.getClass().getName());
             }
