@@ -128,7 +128,7 @@ jobs:
           root=Path('build')
           patterns=('app/outputs/apk/debug/*.apk','app/outputs/apk/androidTest/debug/*.apk','captureFixture/outputs/apk/*/debug/*.apk')
           groups=[sorted(root.glob(pattern)) for pattern in patterns]
-          assert [len(group) for group in groups]==[1,1,4], 'Missing or duplicate project device APKs'
+          assert [len(group) for group in groups]==[1,1,5], 'Missing or duplicate project device APKs'
           destination=Path('cloud-apks')
           destination.mkdir()
           for group in groups:
@@ -150,7 +150,7 @@ jobs:
       - name: Execute device tests against this build without recompiling
         id: device
         if: ${{ !cancelled() && steps.device_setup.outcome == 'success' }}
-        timeout-minutes: 25
+        timeout-minutes: 45
         continue-on-error: true
         run: python3 .github/scripts/run_checked.py bash .github/scripts/run_capture_device_tests.sh
       - name: Remove signing material on every exit path

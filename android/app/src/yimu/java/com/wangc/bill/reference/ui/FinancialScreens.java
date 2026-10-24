@@ -32,8 +32,27 @@ final class FinancialScreens {
     static String intervalName(String i){return switch(i){case "daily"->"每天";case "weekly"->"每周";case "yearly"->"每年";default->"每月";};}
     static void bind(View r,String id,JSONObject data,String key){View v=Ui.view(r,id);if(v instanceof CompoundButton b){b.setChecked(data.optBoolean(key));b.setOnCheckedChangeListener((button,value)->Json.put(data,key,value));}}
     interface Account{void selected(long id);}
-    static void chooseAccount(ManagerActivity a,String currency,Account callback){List<JSONObject> accounts=a.store().query("SELECT * FROM accounts WHERE archived=0 AND currency=?",currency);String[] names=new String[accounts.size()+1];names[0]="无账户";for(int i=0;i<accounts.size();i++)names[i+1]=accounts.get(i).optString("name");new AlertDialog.Builder(a).setTitle("账户").setItems(names,(d,w)->callback.selected(w==0?0:accounts.get(w-1).optLong("id"))).show();}
-    static void returns(ManagerActivity a){boolean reimb=a.page.equals("reimbursement");a.body(reimb?"待报销":a.page.equals("loans")?"借入与还款":"借入借出","新增",()->{String[] names=reimb?new String[]{"新增报销支出"}:new String[]{"借出","借入"};new AlertDialog.Builder(a).setTitle("记一笔").setItems(names,(d,w)->a.startActivity(new Intent(a,EditorActivity.class).putExtra("financial",reimb?"reimbursement":w==0?"lend":"borrow"))).show();});String clause=reimb?"financial_type='reimbursement'":"financial_type IN ('lend','borrow')";for(JSONObject row:a.store().query("SELECT * FROM transactions WHERE book_id=? AND deleted=0 AND "+clause+" ORDER BY time DESC",""+a.bookId())){long left=a.store().outstanding(row.optLong("id"));String type=row.optString("financial_type");String name=(type.equals("borrow")?"借入":type.equals("lend")?"借出":"报销")+" · "+row.optString("remark");a.rows.addView(Ui.row(a,name,"剩余 "+Money.text(left,row.optString("currency"))+" / "+Money.text(row.optLong("amount"),row.optString("currency")),()->new AlertDialog.Builder(a).setTitle(name).setItems(left>0?new String[]{"记录部分或全部回款","编辑原账单"}:new String[]{"编辑原账单"},(d,w)->{if(left>0&&w==0)returnAmount(a,row,left);else Ui.edit(a,row.optLong("id"),null);}).show()));}}
+    static void chooseAccount(ManagerActivity a,String currency,Account callback){List<JSONObject> accounts=new ArrayList<>();for(JSONObject account:a.store().selectableAccounts(a.bookId()))if(currency.equals(account.optString("currency")))accounts.add(account);String[] names=new String[accounts.size()+1];names[0]="无账户";for(int i=0;i<accounts.size();i++)names[i+1]=accounts.get(i).optString("name");new AlertDialog.Builder(a).setTitle("账户").setItems(names,(d,w)->callback.selected(w==0?0:accounts.get(w-1).optLong("id"))).show();}
+    static void returns(ManagerActivity a){
+        boolean reimbursement=a.page.equals("reimbursement");
+        a.body(reimbursement?"待报销":a.page.equals("loans")?"借入与还款":"借入借出","新增",()->{
+            String[] names=reimbursement?new String[]{"新增报销支出"}:new String[]{"借出","借入"};
+            new AlertDialog.Builder(a).setTitle("记一笔").setItems(names,(dialog,index)->a.startActivity(new Intent(a,EditorActivity.class)
+                    .putExtra("financial",reimbursement?"reimbursement":index==0?"lend":"borrow"))).show();
+        });
+        int count=0;
+        for(JSONObject entry:a.store().accountingEntries(a.bookId(),0,Long.MAX_VALUE,null,false)){
+            String finance=entry.optString("financial_type");boolean loan=entry.optString("entry_kind").equals("lend")&&(entry.optInt("lend_type")==1||entry.optInt("lend_type")==3);
+            boolean marked=finance.equals("reimbursement")||entry.optInt("bill_reimbursement")!=0;
+            if(reimbursement?!marked:!loan&&!finance.equals("lend")&&!finance.equals("borrow"))continue;
+            if(!reimbursement&&a.page.equals("loans")&&entry.optInt("lend_type")!=3&&!finance.equals("borrow"))continue;
+            count++;String currency=entry.optString("currency","CNY"),title=reimbursement?"报销支出":Ui.entryTitle(entry);
+            String detail=entry.optString("remark")+" · "+Money.text(entry.optLong("amount"),currency);
+            if(loan)detail+=" · 待结清 "+Money.text(entry.optLong("outstanding"),currency);
+            a.rows.addView(Ui.row(a,title,detail,()->Ui.record(a,entry)));
+        }
+        if(count==0)a.rows.addView(Ui.row(a,"暂无记录","点击新增开始记录。",null));
+    }
     static void returnAmount(ManagerActivity a,JSONObject row,long left){String currency=row.optString("currency");Dialogs.input(a,"回款金额（最多 "+Money.text(left,currency)+"）",Money.text(left,currency),true,value->{long amount=Money.positive(value,currency);if(amount>left)throw new IllegalArgumentException("金额超过剩余待结算金额");chooseAccount(a,currency,id->{try{a.store().financialReturn(row.optLong("id"),amount,id,System.currentTimeMillis());a.reload();}catch(Exception e){Ui.error(a,e);}});});}
-    static void investments(ManagerActivity a){a.body("投资账户","新增",()->a.open("new_account",0));a.rows.addView(Ui.row(a,"手动记录持仓净值","行情和证券接口未接入。可建立投资账户，通过转账记录投入与取出，通过收入或支出记录收益和亏损。",null));for(JSONObject row:a.store().query("SELECT * FROM accounts WHERE archived=0 AND type='investment'"))a.rows.addView(Ui.row(a,row.optString("name"),row.optString("currency")+" · "+Money.text(a.store().accountBalance(row.optLong("id")),row.optString("currency")),()->a.open("account_detail",row.optLong("id"))));}
+    static void investments(ManagerActivity a){a.body("投资账户","新增",()->a.startActivity(new Intent(a,ManagerActivity.class).putExtra("page","new_account").putExtra("account_type",3)));a.rows.addView(Ui.row(a,"手动记录持仓净值","行情和证券接口未接入。可建立投资账户，通过转账记录投入与取出，通过收入或支出记录收益和亏损。",null));for(JSONObject row:a.store().query("SELECT * FROM accounts WHERE archived=0 AND type='investment'"))a.rows.addView(Ui.row(a,row.optString("name"),row.optString("currency")+" · "+Money.text(a.store().accountBalance(row.optLong("id")),row.optString("currency")),()->a.open("account_detail",row.optLong("id"))));}
 }

@@ -75,6 +75,7 @@ final class OriginalLendConfirmation {
             throw new IllegalStateException("还款未能完整保存，可安全重试");
         OriginalLendRecord lend = result.lend;
         JSONObject confirmed = Json.copy(input);
+        Json.put(confirmed,"fee_bill_id",result.interestBill==null?null:result.interestBill.localRowId);
         Json.put(confirmed, "financial_type", "original_lend");
         Json.put(confirmed, "lend_row_id", lend.localRowId);
         Json.put(confirmed, "lend_owner_semantic_id", lend.userId);

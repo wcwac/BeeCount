@@ -50,21 +50,21 @@ final class CatalogScreens {
         EditText name=Ui.view(r,"type_content"),opening=Ui.view(r,"type_number");
         name.setText(old==null?"":old.optString("name"));
         boolean original=old==null||AssetRepository.ORIGINAL.equals(old.optString("asset_origin"));
-        String currency=old==null||old.optString("currency").isEmpty()?"CNY":old.optString("currency");
-        int[] type={old==null?1:old.optInt("asset_type")};
+        String currency=old==null?a.currency():old.optString("currency").isEmpty()?"CNY":old.optString("currency");
+        int[] type={old==null?a.getIntent().getIntExtra("account_type",1):old.optString("type").equals("investment")?3:old.optInt("asset_type")};
         String[] statement={old==null?"1":old.optString("out_account_date","1")},repayment={old==null?"20":old.optString("in_account_date","20")};
         if(statement[0].isEmpty()||statement[0].equals("null"))statement[0]="1";
         if(repayment[0].isEmpty()||repayment[0].equals("null"))repayment[0]="20";
         opening.setInputType(android.text.InputType.TYPE_CLASS_NUMBER|android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL|android.text.InputType.TYPE_NUMBER_FLAG_SIGNED);
         opening.setText(Money.text(old==null?0:original?a.store().accountBalance(a.entity):old.optLong("opening"),currency));
         Ui.hide(r,"night_icon_layout","auto_income_layout","account_book_layout","switch_add_total","remark","card_code","remark_title","card_code_title","type_simple_name","type_simple_title");
-        Ui.text(r,"currency",currency);Ui.text(r,"content_title","账户名称");
+        Ui.text(r,"currency",currency);Ui.show(r,"currency_layout",true);Ui.text(r,"content_title","账户名称");
         ViewGroup typeRow=Ui.view(r,"group_name_layout");
         for(int i=0;i<typeRow.getChildCount();i++)if(typeRow.getChildAt(i) instanceof TextView text&&text.getId()!=Ui.id(a,"group_name"))text.setText("账户类型");
         LinearLayout content=(LinearLayout)((ScrollView)((ViewGroup)r).getChildAt(1)).getChildAt(0);
         LinearLayout credit=Ui.column(a);content.addView(credit);
         Runnable renderType=()->{
-            Ui.text(r,"group_name",type[0]==2?"信用账户":"资金账户");Ui.text(r,"type_title",type[0]==2?"余额（欠款为负）":"账户余额");
+            Ui.text(r,"group_name",type[0]==2?"信用账户":type[0]==3?"投资账户":"资金账户");Ui.text(r,"type_title",type[0]==2?"余额（欠款为负）":"账户余额");
             credit.removeAllViews();credit.setVisibility(original&&type[0]==2?View.VISIBLE:View.GONE);
             if(type[0]==2){credit.addView(Ui.row(a,"账单日","每月 "+statement[0]+" 日",()->chooseAccountDay(a,statement,()->accountDays(credit,a,statement,repayment))));
                 credit.addView(Ui.row(a,"还款日","每月 "+repayment[0]+" 日",()->chooseAccountDay(a,repayment,()->accountDays(credit,a,statement,repayment))));}
@@ -72,12 +72,12 @@ final class CatalogScreens {
         renderType.run();
         Ui.click(r,"group_name_layout",()->{
             if(old!=null){Ui.toast(a,"已有账户不能改变类型，请新建所需类型的账户");return;}
-            new AlertDialog.Builder(a).setTitle("账户类型").setSingleChoiceItems(new String[]{"资金账户","信用账户"},type[0]-1,(dialog,which)->{type[0]=which+1;renderType.run();dialog.dismiss();}).show();
+            new AlertDialog.Builder(a).setTitle("账户类型").setSingleChoiceItems(new String[]{"资金账户","信用账户","投资账户"},type[0]-1,(dialog,which)->{type[0]=which+1;renderType.run();dialog.dismiss();}).show();
         });
         Ui.click(r,"btn_complete",()->{try{
             long minor=Money.signed(opening.getText().toString(),currency);
-            if(original)AccountingAccounts.save(a.store(),a.entity,name.getText().toString(),type[0],minor,statement[0],repayment[0]);
-            else a.store().saveAccount(a.entity,name.getText().toString(),old.optString("type"),currency,minor);
+            if(original&&currency.equals("CNY"))AccountingAccounts.save(a.store(),a.entity,name.getText().toString(),type[0],minor,statement[0],repayment[0]);
+            else a.store().saveAccount(a.entity,name.getText().toString(),old==null?(type[0]==3?"investment":type[0]==2?"credit":"cash"):old.optString("type"),currency,minor);
             a.finish();
         }catch(Exception error){Ui.error(a,error);}});
     }

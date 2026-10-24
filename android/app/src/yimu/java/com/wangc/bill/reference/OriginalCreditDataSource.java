@@ -60,6 +60,7 @@ final class OriginalCreditDataSource implements OriginalCreditProjection.DataSou
         synchronized(store){
             List<OriginalCreditProjection.Transfer> result=new ArrayList<>();
             for(OriginalTransferRecord row:new OriginalTransferRepository(store).forAsset(owner,asset)){
+                if(row.originalDeleted)continue;
                 OriginalCreditProjection.Transfer value=new OriginalCreditProjection.Transfer();
                 value.fromAssetId=row.fromAssetId;value.toAssetId=row.toAssetId;
                 value.cost=row.cost;value.time=row.time;value.remark=row.remark;
@@ -72,7 +73,7 @@ final class OriginalCreditDataSource implements OriginalCreditProjection.DataSou
     @Override public List<OriginalCreditProjection.Lend> lends(long asset){
         synchronized(store){
             List<OriginalCreditProjection.Lend> result=new ArrayList<>();
-            for(OriginalLendRecord row:new OriginalLendRepository(store).forRepaymentAsset(owner,asset))result.add(lend(row));
+            for(OriginalLendRecord row:new OriginalLendRepository(store).forRepaymentAsset(owner,asset))if(!row.originalDeleted)result.add(lend(row));
             return result;
         }
     }
@@ -81,7 +82,7 @@ final class OriginalCreditDataSource implements OriginalCreditProjection.DataSou
     @Override public List<OriginalCreditProjection.Lend> interestRows(long asset,long start,long end){
         synchronized(store){
             List<OriginalCreditProjection.Lend> result=new ArrayList<>();
-            for(OriginalLendRecord row:new OriginalLendRepository(store).interestRows(owner,asset,start,end))result.add(lend(row));
+            for(OriginalLendRecord row:new OriginalLendRepository(store).interestRows(owner,asset,start,end))if(!row.originalDeleted)result.add(lend(row));
             return result;
         }
     }

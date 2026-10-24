@@ -66,7 +66,7 @@ public final class AccountingSchemaV9DeviceTest {
             db.execSQL("INSERT INTO asset_histories(id,semantic_id,asset_semantic_id,owner_semantic_id,time,update_time,change_content,change_number,current_number) VALUES(31,331,771,0,?,?,'旧扣款',-5,95)",new Object[]{TIME,TIME});
             oldTables=new JSONObject();for(String table:OLD_TABLES)Json.put(oldTables,table,rows(db,"SELECT * FROM "+table));
         }
-        store=new ReferenceStore(context,name);assertEquals(9,store.getWritableDatabase().getVersion());
+        store=new ReferenceStore(context,name);assertEquals(10,store.getWritableDatabase().getVersion());
         assertOldGraph(oldTables);assertEquals(9500,store.accountBalance(71));
         assertEquals(0,store.scalar("SELECT COUNT(*) n FROM accounting_operations"));
         JSONObject oldBackup=Json.object("format","YimuReferenceBackup","version",8,"created",TIME,"tables",oldTables);
@@ -92,7 +92,7 @@ public final class AccountingSchemaV9DeviceTest {
         assertEquals(book,prefs.getLong("current_book",0));
         JSONObject weak=Json.object("book_id",book,"kind","expense","amount",600,"currency","CNY","time",TIME,"capture_window_key","window:pending");
         String weakId=store.upsertCapturedCandidate(weak,"com.tencent.mm",book,"window:pending","WINDOW_RECEIPT");
-        JSONObject backup=store.backup();assertEquals(9,backup.optInt("version"));assertEquals(27,backup.optJSONObject("tables").length());
+        JSONObject backup=store.backup();assertEquals(10,backup.optInt("version"));assertEquals(29,backup.optJSONObject("tables").length());
         store.restore(backup);assertEquals(8300,store.accountBalance(from));assertEquals(6500,store.accountBalance(to));
         assertEquals("PAYMENT_ID",store.candidate(candidate).optString("evidence_kind"));assertEquals("payment:strong",store.candidate(candidate).optString("capture_key"));assertEquals("window:strong",store.candidate(candidate).optString("capture_window_key"));
         assertEquals(captured,store.saveCandidateTransfer(transfer,candidate,()->{}));assertEquals(receipt.toString(),store.saveTransfer(manual,operation).toString());

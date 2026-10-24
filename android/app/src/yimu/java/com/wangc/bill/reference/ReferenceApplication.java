@@ -21,6 +21,7 @@ public final class ReferenceApplication extends Application {
             public void onActivitySaveInstanceState(android.app.Activity a,android.os.Bundle b){}
             public void onActivityDestroyed(android.app.Activity a){}
         });
+        com.wangc.bill.reference.ui.LocalAppLock.install(this);
         com.wangc.bill.reference.capture.PlanScheduler.sync();
         com.wangc.bill.reference.ui.QuickEntryWindow.refresh();
     }

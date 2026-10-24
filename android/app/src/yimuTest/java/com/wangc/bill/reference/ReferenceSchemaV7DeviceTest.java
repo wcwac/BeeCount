@@ -45,7 +45,7 @@ public final class ReferenceSchemaV7DeviceTest {
     private void openLatest() { store = new ReferenceStore(context, database); store.getWritableDatabase(); }
 
     @Test public void realVersionSixMigrationPreservesCandidateParentReferencesAndRollsBackInvalidForeignKeys() {
-        createVersionSixGraph(database); openLatest(); assertEquals(9, store.getReadableDatabase().getVersion()); assertOldGraph();
+        createVersionSixGraph(database); openLatest(); assertEquals(10, store.getReadableDatabase().getVersion()); assertOldGraph();
         assertEquals(1, scalar(store.getReadableDatabase(), "PRAGMA foreign_keys"));
         assertEquals(0, store.scalar("SELECT COUNT(*) n FROM candidate_transfer_receipts"));
         try (Cursor fks = store.getReadableDatabase().rawQuery("PRAGMA foreign_key_list(transactions)", null)) {
@@ -84,7 +84,7 @@ public final class ReferenceSchemaV7DeviceTest {
     }
 
     @Test public void latestSchemaRoundTripsAllTablesAndReservesDeletedTransferAnchorsAcrossDatabases() {
-        openLatest(); assertEquals(9, store.getReadableDatabase().getVersion());
+        openLatest(); assertEquals(10, store.getReadableDatabase().getVersion());
         assertEquals(1, scalar(store.getReadableDatabase(), "PRAGMA foreign_keys"));
         OriginalTransferRecord live = new OriginalTransferRecord(); live.userId = 7; live.transferId = Long.MAX_VALUE;
         new OriginalTransferRepository(store).saveOriginalRaw(live);
@@ -97,8 +97,8 @@ public final class ReferenceSchemaV7DeviceTest {
         assertEquals(1, repository.deleteRaw(repository.byLocalRowId(9000)));
         assertEquals(9000, receipt("deleted-transfer").optLong("transfer_row_id"));
         assertTrue(receipt("deleted-transfer").isNull("resolved_transfer_row_id"));
-        JSONObject backup = store.backup(); assertEquals(9, backup.optInt("version"));
-        assertEquals(27, backup.optJSONObject("tables").length());
+        JSONObject backup = store.backup(); assertEquals(10, backup.optInt("version"));
+        assertEquals(29, backup.optJSONObject("tables").length());
         store.close(); store = null; context.deleteDatabase(database); openLatest();
         assertEquals(0, store.scalar("SELECT COUNT(*) n FROM original_transfers")); store.restore(backup); assertTablesEqual(backup);
         assertTrue(store.candidate("live-transfer").isNull("transaction_id"));
@@ -236,7 +236,7 @@ public final class ReferenceSchemaV7DeviceTest {
     }
     private void assertTablesEqual(JSONObject expected) {
         JSONObject wanted = expected.optJSONObject("tables"), actual = store.backup().optJSONObject("tables");
-        assertEquals(27, wanted.length()); assertEquals(27, actual.length());
+        assertEquals(29, wanted.length()); assertEquals(29, actual.length());
         for (java.util.Iterator<String> keys = wanted.keys(); keys.hasNext();) {
             String table = keys.next(); assertEquals(table, wanted.optJSONArray(table).toString(), actual.optJSONArray(table).toString());
         }
@@ -291,7 +291,7 @@ public final class ReferenceSchemaV7DeviceTest {
             ContentValues high = projection(db, 1); high.put("id", 999); db.insertOrThrow("transactions", null, high); db.execSQL("DELETE FROM transactions WHERE id=999");
         }
         try (ReferenceStore migrated = new ReferenceStore(context, oldName)) {
-            SQLiteDatabase db = migrated.getWritableDatabase(); assertEquals(9, db.getVersion());
+            SQLiteDatabase db = migrated.getWritableDatabase(); assertEquals(10, db.getVersion());
             assertEquals(321, migrated.transaction(322).optLong("related_id"));
             assertEquals("v3-self-parent", migrated.transaction(321).optString("candidate_id"));
             assertEquals(321, migrated.candidate("v3-self-parent").optLong("transaction_id"));

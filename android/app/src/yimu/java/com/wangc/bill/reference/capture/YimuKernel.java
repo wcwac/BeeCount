@@ -53,9 +53,16 @@ public final class YimuKernel {
         long now = System.currentTimeMillis();
         if (!com.wangc.bill.utils.h2.J(bill.getNumber())) { ReferenceDiagnostics.result("INVALID_AMOUNT"); return; }
         ReferenceStore store = ReferenceApplication.store();
-        long bookId = ReferenceApplication.prefs().getLong("capture_book", 1);
-        JSONObject book = store.book(bookId);
-        if (book == null || book.optInt("archived") != 0 || !"CNY".equals(book.optString("currency"))) { ReferenceDiagnostics.result("TARGET_BOOK_UNAVAILABLE"); return; }
+        long requestedBookId = ReferenceApplication.prefs().getLong("capture_book", 1);
+        long bookId=requestedBookId;JSONObject book=store.book(bookId);
+        boolean unresolvedBook=book==null||book.optInt("archived")!=0||!"CNY".equals(book.optString("currency"));
+        if(unresolvedBook){
+            // A candidate needs a valid FK, not a guessed financial destination.
+            // All save paths reject the unresolved flag until the user chooses a book.
+            JSONObject anchor=store.one("SELECT id FROM books ORDER BY id LIMIT 1");
+            if(anchor==null){ReferenceDiagnostics.result("NO_INBOX_STORAGE");MAIN.post(CaptureNotifications::error);return;}
+            bookId=anchor.optLong("id");book=store.book(bookId);
+        }
         String kind = bill.isTransfer() ? "transfer" : bill.isIncome() ? "income" : "expense";
         long amount = 0, discount = 0, fee = 0;
         try { amount = CapturedAmount.minorUnits(bill.getNumber()); } catch (IllegalArgumentException ignored) {}
@@ -95,7 +102,8 @@ public final class YimuKernel {
         CaptureIdentity.Identity identity=CaptureIdentity.identify(pkg,evidence==null?"":evidence.sessionId,evidence==null?-1:evidence.windowId,kind,amount,
                 CaptureIdentity.visibleTransactionTime(bill.getTime(),capturedTexts),merchant,
                 bill.isTransfer()?safe(bill.getFromAsset())+" -> "+safe(bill.getToAsset()):bill.getAsset(),capturedTexts);
-        boolean accountManual=accountResolution.requiresConfirmation || destination!=null&&destination.requiresConfirmation
+        if(unresolvedBook){account=0;toAccount=0;}
+        boolean accountManual=unresolvedBook||accountResolution.requiresConfirmation || destination!=null&&destination.requiresConfirmation
                 || bill.isTransfer()&&(account==0||toAccount==0||account==toAccount);
         JSONArray tags = new JSONArray(); if (bill.getTagList() != null) for (Long id : bill.getTagList()) if (store.one("SELECT id FROM tags WHERE id=?", "" + id) != null) tags.put(id);
         JSONObject data = Json.object("book_id", bookId, "kind", kind, "amount", amount, "currency", "CNY", "original_number", bill.getNumber(), "category_id", category,
@@ -105,14 +113,17 @@ public final class YimuKernel {
             "tag_ids", tags, "originalNumberValid", amount > 0,
             // Original repeat checks keep BillInfo's captured values, including a missing time (0).
             "original_amount", amount, "original_time", bill.getTime(), "original_income", bill.isIncome(), "original_currency", "CNY", "original_remark", safe(bill.getRemark()));
-        Json.put(data,"capture_requires_confirmation",identity.requiresConfirmation||accountManual||amount<=0);
+        Json.put(data,"capture_requires_confirmation",unresolvedBook||identity.requiresConfirmation||accountManual||amount<=0);
+        Json.put(data,"capture_target_book_unresolved",unresolvedBook);
+        Json.put(data,"capture_requested_book_id",requestedBookId);
+        Json.put(data,"from_asset_text",safe(bill.getFromAsset()));Json.put(data,"to_asset_text",safe(bill.getToAsset()));
         Json.put(data,"capture_window_key",identity.windowKey);
         Json.put(data,"capture_identity_kind",identity.kind);
         Json.put(data,"capture_duplicate_hint",identity.requiresConfirmation);
         Json.put(data,"capture_payment_id",identity.paymentId);
         Json.put(data,"capture_order_reference",identity.orderReference);
         Json.put(data,"capture_business_type",identity.businessType);
-        Json.put(data,"capture_account_resolution",accountResolution.reason);
+        Json.put(data,"capture_account_resolution",unresolvedBook?"TARGET_BOOK_UNRESOLVED":accountResolution.reason);
         Json.put(data,"capture_account_requires_confirmation",accountManual);
         if(destination!=null)Json.put(data,"capture_to_account_resolution",destination.reason);
         if(evidence!=null)Json.put(data,"capture_source_route",evidence.sourceRoute);
@@ -136,12 +147,13 @@ public final class YimuKernel {
             if(callback!=null)HANDLERS.putIfAbsent(id,callback);
             boolean reused=prior!=null&&id.equals(prior.optString("id"));
             ReferenceDiagnostics.result(reused?"DRAFT_REUSED":"DRAFT_SAVED");
+            if(unresolvedBook)ReferenceDiagnostics.result("DRAFT_WAITING_FOR_BOOK");
             // AutoSetting.autoAdd belongs to the attached entry window: it counts down for 5s
             // and invokes the same validated save action as a manual click. Never bypass it here.
             long epoch=restoreEpoch;
             MAIN.post(() -> {
                 if(epoch!=restoreEpoch)return;
-                if (ReferenceApplication.prefs().getBoolean("show_overlay", true)) CaptureOverlay.show(id, callback);
+                if (!unresolvedBook && ReferenceApplication.prefs().getBoolean("show_overlay", true)) CaptureOverlay.show(id, callback);
                 CaptureNotifications.update();
             });
         } catch (Exception error) { ReferenceDiagnostics.failure("STORE_FAILED",error); MAIN.post(CaptureNotifications::error); }

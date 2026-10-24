@@ -1,6 +1,7 @@
 package com.wangc.bill.reference;
 
 import com.wangc.bill.reference.capture.CaptureIdentity;
+import com.wangc.bill.reference.capture.CapturedAmount;
 import java.util.Arrays;
 import java.util.Collections;
 import org.junit.Test;

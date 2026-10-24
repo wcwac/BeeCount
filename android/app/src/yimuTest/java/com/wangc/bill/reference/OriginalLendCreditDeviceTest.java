@@ -86,7 +86,7 @@ public final class OriginalLendCreditDeviceTest {
     }
     private void noFinancialReplay(){assertEquals(0,store.scalar("SELECT COUNT(*) n FROM asset_histories"));}
 
-    @Test public void actualRepaymentFeedKeepsCurrentOwnerAllTypesDeletedFlagsAndRawZeroWithoutPrincipalOrBookExpansion(){
+    @Test public void actualRepaymentFeedKeepsCurrentOwnerAllTypesButExcludesDeletedRowsWithoutPrincipalOrBookExpansion(){
         long target=9000000099L;
         AssetRepository.Definition hidden=new AssetRepository.Definition("隐藏别本借贷信用账户",2,null);
         hidden.hide=true;hidden.showBook.add(9999L);store.assetRepository().insertRecovered(7,target,1,0,hidden);
@@ -97,13 +97,13 @@ public final class OriginalLendCreditDeviceTest {
         lend(7,1,target,199,4,200,200,january);
         lend(7,2,199,0,0,.5,99,january);
         List<OriginalCreditProjection.Lend> read=new OriginalCreditDataSource(store,7).lends(target);
-        assertEquals(2,read.size());Map<String,OriginalCreditProjection.Lend> values=new HashMap<>();
+        assertEquals(1,read.size());Map<String,OriginalCreditProjection.Lend> values=new HashMap<>();
         for(OriginalCreditProjection.Lend row:read)values.put(row.remark,row);
-        OriginalCreditProjection.Lend zero=values.get(first.remark);assertNotNull(zero);
+        assertNull(values.get(first.remark));OriginalLendRecord zero=new OriginalLendRepository(store).byLocalRowId(first.localRowId);assertNotNull(zero);assertTrue(zero.originalDeleted);
         assertEquals(0,zero.fromCost,0);assertEquals(88,first.getCurrencyCost(target),0);
         assertEquals(199,zero.assetId);assertEquals(target,zero.repaymentAssetId);assertEquals(4,zero.type);
         assertEquals(781,zero.billId);assertTrue(zero.generalServiceBill);assertEquals(-2,zero.interest,0);
-        assertEquals(january,zero.time);assertEquals(january,zero.outTime);assertNotEquals(first.lendId,first.localRowId);
+        assertEquals(january,zero.getTime());assertEquals(january,zero.outTime);assertNotEquals(first.lendId,first.localRowId);
         assertEquals(-12.125,values.get("synthetic-lend-0").fromCost,0);
         assertEquals(99,values.get("synthetic-lend-0").type);
         assertEquals(1,new OriginalCreditDataSource(store,7).lends(0).size());
@@ -172,7 +172,7 @@ public final class OriginalLendCreditDeviceTest {
         assertEquals(january,statements.get(1).getBillInfoList().get(0).getDate());noFinancialReplay();
     }
 
-    @Test public void actualInterestFeedUsesPrincipalAssetTypeFourInclusiveOutTimeAndRetainsEveryInterestSign(){
+    @Test public void actualInterestFeedUsesPrincipalAssetTypeFourInclusiveOutTimeAndExcludesDeletedInterest(){
         long start=date("2025-01-02"),end=OriginalInstalmentSchedule.dayEnd(date("2025-02-01"));
         OriginalLendRecord first=lend(7,901,99,199,4,1,999,start);first.interest=3;first.originalDeleted=true;save(first);
         OriginalLendRecord last=lend(7,902,99,299,4,2,999,end);last.interest=-4;save(last);
@@ -180,10 +180,11 @@ public final class OriginalLendCreditDeviceTest {
         lend(7,904,99,199,4,1,1,start-1);lend(7,905,99,199,4,1,1,end+1);
         lend(8,906,99,199,4,1,1,start);lend(7,907,199,99,4,1,1,start);lend(7,908,99,199,3,1,1,start);
         List<OriginalCreditProjection.Lend> rows=new OriginalCreditDataSource(store,7).interestRows(99,start,end);
-        assertEquals(3,rows.size());assertEquals(end,rows.get(0).outTime);assertEquals(-4,rows.get(0).interest,0);
+        assertEquals(2,rows.size());assertEquals(end,rows.get(0).outTime);assertEquals(-4,rows.get(0).interest,0);
         assertEquals(start+1,rows.get(1).time);assertEquals(0,rows.get(1).interest,0);
-        assertEquals(start,rows.get(2).time);assertEquals(3,rows.get(2).interest,0);assertEquals(1,rows.get(2).fromCost,0);
-        assertEquals(199,rows.get(2).repaymentAssetId);assertEquals(99,rows.get(2).assetId);noFinancialReplay();
+        OriginalLendRecord deleted=new OriginalLendRepository(store).byLocalRowId(first.localRowId);assertTrue(deleted.originalDeleted);
+        assertEquals(start,deleted.outTime);assertEquals(3,deleted.interest,0);assertEquals(1,deleted.fromCost,0);
+        assertEquals(199,deleted.repaymentAssetId);assertEquals(99,deleted.assetId);noFinancialReplay();
     }
 
     @Test public void persistedPositiveInterestAtBothRepaymentBoundariesReducesActualInstalmentServiceRemainderOnly(){

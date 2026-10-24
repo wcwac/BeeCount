@@ -5,6 +5,7 @@
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.USE_BIOMETRIC" />
     <queries>
         <package android:name="com.eg.android.AlipayGphone"/>
         <package android:name="com.tencent.mm"/>
@@ -35,6 +36,7 @@
         </activity>
         <activity android:name="com.wangc.bill.reference.ui.EditorActivity" android:exported="false" android:windowSoftInputMode="adjustResize"/>
         <activity android:name="com.wangc.bill.reference.ui.ManagerActivity" android:exported="false"/>
+        <activity android:name="com.wangc.bill.reference.ui.LocalUnlockActivity" android:exported="false" android:launchMode="singleTop" android:theme="@style/ReferenceTheme"/>
         <activity android:name="com.wangc.bill.reference.ui.OriginalPermissionRequestActivity" android:exported="false" android:theme="@android:style/Theme.Translucent.NoTitleBar"/>
         <activity android:name="com.wangc.bill.reference.OriginalCreditStatementActivity" android:exported="false"/>
         <service android:name="com.wangc.bill.reference.capture.ReferenceCaptureService" android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE" android:exported="true" android:label="一木原版采集对比">

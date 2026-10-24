@@ -1,3 +1,5 @@
+> 当前分支 `feat/yimu-reference-rebuild` 是独立 Android 一木行为对比实验，最低 Android 8.0。使用原版界面资源及经静态核对的本地采集逻辑，重建账本、账户、统计、借贷、退款报销、周期记账、附件、CSV 和 ZIP 备份。联网、会员验证及 iOS 不在本分支范围内。新增功能尚待本批云端验证；下方 BeeCount 下载与功能说明属于其他分支。
+
 > **本地离线修改版**：云同步、AI/图片/语音识别、在线更新、公共汇率和外部跳转已禁用。保留手动记账、本地统计、附件和文件导入导出。自动备份已关闭，请自行导出备份。以下为上游功能介绍，联网功能不适用于此版本。
 
 **下载本离线版 0.4.0（已签名预发行版）**：[Release](https://github.com/wcwac/BeeCount/releases/tag/offline-v0.4.0-28) · [64 位安卓 APK](https://github.com/wcwac/BeeCount/releases/download/offline-v0.4.0-28/app-prod-release-v0.4.0.28.apk) · [通用 APK](https://github.com/wcwac/BeeCount/releases/download/offline-v0.4.0-28/app-prod-universal-release-v0.4.0.28.apk)。需 Android 7.0 或以上。

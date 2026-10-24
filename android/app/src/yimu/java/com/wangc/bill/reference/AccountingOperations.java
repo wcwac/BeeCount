@@ -36,8 +36,9 @@ public final class AccountingOperations {
 
     /** The UUID belongs to a new manual draft, never to a candidate or an existing Bill edit. */
     public long saveBill(JSONObject value,String operationId) {
-        JSONObject snapshot=Json.copy(value);String id=uuid(operationId);
+        JSONObject snapshot=Json.copy(value);AccountingTargets.requireResolved(store,snapshot,null);String id=uuid(operationId);
         return AccountingCommitScope.run(store,()->{
+            rejectOtherDomain(id);
             JSONObject prior=store.one("SELECT id FROM transactions WHERE manual_operation_id=?",id);
             if(prior!=null)return prior.optLong("id");
             if(store.one("SELECT operation_id FROM accounting_operations WHERE operation_id=?",id)!=null)
@@ -53,8 +54,10 @@ public final class AccountingOperations {
     /** New manual transfer/credit repayment. One UUID survives retries and rotation. */
     public JSONObject saveTransfer(JSONObject value, String operationId, boolean repayment) {
         JSONObject snapshot = Json.copy(value);
+        AccountingTargets.requireResolved(store,snapshot,null);
         String id = uuid(operationId);
         return AccountingCommitScope.run(store, () -> {
+            rejectOtherDomain(id);
             JSONObject previous = store.one("SELECT * FROM accounting_operations WHERE operation_id=?", id);
             if (previous != null) {
                 if (!previous.optString("entry_kind").equals(repayment ? "lend" : "transfer"))
@@ -78,6 +81,8 @@ public final class AccountingOperations {
             if (time <= 0 || time > 8640000000000000L) throw new IllegalArgumentException("记账时间无效");
             int mode = store.context().getSharedPreferences("reference_settings", android.content.Context.MODE_PRIVATE)
                     .getInt("original_transfer_mode", 0);
+            if(snapshot.has("transfer_mode"))mode=snapshot.optInt("transfer_mode");
+            if(mode!=0&&mode!=1)throw new IllegalArgumentException("转账金额模式无效");
             if (mode == 1 && fee > 0 && amount <= fee) throw new IllegalArgumentException("到账金额必须大于零");
             int owner = ReferenceStore.LOCAL_OFFLINE_OWNER;
             // Explicit account membership wins. Otherwise a manual draft's selected
@@ -129,6 +134,7 @@ public final class AccountingOperations {
             Json.put(result, "operation_id", id);
             Json.put(result,"entry_owner_semantic_id",owner);Json.put(result,"entry_semantic_id",semantic);
             Json.put(result,"attachments",snapshot.optString("attachments","[]"));
+            Json.put(result,"tag_ids",snapshot.optJSONArray("tag_ids")==null?new JSONArray():snapshot.optJSONArray("tag_ids"));
             ContentValues receipt = new ContentValues();
             receipt.put("operation_id", id); receipt.put("entry_kind", entryKind); receipt.put("entry_id", row);
             receipt.put("owner_semantic_id",owner);receipt.put("semantic_id",semantic);
@@ -138,6 +144,12 @@ public final class AccountingOperations {
                 throw new IllegalStateException("保存凭据失败，可安全重试");
             return result;
         });
+    }
+
+    private void rejectOtherDomain(String operationId) {
+        if(store.one("SELECT operation_id FROM accounting_financial_operations WHERE operation_id=?",operationId)!=null
+                ||store.one("SELECT operation_id FROM accounting_entry_edits WHERE operation_id=?",operationId)!=null)
+            throw new IllegalArgumentException("此保存标识已用于其他记账或编辑操作");
     }
 
     private JSONObject selected(long localId) {
@@ -251,43 +263,29 @@ public final class AccountingOperations {
         for (JSONObject source : store.transactions(book, start, end, search, trash)) {
             JSONObject bill = Json.copy(source);
             Json.put(bill, "entry_kind", "bill"); Json.put(bill, "entry_id", bill.optLong("id"));
-            Json.put(bill, "entry_key", "bill:" + bill.optLong("id")); result.add(bill);
+            Json.put(bill, "entry_key", "bill:" + bill.optLong("id")); if(seen.add(bill.optString("entry_key")))result.add(bill);
         }
-        if (!trash) {
-            for (JSONObject row : store.query("SELECT payload FROM accounting_operations WHERE book_id=?", "" + book))
-                append(result, seen, Json.parse(row.optString("payload")), start, end, search);
-            // Existing typed candidate receipts remain visible without fabricating manual UUIDs.
-            for (JSONObject candidate : store.query("SELECT c.* FROM candidates c WHERE c.book_id=? AND c.state='SAVED' AND c.save_kind IN ('transfer','lend')", "" + book)) {
-                String kind = candidate.optString("save_kind");
-                JSONObject receipt = store.one("SELECT * FROM candidate_" + (kind.equals("transfer") ? "transfer" : "lend") + "_receipts WHERE candidate_id=?", candidate.optString("id"));
-                if (receipt == null) continue;
-                long row = receipt.optLong(kind + "_row_id");
-                JSONObject source = Json.parse(candidate.optString("payload"));
-                double number; long time, fromRaw, toRaw; String remark; int owner; int feeSemantic;
-                if (kind.equals("transfer")) {
-                    OriginalTransferRecord transfer = new OriginalTransferRepository(store).byLocalRowId(row);
-                    if (transfer == null) continue;
-                    number = Math.abs(transfer.cost); time = transfer.time; fromRaw = transfer.fromAssetId; toRaw = transfer.toAssetId;
-                    remark = transfer.remark; owner = transfer.userId; feeSemantic = transfer.billId;
-                } else {
-                    OriginalLendRecord lend = new OriginalLendRepository(store).byLocalRowId(row);
-                    if (lend == null) continue;
-                    number = Math.abs(lend.number); time = lend.outTime; fromRaw = lend.repaymentAssetId; toRaw = lend.assetId;
-                    remark = lend.remark; owner = lend.userId; feeSemantic = lend.billId;
-                }
-                JSONObject from = store.assetRepository().p(fromRaw, owner), to = store.assetRepository().p(toRaw, owner);
-                JSONObject feeBill = feeSemantic<0?null:store.one("SELECT id FROM transactions WHERE bill_origin='original' AND bill_user_id=? AND bill_semantic_id=? ORDER BY id LIMIT 1", "" + owner, "" + feeSemantic);
-                double feeNumber=OriginalTransferAmount.parseS(source.optString("transfer_fee_text"));
-                long fee = OriginalTransferConfirmation.minor(Math.abs(feeNumber))*(feeNumber<0?-1:1);
-                JSONObject dto = typedDto(kind, row, book, OriginalTransferConfirmation.minor(number), fee, time, remark,
-                        from == null ? 0 : from.optLong("id"), to == null ? 0 : to.optLong("id"), feeBill == null ? 0 : feeBill.optLong("id"));
-                Json.put(dto,"attachments",source.optString("attachments","[]"));
-                append(result, seen, dto, start, end, search);
-            }
+        for(JSONObject row:store.query("SELECT entry_kind,entry_id FROM accounting_operations WHERE book_id=?",""+book)) {
+            String kind=row.optString("entry_kind");long id=row.optLong("entry_id");
+            JSONObject value=store.accountingEntry(kind,id);
+            if((value.optInt("deleted")!=0)==trash)append(result,seen,value,start,end,search);
         }
+        for(JSONObject candidate:store.query("SELECT c.id,c.save_kind FROM candidates c WHERE c.book_id=? AND c.state='SAVED' AND c.save_kind IN ('transfer','lend')",""+book)) {
+            String kind=candidate.optString("save_kind");
+            JSONObject receipt=store.one("SELECT "+kind+"_row_id FROM candidate_"+kind+"_receipts WHERE candidate_id=?",candidate.optString("id"));
+            if(receipt==null)continue;
+            String raw=kind.equals("transfer")?"original_transfers":"original_lends";
+            if(store.one("SELECT id FROM "+raw+" WHERE id=?",""+receipt.optLong(kind+"_row_id"))==null)continue;
+            JSONObject value=store.accountingEntry(kind,receipt.optLong(kind+"_row_id"));
+            if((value.optInt("deleted")!=0)==trash)append(result,seen,value,start,end,search);
+        }
+        // Loan/borrow rows use the same typed identity as candidate lend receipts.
+        // C applies its own search before the shared dedupe/time filter.
+        for(JSONObject loan:AccountingFinancialFlows.entries(store,book,start,end,search,trash))
+            append(result,seen,loan,start,end,null);
         result.sort(Comparator.comparingLong((JSONObject item) -> item.optLong("time")).reversed()
                 .thenComparing(item -> item.optString("entry_key")));
-        return result;
+        return result.size()>2000?new ArrayList<>(result.subList(0,2000)):result;
     }
 
     private static void append(List<JSONObject> output, Set<String> seen, JSONObject row, long start, long end, String search) {

@@ -36,6 +36,7 @@ public final class LocalFiles {
     public static void openAttachment(Context context,JSONObject item){try{File f=file(context,item.optString("file"));if(!f.isFile())throw new IllegalArgumentException("附件文件不存在");Uri uri=FileProvider.getUriForFile(context,context.getPackageName()+".files",f);context.startActivity(new Intent(Intent.ACTION_VIEW).setDataAndType(uri,item.optString("mime","application/octet-stream")).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION));}catch(Exception e){Ui.error(context,e);}}
     public static void exportBackup(Context context,Uri destination)throws Exception{
         JSONObject backup=ReferenceApplication.store().backup();Set<String> attachments=attachmentNames(backup);byte[] json=backup.toString().getBytes(StandardCharsets.UTF_8);if(json.length>MAX_JSON)throw new IllegalArgumentException("数据量超过实验版单个备份上限");
+        if(attachments.size()>10000)throw new IllegalArgumentException("备份附件超过一万个，请先减少附件或分批迁移");
         OutputStream stream=context.getContentResolver().openOutputStream(destination,"wt");if(stream==null)throw new IOException("无法写入文件");long total=json.length;
         try(ZipOutputStream zip=new ZipOutputStream(stream)){
             zip.putNextEntry(new ZipEntry("data.json"));zip.write(json);zip.closeEntry();
@@ -64,7 +65,11 @@ public final class LocalFiles {
             AutoApps.enable(false);CaptureOverlay.closeForRestore();
             JSONObject restored=backup;
             FutureTask<Void> operation=new FutureTask<>(()->{
-                ReferenceApplication.store().restore(restored);committed.set(true);YimuKernel.resetAfterRestore();
+                ReferenceApplication.store().restore(restored);committed.set(true);
+                // Local row IDs can identify different assets after database replacement.
+                // Clear only after the DB commit succeeds, before parser/cache cleanup can fail.
+                ReferenceApplication.prefs().edit().remove("capture_account_mappings").commit();
+                YimuKernel.resetAfterRestore();
                 long book=ReferenceApplication.store().books().get(0).optLong("id");android.content.SharedPreferences.Editor preferences=ReferenceApplication.prefs().edit().putLong("current_book",book).putLong("capture_book",book).putLong("default_account",0).putBoolean("auto_save",false);
                 for(String key:ReferenceApplication.prefs().getAll().keySet())if(key.startsWith("source_tag_"))preferences.remove(key);preferences.commit();
                 OriginalFinancialEffects.bookSelectionChanged(ReferenceApplication.store());
@@ -82,8 +87,69 @@ public final class LocalFiles {
             }finally{if(interrupted)Thread.currentThread().interrupt();}
         }finally{File[] staged=staging.listFiles();if(staged!=null)for(File f:staged)f.delete();staging.delete();if(!committed.get())for(File f:moved)f.delete();}
     }
-    private static Set<String> attachmentNames(JSONObject backup){Set<String> names=new HashSet<>();JSONObject tables=backup.optJSONObject("tables");if(tables==null)throw new IllegalArgumentException("备份格式错误");JSONArray rows=tables.optJSONArray("transactions");if(rows==null)throw new IllegalArgumentException("备份缺少账单表");for(int i=0;i<rows.length();i++){JSONObject row=rows.optJSONObject(i);if(row==null)throw new IllegalArgumentException("账单格式错误");JSONArray items=Json.array(row.optString("attachments","[]"));if(items.length()>100)throw new IllegalArgumentException("单条账单的附件过多");for(int j=0;j<items.length();j++){JSONObject item=items.optJSONObject(j);if(item==null||!item.optString("file").matches(SAFE_FILE))throw new IllegalArgumentException("附件路径无效");names.add(item.optString("file"));}}return names;}
-    private static void rewriteAttachments(JSONObject backup,Map<String,String> names){JSONArray rows=backup.optJSONObject("tables").optJSONArray("transactions");for(int i=0;i<rows.length();i++){JSONObject row=rows.optJSONObject(i);JSONArray files=Json.array(row.optString("attachments","[]"));for(int j=0;j<files.length();j++){JSONObject item=files.optJSONObject(j);Json.put(item,"file",names.get(item.optString("file")));}Json.put(row,"attachments",files.toString());}}
+    private interface AttachmentVisitor { boolean visit(JSONObject record); }
+    /** Exact host attachment fields, shared by collection and rename. No recursive guessing. */
+    private static void visitAttachmentRecords(JSONObject backup,AttachmentVisitor visitor){
+        JSONObject tables=backup.optJSONObject("tables");
+        if(tables==null)throw new IllegalArgumentException("备份格式错误");
+        JSONArray bills=tables.optJSONArray("transactions");
+        if(bills==null)throw new IllegalArgumentException("备份缺少账单表");
+        for(int i=0;i<bills.length();i++){
+            JSONObject row=bills.optJSONObject(i);if(row==null)throw new IllegalArgumentException("账单格式错误");
+            visitor.visit(row);
+        }
+        // Pending/saved typed candidates and manual typed operation receipts hold JSON text.
+        // Plans can retain the same attachment fields for future generated candidates.
+        for(String table:new String[]{"candidates","accounting_operations","accounting_financial_operations","plans"}){
+            // Match the Store's versioned table whitelist: an older archive cannot
+            // smuggle file references through an unrecognized operations table.
+            if(table.equals("accounting_operations")&&backup.optInt("version")<9)continue;
+            if(table.equals("accounting_financial_operations")&&backup.optInt("version")<10)continue;
+            JSONArray rows=tables.optJSONArray(table);
+            if(rows==null)throw new IllegalArgumentException("备份记录表格式错误");
+            for(int i=0;i<rows.length();i++){
+                JSONObject row=rows.optJSONObject(i);
+                if(row==null||!(row.opt("payload") instanceof String))throw new IllegalArgumentException("备份记录内容格式错误");
+                JSONObject payload=Json.parse(row.optString("payload"));
+                if(visitor.visit(payload))Json.put(row,"payload",payload.toString());
+            }
+        }
+    }
+    private static JSONArray attachmentItems(JSONObject record){
+        Object value=record.opt("attachments");
+        if(value==null||value==JSONObject.NULL)return null;
+        JSONArray items=value instanceof JSONArray?(JSONArray)value:value instanceof String?Json.array((String)value):null;
+        if(items==null)throw new IllegalArgumentException("附件列表格式错误");
+        if(items.length()>100)throw new IllegalArgumentException("单条记录的附件过多");
+        for(int i=0;i<items.length();i++){
+            JSONObject item=items.optJSONObject(i);
+            if(item==null||!item.optString("file").matches(SAFE_FILE))throw new IllegalArgumentException("附件路径无效");
+        }
+        return items;
+    }
+    private static Set<String> attachmentNames(JSONObject backup){
+        Set<String> names=new HashSet<>();
+        visitAttachmentRecords(backup,record->{
+            JSONArray items=attachmentItems(record);
+            if(items!=null)for(int i=0;i<items.length();i++)names.add(items.optJSONObject(i).optString("file"));
+            return false;
+        });
+        return names;
+    }
+    private static void rewriteAttachments(JSONObject backup,Map<String,String> names){
+        visitAttachmentRecords(backup,record->{
+            JSONArray items=attachmentItems(record);if(items==null||items.length()==0)return false;
+            boolean arrayValue=record.opt("attachments") instanceof JSONArray;
+            for(int i=0;i<items.length();i++){
+                JSONObject item=items.optJSONObject(i);String replacement=names.get(item.optString("file"));
+                if(replacement==null||!replacement.matches(SAFE_FILE))throw new IllegalArgumentException("备份缺少附件名称映射");
+                Json.put(item,"file",replacement);
+            }
+            // Keep the array/string encoding expected by each financial entry, then
+            // write its enclosing payload string back through visitAttachmentRecords.
+            Json.put(record,"attachments",arrayValue?items:items.toString());return true;
+        });
+    }
     public static String readText(Context context,Uri uri)throws Exception{InputStream in=context.getContentResolver().openInputStream(uri);if(in==null)throw new IOException("无法读取文件");try(in;ByteArrayOutputStream out=new ByteArrayOutputStream()){copy(in,out,MAX_JSON);return out.toString(StandardCharsets.UTF_8.name());}}
     public static void writeText(Context context,Uri uri,String text)throws Exception{OutputStream out=context.getContentResolver().openOutputStream(uri,"wt");if(out==null)throw new IOException("无法写入文件");try(out){out.write(text.getBytes(StandardCharsets.UTF_8));}}
     public static String hash(String text){try{byte[] value=MessageDigest.getInstance("SHA-256").digest(text.getBytes(StandardCharsets.UTF_8));StringBuilder s=new StringBuilder();for(byte b:value)s.append(String.format(Locale.ROOT,"%02x",b&255));return s.toString();}catch(java.security.NoSuchAlgorithmException e){throw new AssertionError(e);}}

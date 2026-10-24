@@ -75,6 +75,7 @@ final class OriginalTransferConfirmation {
         if (!result.saved) throw new IllegalStateException("转账未能完整保存，可安全重试");
         OriginalTransferRecord transfer = result.transfer;
         JSONObject confirmed = Json.copy(input);
+        Json.put(confirmed,"fee_bill_id",result.feeBill==null?null:result.feeBill.localRowId);
         Json.put(confirmed, "financial_type", "original_transfer");
         Json.put(confirmed, "transfer_row_id", transfer.localRowId);
         Json.put(confirmed, "transfer_owner_semantic_id", transfer.userId);

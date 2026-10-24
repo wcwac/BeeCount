@@ -59,20 +59,62 @@ public final class Ui {
     }
     public static void page(Context c,String page) { c.startActivity(new Intent(c,ManagerActivity.class).putExtra("page",page)); }
     public static void edit(Context c,long transaction,String candidate) { Intent i=new Intent(c,EditorActivity.class);if(transaction>0)i.putExtra("transaction",transaction);if(candidate!=null)i.putExtra("candidate",candidate);c.startActivity(i); }
-    public static void record(Context context,org.json.JSONObject value) {
-        String type=value.optString("entry_kind","bill");
-        if(type.equals("bill")){edit(context,value.optLong("id"),null);return;}
-        String currency=value.optString("currency","CNY");
-        String title=type.equals("lend")?"还款记录":"转账记录";
-        org.json.JSONObject from=ReferenceApplication.store().assetRepository().byRowId(value.optLong("account_id")),
-                to=ReferenceApplication.store().assetRepository().byRowId(value.optLong("to_account_id"));
-        String detail="金额："+com.wangc.bill.reference.Money.text(value.optLong("amount"),currency)
-                +"\n转出："+(from==null?"未指定":from.optString("name"))+"\n转入："+(to==null?"未指定":to.optString("name"))
-                +"\n手续费："+com.wangc.bill.reference.Money.text(value.optLong("fee"),currency)
-                +"\n时间："+date(value.optLong("time"),"yyyy-MM-dd HH:mm")
-                +(value.optString("remark").isEmpty()?"":"\n备注："+value.optString("remark"));
-        new AlertDialog.Builder(context).setTitle(title).setMessage(detail).setPositiveButton("关闭",null).show();
+    public static void record(Context context,org.json.JSONObject selected) {
+        String type=selected.optString("entry_kind","bill");
+        if(type.equals("bill")){RecordActions.bill(context,selected);return;}
+        try{
+            org.json.JSONObject value=ReferenceApplication.store().accountingEntry(type,selected.optLong("entry_id",selected.optLong("id")));
+            if(value==null)throw new IllegalArgumentException("记录不存在");
+            String currency=value.optString("currency","CNY");
+            String title=entryTitle(value);
+            org.json.JSONObject from=ReferenceApplication.store().assetRepository().byRowId(value.optLong("account_id")),
+                    to=ReferenceApplication.store().assetRepository().byRowId(value.optLong("to_account_id"));
+            String detail="金额："+com.wangc.bill.reference.Money.text(value.optLong("amount"),currency)
+                    +"\n账户："+(from==null?"无账户":from.optString("name"))
+                    +(to==null?"":" → "+to.optString("name"))
+                    +"\n手续费："+com.wangc.bill.reference.Money.text(value.optLong("fee"),currency)
+                    +"\n时间："+date(value.optLong("time"),"yyyy-MM-dd HH:mm")
+                    +(value.optString("remark").isEmpty()?"":"\n备注："+value.optString("remark"));
+            AlertDialog.Builder dialog=new AlertDialog.Builder(context).setTitle(title).setMessage(detail).setNegativeButton("关闭",null);
+            if(value.optInt("deleted")!=0){
+                dialog.setPositiveButton("恢复",(d,w)->{try{ReferenceApplication.store().trashAccountingEntry(type,value.optLong("entry_id"),false);toast(context,"已恢复");refresh(context);}catch(Exception failure){error(context,failure);}});
+            }else{
+                dialog.setPositiveButton("编辑",(d,w)->editEntry(context,value));
+                dialog.setNeutralButton("更多",(d,w)->{
+                    org.json.JSONArray files=com.wangc.bill.reference.Json.array(value.optString("attachments","[]"));
+                    java.util.List<String> choices=new java.util.ArrayList<>();
+                    if(value.optString("entry_kind").equals("lend")&&(value.optInt("lend_type")==1||value.optInt("lend_type")==3)&&value.optLong("outstanding")>0)choices.add(value.optInt("lend_type")==1?"收回借款":"偿还借款");
+                    if(value.optString("entry_kind").equals("lend")&&(value.optInt("lend_type")==1||value.optInt("lend_type")==3))choices.add("查看结清记录");
+                    choices.add("删除记录");if(files.length()>0)choices.add("查看附件");
+                    new AlertDialog.Builder(context).setTitle(title).setItems(choices.toArray(new String[0]),(more,index)->{
+                        if(choices.get(index).equals("收回借款")||choices.get(index).equals("偿还借款"))RecordActions.settle(context,value);
+                        else if(choices.get(index).equals("查看结清记录")){
+                            java.util.List<org.json.JSONObject> children=new java.util.ArrayList<>();
+                            for(org.json.JSONObject entry:ReferenceApplication.store().accountingEntries(value.optLong("book_id"),0,Long.MAX_VALUE,null,false))if(entry.optString("entry_kind").equals("lend")&&entry.optLong("related_id")==value.optLong("entry_id"))children.add(entry);
+                            if(children.isEmpty()){toast(context,"暂无结清记录");return;}
+                            String[] names=new String[children.size()];for(int i=0;i<names.length;i++)names[i]=date(children.get(i).optLong("time"),"yyyy-MM-dd")+" · "+com.wangc.bill.reference.Money.text(children.get(i).optLong("amount"),currency);
+                            new AlertDialog.Builder(context).setTitle("结清记录").setItems(names,(list,position)->record(context,children.get(position))).show();
+                        }else if(choices.get(index).equals("删除记录"))confirm(context,"删除记录","余额变更会一并撤销，记录可在回收站恢复。",()->{ReferenceApplication.store().trashAccountingEntry(type,value.optLong("entry_id"),true);refresh(context);});
+                        else attachmentList(context,files);
+                    }).show();
+                });
+            }
+            dialog.show();
+        }catch(Exception failure){error(context,failure);}
     }
+    public static String entryTitle(org.json.JSONObject value){
+        if(value.optString("entry_kind").equals("transfer"))return "转账记录";
+        return switch(value.optInt("lend_type",4)){case 1->"借出记录";case 2->"收回借款";case 3->"借入记录";default->"还款记录";};
+    }
+    public static void editEntry(Context context,org.json.JSONObject value){
+        context.startActivity(new Intent(context,EditorActivity.class).putExtra("entry_kind",value.optString("entry_kind"))
+                .putExtra("entry_id",value.optLong("entry_id",value.optLong("id"))));
+    }
+    private static void attachmentList(Context context,org.json.JSONArray files){
+        String[] names=new String[files.length()];for(int i=0;i<names.length;i++)names[i]=files.optJSONObject(i).optString("name","附件");
+        new AlertDialog.Builder(context).setTitle("附件").setItems(names,(dialog,index)->LocalFiles.openAttachment(context,files.optJSONObject(index))).show();
+    }
+    public static void refresh(Context context){if(context instanceof ManagerActivity manager)manager.reload();}
     public static void error(Context c,Exception e) { Toast.makeText(c,e.getMessage()==null?"操作失败，请重试":e.getMessage(),Toast.LENGTH_LONG).show(); }
     public static void toast(Context c,String text) { Toast.makeText(c,text,Toast.LENGTH_SHORT).show(); }
     public static void confirm(Context c,String title,String message,Runnable action) { new AlertDialog.Builder(c).setTitle(title).setMessage(message).setNegativeButton("取消",null).setPositiveButton("确定",(d,w)->{try{action.run();}catch(Exception e){error(c,e);}}).show(); }

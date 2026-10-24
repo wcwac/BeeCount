@@ -14,6 +14,7 @@ COMPONENTS = {
     'com.wangc.bill.reference.ui.MainActivity',
     'com.wangc.bill.reference.ui.EditorActivity',
     'com.wangc.bill.reference.ui.ManagerActivity',
+    'com.wangc.bill.reference.ui.LocalUnlockActivity',
     'com.wangc.bill.reference.ui.OriginalPermissionRequestActivity',
     'com.wangc.bill.reference.capture.ReferenceCaptureService',
     'com.wangc.bill.reference.capture.PlanReceiver',
@@ -23,7 +24,7 @@ COMPONENTS = {
     'com.wangc.bill.reference.OriginalCreditStatementActivity',
     'androidx.core.content.FileProvider',
 }
-PERMISSIONS = {'android.permission.POST_NOTIFICATIONS', 'android.permission.RECEIVE_BOOT_COMPLETED', 'android.permission.SYSTEM_ALERT_WINDOW', 'android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS'}
+PERMISSIONS = {'android.permission.USE_BIOMETRIC', 'android.permission.POST_NOTIFICATIONS', 'android.permission.RECEIVE_BOOT_COMPLETED', 'android.permission.SYSTEM_ALERT_WINDOW', 'android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS'}
 
 def manifest(path, merged=False):
     root = ET.parse(path).getroot()
