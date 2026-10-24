@@ -27,7 +27,7 @@ public final class ReferenceSchemaV4DeviceTest {
     @After public void close(){if(store!=null)store.close();if(context!=null&&database!=null)context.deleteDatabase(database);}
 
     @Test public void realVersionThreeHelperUpgradePreservesEveryLinkAndDeletedIdHighWater(){
-        JSONObject old=createV3(true);assertEquals(3,old.optInt("version"));openLatest();assertEquals(7,store.getReadableDatabase().getVersion());
+        JSONObject old=createV3(true);assertEquals(3,old.optInt("version"));openLatest();assertEquals(8,store.getReadableDatabase().getVersion());
         assertLegacyGraph();JSONObject row=store.transaction(123);
         assertEquals("legacy",row.optString("bill_origin"));for(String column:OriginalBillRepository.CANONICAL_COLUMNS)assertTrue(column,row.isNull(column));
         assertEquals(42,row.optLong("account_id"));assertTrue(row.isNull("owner_semantic_id"));assertTrue(row.isNull("raw_asset_semantic_id"));
@@ -77,7 +77,7 @@ public final class ReferenceSchemaV4DeviceTest {
         long account=store.assetRepository().insertRecovered(7,901,1,100,definition);OriginalBillRecord record=original();record.cost=-2.5d;
         ContentValues projection=projection(250);projection.put("account_id",account);projection.put("owner_semantic_id",7);projection.put("raw_asset_semantic_id",901);
         record.assetId=901;long bill=new OriginalBillRepository(store).saveOriginalRaw(record,projection);AssetHistoryRepository histories=new AssetHistoryRepository(store);histories.appendOperation(7,901,-2.5d,19.25d,"合成历史");
-        JSONObject backup=store.backup();assertEquals(7,backup.optInt("version"));
+        JSONObject backup=store.backup();assertEquals(8,backup.optInt("version"));
         for(String table:new String[]{"asset_histories","original_refunds","original_refund_items","original_reimbursements","original_reimbursement_items"})assertNotNull(table,backup.optJSONObject("tables").optJSONArray(table));
         store.getWritableDatabase().execSQL("UPDATE accounts SET asset_number=999 WHERE id=?",new Object[]{account});store.restore(backup);
         assertEquals(19.25d,store.assetRepository().byRowId(account).optDouble("asset_number"),0);assertEquals(1,histories.count(7));assertEquals(-2.5d,new OriginalBillRepository(store).byLocalRowId(bill).cost,0);assertEquals(0,foreignKeyErrors());
@@ -121,7 +121,7 @@ public final class ReferenceSchemaV4DeviceTest {
             boolean originalColumn=false;try(Cursor columns=source.rawQuery("PRAGMA table_info(transactions)",null)){while(columns.moveToNext())if("bill_origin".equals(columns.getString(columns.getColumnIndexOrThrow("name"))))originalColumn=true;}assertFalse(originalColumn);
             source.execSQL("DROP TABLE original_refunds");
         }
-        openLatest();assertLegacyGraph();assertEquals(7,store.getReadableDatabase().getVersion());
+        openLatest();assertLegacyGraph();assertEquals(8,store.getReadableDatabase().getVersion());
     }
 
     private void openLatest(){store=new ReferenceStore(context,database);store.getWritableDatabase();}

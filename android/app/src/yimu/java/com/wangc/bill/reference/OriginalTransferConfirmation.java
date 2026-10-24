@@ -32,8 +32,11 @@ final class OriginalTransferConfirmation {
         JSONObject to = selected(store, input.optLong("to_account_id"));
         long fromSemantic = from.optLong("semantic_id"), toSemantic = to.optLong("semantic_id");
         if (fromSemantic == toSemantic) throw new IllegalArgumentException("请选择不同的账户");
-        if (to.optInt("asset_type") == 2 && input.optBoolean("transfer_repayment"))
-            throw new IllegalArgumentException("勾选的信贷还款走原版借贷记录流程，该分支尚待接入；不会按普通转账保存");
+        boolean repaymentRoute = input.has("transfer_repayment_route")
+                ? input.optBoolean("transfer_repayment_route")
+                : to.optInt("asset_type") == 2 && input.optBoolean("transfer_repayment");
+        if (repaymentRoute)
+            throw new IllegalArgumentException("勾选的信贷还款走独立借贷记录流程，请使用还款保存入口");
         JSONArray files = input.optJSONArray("attachments");
         if (files != null && files.length() != 0)
             throw new IllegalArgumentException("原版转账附件关联尚待接入，请先保留附件");
@@ -108,7 +111,7 @@ final class OriginalTransferConfirmation {
         return store.assetRepository().p(row.optLong("semantic_id"), ReferenceStore.LOCAL_OFFLINE_OWNER);
     }
 
-    private static ContentValues projectFee(ReferenceStore store, OriginalBillRecord bill) {
+    static ContentValues projectFee(ReferenceStore store, OriginalBillRecord bill) {
         JSONObject book = store.one("SELECT * FROM books WHERE owner_semantic_id=? AND semantic_id=? ORDER BY id LIMIT 1",
                 "" + bill.userId, "" + bill.bookId);
         if (book == null || !"CNY".equals(book.optString("currency")))
@@ -129,7 +132,7 @@ final class OriginalTransferConfirmation {
         return values;
     }
 
-    private static long minor(double amount) {
+    static long minor(double amount) {
         long value = BigDecimal.valueOf(amount).movePointRight(2).setScale(0, RoundingMode.HALF_UP).longValueExact();
         if (value < 0 || value > 99999999999999L) throw new IllegalArgumentException("手续费超出本地账单范围");
         return value;

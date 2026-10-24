@@ -30,6 +30,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
@@ -309,6 +310,168 @@ public final class CaptureRefundOverlayDeviceTest {
         assertTrue(CaptureOverlay.status().optBoolean("attached")); assertEquals("PENDING", store.candidate(id).optString("state"));
         assertEquals(before, store.scalar("SELECT COUNT(*) n FROM original_transfers"));
         assertEquals(0, ReferenceDiagnostics.snapshot().optLong("failures"));
+    }
+
+    @Test public void checkedCreditDestinationSavesATypeFourLendWithItsInterestAndTypedReceipt() throws Exception {
+        ReferenceApplication.prefs().edit().putLong("current_book", book).putInt("original_transfer_mode", 0).commit();
+        long header = store.saveBook(0, "勾选还款另一本", "CNY", 0);
+        long fromRow = transferAccount("勾选还款来源", 1900070601L, 1, 100);
+        long toRow = transferAccount("勾选还款信用账户", 1900070602L, 2, 5);
+        String remark = "勾选还款原始备注"; bill(1900070603, true, 10, remark);
+        String id = candidate(1000, remark); show(id); assertTrue(CaptureOverlay.status().optBoolean("repeatDetected"));
+        selectTransferAccounts("勾选还款来源", "勾选还款信用账户");
+        await(() -> repaymentChecked(true), "A newly selected credit destination did not default to checked");
+        assertTrue(node("set_repayment").isChecked());
+        clickId("account_book_layout"); clickText("勾选还款另一本");
+        await(() -> visibleTextEquals("account_book_name", "勾选还款另一本")
+                && visibleTextEquals("to_asset_name", "勾选还款信用账户") && repaymentChecked(true),
+                "Book rendering lost the retained checked credit destination");
+        setText("cost", "10"); setText("service_charge_edit", "2");
+        long beforeBills = store.scalar("SELECT COUNT(*) n FROM transactions");
+        long beforeTransfers = store.scalar("SELECT COUNT(*) n FROM original_transfers");
+        clickId("btn_save"); awaitSaved(id, "Checked credit repayment did not save through the actual worker");
+        assertNull(node("confirm"));
+        JSONObject receipt = store.one("SELECT * FROM candidate_lend_receipts WHERE candidate_id=?", id); assertNotNull(receipt);
+        OriginalLendRecord lend = new OriginalLendRepository(store).byLocalRowId(receipt.optLong("lend_row_id")); assertNotNull(lend);
+        assertEquals(4, lend.type); assertEquals(1900070602L, lend.assetId); assertEquals(1900070601L, lend.repaymentAssetId);
+        assertEquals(10d, lend.number, 0); assertEquals(2d, lend.interest, 0); assertEquals(0d, lend.fromCost, 0);
+        assertEquals(0, lend.inTime); assertFalse(lend.generalServiceBill); assertEquals(remark, lend.remark);
+        OriginalBillRecord interest = new OriginalBillRepository(store).byExactUser(0, lend.billId); assertNotNull(interest);
+        assertEquals(2d, interest.cost, 0); assertEquals("勾选还款信用账户 还款利息", interest.remark);
+        assertEquals(store.book(book).optLong("semantic_id"), interest.bookId); assertEquals(1900070601L, interest.assetId);
+        assertEquals(88d, store.assetRepository().byRowId(fromRow).optDouble("asset_number"), 0);
+        assertEquals(15d, store.assetRepository().byRowId(toRow).optDouble("asset_number"), 0);
+        assertEquals(beforeBills + 1, store.scalar("SELECT COUNT(*) n FROM transactions"));
+        assertEquals(beforeTransfers, store.scalar("SELECT COUNT(*) n FROM original_transfers"));
+        assertNull(store.one("SELECT candidate_id FROM candidate_transfer_receipts WHERE candidate_id=?", id));
+        assertLendReceipt(id, lend, header);
+        assertEquals(0, ReferenceDiagnostics.snapshot().optLong("failures"));
+    }
+
+    @Test public void uncheckingCreditRepaymentSurvivesBookAndTabRenderingAndSavesATransfer() throws Exception {
+        ReferenceApplication.prefs().edit().putLong("current_book", book).putInt("original_transfer_mode", 0).commit();
+        long header = store.saveBook(0, "取消还款另一本", "CNY", 0);
+        long fromRow = transferAccount("取消还款来源", 1900070701L, 1, 100);
+        long toRow = transferAccount("取消还款信用账户", 1900070702L, 2, 5);
+        String id = candidate(1000, "取消还款原始备注"); show(id);
+        selectTransferAccounts("取消还款来源", "取消还款信用账户");
+        await(() -> repaymentChecked(true), "A newly selected credit destination did not default to checked");
+        assertTrue(node("set_repayment").isChecked()); clickId("set_repayment");
+        await(() -> repaymentChecked(false), "The actual checkbox did not accept the user's unchecked choice");
+        clickId("account_book_layout"); clickText("取消还款另一本");
+        await(() -> visibleTextEquals("account_book_name", "取消还款另一本") && repaymentChecked(false),
+                "Book rendering reset the unchecked repayment choice");
+        clickText("收入"); clickText("转账");
+        await(() -> visibleTextEquals("to_asset_name", "取消还款信用账户") && repaymentChecked(false),
+                "Tab rendering reset the unchecked repayment choice");
+        setText("cost", "10"); setText("service_charge_edit", "");
+        long beforeLends = store.scalar("SELECT COUNT(*) n FROM original_lends");
+        clickId("btn_save"); awaitSaved(id, "Unchecked credit destination did not use the actual Transfer worker");
+        JSONObject receipt = store.one("SELECT * FROM candidate_transfer_receipts WHERE candidate_id=?", id); assertNotNull(receipt);
+        OriginalTransferRecord transfer = new OriginalTransferRepository(store).byLocalRowId(receipt.optLong("transfer_row_id")); assertNotNull(transfer);
+        assertEquals(1900070701L, transfer.fromAssetId); assertEquals(1900070702L, transfer.toAssetId); assertEquals(10d, transfer.cost, 0);
+        assertEquals(90d, store.assetRepository().byRowId(fromRow).optDouble("asset_number"), 0);
+        assertEquals(15d, store.assetRepository().byRowId(toRow).optDouble("asset_number"), 0);
+        assertEquals(beforeLends, store.scalar("SELECT COUNT(*) n FROM original_lends"));
+        assertNull(store.one("SELECT candidate_id FROM candidate_lend_receipts WHERE candidate_id=?", id));
+        JSONObject candidate = store.candidate(id), payload = Json.parse(candidate.optString("payload"));
+        assertEquals("transfer", candidate.optString("save_kind")); assertTrue(candidate.isNull("transaction_id"));
+        assertEquals(header, candidate.optLong("book_id")); assertEquals("original_transfer", payload.optString("financial_type"));
+        assertFalse(payload.optBoolean("transfer_repayment_route", true));
+        assertEquals(0, ReferenceDiagnostics.snapshot().optLong("failures"));
+    }
+
+    @Test public void acceptedTransferRoutesKeepTheirSelectedDestinationTypeWhileTheWorkerWaits() throws Exception {
+        ReferenceApplication.prefs().edit().putLong("current_book", book).putInt("original_transfer_mode", 0).commit();
+        for (int selectedType : new int[]{2, 1}) {
+            boolean repayment = selectedType == 2;
+            String fromName = "已接受路由来源" + selectedType, toName = "已接受路由去向" + selectedType;
+            long fromSemantic = 1900070800L + selectedType * 10L, toSemantic = fromSemantic + 1;
+            long fromRow = transferAccount(fromName, fromSemantic, 1, 100);
+            long toRow = transferAccount(toName, toSemantic, selectedType, 5);
+            String id = candidate(1000, "已接受路由原始备注" + selectedType); show(id);
+            selectTransferAccounts(fromName, toName);
+            if (repayment) {
+                await(() -> repaymentChecked(true), "The retained credit destination did not expose its checked state");
+                assertTrue(node("set_repayment").isChecked());
+            }
+            else {
+                AccessibilityNodeInfo hidden = node("set_repayment");
+                assertTrue(hidden == null || !hidden.isVisibleToUser());
+            }
+            setText("cost", "10"); setText("service_charge_edit", "");
+            long beforeLends = store.scalar("SELECT COUNT(*) n FROM original_lends");
+            long beforeTransfers = store.scalar("SELECT COUNT(*) n FROM original_transfers");
+            CountDownLatch entered = new CountDownLatch(1), release = new CountDownLatch(1);
+            FutureTask<Void> blocked = new FutureTask<>(() -> {
+                entered.countDown();
+                if (!release.await(30, TimeUnit.SECONDS)) throw new AssertionError("Synthetic capture-worker gate timed out");
+                return null;
+            });
+            YimuKernel.enqueue(blocked);
+            try {
+                assertTrue("Capture worker did not enter its bounded gate", entered.await(10, TimeUnit.SECONDS));
+                clickId("btn_save");
+                await(() -> !CaptureOverlay.status().optBoolean("attached")
+                        && "SAVING".equals(CaptureOverlay.status().optString("lastResult")),
+                        "The real click did not accept and close the window before the worker");
+                assertEquals("PENDING", store.candidate(id).optString("state"));
+                android.content.ContentValues changed = new android.content.ContentValues(); changed.put("asset_type", repayment ? 1 : 2);
+                assertEquals(1, store.getWritableDatabase().update("accounts", changed, "id=?", new String[]{"" + toRow}));
+            } finally { release.countDown(); }
+            blocked.get(10, TimeUnit.SECONDS); awaitSaved(id, "The accepted route was changed by a fresh destination type");
+            JSONObject saved = store.candidate(id), payload = Json.parse(saved.optString("payload"));
+            assertEquals(repayment, payload.optBoolean("transfer_repayment_route")); assertTrue(saved.isNull("transaction_id"));
+            if (repayment) {
+                JSONObject receipt = store.one("SELECT * FROM candidate_lend_receipts WHERE candidate_id=?", id); assertNotNull(receipt);
+                OriginalLendRecord lend = new OriginalLendRepository(store).byLocalRowId(receipt.optLong("lend_row_id"));
+                assertNotNull(lend); assertEquals(4, lend.type); assertEquals(toSemantic, lend.assetId); assertEquals(fromSemantic, lend.repaymentAssetId);
+                assertLendReceipt(id, lend, book);
+                assertEquals(beforeLends + 1, store.scalar("SELECT COUNT(*) n FROM original_lends"));
+                assertEquals(beforeTransfers, store.scalar("SELECT COUNT(*) n FROM original_transfers"));
+            } else {
+                JSONObject receipt = store.one("SELECT * FROM candidate_transfer_receipts WHERE candidate_id=?", id); assertNotNull(receipt);
+                OriginalTransferRecord transfer = new OriginalTransferRepository(store).byLocalRowId(receipt.optLong("transfer_row_id"));
+                assertNotNull(transfer); assertEquals(fromSemantic, transfer.fromAssetId); assertEquals(toSemantic, transfer.toAssetId);
+                assertEquals("transfer", saved.optString("save_kind")); assertEquals("original_transfer", payload.optString("financial_type"));
+                assertEquals(beforeLends, store.scalar("SELECT COUNT(*) n FROM original_lends"));
+                assertEquals(beforeTransfers + 1, store.scalar("SELECT COUNT(*) n FROM original_transfers"));
+            }
+            assertEquals(90d, store.assetRepository().byRowId(fromRow).optDouble("asset_number"), 0);
+            assertEquals(15d, store.assetRepository().byRowId(toRow).optDouble("asset_number"), 0);
+            assertEquals(repayment ? 1 : 2, store.assetRepository().byRowId(toRow).optInt("asset_type"));
+        }
+        assertEquals(0, ReferenceDiagnostics.snapshot().optLong("failures"));
+    }
+
+    private long transferAccount(String name, long semantic, int type, double balance) {
+        AssetRepository.Definition asset = new AssetRepository.Definition(name, type, null); asset.assetNumber = balance;
+        asset.showBook.add(store.book(book).optLong("semantic_id"));
+        return store.assetRepository().insertRecovered(0, semantic, 1, 1, asset);
+    }
+    private void selectTransferAccounts(String from, String to) throws Exception {
+        clickText("转账"); clickId("choice_from_asset"); clickText(from);
+        await(() -> visibleTextEquals("from_asset_name", from), "Selected source did not finish rendering");
+        clickId("choice_to_asset"); clickText(to);
+        await(() -> visibleTextEquals("to_asset_name", to), "Selected destination did not finish rendering");
+    }
+    private boolean repaymentChecked(boolean expected) {
+        AccessibilityNodeInfo check = node("set_repayment");
+        return check != null && check.isVisibleToUser() && check.isChecked() == expected;
+    }
+    private void awaitSaved(String id, String message) throws Exception {
+        await(() -> "SAVED".equals(store.candidate(id).optString("state")), message); barrier();
+        await(() -> !CaptureOverlay.status().optBoolean("attached"), "Accepted financial save did not detach its window");
+    }
+    private void assertLendReceipt(String id, OriginalLendRecord lend, long header) {
+        JSONObject saved = store.candidate(id), payload = Json.parse(saved.optString("payload"));
+        assertEquals("lend", saved.optString("save_kind")); assertTrue(saved.isNull("transaction_id")); assertEquals(header, saved.optLong("book_id"));
+        assertEquals("transfer", payload.optString("kind")); assertEquals("original_lend", payload.optString("financial_type"));
+        assertTrue(payload.optBoolean("transfer_repayment_route")); assertEquals(lend.localRowId, payload.optLong("lend_row_id"));
+        assertEquals(lend.userId, payload.optInt("lend_owner_semantic_id")); assertEquals(lend.lendId, payload.optInt("lend_semantic_id"));
+        JSONObject receipt = store.one("SELECT * FROM candidate_lend_receipts WHERE candidate_id=?", id); assertNotNull(receipt);
+        assertEquals(lend.localRowId, receipt.optLong("lend_row_id")); assertEquals(lend.localRowId, receipt.optLong("resolved_lend_row_id"));
+        assertEquals(lend.userId, receipt.optInt("owner_semantic_id")); assertEquals(lend.lendId, receipt.optInt("lend_semantic_id"));
     }
 
     private AccessibilityNodeInfo node(String id) {

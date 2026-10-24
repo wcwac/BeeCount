@@ -103,6 +103,17 @@ public final class OriginalTransferConfirmationDeviceTest {
         catch (IllegalArgumentException expected) { assertTrue(expected.getMessage().contains("附件")); }
         assertEquals(100.0d, balance(from), 0); assertEquals("PENDING", store.candidate(id).optString("state"));
     }
+    @Test public void explicitFalseRouteAndLegacyNonCreditSelectionStayOrdinaryTransfers() {
+        JSONObject legacy = input("10", ""); Json.put(legacy, "transfer_repayment", true);
+        assertNotNull(new OriginalTransferRepository(store).byLocalRowId(confirm(legacy, candidate(legacy))));
+        store.getWritableDatabase().execSQL("UPDATE accounts SET asset_type=2 WHERE id=?", new Object[]{to});
+        JSONObject retained = input("5", ""); Json.put(retained, "transfer_repayment", true);
+        Json.put(retained, "transfer_repayment_route", false);
+        assertNotNull(new OriginalTransferRepository(store).byLocalRowId(confirm(retained, candidate(retained))));
+        assertEquals(85.0d, balance(from), 0); assertEquals(20.0d, balance(to), 0);
+        assertEquals(2, store.scalar("SELECT COUNT(*) n FROM original_transfers"));
+        assertEquals(0, store.scalar("SELECT COUNT(*) n FROM original_lends"));
+    }
     @Test public void failedTransferSavePreservesEarlierPrincipalAndFeeWithoutASuccessReceipt() {
         store.getWritableDatabase().execSQL("CREATE TRIGGER synthetic_transfer_save_failure BEFORE INSERT ON original_transfers BEGIN SELECT RAISE(ABORT,'synthetic'); END");
         JSONObject input = input("10", "2"); String id = candidate(input);

@@ -195,6 +195,7 @@ public final class CaptureOverlay {
         OriginalBillRecord refundParent;
         View transferPage;
         long repaymentDestination = Long.MIN_VALUE;
+        int repaymentDestinationType;
         boolean transferRepayment;
         ViewTreeObserver.OnGlobalLayoutListener keyboardListener;
         Runnable keyboardStateChange;
@@ -240,7 +241,6 @@ public final class CaptureOverlay {
                 : "transfer".equals(data.optString("kind")) ? 2 : 0, index -> {
                     cancelTimer(); refundMode = index == 3;
                     if (refundMode) matchRefundIfMissing(); else Json.put(data, "kind", kinds[index]);
-                    if (index == 2) repaymentDestination = Long.MIN_VALUE;
                     render();
                 });
             Ui.click(view, "account_book_layout", this::chooseBook);
@@ -318,13 +318,12 @@ public final class CaptureOverlay {
                 cancelTimer(); long oldFrom = data.optLong("account_id"), oldTo = data.optLong("to_account_id");
                 store.selectAccountForInput(data, "account_id", oldTo, true);
                 store.selectAccountForInput(data, "to_account_id", oldFrom, true);
-                repaymentDestination = Long.MIN_VALUE; render();
+                retainRepaymentDestination(oldFrom, from); render();
             });
             if (repaymentDestination != data.optLong("to_account_id")) {
-                repaymentDestination = data.optLong("to_account_id");
-                transferRepayment = to != null && to.optInt("asset_type") == 2;
+                retainRepaymentDestination(data.optLong("to_account_id"), to);
             }
-            Ui.view(page, "set_repayment_layout").setVisibility(to != null && to.optInt("asset_type") == 2 ? View.VISIBLE : View.INVISIBLE);
+            Ui.view(page, "set_repayment_layout").setVisibility(repaymentDestinationType == 2 ? View.VISIBLE : View.INVISIBLE);
             CheckBox repayment = Ui.view(page, "set_repayment"); repayment.setChecked(transferRepayment);
             repayment.setOnCheckedChangeListener((button, checked) -> { transferRepayment = checked; cancelTimer(); });
             RadioGroup group = Ui.view(page, "radio_group");
@@ -335,6 +334,14 @@ public final class CaptureOverlay {
                 cancelTimer(); updateTransferNumbers();
             });
             updateTransferNumbers(); return page;
+        }
+
+        void retainRepaymentDestination(long rowId, JSONObject selected) {
+            repaymentDestination = rowId;
+            // Adapter.K0 defaults a newly selected credit destination to checked.
+            // U0 later reads that retained Asset, not a fresh lookup during save.
+            repaymentDestinationType = selected == null ? 0 : selected.optInt("asset_type");
+            transferRepayment = repaymentDestinationType == 2;
         }
 
         void bindTransferAsset(View page, JSONObject asset, String side) {
@@ -495,7 +502,7 @@ public final class CaptureOverlay {
                     .setTitle("account_id".equals(key) ? "选择转出账户" : "选择转入账户")
                     .setItems(labels, (d, index) -> {
                         ReferenceApplication.store().selectAccountForInput(data, key, assets.get(index).optLong("id"), true);
-                        if ("to_account_id".equals(key)) repaymentDestination = Long.MIN_VALUE;
+                        if ("to_account_id".equals(key)) retainRepaymentDestination(assets.get(index).optLong("id"), assets.get(index));
                         render();
                     }).create());
                 return;
@@ -556,9 +563,12 @@ public final class CaptureOverlay {
                     Json.put(value, "transfer_amount_text", cost.getText().toString());
                     Json.put(value, "transfer_fee_text", fee.getText().toString());
                     Json.put(value, "transfer_repayment", transferRepayment);
+                    // AutoAdd.U0 chooses X/Z at acceptance using the retained
+                    // destination and checkbox. Later DB edits cannot reroute it.
+                    Json.put(value, "transfer_repayment_route", repaymentDestinationType == 2 && transferRepayment);
                     Json.put(value, "remark", remark.getText().toString());
-                    // Transfer skips the Bill repeat popup, preserves signed/zero raw
-                    // numbers, and lets Z distinguish its two fee predicates.
+                    // Both X and Z skip the Bill repeat popup and preserve raw
+                    // numbers for their independent principal/fee stages.
                     persist(value, 0, automatic); return;
                 }
                 long entered = refundMode ? Money.signed(cost.getText().toString(), "CNY") : Money.positive(cost.getText().toString(), "CNY");
@@ -656,6 +666,9 @@ public final class CaptureOverlay {
                         }
                         if (parent != null && replacing > 0) ReferenceApplication.store().saveCandidateRefundReplacing(value, id, parent, receiver, replacing);
                         else if (parent != null) ReferenceApplication.store().saveCandidateRefund(value, id, parent, receiver);
+                        else if ("transfer".equals(value.optString("kind")) && value.optBoolean("transfer_repayment_route"))
+                            ReferenceApplication.store().saveCandidateCreditRepayment(value, id,
+                                () -> MAIN.post(() -> Ui.toast(context, "到账金额需要大于0")));
                         else if ("transfer".equals(value.optString("kind"))) ReferenceApplication.store().saveCandidateTransfer(value, id,
                             () -> MAIN.post(() -> Ui.toast(context, "到账金额需要大于0")));
                         else if (replacing > 0) ReferenceApplication.store().saveCandidateReplacing(value, id, replacing);
@@ -669,6 +682,7 @@ public final class CaptureOverlay {
                         ReferenceDiagnostics.failure("STORE_FAILED", error);
                         MAIN.post(() -> { if (active == null) state("SAVE_FAILED"); CaptureNotifications.update(); CaptureNotifications.error();
                             Ui.toast(context, parent != null ? "退款保存未完成，请先核对余额、资产历史和原账单，勿重复提交"
+                                : value.optBoolean("transfer_repayment_route") ? "还款保存未完成，请先核对余额、利息和借贷记录，勿重复提交"
                                 : "transfer".equals(value.optString("kind")) ? "转账保存未完成，请先核对余额、手续费和转账记录，勿重复提交" : "新增失败，账单仍在待确认列表"); });
                     }
                 });

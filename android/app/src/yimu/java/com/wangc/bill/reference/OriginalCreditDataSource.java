@@ -8,7 +8,7 @@ import java.util.Collections;
 import java.util.List;
 import org.json.JSONObject;
 
-/** Real current-store inputs for Bill/Refund/Reimbursement/Instalment/Transfer credit projections. */
+/** Real current-store Bill/Refund/Reimbursement/Instalment/Transfer/Lend credit inputs. */
 final class OriginalCreditDataSource implements OriginalCreditProjection.DataSource {
     private final ReferenceStore store;
     private final int owner;
@@ -52,7 +52,7 @@ final class OriginalCreditDataSource implements OriginalCreditProjection.DataSou
         }
     }
     /** These original domains have no table in the current experiment, hence no representable rows. */
-    public List<String> unportedDomains(){return java.util.Collections.unmodifiableList(java.util.Arrays.asList("Lend","StockInfo","OperationIcon"));}
+    public List<String> unportedDomains(){return java.util.Collections.unmodifiableList(java.util.Arrays.asList("StockInfo","OperationIcon"));}
     /** s2.g/l -> w2.b0: current owner, either endpoint, time DESC; no book/hide gate. */
     @Override public List<OriginalCreditProjection.Transfer> transfers(long asset){
         // s2 deliberately reads cost for both directions, never toCost/getCurrencyCost.
@@ -68,9 +68,32 @@ final class OriginalCreditDataSource implements OriginalCreditProjection.DataSou
             return result;
         }
     }
-    @Override public List<OriginalCreditProjection.Lend> lends(long asset){return Collections.emptyList();}
+    /** s2.g/l -> i1.V: current owner and repaymentAssetId only; no ORDER BY. */
+    @Override public List<OriginalCreditProjection.Lend> lends(long asset){
+        synchronized(store){
+            List<OriginalCreditProjection.Lend> result=new ArrayList<>();
+            for(OriginalLendRecord row:new OriginalLendRepository(store).forRepaymentAsset(owner,asset))result.add(lend(row));
+            return result;
+        }
+    }
     @Override public List<OriginalCreditProjection.Stock> stocks(long asset){return Collections.emptyList();}
-    @Override public List<OriginalCreditProjection.Lend> interestRows(long asset,long start,long end){return Collections.emptyList();}
+    /** i1.g0 uses the principal asset, type4 and inclusive outTime bounds, newest first. */
+    @Override public List<OriginalCreditProjection.Lend> interestRows(long asset,long start,long end){
+        synchronized(store){
+            List<OriginalCreditProjection.Lend> result=new ArrayList<>();
+            for(OriginalLendRecord row:new OriginalLendRepository(store).interestRows(owner,asset,start,end))result.add(lend(row));
+            return result;
+        }
+    }
+    private static OriginalCreditProjection.Lend lend(OriginalLendRecord row){
+        OriginalCreditProjection.Lend value=new OriginalCreditProjection.Lend();
+        value.assetId=row.assetId;value.repaymentAssetId=row.repaymentAssetId;
+        value.type=row.type;value.billId=row.billId;value.time=row.outTime;value.outTime=row.outTime;
+        // s2 reads getFromCost directly, including zero; getCurrencyCost/number is a different API.
+        value.fromCost=row.fromCost;value.interest=row.interest;
+        value.generalServiceBill=row.generalServiceBill;value.remark=row.remark;
+        return value;
+    }
     // Linked-loan lookup s2 -> a0.N has the same current-user/fromUser scope.
     @Override public OriginalBillRecord billBySemantic(int semantic){return bills.findAccessible(owner,owner,semantic);}
     @Override public Integer assetType(long semantic){JSONObject row=store.assetRepository().p(semantic,owner);return row==null?null:row.optInt("asset_type");}

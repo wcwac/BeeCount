@@ -11,7 +11,7 @@ import org.json.JSONObject;
 
 /** Actual local financial effects. Transport callbacks and unported model stores stay explicit. */
 public final class OriginalFinancialEffects implements OriginalFinancialOrchestrator.Effects {
-    public enum Event {ASSETS_CHANGED,BILLS_CHANGED,TRANSFERS_CHANGED,CREDIT_CHANGED,RESTORED}
+    public enum Event {ASSETS_CHANGED,BILLS_CHANGED,TRANSFERS_CHANGED,LENDS_CHANGED,CREDIT_CHANGED,RESTORED}
     public interface Listener {void onFinancialEvent(Event event);}
     public enum CreditStatus {LOADING,READY,FAILED}
     private static final Map<ReferenceStore,State> STATES=new IdentityHashMap<>();
@@ -58,6 +58,12 @@ public final class OriginalFinancialEffects implements OriginalFinancialOrchestr
         if(transfer==null)throw new IllegalArgumentException("Transfer is required");
         publish(state,Event.TRANSFERS_CHANGED);
     }
+    /** AutoAdd.X posts g7.u after attachments, including save=false; i1.d/w0 do not. */
+    public void lendChanged(OriginalLendRecord lend,boolean saved){
+        if(lend==null)throw new IllegalArgumentException("Lend is required");
+        // This notification is not s2.A: the source asset callbacks own any queued rebuild.
+        publish(state,Event.LENDS_CHANGED);
+    }
     /** Date caches are invalidated even after a returned-false entity save. */
     public void parentUpdated(OriginalBillRecord parent,boolean saved){
         invalidateDates(parent);if(parent!=null)publish(state,Event.BILLS_CHANGED);
@@ -92,8 +98,8 @@ public final class OriginalFinancialEffects implements OriginalFinancialOrchestr
     public static String creditFailureType(ReferenceStore store,int owner,int bookOwner,long semanticAsset){synchronized(store){return manager(store,state(store),owner,bookOwner).failures.getOrDefault(semanticAsset,"");}}
     /** Read-only completed-build identity; useful when two revisions have the same rows. */
     public static long creditRevision(ReferenceStore store,int owner,int bookOwner,long semanticAsset){synchronized(store){return manager(store,state(store),owner,bookOwner).revisions.getOrDefault(semanticAsset,0L);}}
-    /** Raw credit feed and the independent n0 event are wired; complete command/UI parity is separate. */
-    public static List<String> unportedDomains(){return java.util.Collections.unmodifiableList(java.util.Arrays.asList("TransferCommands","TransferUI","Lend","StockInfo","OperationIcon","AutoTag","BillGroup"));}
+    /** Raw feeds and independent n0/u events are wired; complete domain command/UI parity is separate. */
+    public static List<String> unportedDomains(){return java.util.Collections.unmodifiableList(java.util.Arrays.asList("TransferCommands","TransferUI","LendCommands","LendUI","StockInfo","OperationIcon","AutoTag","BillGroup"));}
     public static Map<String,List<OriginalCreditBill>> repaymentSchedule(ReferenceStore store,int owner,int bookOwner){synchronized(store){Manager manager=manager(store,state(store),owner,bookOwner);Map<String,List<OriginalCreditBill>> result=new HashMap<>();for(Map.Entry<String,List<OriginalCreditBill>> entry:manager.byDate.entrySet()){List<OriginalCreditBill> list=new ArrayList<>();for(OriginalCreditBill bill:entry.getValue())list.add(bill.copy());result.put(entry.getKey(),list);}return result;}}
     public static void resetAfterRestore(ReferenceStore store){
         State state;synchronized(store){synchronized(STATES){state=STATES.get(store);}if(state==null)return;state.scheduler.resetAfterRestore();state.scheduler.initializeCredit();state.managers.clear();state.homeDays.clear();state.calendarDays.clear();state.monthMaximum.clear();state.refunds.clear();state.assets.clear();}publish(state,Event.RESTORED);
