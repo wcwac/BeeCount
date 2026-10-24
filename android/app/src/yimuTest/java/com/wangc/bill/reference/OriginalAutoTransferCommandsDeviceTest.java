@@ -63,7 +63,10 @@ public final class OriginalAutoTransferCommandsDeviceTest {
         value.put("amount", Math.round(bill.cost * 100)); value.put("currency", "CNY");
         JSONObject category = store.categoryRepository().rowForSelection(kind, bill.parentCategoryId, bill.childCategoryId);
         if (category != null) value.put("category_id", category.optLong("id")); else value.putNull("category_id");
-        value.put("time", bill.time); value.put("created", bill.recordTime); value.put("remark", bill.remark);
+        value.put("time", bill.time); value.put("created", bill.recordTime);
+        // Match projectFee: an absent raw remark omits the host display column,
+        // whose default is ''. Explicit SQL NULL would violate its host schema.
+        if (bill.remark != null) value.put("remark", bill.remark);
         JSONObject account = store.assetRepository().p(bill.assetId, 0);
         if (account != null) value.put("account_id", account.optLong("id"));
         value.put("owner_semantic_id", 0); value.put("raw_asset_semantic_id", bill.assetId);
@@ -79,7 +82,10 @@ public final class OriginalAutoTransferCommandsDeviceTest {
         OriginalBillRecord bill = new OriginalBillRecord(); bill.billId = id; bill.userId = owner; bill.fromUserId = sender;
         bill.bookId = store.book(book).optLong("semantic_id"); bill.parentCategoryId = parent; bill.childCategoryId = child;
         bill.assetId = -1; bill.cost = 3; bill.time = TIME - 1; bill.recordTime = TIME - 1;
-        new OriginalBillRepository(store).saveOriginalRaw(bill, projection(bill)); return bill;
+        new OriginalBillRepository(store).saveOriginalRaw(bill, projection(bill));
+        assertTrue(store.transaction(bill.localRowId).isNull("bill_remark"));
+        assertEquals("", store.transaction(bill.localRowId).optString("remark"));
+        return bill;
     }
     private void link(int owner, int feeId, boolean deleted) {
         OriginalTransferRecord record = new OriginalTransferRecord(); record.userId = owner; record.billId = feeId;

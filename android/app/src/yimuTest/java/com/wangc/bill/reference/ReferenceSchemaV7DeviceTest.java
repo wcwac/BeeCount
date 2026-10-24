@@ -57,10 +57,10 @@ public final class ReferenceSchemaV7DeviceTest {
         }
         expectSqlFailure(() -> store.getWritableDatabase().delete("candidates", "id='v6-saved'", null));
         assertNotNull(store.candidate("v6-saved")); assertOldGraph();
-        ContentValues next = projection(1); assertTrue(store.getWritableDatabase().insertOrThrow("transactions", null, next) > 900);
+        ContentValues next = projection(store.getWritableDatabase(), 1); assertTrue(store.getWritableDatabase().insertOrThrow("transactions", null, next) > 900);
         OriginalTransferRecord nextTransfer = new OriginalTransferRecord(); nextTransfer.transferId = 902; nextTransfer.userId = 7;
         new OriginalTransferRepository(store).saveOriginalRaw(nextTransfer); assertTrue(nextTransfer.localRowId > 7000);
-        ContentValues duplicate = projection(1); duplicate.put("import_key", IMPORT_KEY);
+        ContentValues duplicate = projection(store.getWritableDatabase(), 1); duplicate.put("import_key", IMPORT_KEY);
         expectSqlFailure(() -> store.getWritableDatabase().insertOrThrow("transactions", null, duplicate));
 
         String corrupt = "reference-v7-invalid-v6-" + UUID.randomUUID() + ".sqlite"; extraDatabases.add(corrupt);
@@ -88,7 +88,7 @@ public final class ReferenceSchemaV7DeviceTest {
         assertEquals(1, scalar(store.getReadableDatabase(), "PRAGMA foreign_keys"));
         OriginalTransferRecord live = new OriginalTransferRecord(); live.userId = 7; live.transferId = Long.MAX_VALUE;
         new OriginalTransferRepository(store).saveOriginalRaw(live);
-        ContentValues sameNumberBill = projection(500); sameNumberBill.put("id", live.localRowId);
+        ContentValues sameNumberBill = projection(store.getWritableDatabase(), 500); sameNumberBill.put("id", live.localRowId);
         store.getWritableDatabase().insertOrThrow("transactions", null, sameNumberBill);
         addReceipt("live-transfer", live.localRowId, 7, Long.MAX_VALUE);
         store.getWritableDatabase().execSQL("INSERT INTO original_transfers(id,owner_semantic_id,transfer_semantic_id,cost) VALUES(9000,7,-5,-1.25)");
@@ -124,14 +124,19 @@ public final class ReferenceSchemaV7DeviceTest {
         store.restore(old); assertOldGraph(); assertNull(store.candidate("new-transfer"));
         assertEquals(0, store.scalar("SELECT COUNT(*) n FROM candidate_transfer_receipts"));
         assertEquals(901, new OriginalTransferRepository(store).byLocalRowId(60).transferId); assertForeignKeysClean();
-        JSONObject valid = store.backup(), forgedKind = Json.copy(old);
+        JSONObject valid = store.backup(); store.restore(valid); assertTablesEqual(valid); assertOldGraph();
+        JSONObject forgedKind = Json.copy(old);
         Json.put(forgedKind.optJSONObject("tables").optJSONArray("candidates").optJSONObject(0), "save_kind", "transfer");
         expectInvalid(forgedKind); assertTablesEqual(valid); assertOldGraph();
     }
 
     @Test public void missingReceiptTablesAndInvalidIdentityCandidateOrPayloadFieldsRollBackEveryTable() {
         createVersionSixGraph(database); openLatest(); addReceipt("live-transfer", 60, 7, 901);
-        JSONObject valid = store.backup(), missing = changedGraph(valid);
+        JSONObject valid = store.backup();
+        // Prove this complete graph is restorable before any deliberately broken
+        // receipt can be rejected by an unrelated older-domain validator.
+        store.restore(valid); assertTablesEqual(valid); assertOldGraph();
+        JSONObject missing = changedGraph(valid);
         missing.optJSONObject("tables").remove("candidate_transfer_receipts"); expectInvalid(missing); assertTablesEqual(valid);
         Object[][] defects = {{"owner_semantic_id", 2147483648L}, {"owner_semantic_id", "7"},
                 {"transfer_semantic_id", 1.5d}, {"transfer_row_id", 0}, {"transfer_row_id", 60.5d},
@@ -175,6 +180,7 @@ public final class ReferenceSchemaV7DeviceTest {
         store.getWritableDatabase().execSQL("INSERT INTO original_transfers(id,owner_semantic_id,transfer_semantic_id) VALUES(9000,7,902)");
         addReceipt("deleted-transfer", 9000, 7, 902); OriginalTransferRepository repository = new OriginalTransferRepository(store);
         repository.deleteRaw(repository.byLocalRowId(9000)); JSONObject valid = store.backup();
+        store.restore(valid); assertTablesEqual(valid); assertOldGraph();
         long sequence = scalar(store.getReadableDatabase(), "SELECT seq FROM sqlite_sequence WHERE name='original_transfers'");
         JSONObject missingResolution = changedGraph(valid);
         Json.put(missingResolution.optJSONObject("tables").optJSONArray("candidate_transfer_receipts").optJSONObject(0), "resolved_transfer_row_id", 9000);
@@ -236,6 +242,15 @@ public final class ReferenceSchemaV7DeviceTest {
         }
     }
     private void assertOldGraph() {
+        for (long id : new long[]{123, 124}) {
+            JSONObject legacy = store.transaction(id); assertEquals("legacy", legacy.optString("bill_origin"));
+            for (String column : OriginalBillRepository.CANONICAL_COLUMNS) assertTrue(column, legacy.isNull(column));
+        }
+        JSONObject expense = store.transaction(123), income = store.transaction(124);
+        assertEquals(store.categoryRepository().parent(99).optLong("id"), expense.optLong("category_id"));
+        assertEquals(99, expense.optLong("parent_semantic_id")); assertEquals(-1, expense.optLong("child_semantic_id"));
+        assertEquals(store.categoryRepository().child(9, 911).optLong("id"), income.optLong("category_id"));
+        assertEquals(9, income.optLong("parent_semantic_id")); assertEquals(911, income.optLong("child_semantic_id"));
         assertEquals("SAVED", store.candidate("v6-saved").optString("state"));
         assertEquals("bill", store.candidate("v6-saved").optString("save_kind"));
         assertEquals(123, store.candidate("v6-saved").optLong("transaction_id"));
@@ -250,8 +265,17 @@ public final class ReferenceSchemaV7DeviceTest {
         assertEquals(java.util.Arrays.asList(4L, 4L, null), original.tags); assertForeignKeysClean();
     }
     private void assertForeignKeysClean() { ReferenceSchemaV7.checkForeignKeys(store.getReadableDatabase()); }
-    private static ContentValues projection(long amount) {
-        ContentValues row = new ContentValues(); row.put("book_id", 1); row.put("kind", "expense"); row.put("amount", amount);
+    private static ContentValues projection(SQLiteDatabase db, long amount) { return projection(db, amount, "expense"); }
+    private static ContentValues projection(SQLiteDatabase db, long amount, String kind) {
+        boolean income = "income".equals(kind); assertTrue(income || "expense".equals(kind));
+        // Seed semantic IDs are not local PKs. The old database already has these
+        // categories; write the selected row and its actual semantic pair together.
+        long category = scalar(db, income
+                ? "SELECT id FROM categories WHERE level='child' AND parent_semantic_id=9 AND semantic_id=911 ORDER BY id LIMIT 1"
+                : "SELECT id FROM categories WHERE level='parent' AND semantic_id=99 ORDER BY id LIMIT 1");
+        assertTrue(category > 0);
+        ContentValues row = new ContentValues(); row.put("book_id", 1); row.put("kind", kind); row.put("amount", amount);
+        row.put("category_id", category); row.put("parent_semantic_id", income ? 9 : 99); row.put("child_semantic_id", income ? 911 : -1);
         row.put("currency", "CNY"); row.put("time", 1735689600000L); row.put("created", 1735689600000L); return row;
     }
     private void assertRealVersionThreeSelfReferenceUpgrade() {
@@ -260,11 +284,11 @@ public final class ReferenceSchemaV7DeviceTest {
             SQLiteDatabase db = old.getWritableDatabase(); assertEquals(3, db.getVersion());
             JSONObject payload = Json.object("book_id", 1, "kind", "expense", "amount", 500, "currency", "CNY", "time", 1735689600000L);
             db.execSQL("INSERT INTO candidates(id,payload,package_name,book_id,created,state,transaction_id) VALUES('v3-self-parent',?,'synthetic.v3',1,1,'SAVED',321)", new Object[]{payload.toString()});
-            ContentValues parent = projection(500); parent.put("id", 321); parent.put("candidate_id", "v3-self-parent"); db.insertOrThrow("transactions", null, parent);
-            ContentValues related = projection(100); related.put("id", 322); related.put("kind", "income"); related.put("related_id", 321); db.insertOrThrow("transactions", null, related);
+            ContentValues parent = projection(db, 500); parent.put("id", 321); parent.put("candidate_id", "v3-self-parent"); db.insertOrThrow("transactions", null, parent);
+            ContentValues related = projection(db, 100, "income"); related.put("id", 322); related.put("related_id", 321); db.insertOrThrow("transactions", null, related);
             db.execSQL("INSERT INTO tags(id,name) VALUES(88,'v3自关联保留标签')");
             db.execSQL("INSERT INTO transaction_tags(transaction_id,tag_id) VALUES(321,88)");
-            ContentValues high = projection(1); high.put("id", 999); db.insertOrThrow("transactions", null, high); db.execSQL("DELETE FROM transactions WHERE id=999");
+            ContentValues high = projection(db, 1); high.put("id", 999); db.insertOrThrow("transactions", null, high); db.execSQL("DELETE FROM transactions WHERE id=999");
         }
         try (ReferenceStore migrated = new ReferenceStore(context, oldName)) {
             SQLiteDatabase db = migrated.getWritableDatabase(); assertEquals(7, db.getVersion());
@@ -280,7 +304,8 @@ public final class ReferenceSchemaV7DeviceTest {
                 assertTrue("The rebuilt table lost its self reference", self);
             }
             ReferenceSchemaV7.checkForeignKeys(db);
-            assertTrue(db.insertOrThrow("transactions", null, projection(1)) > 999);
+            migrated.categoryRepository().validateRestored();
+            assertTrue(db.insertOrThrow("transactions", null, projection(db, 1)) > 999);
         }
         // The cloud fixture checks the final FK and populated v3 migration. Its
         // API36 SQLite runtime does not by itself exercise Android26/27/28.
@@ -293,14 +318,15 @@ public final class ReferenceSchemaV7DeviceTest {
             db.execSQL("INSERT INTO accounts(id,name,opening) VALUES(42,'v6旧账户',1234)");
             JSONObject payload = Json.object("book_id", 1, "kind", "expense", "currency", "CNY", "amount", 500, "category_id", category, "time", 1735689600000L);
             db.execSQL("INSERT INTO candidates(id,payload,package_name,book_id,created,state,transaction_id) VALUES('v6-saved',?,'synthetic.v6',1,1,'SAVED',123)", new Object[]{payload.toString()});
-            ContentValues bill = projection(500); bill.put("id", 123); bill.put("category_id", category); bill.put("account_id", 42);
+            ContentValues bill = projection(db, 500); bill.put("id", 123); bill.put("account_id", 42);
+            assertEquals(category, bill.getAsLong("category_id").longValue());
             bill.put("candidate_id", "v6-saved"); bill.put("import_key", IMPORT_KEY); db.insertOrThrow("transactions", null, bill);
-            ContentValues related = projection(200); related.put("id", 124); related.put("kind", "income"); related.put("related_id", 123); db.insertOrThrow("transactions", null, related);
+            ContentValues related = projection(db, 200, "income"); related.put("id", 124); related.put("related_id", 123); db.insertOrThrow("transactions", null, related);
             db.execSQL("INSERT INTO tags(id,name) VALUES(77,'v6旧标签')"); db.execSQL("INSERT INTO transaction_tags(transaction_id,tag_id) VALUES(123,77)");
             db.execSQL("INSERT INTO rules(id,merchant,book_id,category_id,account_id) VALUES(4,'v6旧规则',1,?,42)", new Object[]{category});
             db.execSQL("INSERT INTO original_transfers(id,owner_semantic_id,transfer_semantic_id,cost) VALUES(60,7,901,-2.5)");
             db.execSQL("INSERT INTO original_transfer_tags(id,transfer_row_id,position,value) VALUES(70,60,0,4),(71,60,1,4),(72,60,2,NULL)");
-            ContentValues high = projection(1); high.put("id", 900); db.insertOrThrow("transactions", null, high); db.execSQL("DELETE FROM transactions WHERE id=900");
+            ContentValues high = projection(db, 1); high.put("id", 900); db.insertOrThrow("transactions", null, high); db.execSQL("DELETE FROM transactions WHERE id=900");
             db.execSQL("INSERT INTO original_transfers(id) VALUES(7000)"); db.execSQL("DELETE FROM original_transfers WHERE id=7000");
             JSONObject tables = new JSONObject(); for (String table : V6_TABLES) Json.put(tables, table, rows(db, table));
             return Json.object("format", "YimuReferenceBackup", "version", 6, "created", 1735689600000L, "tables", tables);
