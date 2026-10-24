@@ -136,6 +136,22 @@ public final class OriginalTransferRepository {
         synchronized (store) { return first("owner_semantic_id=? AND to_asset_semantic_id=?", "id DESC", "" + owner, "" + assetSemanticId); }
     }
 
+    /** w2.y: insertion-order Transfer links, then a0.a0's user/fromUser access domain. */
+    public OriginalBillRecord latestFeeBill(int owner, int currentBookOwner, boolean income) {
+        synchronized (store) {
+            OriginalBillRepository bills = new OriginalBillRepository(store);
+            try (Cursor rows = store.getReadableDatabase().rawQuery(
+                    "SELECT bill_semantic_id FROM original_transfers WHERE owner_semantic_id=? AND bill_semantic_id<>0 ORDER BY id DESC",
+                    new String[]{"" + owner})) {
+                while (rows.moveToNext()) {
+                    OriginalBillRecord bill = bills.findAccessible(owner, currentBookOwner, intValue(rows, "bill_semantic_id"));
+                    if (bill != null && (bill.parentCategoryId == 9) == income) return bill;
+                }
+            }
+            return null;
+        }
+    }
+
     /** Storage-only physical delete. The caller owns fee deletion and signed principal inverses. */
     public int deleteRaw(OriginalTransferRecord record) {
         if (record == null || record.localRowId < 0) throw new IllegalArgumentException("Invalid Transfer local key");

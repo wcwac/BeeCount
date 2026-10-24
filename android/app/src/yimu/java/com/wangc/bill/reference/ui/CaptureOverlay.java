@@ -193,6 +193,9 @@ public final class CaptureOverlay {
         final boolean capturedIncome;
         boolean refundMode;
         OriginalBillRecord refundParent;
+        View transferPage;
+        long repaymentDestination = Long.MIN_VALUE;
+        boolean transferRepayment;
         ViewTreeObserver.OnGlobalLayoutListener keyboardListener;
         Runnable keyboardStateChange;
 
@@ -237,6 +240,7 @@ public final class CaptureOverlay {
                 : "transfer".equals(data.optString("kind")) ? 2 : 0, index -> {
                     cancelTimer(); refundMode = index == 3;
                     if (refundMode) matchRefundIfMissing(); else Json.put(data, "kind", kinds[index]);
+                    if (index == 2) repaymentDestination = Long.MIN_VALUE;
                     render();
                 });
             Ui.click(view, "account_book_layout", this::chooseBook);
@@ -249,6 +253,13 @@ public final class CaptureOverlay {
             view.setBackAction(this::cancel);
             if (preview) { Ui.text(view, "btn_save_text", "关闭测试浮窗"); Ui.text(view, "close_btn", "关闭测试"); }
             installKeyboardObserver(); render();
+            android.text.TextWatcher transferNumbers = new android.text.TextWatcher() {
+                @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+                @Override public void onTextChanged(CharSequence s, int start, int before, int count) { updateTransferNumbers(); }
+                @Override public void afterTextChanged(android.text.Editable s) {}
+            };
+            ((EditText) Ui.view(view, "cost")).addTextChangedListener(transferNumbers);
+            ((EditText) Ui.view(view, "service_charge_edit")).addTextChangedListener(transferNumbers);
             view.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
                 @Override public void onViewAttachedToWindow(View attached) { startTimer(); }
                 @Override public void onViewDetachedFromWindow(View detached) { release(); }
@@ -282,20 +293,77 @@ public final class CaptureOverlay {
             Ui.show(view, "repeat_tip", repeatDetected);
             Ui.view(view, "btn_save").setBackgroundResource(Ui.res(context, "drawable", repeatDetected
                 ? "selectable_item_light_grey_background" : "selectable_item_primary_background"));
-            FrameLayout container = Ui.view(view, "category_pager"); container.removeAllViews();
+            FrameLayout container = Ui.view(view, "category_pager"); container.removeAllViews(); transferPage = null;
             if (refundMode) {
                 container.addView(refundView(), new FrameLayout.LayoutParams(-1, -2)); return;
             }
             if ("transfer".equals(kind)) {
-                LinearLayout column = Ui.column(context);
-                column.addView(Ui.row(context, "转出账户", accountName(data.optLong("account_id")), () -> chooseAccount("account_id")));
-                column.addView(Ui.row(context, "转入账户", accountName(data.optLong("to_account_id")), () -> chooseAccount("to_account_id")));
-                container.addView(column); return;
+                container.addView(transferView(), new FrameLayout.LayoutParams(-1, -2)); return;
             }
             // Original AutoCategoryPagerAdapter uses six columns; initialization must
             // not invoke I0, which cancels the automatic-add timer only after a click.
             container.addView(new CategoryPicker(context,ReferenceApplication.store(),data.optLong("book_id"),kind,
                 data,categoryState,true,this::cancelTimer,null).view(),new FrameLayout.LayoutParams(-1,-2));
+        }
+
+        View transferView() {
+            View page = Ui.layout(context, "item_auto_transfer"); transferPage = page;
+            ReferenceStore store = ReferenceApplication.store();
+            JSONObject from = store.assetRepository().byRowId(data.optLong("account_id"));
+            JSONObject to = store.assetRepository().byRowId(data.optLong("to_account_id"));
+            bindTransferAsset(page, from, "from"); bindTransferAsset(page, to, "to");
+            Ui.click(page, "choice_from_asset", () -> chooseAccount("account_id"));
+            Ui.click(page, "choice_to_asset", () -> chooseAccount("to_account_id"));
+            Ui.click(page, "check_asset", () -> {
+                cancelTimer(); long oldFrom = data.optLong("account_id"), oldTo = data.optLong("to_account_id");
+                store.selectAccountForInput(data, "account_id", oldTo, true);
+                store.selectAccountForInput(data, "to_account_id", oldFrom, true);
+                repaymentDestination = Long.MIN_VALUE; render();
+            });
+            if (repaymentDestination != data.optLong("to_account_id")) {
+                repaymentDestination = data.optLong("to_account_id");
+                transferRepayment = to != null && to.optInt("asset_type") == 2;
+            }
+            Ui.view(page, "set_repayment_layout").setVisibility(to != null && to.optInt("asset_type") == 2 ? View.VISIBLE : View.INVISIBLE);
+            CheckBox repayment = Ui.view(page, "set_repayment"); repayment.setChecked(transferRepayment);
+            repayment.setOnCheckedChangeListener((button, checked) -> { transferRepayment = checked; cancelTimer(); });
+            RadioGroup group = Ui.view(page, "radio_group");
+            int mode = ReferenceApplication.prefs().getInt("original_transfer_mode", 0);
+            group.check(Ui.res(context, "id", mode == 0 ? "radio_one" : "radio_two"));
+            group.setOnCheckedChangeListener((radio, checked) -> {
+                ReferenceApplication.prefs().edit().putInt("original_transfer_mode", checked == Ui.res(context,"id","radio_one") ? 0 : 1).apply();
+                cancelTimer(); updateTransferNumbers();
+            });
+            updateTransferNumbers(); return page;
+        }
+
+        void bindTransferAsset(View page, JSONObject asset, String side) {
+            boolean original = asset != null && AssetRepository.ORIGINAL.equals(asset.optString("asset_origin"));
+            Ui.text(page, side + "_asset_name", original ? asset.optString("name") : "");
+            Ui.show(page, side + "_asset_num", original);
+            Ui.image(page, side + "_asset_icon", original && !asset.optString("asset_icon").isEmpty() ? asset.optString("asset_icon") : "ic_no_asset");
+            if (original) {
+                double number = new OriginalFinancialOrchestrator(ReferenceApplication.store(), ReferenceStore.LOCAL_OFFLINE_OWNER,
+                        ReferenceStore.LOCAL_OFFLINE_OWNER).readBalance(asset.optLong("semantic_id"));
+                Ui.text(page, side + "_asset_num", "余额：" + OriginalTransferAmount.formatBalance(number));
+            }
+        }
+
+        void updateTransferNumbers() {
+            if (transferPage == null || refundMode || !"transfer".equals(data.optString("kind"))) return;
+            double amount = OriginalTransferAmount.parseS(((EditText) Ui.view(view, "cost")).getText().toString());
+            double fee = OriginalTransferAmount.parseS(((EditText) Ui.view(view, "service_charge_edit")).getText().toString());
+            int mode = ReferenceApplication.prefs().getInt("original_transfer_mode", 0);
+            double debit = mode == 0 ? fee + amount : amount;
+            double credit = mode == 0 ? amount : Math.max(0.0d, amount - fee);
+            Ui.show(transferPage, "reduce_num", debit != 0.0d); Ui.text(transferPage, "reduce_num", "-" + OriginalTransferAmount.formatDelta(debit));
+            Ui.show(transferPage, "add_num", credit != 0.0d); Ui.text(transferPage, "add_num", "+" + OriginalTransferAmount.formatDelta(credit));
+            Ui.show(transferPage, "radio_layout", fee != 0.0d);
+            String format = context.getString(Ui.res(context, "string", "transfer_info"));
+            Ui.text(transferPage, "radio_one_text", String.format(format, OriginalTransferAmount.formatBalance(fee + amount),
+                    OriginalTransferAmount.formatBalance(amount), OriginalTransferAmount.formatBalance(fee)));
+            Ui.text(transferPage, "radio_two_text", String.format(format, OriginalTransferAmount.formatBalance(amount),
+                    OriginalTransferAmount.formatBalance(amount - fee), OriginalTransferAmount.formatBalance(fee)));
         }
 
         void matchRefundIfMissing() {
@@ -419,6 +487,19 @@ public final class CaptureOverlay {
 
         void chooseAccount(String key) {
             cancelTimer();
+            if (!refundMode && "transfer".equals(data.optString("kind"))) {
+                List<JSONObject> assets = ReferenceApplication.store().assetRepository().picker(ReferenceStore.LOCAL_OFFLINE_OWNER, null);
+                String[] labels = new String[assets.size()];
+                for (int i = 0; i < labels.length; i++) labels[i] = assets.get(i).optString("name");
+                showDialog(new AlertDialog.Builder(context, android.R.style.Theme_Material_Light_Dialog_Alert)
+                    .setTitle("account_id".equals(key) ? "选择转出账户" : "选择转入账户")
+                    .setItems(labels, (d, index) -> {
+                        ReferenceApplication.store().selectAccountForInput(data, key, assets.get(index).optLong("id"), true);
+                        if ("to_account_id".equals(key)) repaymentDestination = Long.MIN_VALUE;
+                        render();
+                    }).create());
+                return;
+            }
             List<JSONObject> accounts = ReferenceApplication.store().selectableAccounts(data.optLong("book_id"));
             String[] labels = new String[accounts.size() + 1]; labels[accounts.size()] = "无账户";
             for (int i = 0; i < accounts.size(); i++) labels[i] = accounts.get(i).optString("name");
@@ -467,6 +548,19 @@ public final class CaptureOverlay {
                 JSONObject value = Json.copy(data);
                 EditText cost = Ui.view(view, "cost"), remark = Ui.view(view, "remark");
                 EditText discount = Ui.view(view, "discount_edit"), fee = Ui.view(view, "service_charge_edit");
+                if (!refundMode && "transfer".equals(value.optString("kind"))) {
+                    if (cost.getText().toString().isEmpty()) { Ui.toast(context, "金额不能为空"); return; }
+                    if (value.optLong("account_id") <= 0 || value.optLong("to_account_id") <= 0) {
+                        Ui.toast(context, "请选择转出或转入账户"); return;
+                    }
+                    Json.put(value, "transfer_amount_text", cost.getText().toString());
+                    Json.put(value, "transfer_fee_text", fee.getText().toString());
+                    Json.put(value, "transfer_repayment", transferRepayment);
+                    Json.put(value, "remark", remark.getText().toString());
+                    // Transfer skips the Bill repeat popup, preserves signed/zero raw
+                    // numbers, and lets Z distinguish its two fee predicates.
+                    persist(value, 0, automatic); return;
+                }
                 long entered = refundMode ? Money.signed(cost.getText().toString(), "CNY") : Money.positive(cost.getText().toString(), "CNY");
                 if (refundMode && entered == 0) throw new IllegalArgumentException("请输入非零退款金额");
                 Json.put(value, "amount", entered);
@@ -562,6 +656,8 @@ public final class CaptureOverlay {
                         }
                         if (parent != null && replacing > 0) ReferenceApplication.store().saveCandidateRefundReplacing(value, id, parent, receiver, replacing);
                         else if (parent != null) ReferenceApplication.store().saveCandidateRefund(value, id, parent, receiver);
+                        else if ("transfer".equals(value.optString("kind"))) ReferenceApplication.store().saveCandidateTransfer(value, id,
+                            () -> MAIN.post(() -> Ui.toast(context, "到账金额需要大于0")));
                         else if (replacing > 0) ReferenceApplication.store().saveCandidateReplacing(value, id, replacing);
                         else ReferenceApplication.store().saveTransaction(value, 0, id);
                         ReferenceDiagnostics.result(parent != null ? "REFUND_SAVED" : automatic ? "AUTO_SAVED" : "BILL_SAVED");
@@ -572,7 +668,8 @@ public final class CaptureOverlay {
                     } catch (RuntimeException error) {
                         ReferenceDiagnostics.failure("STORE_FAILED", error);
                         MAIN.post(() -> { if (active == null) state("SAVE_FAILED"); CaptureNotifications.update(); CaptureNotifications.error();
-                            Ui.toast(context, parent != null ? "退款保存未完成，请先核对余额、资产历史和原账单，勿重复提交" : "新增失败，账单仍在待确认列表"); });
+                            Ui.toast(context, parent != null ? "退款保存未完成，请先核对余额、资产历史和原账单，勿重复提交"
+                                : "transfer".equals(value.optString("kind")) ? "转账保存未完成，请先核对余额、手续费和转账记录，勿重复提交" : "新增失败，账单仍在待确认列表"); });
                     }
                 });
                 // Original Z0/Y removes the window immediately after submitting its save task.

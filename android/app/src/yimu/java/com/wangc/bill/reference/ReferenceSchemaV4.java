@@ -38,7 +38,9 @@ final class ReferenceSchemaV4 {
                 + "deleted INTEGER NOT NULL DEFAULT 0,financial_type TEXT NOT NULL DEFAULT '',"
                 + "settled INTEGER NOT NULL DEFAULT 0,attachments TEXT NOT NULL DEFAULT '[]',"
                 + "candidate_id TEXT UNIQUE REFERENCES candidates(id),"
-                + "related_id INTEGER REFERENCES reference_v4_transactions(id),import_key TEXT,"
+                // Use the final parent name: older SQLite versions do not rewrite
+                // foreign references during RENAME when enforcement is disabled.
+                + "related_id INTEGER REFERENCES transactions(id),import_key TEXT,"
                 + "parent_semantic_id INTEGER,child_semantic_id INTEGER,owner_semantic_id INTEGER,"
                 + "raw_asset_semantic_id INTEGER,raw_to_asset_semantic_id INTEGER,"
                 + "bill_origin TEXT NOT NULL DEFAULT 'legacy')");

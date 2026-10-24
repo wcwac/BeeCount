@@ -37,7 +37,7 @@ public final class ReferenceSchemaV5DeviceTest {
             db.execSQL("INSERT INTO transactions(id,book_id,kind,amount,currency,time,created) VALUES(900,1,'income',1,'CNY',1,1)");
             db.execSQL("DELETE FROM transactions WHERE id=900");
         }
-        open();assertEquals(6,store.getReadableDatabase().getVersion());
+        open();assertEquals(7,store.getReadableDatabase().getVersion());
         assertEquals(734,store.accountBalance(42));
         assertEquals("legacy",store.transaction(100).optString("bill_origin"));assertEquals(42,store.transaction(100).optLong("account_id"));
         JSONObject candidate=store.candidate("v4-saved");assertEquals("bill",candidate.optString("save_kind"));
@@ -58,8 +58,8 @@ public final class ReferenceSchemaV5DeviceTest {
         OriginalCurdHistoryRepository.Data operation=new OriginalCurdHistoryRepository.Data();operation.type=6;operation.typeId=-99;
         operation.billBookSemanticId=Long.MAX_VALUE;operation.billOwnerSemanticId=-7;
         assertTrue(new OriginalCurdHistoryRepository(store).add(7,operation).saved);
-        JSONObject backup=store.backup();assertEquals(6,backup.optInt("version"));
-        assertEquals(23,backup.optJSONObject("tables").length());store.restore(backup);
+        JSONObject backup=store.backup();assertEquals(7,backup.optInt("version"));
+        assertEquals(24,backup.optJSONObject("tables").length());store.restore(backup);
         OriginalBillRelatedRecord restored=new OriginalBillRelatedRepository(store).byLocalRowId(relation.localRowId);
         assertEquals(9000000001L,restored.relatedId);assertEquals(-5,restored.oneBillId);assertTrue(restored.originalDeleted);
         OriginalInstalmentRecord value=new OriginalInstalmentRepository(store).byLocalRowId(instalment.localRowId);

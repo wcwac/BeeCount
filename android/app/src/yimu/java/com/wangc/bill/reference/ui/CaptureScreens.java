@@ -26,8 +26,10 @@ final class CaptureScreens {
         bind(v,"switch_auto_bill",AutoApps.enabled(),value->setEnabled(a,value));
         CompoundButton master=Ui.view(v,"switch_auto_bill");master.setContentDescription("启用自动记账");Ui.click(v,"log_mode",master::performClick);
         // Original AutoActivity.t0 opens the system grant screen; this switch reflects its grant.
-        bind(v,"switch_overlays",OverlayPermission.granted(),value->{OverlayPermission.request(a);a.reload();});
-        Ui.click(v,"overlays_layout",()->OverlayPermission.request(a));
+        bind(v,"switch_overlays",OverlayPermission.granted(),value->{OverlayPermission.requestDirect(a);a.reload();});
+        // This retained host row shortcut uses the same direct request as the switch;
+        // the original native onCreate's extra row bindings remain unproven.
+        Ui.click(v,"overlays_layout",()->OverlayPermission.requestDirect(a));
         bind(v,"switch_auto_jump_accessibility",ReferenceApplication.prefs().getBoolean("accessibility_shortcut",OriginalSettings.DEFAULT_AUTO_JUMP_ACCESSIBILITY),value->ReferenceApplication.prefs().edit().putBoolean("accessibility_shortcut",value).apply());
         View screenshot=Ui.view(v,"switch_screenshot");if(screenshot instanceof CompoundButton button){button.setChecked(false);button.setOnCheckedChangeListener((b,on)->{if(on){button.setChecked(false);Ui.offline(a);}});}
         JSONObject status=ReferenceCaptureService.status();JSONObject meta=status.optJSONObject("diagnostics");
@@ -64,7 +66,9 @@ final class CaptureScreens {
         diagnosticMaster(a);
         a.rows.addView(Ui.row(a,"当前状态",condition(status)+"\n最近处理："+result(meta.optString("result")),null));
         a.rows.addView(Ui.row(a,"授权与连接","应用内总开关："+(status.optBoolean("enabled")?"已开启":"已关闭")+"\n无障碍授权："+(status.optBoolean("permissionGranted")?"已授权":"未授权")+"\n服务连接："+(status.optBoolean("connected")?"已连接":"未连接")+"\n窗口内容读取："+(status.optBoolean("canRetrieveWindowContent")?"已允许":"未允许")+"（能力值 "+status.optInt("capabilities")+"）\n点击管理系统无障碍授权",()->a.startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))));
-        a.rows.addView(Ui.row(a,"授权悬浮窗",OverlayPermission.granted()?"已授权；点击管理“显示在其他应用上层”权限":"未授权；点击授予“显示在其他应用上层”权限，确认浮窗需要此权限",()->OverlayPermission.request(a)));
+        a.rows.addView(Ui.row(a,"授权悬浮窗",OverlayPermission.granted()?"已授权；点击管理“显示在其他应用上层”权限":"未授权；点击授予“显示在其他应用上层”权限，确认浮窗需要此权限",()->{
+            if(OverlayPermission.granted())OverlayPermission.requestDirect(a);else OverlayPermission.request(a);
+        }));
         a.rows.addView(Ui.row(a,"后台运行设置","查看手机自启动与省电设置。",()->backgroundSettings(a)));
         long target=ReferenceApplication.prefs().getLong("capture_book",1);JSONObject book=a.store().book(target);
         a.rows.addView(Ui.row(a,"原版无障碍工具标记",status.optBoolean("toolIdentity")?"已启用：用于对比敏感节点读取":"未启用或系统不支持",null));

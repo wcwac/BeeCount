@@ -259,6 +259,58 @@ public final class CaptureRefundOverlayDeviceTest {
         assertEquals(0, ReferenceDiagnostics.snapshot().optLong("failures"));
     }
 
+    @Test public void originalTransferPageIgnoresBookPickerFilteringAndSavesThroughTheActualWorkerWithItsFee() throws Exception {
+        ReferenceApplication.prefs().edit().putLong("current_book", book).putInt("original_transfer_mode", 0).commit();
+        long header = store.saveBook(0, "转账浮窗另一本", "CNY", 0);
+        AssetRepository.Definition from = new AssetRepository.Definition("转账浮窗转出账户", 1, null); from.assetNumber = 100;
+        AssetRepository.Definition to = new AssetRepository.Definition("转账浮窗转入账户", 1, null); to.assetNumber = 5;
+        from.showBook.add(store.book(book).optLong("semantic_id")); to.showBook.add(store.book(book).optLong("semantic_id"));
+        long fromRow = store.assetRepository().insertRecovered(0, 1900070501L, 1, 1, from);
+        long toRow = store.assetRepository().insertRecovered(0, 1900070502L, 2, 1, to);
+        String remark = "转账浮窗原始备注"; bill(1900070503, true, 10, remark);
+        String id = candidate(1000, remark); show(id); assertTrue(CaptureOverlay.status().optBoolean("repeatDetected"));
+        clickText("转账"); clickId("account_book_layout"); clickText("转账浮窗另一本");
+        await(() -> visibleTextEquals("account_book_name", "转账浮窗另一本") && node("choice_from_asset") != null,
+                "Transfer page did not finish rebuilding after the book selection");
+        clickId("choice_from_asset"); clickText("转账浮窗转出账户");
+        await(() -> visibleTextEquals("from_asset_name", "转账浮窗转出账户"), "Source selection was filtered by the header book");
+        clickId("choice_to_asset"); clickText("转账浮窗转入账户");
+        await(() -> visibleTextEquals("to_asset_name", "转账浮窗转入账户"), "Destination selection was not retained");
+        clickId("check_asset"); await(() -> visibleTextEquals("from_asset_name", "转账浮窗转入账户"), "Account swap did not change the source");
+        clickId("check_asset"); await(() -> visibleTextEquals("from_asset_name", "转账浮窗转出账户"), "Second swap did not restore the source");
+        setText("cost", "10"); setText("service_charge_edit", "2");
+        clickId("radio_two"); await(() -> ReferenceApplication.prefs().getInt("original_transfer_mode", -1) == 1,
+                "Original fee mode was not persisted by the radio group");
+        await(() -> visibleTextEquals("reduce_num", "-10.00") && visibleTextEquals("add_num", "+8.00"),
+                "Transfer numbers did not finish rendering after the fee mode change");
+        assertEquals("-10.00", text("reduce_num")); assertEquals("+8.00", text("add_num"));
+        long beforeBills = store.scalar("SELECT COUNT(*) n FROM transactions"); clickId("btn_save");
+        await(() -> "SAVED".equals(store.candidate(id).optString("state")), "Transfer worker did not save its actual typed receipt"); barrier();
+        assertNull(node("confirm")); // A Bill repeat exists, but AutoAdd.Z never enters that popup.
+        JSONObject receipt = store.one("SELECT * FROM candidate_transfer_receipts WHERE candidate_id=?", id);
+        assertNotNull(receipt); OriginalTransferRecord transfer = new OriginalTransferRepository(store).byLocalRowId(receipt.optLong("transfer_row_id"));
+        assertEquals(1900070501L, transfer.fromAssetId); assertEquals(1900070502L, transfer.toAssetId);
+        assertEquals(8.0d, transfer.cost, 0); assertEquals(2.0d, transfer.serviceCharge, 0); assertEquals(0.0d, transfer.toCost, 0);
+        assertEquals(90.0d, store.assetRepository().byRowId(fromRow).optDouble("asset_number"), 0);
+        assertEquals(13.0d, store.assetRepository().byRowId(toRow).optDouble("asset_number"), 0);
+        OriginalBillRecord fee = new OriginalBillRepository(store).byExactUser(0, transfer.billId);
+        assertNotNull(fee); assertEquals(store.book(book).optLong("semantic_id"), fee.bookId);
+        assertEquals(beforeBills + 1, store.scalar("SELECT COUNT(*) n FROM transactions"));
+        assertEquals(header, store.candidate(id).optLong("book_id")); assertTrue(store.candidate(id).isNull("transaction_id"));
+        assertEquals("transfer", store.candidate(id).optString("save_kind")); assertEquals(0, ReferenceDiagnostics.snapshot().optLong("failures"));
+    }
+
+    @Test public void missingTransferAmountOrSelectionsKeepTheRealWindowOpenBeforeAnyWorkerSave() throws Exception {
+        String id = candidate(1700, "转账缺少输入的原始备注"); show(id); clickText("转账");
+        long before = store.scalar("SELECT COUNT(*) n FROM original_transfers");
+        setText("cost", ""); clickId("btn_save"); barrier();
+        assertTrue(CaptureOverlay.status().optBoolean("attached")); assertEquals("PENDING", store.candidate(id).optString("state"));
+        setText("cost", "17"); clickId("btn_save"); barrier();
+        assertTrue(CaptureOverlay.status().optBoolean("attached")); assertEquals("PENDING", store.candidate(id).optString("state"));
+        assertEquals(before, store.scalar("SELECT COUNT(*) n FROM original_transfers"));
+        assertEquals(0, ReferenceDiagnostics.snapshot().optLong("failures"));
+    }
+
     private AccessibilityNodeInfo node(String id) {
         String resource = ReferenceApplication.app().getResources().getResourceName(Ui.id(ReferenceApplication.app(), id));
         for (AccessibilityWindowInfo window : automation.getWindows()) if (window.getType() == AccessibilityWindowInfo.TYPE_SYSTEM) {

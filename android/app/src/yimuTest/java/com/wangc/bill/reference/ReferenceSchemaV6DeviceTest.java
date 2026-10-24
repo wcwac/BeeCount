@@ -37,7 +37,7 @@ public final class ReferenceSchemaV6DeviceTest {
     private void openLatest() { store = new ReferenceStore(context, database); store.getWritableDatabase(); }
 
     @Test public void realVersionFiveUpgradePreservesLegacyAndCanonicalGraphsWithoutInferringTransfersOrReplayingBalances() {
-        createVersionFiveGraph(); openLatest(); assertEquals(6, store.getReadableDatabase().getVersion()); assertOldGraph();
+        createVersionFiveGraph(); openLatest(); assertEquals(7, store.getReadableDatabase().getVersion()); assertOldGraph();
         assertEquals(0, store.scalar("SELECT COUNT(*) n FROM original_transfers"));
         assertEquals(0, store.scalar("SELECT COUNT(*) n FROM original_transfer_tags"));
         assertEquals("transfer", store.transaction(125).optString("kind"));
@@ -57,7 +57,7 @@ public final class ReferenceSchemaV6DeviceTest {
         OriginalTransferRecord missing = transfer(Long.MAX_VALUE); missing.tags = null; missing.remark = null;
         OriginalTransferRecord empty = transfer(Long.MIN_VALUE); empty.userId = 8; empty.tags.clear(); empty.remark = "";
         repository.saveOriginalRaw(tagged); repository.saveOriginalRaw(missing); repository.saveOriginalRaw(empty);
-        JSONObject backup = store.backup(); assertEquals(6, backup.optInt("version")); assertEquals(23, backup.optJSONObject("tables").length());
+        JSONObject backup = store.backup(); assertEquals(7, backup.optInt("version")); assertEquals(24, backup.optJSONObject("tables").length());
         assertNotNull(backup.optJSONObject("tables").optJSONArray("original_transfers"));
         assertNotNull(backup.optJSONObject("tables").optJSONArray("original_transfer_tags"));
         store.getWritableDatabase().execSQL("UPDATE accounts SET asset_number=999 WHERE id=43");
@@ -145,7 +145,7 @@ public final class ReferenceSchemaV6DeviceTest {
     }
     private void assertTablesEqual(JSONObject expected) {
         JSONObject actual = store.backup().optJSONObject("tables"), tables = expected.optJSONObject("tables");
-        assertEquals(23, actual.length()); assertEquals(23, tables.length());
+        assertEquals(24, actual.length()); assertEquals(24, tables.length());
         for (java.util.Iterator<String> names = tables.keys(); names.hasNext();) {
             String name = names.next(); assertEquals(name, tables.optJSONArray(name).toString(), actual.optJSONArray(name).toString());
         }
