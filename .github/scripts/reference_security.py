@@ -118,6 +118,7 @@ def source():
 
 def apk(path):
     count=0
+    unexpected=[]
     with zipfile.ZipFile(path) as archive:
         assert archive.read('META-INF/com.google.android.material_material.version').strip()==b'1.10.0', 'Unexpected Material UI version'
         for name in archive.namelist():
@@ -128,8 +129,13 @@ def apk(path):
                 assert archive.read(name).startswith(profiles[name]), 'Invalid profile data'
             assert not name.lower().endswith(('.so','.jar','.apk','.js','.html','.ser')), 'Unexpected bundled executable: '+name
             if re.fullmatch(r'classes(?:[0-9]+)?\.dex',name):
-                count+=inspect_classes(archive.read(name))
+                class_count,unreviewed=inspect_classes(archive.read(name))
+                count+=class_count
+                unexpected.extend(name+': '+entry for entry in unreviewed)
         assert 'classes.dex' in archive.namelist()
+    # Report every unreviewed definition from every DEX in this build. Keep
+    # failure strict, without needing another CI run for each subsequent class.
+    assert not unexpected, 'Unreviewed APK class definitions ('+str(len(unexpected))+'):\n'+'\n'.join(sorted(unexpected))
     print(f'APK payload verified: {count} class definitions, no unknown SDKs/native libraries/nested APKs/scripts')
 
 def inspect_classes(data):
@@ -144,13 +150,17 @@ def inspect_classes(data):
     n,off=pair(0x40);types=[strings[struct.unpack_from('<I',data,off+4*i)[0]] for i in range(n)]
     n,off=pair(0x60)
     own=re.compile(r'L(?:com/wangc/bill/(?:reference/.*|auto/action/[a-p](?:\$.*)?|auto/x1(?:\$.*)?|http/entity/BillInfo(?:\$.*)?|utils/(?:a2|b2|h2)|database/action/(?:p|s)|(?:R|Manifest|BuildConfig)(?:\$.*)?)|com/blankj/utilcode/util/(?:t0|y)(?:\$.*)?|com/google/android/accessibility/selecttospeak/SelectToSpeakService(?:\$.*)?|s6/b);')
+    unexpected=[]
     for i in range(n):
         name=types[struct.unpack_from('<I',data,off+i*32)[0]]
-        assert not name.startswith('Landroidx/test/'), 'Test code in release APK'
+        if name.startswith('Landroidx/test/'):
+            unexpected.append('Test code in release APK: '+name)
+            continue
         # Material 1.10.0 is the UI library version declared in the reference APK;
         # it supplies the actual BottomSheetDialog used by local permission guides.
-        assert name.startswith(('Landroidx/','Landroid/support/','Lkotlin/','Lkotlinx/','Lorg/jetbrains/annotations/','Lorg/intellij/lang/annotations/','Lorg/jspecify/annotations/','Lcom/android/tools/r8/','Lcom/google/android/material/')) or name=='Lcom/google/common/util/concurrent/ListenableFuture;' or own.fullmatch(name), 'Unexpected class definition: '+name
-    return n
+        if not (name.startswith(('Landroidx/','Landroid/support/','Lkotlin/','Lkotlinx/','Lorg/jetbrains/annotations/','Lorg/intellij/lang/annotations/','Lorg/jspecify/annotations/','Lcom/android/tools/r8/','Lcom/google/android/material/')) or name=='Lcom/google/common/util/concurrent/ListenableFuture;' or own.fullmatch(name)):
+            unexpected.append(name)
+    return n,unexpected
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

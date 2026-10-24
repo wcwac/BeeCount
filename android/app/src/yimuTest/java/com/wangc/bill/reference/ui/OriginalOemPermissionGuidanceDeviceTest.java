@@ -93,6 +93,7 @@ public final class OriginalOemPermissionGuidanceDeviceTest {
                 assertEquals("com.huawei.systemmanager", name); packageLookups.incrementAndGet(); return new Intent("synthetic.HUAWEI");
             }
         });
+        assertOriginalInstructionNewlines(4);
         tap("confirm"); hidden(); assertTrue(dismissed.get()); assertEquals(5, attempts.size()); assertEquals(1, packageLookups.get());
         String[] components = {"com.huawei.systemmanager/.startupmgr.ui.StartupNormalAppListActivity",
                 "com.huawei.systemmanager/.appcontrol.activity.StartupAppControlActivity", "com.huawei.systemmanager/.optimize.process.ProtectActivity",
@@ -112,6 +113,7 @@ public final class OriginalOemPermissionGuidanceDeviceTest {
                 assertEquals("com.hihonor.systemmanager", name); return new Intent("synthetic.HONOR");
             }
         });
+        assertOriginalInstructionNewlines(5);
         tap("confirm"); hidden(); assertEquals(2, attempts.size());
         assertComponentIntent(attempts.get(0), "com.hihonor.systemmanager/com.huawei.systemmanager.startupmgr.ui.StartupNormalAppListActivity");
         assertEquals("synthetic.HONOR", attempts.get(1).getAction()); scenario.onActivity(host -> assertFalse(host.isFinishing()));
@@ -119,13 +121,14 @@ public final class OriginalOemPermissionGuidanceDeviceTest {
 
     @Test public void meizuShowsTheOriginalGuidanceAndItsConfirmOnlyDismisses() {
         AtomicInteger launches = new AtomicInteger(); show("other", 36, "FLYME 10", (host, intent) -> launches.incrementAndGet());
-        assertWindowSize(); tap("confirm"); hidden(); assertEquals(0, launches.get());
+        assertWindowSize(); assertOriginalInstructionNewlines(2); tap("confirm"); hidden(); assertEquals(0, launches.get());
     }
 
     @Test public void androidFourteenXiaomiRestoresItsOriginalDialogAndItsSourceEmptyCallbackDoesNotNavigate() {
         AtomicInteger launches = new AtomicInteger(); show("Xiaomi", 34, null, (host, intent) -> launches.incrementAndGet());
         assertWindowSize(); fragment.set(null); dialog.set(null); scenario.recreate(); shown(); assertWindowSize();
         scenario.onActivity(host -> assertEquals("MIUI优化", ((android.widget.TextView) Ui.view(fragment.get().requireView(), "title")).getText().toString()));
+        assertOriginalInstructionNewlines(8);
         tap("confirm"); hidden(); assertEquals(0, launches.get());
     }
 
@@ -193,6 +196,27 @@ public final class OriginalOemPermissionGuidanceDeviceTest {
             assertEquals(ViewGroup.LayoutParams.WRAP_CONTENT, dialog.get().getWindow().getAttributes().height);
             assertTrue(Ui.view(fragment.get().requireView(), "cancel").isShown()); assertTrue(Ui.view(fragment.get().requireView(), "confirm").isShown());
         });
+    }
+    private void assertOriginalInstructionNewlines(int expected) {
+        // Counts come from the original APK's raw and typed AXML string pools:
+        // Huawei4, Honor5, Meizu2, Miui8; not from this app's string resources.
+        scenario.onActivity(host -> {
+            View root = fragment.get().requireView(); assertTrue(root.isAttachedToWindow()); assertTrue(dialog.get().isShowing());
+            List<android.widget.TextView> instructions = new ArrayList<>();
+            collectInstructions(root, instructions);
+            assertEquals("Exactly one original numbered instruction must be attached", 1, instructions.size());
+            android.widget.TextView instruction = instructions.get(0);
+            assertTrue(instruction.isAttachedToWindow()); assertTrue(instruction.isShown());
+            String value = instruction.getText().toString(); int newlines = 0;
+            for (int i = 0; i < value.length(); i++) if (value.charAt(i) == '\n') newlines++;
+            assertEquals("Original U+000A count after resource compilation", expected, newlines);
+            assertFalse("Newline escapes must not remain literal text", value.contains("\\n"));
+            assertFalse("Decompiler slash10 must not remain literal text", value.contains("\\10"));
+        });
+    }
+    private static void collectInstructions(View root, List<android.widget.TextView> result) {
+        if (root instanceof android.widget.TextView text && text.getText().toString().startsWith("1.")) result.add(text);
+        if (root instanceof ViewGroup group) for (int i = 0; i < group.getChildCount(); i++) collectInstructions(group.getChildAt(i), result);
     }
     private static void assertComponentIntent(Intent intent, String component) {
         assertEquals(ComponentName.unflattenFromString(component), intent.getComponent()); assertEquals(Intent.FLAG_ACTIVITY_NEW_TASK, intent.getFlags());

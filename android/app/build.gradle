@@ -49,7 +49,12 @@ dependencies {
     implementation 'androidx.cardview:cardview:1.0.0'
     implementation 'androidx.drawerlayout:drawerlayout:1.2.0'
     // Exact version recorded in the reference APK's Material version marker.
-    implementation 'com.google.android.material:material:1.10.0'
+    implementation('com.google.android.material:material:1.10.0') {
+        // Static bytecode review found no executable ErrorProne dependency in
+        // Material. This app does not consume its checker-annotation metadata.
+        exclude group: 'com.google.errorprone', module: 'error_prone_annotations'
+    }
+    compileOnly 'com.google.errorprone:error_prone_annotations:2.15.0'
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test:runner:1.6.2'
     androidTestImplementation 'androidx.test.ext:junit:1.2.1'
