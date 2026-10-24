@@ -12,6 +12,11 @@ public final class OriginalSettings {
     // Original database.c.c explicitly sets ShowOldCost=true on first creation.
     public static final boolean DEFAULT_SHOW_OLD_COST = true;
     public static final boolean DEFAULT_AUTO_JUMP_ACCESSIBILITY = true;
+    // v1.a initializes NotifySettingConfig.showNotify from s.r; s.b sets that true.
+    // This host preference represents that independent config, not system permission.
+    public static final String NOTIFY_SHOW = "original_notify_show";
+    public static final boolean DEFAULT_NOTIFY_SHOW = true;
+    public static final String AUTO_BACKGROUND_TIP_SHOWN = "original_auto_background_tip_shown";
 
     private OriginalSettings() {}
 

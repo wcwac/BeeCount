@@ -13,6 +13,8 @@ import org.json.JSONObject;
 public final class ManagerActivity extends AppCompatActivity {
     public String page;public long entity;public View template;public LinearLayout rows;
     private long pendingBook;
+    private OriginalCapturePermissionController capturePermissions;
+    OriginalCapturePermissionController capturePermissions(){if(capturePermissions==null)capturePermissions=new OriginalCapturePermissionController(this);return capturePermissions;}
     private final OriginalFinancialEffects.Listener financialListener=event->{
         // Live result lists follow MAIN events. Replacing an edit form here would
         // erase unsubmitted text on an unrelated balance/credit callback.
@@ -23,8 +25,18 @@ public final class ManagerActivity extends AppCompatActivity {
     public long bookId(){long id=ReferenceApplication.prefs().getLong("current_book",1);return store().book(id)!=null?id:store().books().get(0).optLong("id");}
     public String currency(){return store().book(bookId()).optString("currency");}
     @Override protected void onCreate(Bundle state){super.onCreate(state);page=getIntent().getStringExtra("page");if(page==null)page="settings";entity=getIntent().getLongExtra("id",0);pendingBook=state==null?bookId():state.getLong("pendingBook",bookId());}
-    @Override protected void onResume(){super.onResume();reload();}
-    @Override protected void onStart(){super.onStart();OriginalFinancialEffects.subscribe(store(),financialListener);}
+    @Override protected void onResume(){super.onResume();if(!"capture".equals(page))reload();}
+    @Override protected void onStart(){super.onStart();OriginalNotificationPermission.onHostStarted(this);OriginalFinancialEffects.subscribe(store(),financialListener);
+        if("capture".equals(page)){
+            // Host initialization bridge for the original native onCreate. Keep
+            // the existing controls on later starts; source onStart reads them.
+            if(template==null)reload();
+            if(template!=null){View master=Ui.view(template,"switch_auto_bill"),overlay=Ui.view(template,"switch_overlays");
+                if(master instanceof CompoundButton checked&&overlay instanceof CompoundButton granted)
+                    capturePermissions().onAutoPageStarted(checked,granted);
+            }
+        }
+    }
     @Override protected void onStop(){OriginalFinancialEffects.unsubscribe(store(),financialListener);super.onStop();}
     @Override protected void onSaveInstanceState(Bundle out){super.onSaveInstanceState(out);out.putLong("pendingBook",pendingBook);}
     public void reload(){if(isFinishing())return;try{

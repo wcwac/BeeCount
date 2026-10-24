@@ -1,11 +1,9 @@
 package com.wangc.bill.reference.ui;
 
-import android.Manifest;
 import android.app.AlertDialog;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.provider.Settings;
@@ -26,7 +24,7 @@ final class CaptureScreens {
         bind(v,"switch_auto_bill",AutoApps.enabled(),value->setEnabled(a,value));
         CompoundButton master=Ui.view(v,"switch_auto_bill");master.setContentDescription("启用自动记账");Ui.click(v,"log_mode",master::performClick);
         // Original AutoActivity.t0 opens the system grant screen; this switch reflects its grant.
-        bind(v,"switch_overlays",OverlayPermission.granted(),value->{OverlayPermission.requestDirect(a);a.reload();});
+        bind(v,"switch_overlays",OverlayPermission.granted(),value->a.capturePermissions().onOverlaySwitchRequested());
         // This retained host row shortcut uses the same direct request as the switch;
         // the original native onCreate's extra row bindings remain unproven.
         Ui.click(v,"overlays_layout",()->OverlayPermission.requestDirect(a));
@@ -34,7 +32,7 @@ final class CaptureScreens {
         View screenshot=Ui.view(v,"switch_screenshot");if(screenshot instanceof CompoundButton button){button.setChecked(false);button.setOnCheckedChangeListener((b,on)->{if(on){button.setChecked(false);Ui.offline(a);}});}
         JSONObject status=ReferenceCaptureService.status();JSONObject meta=status.optJSONObject("diagnostics");
         Ui.show(v,"allow_run_back",true);
-        Ui.text(v,"auto_tip",condition(status)+(status.optBoolean("enabled")?"\n可在下方总开关暂停采集。":"\n系统授权后，还需开启下方“启用自动记账”。")+"\n"+(status.optBoolean("autoSave")?"自动新增已开启：确认浮窗显示5秒后新增账单；发现重复或进行编辑后会等待手动确认。":OverlayPermission.granted()?"识别成功后生成本地待确认账单。":"识别结果保存在待确认列表；确认浮窗未授权，请点击“悬浮窗权限”授权。")+"\n最近处理："+result(meta.optString("result"))+"\n点击查看诊断。");Ui.click(v,"text_tip_layout",()->a.open("diagnostics",0));Ui.click(v,"auto_guide",()->a.open("help",0));Ui.click(v,"not_work_layout",()->a.open("diagnostics",0));Ui.click(v,"allow_run_back",()->backgroundSettings(a));Ui.click(v,"auto_setting_layout",()->a.open("capture_settings",0));Ui.click(v,"notify_setting_layout",()->{if(Build.VERSION.SDK_INT>=26)a.startActivity(new Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE,a.getPackageName()));});Ui.click(v,"app_setting_layout",()->a.open("apps",0));Ui.click(v,"auto_manager",()->a.open("rules",0));Ui.click(v,"auto_bill",()->a.open("inbox",0));Ui.click(v,"send_log",()->copy(a));Ui.text(v,"send_log","复制诊断信息");Ui.click(v,"delete_log",()->{ReferenceDiagnostics.clear();a.reload();});Ui.text(v,"delete_log","清空诊断计数");}
+        Ui.text(v,"auto_tip",condition(status)+(status.optBoolean("enabled")?"\n下方总开关可关闭自动记账。":"\n系统授权后，还需开启下方“启用自动记账”。")+"\n"+(status.optBoolean("autoSave")?"自动新增已开启：确认浮窗显示5秒后新增账单；发现重复或进行编辑后会等待手动确认。":OverlayPermission.granted()?"识别成功后生成本地待确认账单。":"识别结果保存在待确认列表；确认浮窗未授权，请点击“悬浮窗权限”授权。")+"\n最近处理："+result(meta.optString("result"))+"\n点击查看诊断。");Ui.click(v,"text_tip_layout",()->a.open("diagnostics",0));Ui.click(v,"auto_guide",()->a.open("help",0));Ui.click(v,"not_work_layout",()->a.open("diagnostics",0));Ui.click(v,"allow_run_back",()->backgroundSettings(a));Ui.click(v,"auto_setting_layout",()->a.open("capture_settings",0));Ui.click(v,"notify_setting_layout",()->{if(Build.VERSION.SDK_INT>=26)a.startActivity(new Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE,a.getPackageName()));});Ui.click(v,"app_setting_layout",()->a.open("apps",0));Ui.click(v,"auto_manager",()->a.open("rules",0));Ui.click(v,"auto_bill",()->a.open("inbox",0));Ui.click(v,"send_log",()->copy(a));Ui.text(v,"send_log","复制诊断信息");Ui.click(v,"delete_log",()->{ReferenceDiagnostics.clear();a.reload();});Ui.text(v,"delete_log","清空诊断计数");}
     private static void backgroundSettings(ManagerActivity a){
         String manufacturer=(Build.MANUFACTURER+" "+Build.BRAND).toLowerCase(java.util.Locale.ROOT);
         String guide;
@@ -49,7 +47,7 @@ final class CaptureScreens {
     }
     private static void openSystemSetting(ManagerActivity a,Intent intent){try{a.startActivity(intent);}catch(RuntimeException ignored){Ui.toast(a,"无法打开此设置，请在系统设置中管理本应用");}}
     private static String condition(JSONObject status){return !status.optBoolean("enabled")?"自动记账已关闭，请开启应用内总开关":AutoApps.selected().isEmpty()?"尚未选择支持的应用":!status.optBoolean("permissionGranted")?"尚未获得无障碍权限":!status.optBoolean("connected")?"已授权，服务尚未连接":"自动记账已开启，服务已连接";}
-    private static void setEnabled(ManagerActivity a,boolean enabled){AutoApps.enable(enabled);a.reload();if(!enabled)return;if(!ReferenceCaptureService.status().optBoolean("permissionGranted"))a.startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS));else if(ReferenceApplication.prefs().getBoolean("show_overlay",true)&&!OverlayPermission.granted())OverlayPermission.request(a);else if(Build.VERSION.SDK_INT>=33&&a.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED)a.requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS},6300);}
+    private static void setEnabled(ManagerActivity a,boolean enabled){a.capturePermissions().onMasterChanged(enabled);}
     static void bind(View root,String id,boolean checked,java.util.function.Consumer<Boolean> callback){View v=Ui.view(root,id);if(v instanceof CompoundButton button){button.setOnCheckedChangeListener(null);button.setChecked(checked);button.setOnCheckedChangeListener((b,value)->callback.accept(value));}}
     private static void settings(ManagerActivity a){View v=a.original("自动记账设置","activity_auto_setting");Ui.text(v,"default_asset",accountName(a,ReferenceApplication.prefs().getLong("default_account",0)));Ui.click(v,"default_asset_layout",()->accounts(a,id->{ReferenceApplication.prefs().edit().putLong("default_account",id).apply();a.reload();}));bind(v,"switch_add_remark",ReferenceApplication.prefs().getBoolean("add_remark",true),on->ReferenceApplication.prefs().edit().putBoolean("add_remark",on).apply());autoSaveSwitch(a,v);bind(v,"switch_choice_book",true,on->{chooseBook(a);});bind(v,"switch_close_total",ReferenceApplication.prefs().getBoolean("capture_not_total",false),on->ReferenceApplication.prefs().edit().putBoolean("capture_not_total",on).apply());bind(v,"switch_close_budget",ReferenceApplication.prefs().getBoolean("capture_not_budget",false),on->ReferenceApplication.prefs().edit().putBoolean("capture_not_budget",on).apply());bind(v,"switch_repeat_check",true,on->{Ui.toast(a,"实验对比分支保留原版1秒/10秒去重规则");a.reload();});Ui.text(v,"window_style","详细");Ui.click(v,"window_style_layout",()->Ui.toast(a,"使用一木原版详细浮窗布局"));Ui.click(v,"choice_shop_layout",()->a.open("rules",0));Ui.click(v,"choice_book_layout",()->chooseBook(a));}
     private static void autoSaveSwitch(ManagerActivity a,View view){bind(view,"switch_auto_add",ReferenceApplication.prefs().getBoolean("auto_save",false),on->{if(!on){ReferenceApplication.prefs().edit().putBoolean("auto_save",false).apply();return;}bind(view,"switch_auto_add",false,ignored->{});AlertDialog dialog=new AlertDialog.Builder(a).setTitle("启用自动新增").setMessage("弹窗显示5秒后自动新增账单。选择分类、切换类型、账户、账本或日期，以及打开键盘编辑时，会停止倒计时，等待你手动确认；重复账单也需要手动确认。").setNegativeButton("取消",null).setPositiveButton("启用",(d,w)->ReferenceApplication.prefs().edit().putBoolean("auto_save",true).apply()).create();dialog.setOnDismissListener(d->{if(!a.isFinishing())a.reload();});dialog.show();});}
@@ -65,7 +63,7 @@ final class CaptureScreens {
         JSONObject status=ReferenceCaptureService.status(),meta=status.optJSONObject("diagnostics");
         diagnosticMaster(a);
         a.rows.addView(Ui.row(a,"当前状态",condition(status)+"\n最近处理："+result(meta.optString("result")),null));
-        a.rows.addView(Ui.row(a,"授权与连接","应用内总开关："+(status.optBoolean("enabled")?"已开启":"已关闭")+"\n无障碍授权："+(status.optBoolean("permissionGranted")?"已授权":"未授权")+"\n服务连接："+(status.optBoolean("connected")?"已连接":"未连接")+"\n窗口内容读取："+(status.optBoolean("canRetrieveWindowContent")?"已允许":"未允许")+"（能力值 "+status.optInt("capabilities")+"）\n点击管理系统无障碍授权",()->a.startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))));
+        a.rows.addView(Ui.row(a,"授权与连接","应用内总开关："+(status.optBoolean("enabled")?"已开启":"已关闭")+"\n无障碍授权："+(status.optBoolean("permissionGranted")?"已授权":"未授权")+"\n服务运行："+(status.optBoolean("running")?"正在运行":"未运行")+"\n服务连接："+(status.optBoolean("connected")?"已连接":"未连接")+"\n窗口内容读取："+(status.optBoolean("canRetrieveWindowContent")?"已允许":"未允许")+"（能力值 "+status.optInt("capabilities")+"）\n点击管理系统无障碍授权",()->a.startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))));
         a.rows.addView(Ui.row(a,"授权悬浮窗",OverlayPermission.granted()?"已授权；点击管理“显示在其他应用上层”权限":"未授权；点击授予“显示在其他应用上层”权限，确认浮窗需要此权限",()->{
             if(OverlayPermission.granted())OverlayPermission.requestDirect(a);else OverlayPermission.request(a);
         }));

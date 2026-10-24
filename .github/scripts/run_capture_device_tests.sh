@@ -168,11 +168,62 @@ for package,apk in found.items():
 PY_APKS
 
 capture_instrument_status=0
-timeout --signal=TERM --kill-after=20s 15m \
-  "$capture_adb" -s "$capture_serial" shell am instrument -w -r \
-  -e reference_cloud_only true -e timeout_msec 180000 \
-  io.github.wcwac.yimu.reference.debug.test/androidx.test.runner.AndroidJUnitRunner \
-  | tee "$capture_logs/instrumentation.txt" || capture_instrument_status=$?
+# Revoking a runtime grant may kill its UID. Configure POST_NOTIFICATIONS only
+# outside instrumentation, and run its real OS scenarios in separate invocations
+# of this same already-built APK on the same disposable emulator. All case IDs
+# are still required exactly once by the combined inventory check below.
+python3 - <<'PY_PHASES'
+from pathlib import Path
+import json,os,re
+inventory=json.loads((Path(os.environ['GITHUB_WORKSPACE'])/'.github/reference-test-cases.json').read_text())
+required=set(inventory['device'])
+notification='com.wangc.bill.reference.ui.OriginalNotificationPermissionDeviceTest'
+scenarios=inventory['notification_permission_scenarios']
+assert set(scenarios)=={case for case in required if case.startswith(notification+'.')}
+classes=sorted({case.rsplit('.',1)[0] for case in required if not case.startswith(notification+'.')})
+assert classes and all(re.fullmatch(r'[A-Za-z_][A-Za-z0-9_.]*',name) for name in classes)
+destination=Path(os.environ['RUNNER_TEMP'])/'capture-device'
+(destination/'main-classes.txt').write_text(','.join(classes)+'\n')
+rows=[]
+for case,state in sorted(scenarios.items()):
+    assert state in {'granted','denied','denied_user_fixed'}
+    owner,method=case.rsplit('.',1)
+    assert owner==notification and re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]*',method)
+    rows.append(owner+'#'+method+'\t'+state)
+(destination/'notification-cases.txt').write_text('\n'.join(rows)+'\n')
+PY_PHASES
+IFS= read -r capture_main_classes < "$capture_logs/main-classes.txt"
+: > "$capture_logs/instrumentation.txt"
+run_instrumentation_phase() {
+  local capture_case_filter="$1"
+  timeout --signal=TERM --kill-after=20s 15m \
+    "$capture_adb" -s "$capture_serial" shell am instrument -w -r \
+    -e reference_cloud_only true -e timeout_msec 180000 -e class "$capture_case_filter" \
+    io.github.wcwac.yimu.reference.debug.test/androidx.test.runner.AndroidJUnitRunner \
+    | tee -a "$capture_logs/instrumentation.txt" || capture_instrument_status=$?
+  return 0
+}
+timeout 15s "$capture_adb" -s "$capture_serial" shell pm clear-permission-flags --user current \
+  io.github.wcwac.yimu.reference.debug android.permission.POST_NOTIFICATIONS user-set user-fixed
+timeout 15s "$capture_adb" -s "$capture_serial" shell pm grant --user current \
+  io.github.wcwac.yimu.reference.debug android.permission.POST_NOTIFICATIONS
+run_instrumentation_phase "$capture_main_classes"
+while IFS=$'\t' read -r capture_notification_case capture_notification_state; do
+  timeout 15s "$capture_adb" -s "$capture_serial" shell pm clear-permission-flags --user current \
+    io.github.wcwac.yimu.reference.debug android.permission.POST_NOTIFICATIONS user-set user-fixed
+  if [[ "$capture_notification_state" == granted ]]; then
+    timeout 15s "$capture_adb" -s "$capture_serial" shell pm grant --user current \
+      io.github.wcwac.yimu.reference.debug android.permission.POST_NOTIFICATIONS
+  else
+    timeout 15s "$capture_adb" -s "$capture_serial" shell pm revoke --user current \
+      io.github.wcwac.yimu.reference.debug android.permission.POST_NOTIFICATIONS
+    if [[ "$capture_notification_state" == denied_user_fixed ]]; then
+      timeout 15s "$capture_adb" -s "$capture_serial" shell pm set-permission-flags --user current \
+        io.github.wcwac.yimu.reference.debug android.permission.POST_NOTIFICATIONS user-set user-fixed
+    fi
+  fi
+  run_instrumentation_phase "$capture_notification_case"
+done < "$capture_logs/notification-cases.txt"
 collect_screen_evidence || capture_evidence_status=$?
 capture_results_status=0
 python3 - <<'PY_RESULTS' || capture_results_status=$?
@@ -180,9 +231,10 @@ from pathlib import Path
 import os,re,json
 text=(Path(os.environ['RUNNER_TEMP'])/'capture-device/instrumentation.txt').read_text()
 assert not any(s in text for s in ['FAILURES!!!','INSTRUMENTATION_FAILED','Process crashed','INSTRUMENTATION_RESULT: shortMsg']), 'Device tests failed or crashed'
-match=re.search(r'OK \(([0-9]+) tests?\)',text)
-assert match and int(match[1])>=185, 'Required device tests were not discovered or did not all pass'
-required=set(json.loads((Path(os.environ['GITHUB_WORKSPACE'])/'.github/reference-test-cases.json').read_text())['device'])
+counts=[int(value) for value in re.findall(r'OK \(([0-9]+) tests?\)',text)]
+inventory=json.loads((Path(os.environ['GITHUB_WORKSPACE'])/'.github/reference-test-cases.json').read_text())
+required=set(inventory['device'])
+assert len(counts)==1+len(inventory['notification_permission_scenarios']), 'An instrumentation phase did not complete successfully'
 started=set();passed=set();case={}
 for line in text.splitlines():
     field=re.fullmatch(r'INSTRUMENTATION_STATUS: (class|test)=(.*)',line.strip())
@@ -197,8 +249,8 @@ for line in text.splitlines():
         target.add(name)
     case={}
 assert required==started==passed, 'Device case inventory mismatch: missing='+str(sorted(required-passed))+' unexpected='+str(sorted(passed-required))
-assert int(match[1])==len(passed), 'Device summary does not match individual passing cases'
-print('Device tests verified:',match[1])
+assert sum(counts)==len(passed), 'Device summaries do not match individual passing cases'
+print('Device tests verified:',len(passed),'across',len(counts),'instrumentation phases on one build/emulator')
 PY_RESULTS
 capture_screens_status=0
 python3 .github/scripts/reference_screens.py --destination "$capture_evidence_folder" \

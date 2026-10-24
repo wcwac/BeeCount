@@ -20,10 +20,19 @@ import java.util.List;
 import org.json.JSONObject;
 
 public final class ReferenceCaptureService extends AccessibilityService {
+    // Original g7.a registers in onCreate, before the accessibility connection,
+    // and remains subscribed after onUnbind until onDestroy.
+    private static volatile WeakReference<ReferenceCaptureService> created = new WeakReference<>(null);
     private static volatile WeakReference<ReferenceCaptureService> connected = new WeakReference<>(null);
     private final Handler main = new Handler(Looper.getMainLooper());
+    @Override public void onCreate() { super.onCreate(); created = new WeakReference<>(this); }
     @Override protected void onServiceConnected() { connected = new WeakReference<>(this); applySettings(); ReferenceDiagnostics.result("CONNECTED"); }
     public static ReferenceCaptureService current() { return connected.get(); }
+    public static void requestOriginalMasterOff() {
+        ReferenceCaptureService service = created.get();
+        OriginalServiceState.dispatchMasterOff(service, () -> created.get(), ReferenceCaptureService::disableSelf,
+                task -> { if (Looper.myLooper() == Looper.getMainLooper()) task.run(); else if (service != null) service.main.post(task); });
+    }
     public static void refresh() { ReferenceCaptureService s = current(); if (s != null) { if (Looper.myLooper() == Looper.getMainLooper()) s.applySettings(); else s.main.post(s::applySettings); } }
     private void applySettings() {
         AccessibilityServiceInfo info = getServiceInfo(); if (info == null) return;
@@ -119,6 +128,7 @@ public final class ReferenceCaptureService extends AccessibilityService {
         if (raw != null) for (String name : raw.split(":")) if (component.equals(ComponentName.unflattenFromString(name))) granted = true;
         AccessibilityServiceInfo info=null;try{if(service!=null)info=service.getServiceInfo();}catch(RuntimeException ignored){}
         return Json.object("enabled", AutoApps.enabled(), "permissionGranted", granted, "connected", service != null,
+            "running", OriginalServiceState.isRunning(ReferenceApplication.app()),
             "selectedPackages", new org.json.JSONArray(AutoApps.selected()), "toolIdentity",Build.VERSION.SDK_INT>=31&&info!=null&&info.isAccessibilityTool(), "flags", info == null ? 0 : info.flags,
             "capabilities",info==null?0:info.getCapabilities(),"canRetrieveWindowContent",info!=null&&(info.getCapabilities()&AccessibilityServiceInfo.CAPABILITY_CAN_RETRIEVE_WINDOW_CONTENT)!=0,
             "eventTypes", info == null ? 0 : info.eventTypes, "effectivePackages", info == null || info.packageNames == null ? new org.json.JSONArray() : new org.json.JSONArray(java.util.Arrays.asList(info.packageNames)),
@@ -129,6 +139,6 @@ public final class ReferenceCaptureService extends AccessibilityService {
     }
     @Override public void onInterrupt() { ReferenceDiagnostics.result("FEEDBACK_INTERRUPTED"); }
     @Override public boolean onUnbind(Intent intent) { disconnect(); return super.onUnbind(intent); }
-    @Override public void onDestroy() { disconnect(); super.onDestroy(); }
+    @Override public void onDestroy() { if (created.get() == this) created.clear(); disconnect(); super.onDestroy(); }
     private void disconnect() { if (current() == this) { connected.clear(); CaptureOverlay.close(); ReferenceDiagnostics.result("DISCONNECTED"); } }
 }

@@ -33,5 +33,11 @@ public final class AutoApps {
  public static boolean accepts(String p){return enabled()&&selected().contains(p);}
  public static String name(String p){for(App a:ALL)if(a.packageName.equals(p))return a.name;return p;}
  public static void select(String p,boolean value){if(!allPackages().contains(p))throw new IllegalArgumentException();Set<String>s=selected();if(value)s.add(p);else s.remove(p);ReferenceApplication.prefs().edit().putStringSet("enabled_packages",s).commit();ReferenceCaptureService.refresh();}
+ /** Host restore/fixture bridge: changes the filter without revoking accessibility. */
  public static void enable(boolean value){ReferenceApplication.prefs().edit().putBoolean("capture_enabled",value).commit();ReferenceCaptureService.refresh();}
+ /** Original AutoActivity.r0 persists first, then posts the service's MAIN master-OFF command. */
+ public static void setOriginalMasterEnabled(boolean value){
+  ReferenceApplication.prefs().edit().putBoolean("capture_enabled",value).commit();
+  if(value)ReferenceCaptureService.refresh();else ReferenceCaptureService.requestOriginalMasterOff();
+ }
 }

@@ -3,6 +3,7 @@ package com.wangc.bill.reference;
 import android.Manifest;
 import android.accessibilityservice.AccessibilityServiceInfo;
 import android.app.UiAutomation;
+import android.content.ComponentName;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
@@ -10,7 +11,6 @@ import android.graphics.Point;
 import android.graphics.Rect;
 import android.net.Uri;
 import android.os.Build;
-import android.os.ParcelFileDescriptor;
 import android.os.SystemClock;
 import android.provider.Settings;
 import android.view.InputDevice;
@@ -30,13 +30,13 @@ import com.wangc.bill.reference.capture.*;
 import com.wangc.bill.reference.ui.ManagerActivity;
 import com.wangc.bill.reference.ui.CaptureOverlay;
 import com.wangc.bill.reference.ui.LocalFiles;
+import com.wangc.bill.reference.ui.OriginalPermissionTipDialog;
 import org.json.JSONObject;
 import org.junit.*;
 import org.junit.runner.RunWith;
 import org.junit.runner.Description;
 import org.junit.rules.TestWatcher;
 import java.io.*;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.CountDownLatch;
@@ -122,7 +122,7 @@ public final class CapturePipelineDeviceTest {
             visibleMaster(scenario,true);scenario.recreate();visibleMaster(scenario,true);
         }
         try(ActivityScenario<ManagerActivity> scenario=manager("diagnostics")){
-            touchMaster(scenario,true);assertRuntimeEnabled(false);
+            touchMaster(scenario,true);assertOriginalMasterDisabled();
         }
         try(ActivityScenario<ManagerActivity> scenario=manager("capture")){
             visibleMaster(scenario,false);scenario.recreate();visibleMaster(scenario,false);
@@ -403,6 +403,18 @@ public final class CapturePipelineDeviceTest {
     private void assertRuntimeEnabled(boolean enabled)throws Exception{
         await(()->{JSONObject status=ReferenceCaptureService.status();return AutoApps.enabled()==enabled&&status.optBoolean("enabled")==enabled&&status.optBoolean("permissionGranted")&&status.optBoolean("connected")&&status.optInt("eventTypes")== (enabled?2080:0);},5000,"Master switch, permission, service connection and event listener disagree");
     }
+    private void assertOriginalMasterDisabled()throws Exception{
+        // UI OFF is the original disableSelf path. Internal enable(false), used
+        // by fixture setup and backup restoration, must keep its stronger grant
+        // and connection assertions in assertRuntimeEnabled(false).
+        await(()->{JSONObject status=ReferenceCaptureService.status();return !AutoApps.enabled()&&!status.optBoolean("enabled")
+                &&!status.optBoolean("permissionGranted")&&!status.optBoolean("connected")&&ReferenceCaptureService.current()==null
+                &&!OriginalServiceState.isRunning(ReferenceApplication.app());},10000,"UI master OFF did not revoke and disconnect the original service");
+        ComponentName own=new ComponentName(ReferenceApplication.app(),ReferenceCaptureService.class);
+        for(String value:shell("settings get secure enabled_accessibility_services").trim().split(":"))
+            assertNotEquals("UI master OFF left its component authorized",own,ComponentName.unflattenFromString(value));
+        awaitCaptureWorker();
+    }
     private Point visibleMaster(ActivityScenario<ManagerActivity> scenario,boolean checked)throws Exception{
         Point point=new Point();
         await(()->{boolean[] visible={false};scenario.onActivity(a->{CompoundButton button=a.findViewById(com.wangc.bill.R.id.switch_auto_bill);Rect bounds=new Rect();visible[0]=button!=null&&button.isShown()&&button.isEnabled()&&button.isChecked()==checked&&a.hasWindowFocus()&&button.getGlobalVisibleRect(bounds)&&!bounds.isEmpty();});return visible[0];},5000,"Expected a visible, enabled master switch checked="+checked);
@@ -417,9 +429,30 @@ public final class CapturePipelineDeviceTest {
     }
     private void assertCapturePermissionSwitch(boolean granted)throws Exception{
         try(ActivityScenario<ManagerActivity> scenario=manager("capture")){
+            if(!granted)cancelCaptureOverlayPermissionTip(scenario);
             scenario.onActivity(a->{CompoundButton button=a.findViewById(com.wangc.bill.R.id.switch_overlays);assertNotNull("The capture page has no system overlay permission switch",button);assertEquals("The permission switch disagrees with the actual app-op",granted,button.isChecked());});
-            scenario.recreate();scenario.onActivity(a->{CompoundButton button=a.findViewById(com.wangc.bill.R.id.switch_overlays);assertNotNull(button);assertEquals("The permission switch lost its system state after recreation",granted,button.isChecked());});
+            scenario.recreate();if(!granted)cancelCaptureOverlayPermissionTip(scenario);
+            scenario.onActivity(a->{CompoundButton button=a.findViewById(com.wangc.bill.R.id.switch_overlays);assertNotNull(button);assertEquals("The permission switch lost its system state after recreation",granted,button.isChecked());});
         }
+    }
+    private void cancelCaptureOverlayPermissionTip(ActivityScenario<ManagerActivity> scenario)throws Exception{
+        // Running+master ON+SAW denied now deliberately shows the recovered
+        // onStart prompt. Exercise its actual cancel control before checking the
+        // underlying page, including the fresh prompt after Activity recreation.
+        android.app.Dialog[] pending={null};Point point=new Point();
+        await(()->{scenario.onActivity(a->{
+            androidx.fragment.app.Fragment fragment=a.getSupportFragmentManager().findFragmentByTag("tip");
+            if(!(fragment instanceof OriginalPermissionTipDialog tip)||!tip.isResumed()||tip.getDialog()==null
+                    ||!tip.getDialog().isShowing()||!tip.getDialog().getWindow().getDecorView().hasWindowFocus()||tip.getView()==null)return;
+            View cancel=tip.getView().findViewById(com.wangc.bill.R.id.cancel);Rect visible=new Rect();
+            if(cancel==null||!cancel.isShown()||!cancel.isEnabled()||!cancel.getGlobalVisibleRect(visible)||visible.isEmpty())return;
+            int[] at=new int[2];cancel.getLocationOnScreen(at);int x=at[0]+cancel.getWidth()/2,y=at[1]+cancel.getHeight()/2;
+            if(!visible.contains(x,y))return;point.set(x,y);pending[0]=tip.getDialog();
+        });return pending[0]!=null;},5000,"Denied SAW did not show its real capture onStart permission prompt");
+        touch(point);
+        await(()->{boolean[] dismissed={false};scenario.onActivity(a->dismissed[0]=!pending[0].isShowing()&&a.hasWindowFocus());return dismissed[0];},5000,"Actual permission cancellation did not return focus to the capture page");
+        assertFalse("Cancelling the prompt unexpectedly granted SAW",Settings.canDrawOverlays(ReferenceApplication.app()));
+        assertTrue("Cancelling SAW guidance changed the master selection",AutoApps.enabled());
     }
     private void touch(Point point)throws Exception{
         long downTime=SystemClock.uptimeMillis();
@@ -461,7 +494,10 @@ public final class CapturePipelineDeviceTest {
     private String overlayMode()throws Exception{String value=shell("appops get --user current "+token(ReferenceApplication.app().getPackageName())+" SYSTEM_ALERT_WINDOW");Matcher match=Pattern.compile("SYSTEM_ALERT_WINDOW:\\s*(allow|deny|ignore|default|foreground)\\b").matcher(value);if(match.find())return match.group(1);if(value.contains("No operations"))return "default";throw new AssertionError("Unexpected overlay app-op response: "+value);}
     private void writeOverlayMode(String mode)throws Exception{if(!Arrays.asList("allow","deny","ignore","default","foreground").contains(mode))throw new IllegalArgumentException("Unexpected overlay app-op mode");String output=shell("appops set --user current "+token(ReferenceApplication.app().getPackageName())+" SYSTEM_ALERT_WINDOW "+mode);assertFalse(output,output.contains("Error:"));}
     private void setOverlayMode(String mode,boolean granted)throws Exception{writeOverlayMode(mode);assertEquals("Overlay app-op mode was not written",mode,overlayMode());await(()->Settings.canDrawOverlays(ReferenceApplication.app())==granted,5000,"SYSTEM_ALERT_WINDOW grant did not take effect");}
-    private String shell(String command)throws Exception{try(ParcelFileDescriptor descriptor=automation.executeShellCommand(command);InputStream input=new ParcelFileDescriptor.AutoCloseInputStream(descriptor);ByteArrayOutputStream output=new ByteArrayOutputStream()){byte[] bytes=new byte[4096];int n;while((n=input.read(bytes))!=-1){output.write(bytes,0,n);if(output.size()>1024*1024)throw new IOException("Shell output too large");}return output.toString(StandardCharsets.UTF_8.name());}}
-    // UiAutomation executes a tokenized command, not a shell script; quotes become literal data.
-    private static String token(String value){if(!value.matches("[A-Za-z0-9_./:]+"))throw new IllegalArgumentException("Unexpected emulator command token");return value;}
+    private String shell(String command) throws Exception {
+        return com.wangc.bill.reference.ReferenceShell.run(automation, command);
+    }
+    // Empty enabled-service lists and nested-class '$' are legitimate saved
+    // settings. Quote this restricted alphabet so restoration preserves both.
+    private static String token(String value){if(!value.matches("[A-Za-z0-9_./:$-]*"))throw new IllegalArgumentException("Unexpected emulator command token");return "'"+value+"'";}
 }
