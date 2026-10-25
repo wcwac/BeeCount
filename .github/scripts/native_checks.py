@@ -9,6 +9,7 @@ import re
 import shutil
 import struct
 import tarfile
+import tomllib
 import xml.etree.ElementTree as ET
 import zipfile
 
@@ -39,6 +40,34 @@ def source():
     print('Kotlin, offline payload and fixed dependency source boundaries checked')
 
 
+def datastore_native_evidence(archive, native):
+    # These binaries are part of the pinned AndroidX preference dependency, not
+    # recovered application payloads. Verify bytes against the resolved AAR; the
+    # build reports that these already-built libraries are packaged without stripping.
+    version = tomllib.loads((ROOT/'android/gradle/libs.versions.toml').read_text())['versions']['datastore']
+    cache = Path(os.environ.get('GRADLE_USER_HOME', str(Path.home()/'.gradle')))/'caches/modules-2/files-2.1/androidx.datastore'
+    sources = {}
+    for module in ('datastore-core-android', 'datastore-core'):
+        for artifact in sorted((cache/module/version).glob('*/*.aar')):
+            with zipfile.ZipFile(artifact) as dependency:
+                for name in dependency.namelist():
+                    if re.fullmatch(r'jni/(arm64-v8a|armeabi-v7a|x86|x86_64)/libdatastore_shared_counter\.so', name):
+                        key = name.removeprefix('jni/')
+                        digest = hashlib.sha256(dependency.read(name)).hexdigest()
+                        sources.setdefault(key, []).append({'coordinate': 'androidx.datastore:'+module+':'+version, 'aarSha256': hashlib.sha256(artifact.read_bytes()).hexdigest(), 'sha256': digest})
+    evidence = []
+    for name in native:
+        if Path(name).name != 'libdatastore_shared_counter.so': continue
+        digest = hashlib.sha256(archive.read(name)).hexdigest()
+        matched = [source for source in sources.get(name.removeprefix('lib/'), []) if source['sha256'] == digest]
+        assert matched, 'DataStore native library differs from the pinned AndroidX AAR: '+name
+        evidence.append({'apkEntry': name, **matched[0]})
+    destination = ROOT/'build/native-audit/reports'
+    destination.mkdir(parents=True, exist_ok=True)
+    (destination/'datastore-native-provenance.json').write_text(json.dumps(evidence, indent=2)+'\n')
+    return evidence
+
+
 def packaged(manifest, apk):
     root = ET.parse(manifest).getroot()
     assert root.get('package') == PKG
@@ -57,8 +86,9 @@ def packaged(manifest, apk):
         assert len(names)==len(set(names))
         assert not any(re.search(r'(^|/)(flutter_assets|libflutter\.so|libapp\.so)|\.(tflite|onnx|pt)$', name) for name in names)
         native = [name for name in names if name.startswith('lib/') and name.endswith('.so')]
-        assert all(Path(name).name in {'libandroidx.graphics.path.so'} for name in native), 'Unreviewed native runtime payload: '+str(native)
-        print('Official AndroidX native payload:',native)
+        assert all(Path(name).name in {'libandroidx.graphics.path.so', 'libdatastore_shared_counter.so'} for name in native), 'Unreviewed native runtime payload: '+str(native)
+        print('AndroidX native payload:',native)
+        print('DataStore AAR byte matches:', len(datastore_native_evidence(archive, native)))
     print('Release package, permissions, payload and backup boundaries checked:',hashlib.sha256(Path(apk).read_bytes()).hexdigest())
 
 
