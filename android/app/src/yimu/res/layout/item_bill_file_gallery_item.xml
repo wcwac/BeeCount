@@ -1,9 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:id="@+id/total_layout" android:background="@drawable/shape_bg_setting" android:layout_width="match_parent" android:layout_height="match_parent" android:layout_marginBottom="10dp" android:layout_marginStart="5dp" android:layout_marginEnd="5dp" android:clipToOutline="true">
-    <ImageView android:id="@+id/cover" android:layout_width="match_parent" android:layout_height="match_parent" android:scaleType="center" />
-    <ImageView android:id="@+id/file_type" android:visibility="gone" android:layout_width="40dp" android:layout_height="40dp" android:scaleType="fitXY" android:layout_centerInParent="true" />
-    <RelativeLayout android:id="@+id/right_layout" android:background="@drawable/shape_circle_black_alpha" android:layout_width="26dp" android:layout_height="26dp" android:layout_margin="2dp" android:layout_alignParentEnd="true">
-        <ImageView android:id="@+id/upload" android:background="@drawable/selectable_item_circle" android:padding="6dp" android:layout_width="26dp" android:layout_height="26dp" android:src="@mipmap/ic_upload" android:tint="@color/white" android:layout_centerInParent="true" android:layout_centerVertical="true" />
-        <FrameLayout android:id="@+id/upload_progress" android:visibility="gone" android:layout_width="26dp" android:layout_height="26dp" android:layout_centerInParent="true" android:backgroundTintMode="add" app:adpgb_background_color="@android:color/transparent" app:adpgb_finished_color="@color/colorPrimary" app:adpgb_finished_stroke_width="3dp" app:adpgb_show_text="false" app:adpgb_unfinished_color="@android:color/white" app:adpgb_unfinished_stroke_width="2dp" />
-    </RelativeLayout>
-</FrameLayout>

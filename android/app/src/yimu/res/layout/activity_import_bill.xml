@@ -1,5 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android" android:background="@color/backgroundLight" android:layout_width="match_parent" android:layout_height="match_parent">
-    <TextView android:textSize="12sp" android:textColor="@color/darkGrey" android:id="@+id/tip_layout" android:paddingTop="5dp" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="提示：长按账单可进入编辑模式" android:paddingStart="15sp" />
-    <androidx.recyclerview.widget.RecyclerView android:id="@+id/bill_list" android:paddingBottom="80dp" android:clipChildren="false" android:clipToPadding="false" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_below="@+id/tip_layout" android:overScrollMode="never" android:layout_marginStart="15dp" android:layout_marginEnd="15dp" />
-</RelativeLayout>

@@ -1,9 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent">
-    <FrameLayout android:id="@+id/previewView" android:layout_width="match_parent" android:layout_height="match_parent" />
-    <FrameLayout android:id="@+id/viewfinderView" android:layout_width="match_parent" android:layout_height="match_parent" />
-    <LinearLayout android:gravity="center" android:orientation="vertical" android:id="@+id/choice_image" android:background="@drawable/bg_gallery" android:layout_width="60dp" android:layout_height="60dp" android:layout_margin="30dp" android:layout_alignParentBottom="true" android:layout_alignParentEnd="true">
-        <ImageView android:layout_width="30dp" android:layout_height="30dp" android:src="@mipmap/ic_gallery" />
-        <TextView android:textSize="13sp" android:textColor="@color/textColorWhite" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="相册" />
-    </LinearLayout>
-</RelativeLayout>

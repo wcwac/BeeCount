@@ -1,9 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:orientation="vertical" android:background="@drawable/dialog_user_agreement_bg" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginStart="20dp" android:layout_marginEnd="20dp">
-    <TextView android:textSize="16sp" android:textStyle="bold" android:textColor="@color/black" android:layout_gravity="center_horizontal" android:id="@+id/title" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="20dp" android:text="提示" />
-    <TextView android:textSize="14sp" android:textColor="@color/black" android:id="@+id/content" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_margin="20dp" android:text="若不同意《用户协议》与《隐私政策》，我们将无法向您提供相关功能，但您可以阅读使用手册来简单了解我们的功能" android:lineSpacingExtra="5dp" />
-    <LinearLayout android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="50dp" android:layout_marginTop="20dp">
-        <TextView android:textSize="15sp" android:textColor="@color/textGray" android:gravity="center" android:id="@+id/cancel" android:background="@drawable/selectable_item_expand_mask" android:layout_width="0dp" android:layout_height="match_parent" android:text="仍不同意" android:layout_weight="1" />
-        <TextView android:textSize="15sp" android:textColor="@color/colorPrimaryText" android:gravity="center" android:id="@+id/confirm" android:background="@drawable/selectable_item_expand_mask" android:layout_width="0dp" android:layout_height="match_parent" android:text="同意并继续" android:layout_weight="1" />
-    </LinearLayout>
-</LinearLayout>

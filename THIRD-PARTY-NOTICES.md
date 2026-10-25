@@ -1,29 +1,7 @@
-# 第三方组件声明 / Third-Party Notices
+# 原生分支依赖与来源
 
-本仓库源码**不包含（vendor）任何第三方库的源代码**。所有第三方依赖由 `pubspec.yaml` / `pubspec.lock` 声明，在构建时经 pub 从官方源获取，各自按其原始开源协议授权，与本项目的 [LICENSE](LICENSE)（双许可）相互独立。使用、分发或基于本项目二次开发时，请一并遵守下列组件各自的协议。
+原生分支移除了 Flutter、原 APK/SO/DEX、模型、词典和原界面素材。直接依赖由 `android/gradle/libs.versions.toml` 以及各模块 Gradle 文件固定声明。
 
-当前直接生产依赖清单与 `pubspec.yaml` 对齐（2026-10-22）：36 个 hosted 包及 2 个 Flutter SDK 包。既有组件协议分类沿用原核验记录；新增 `flutter_markdown_plus 1.0.12` 已核对其正式发布物的 BSD-3-Clause LICENSE。本次版本迁移不代表对所有新版及传递依赖完成了新的逐项协议审计，分发时以锁定发布物的 LICENSE 为准。
+主要组件为 Kotlin / Coroutines / Serialization、AndroidX Compose / Material 3 / Lifecycle / Navigation / Room / Paging / DataStore / WorkManager / Core / DocumentFile，以及 Coil 的 Compose 模块（未添加网络模块）。测试依赖仅进入检查程序。第三方组件按各自随发布物提供的许可分发，本次没有联网重新审计全部传递依赖许可。
 
-The direct production list below matches `pubspec.yaml` as of 2026-10-22: 36 hosted packages and two Flutter SDK packages. Existing license classifications are retained from the earlier review; the newly listed `flutter_markdown_plus 1.0.12` was checked against its published BSD-3-Clause LICENSE. This migration is not a fresh audit of every updated or transitive package; the locked distributions' licenses prevail.
-
-## 直接依赖 / Direct dependencies
-
-**Flutter SDK / flutter_localizations** — BSD-3-Clause
-
-**MIT（15）**
-
-archive · country_flags · csv · drift · excel · file_picker · fl_chart · flutter_image_compress · flutter_list_view · flutter_riverpod · flutter_svg · gbk_codec · reorderable_grid_view · uuid · yaml
-
-**BSD-3-Clause（16）**
-
-collection · crypto · flutter_local_notifications · flutter_markdown_plus · gal · home_widget · image_cropper · intl · local_auth · package_info_plus · path · path_provider · qr_flutter · share_plus · shared_preferences · visibility_detector
-
-**Apache-2.0（4）**
-app_links · decimal · image_picker · table_calendar
-
-**BSD-2-Clause（1）**
-timezone
-
----
-
-如发现本清单与上游实际协议不符，欢迎提 Issue 指正。
+采集规则来源：参考分支 73 版的 15 组静态恢复处理器，按既有页面流程转为 Kotlin。`android/capture/rule-transcription-inventory.json` 保留源文件 SHA-256、方法和分支清单；这个清单是可追溯记录，不是运行行为验证或来源权利证明。自有应用架构、界面、数据库与业务实现不复用原界面资源或二进制。原仓库 LICENSE 保留，不能据此推断参考规则来源自动获得相同许可。

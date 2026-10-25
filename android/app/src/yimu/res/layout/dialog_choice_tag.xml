@@ -1,7 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:orientation="vertical" android:background="@drawable/bg_add_bill_dialog" android:layout_width="match_parent" android:layout_height="wrap_content">
-    <RelativeLayout android:layout_width="match_parent" android:layout_height="45dp" android:layout_marginTop="10dp" android:paddingStart="15dp">
-        <TextView android:textSize="15sp" android:textStyle="bold" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="选择标签" android:layout_centerVertical="true" />
-    </RelativeLayout>
-    <androidx.recyclerview.widget.RecyclerView android:id="@+id/tag_list" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="30dp" />
-</LinearLayout>

@@ -1,8 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:orientation="vertical" android:background="@drawable/bg_add_bill_dialog" android:layout_width="match_parent" android:layout_height="wrap_content">
-    <RelativeLayout android:layout_width="match_parent" android:layout_height="45dp" android:layout_marginTop="10dp" android:paddingStart="15dp">
-        <TextView android:textSize="15sp" android:textStyle="bold" android:textColor="@color/black" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="选择文件" android:layout_centerVertical="true" />
-        <ImageView android:id="@+id/btn_close" android:background="@drawable/selectable_item_circle" android:padding="15dp" android:layout_width="45dp" android:layout_height="45dp" android:src="@mipmap/ic_close" android:tint="@color/black" android:layout_alignParentEnd="true" />
-    </RelativeLayout>
-    <androidx.recyclerview.widget.RecyclerView android:id="@+id/file_list" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="20dp" />
-</LinearLayout>

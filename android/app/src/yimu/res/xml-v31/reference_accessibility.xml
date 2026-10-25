@@ -1,7 +1,0 @@
-<accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
- android:description="@string/reference_accessibility_description"
- android:accessibilityEventTypes="typeWindowContentChanged|typeWindowStateChanged"
- android:accessibilityFeedbackType="feedbackAllMask" android:notificationTimeout="10"
- android:accessibilityFlags="flagRetrieveInteractiveWindows|flagRequestEnhancedWebAccessibility|flagIncludeNotImportantViews|flagDefault"
- android:canRetrieveWindowContent="true" android:canRequestEnhancedWebAccessibility="true" android:isAccessibilityTool="true"
- android:packageNames="com.tencent.mm,com.eg.android.AlipayGphone,com.unionpay,com.xunmeng.pinduoduo"/>

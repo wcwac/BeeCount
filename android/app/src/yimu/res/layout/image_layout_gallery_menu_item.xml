@@ -1,6 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:gravity="center_vertical" android:orientation="horizontal" android:background="#fff" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_margin="1px">
-    <FrameLayout android:id="@+id/sdv_image" android:background="#e3e3e3" android:layout_width="60dp" android:layout_height="60dp" android:layout_margin="3dp" app:actualImageScaleType="focusCrop" />
-    <TextView android:textColor="#333" android:ellipsize="end" android:id="@+id/tv_name" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_margin="8dp" android:maxLines="3" android:layout_weight="1" />
-    <RadioButton android:id="@+id/rb_select" android:focusable="false" android:clickable="false" android:layout_width="wrap_content" android:layout_height="wrap_content" />
-</LinearLayout>

@@ -1,8 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:gravity="center_vertical" android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="84dp">
-    <ImageView android:id="@+id/icon" android:layout_width="50dp" android:layout_height="50dp" android:src="@mipmap/ic_launcher" android:layout_marginStart="15dp" />
-    <LinearLayout android:orientation="vertical" android:layout_width="wrap_content" android:layout_height="match_parent" android:layout_marginStart="15dp" android:layout_marginEnd="15dp">
-        <TextView android:textSize="15sp" android:textColor="@color/black" android:id="@+id/name" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="17dp" android:text="一木记账" />
-        <TextView android:textSize="13sp" android:textColor="@color/darkGrey" android:id="@+id/introduce" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="5dp" android:text="强大的表情包软件，提供了海量的素材和表情。支持静态、动态表情的制作，更有强大的表情融合功能" android:maxLines="2" android:lineSpacingExtra="3dp" />
-    </LinearLayout>
-</LinearLayout>

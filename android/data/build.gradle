@@ -1,0 +1,20 @@
+plugins { id 'com.android.library'; id 'org.jetbrains.kotlin.android'; id 'org.jetbrains.kotlin.kapt' }
+android {
+    namespace 'io.github.wcwac.beecount.data'
+    compileSdk 36
+    defaultConfig { minSdk 26 }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+}
+kotlin { jvmToolchain(17) }
+kapt { arguments { arg('room.schemaLocation', file('schemas').absolutePath) } }
+dependencies {
+    api project(':domain')
+    implementation libs.coroutines.android
+    implementation libs.room.runtime
+    implementation libs.room.ktx
+    implementation libs.room.paging
+    kapt libs.room.compiler
+    api libs.paging.runtime
+    implementation libs.datastore
+    testImplementation 'junit:junit:4.13.2'
+}

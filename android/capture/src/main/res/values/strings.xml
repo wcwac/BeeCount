@@ -1,0 +1,1 @@
+<resources><string name="native_capture_description">用户开启后仅读取所选应用的交易页面，在本机生成待确认记录。不会操作支付、不会上传页面内容；可随时关闭。</string></resources>

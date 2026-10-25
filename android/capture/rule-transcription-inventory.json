@@ -1,0 +1,126 @@
+{
+  "baseline": "yimu-reference-v0.1.0-73",
+  "validation": "Static source inventory only; Kotlin compilation and behavioral equivalence remain cloud checks.",
+  "rules": [
+    {
+      "source": "a.java",
+      "target": "AlibabaRule.kt",
+      "sourceSha256": "e2fd89f7a7e0c187288d580abc97d594b0c8add7baac7dff216a6b6798330e7d",
+      "methods": 5,
+      "recoveredBlockLabels": 0,
+      "billAccessorsChecked": 8
+    },
+    {
+      "source": "b.java",
+      "target": "AlipayRule.kt",
+      "sourceSha256": "3f3eb73d6a18c3ae19a7725ce22b2e6699c5276ba089fd5894b6ea86189d0bf7",
+      "methods": 37,
+      "recoveredBlockLabels": 768,
+      "billAccessorsChecked": 21
+    },
+    {
+      "source": "d.java",
+      "target": "ElemeRule.kt",
+      "sourceSha256": "3efc32050424ef01d6d1e71c0a3b9d83afdaaa89cb2f2b9f93b4c9b05b882db6",
+      "methods": 5,
+      "recoveredBlockLabels": 0,
+      "billAccessorsChecked": 8
+    },
+    {
+      "source": "e.java",
+      "target": "KuaishouRule.kt",
+      "sourceSha256": "074a2b704c6803546435f7c7d255fc3f6d3ab06012276a63ce66b6a4b1f3b5f7",
+      "methods": 5,
+      "recoveredBlockLabels": 0,
+      "billAccessorsChecked": 8
+    },
+    {
+      "source": "f.java",
+      "target": "HuaweiRule.kt",
+      "sourceSha256": "c4a46d48355326741462c3d214111e8031d43bb1d178f015244a80f55ac86dfe",
+      "methods": 10,
+      "recoveredBlockLabels": 47,
+      "billAccessorsChecked": 11
+    },
+    {
+      "source": "g.java",
+      "target": "HemaRule.kt",
+      "sourceSha256": "af8f2b23261797b8bae0fdc70d104e71234d3290b09d1d5dd868e791875ff32b",
+      "methods": 5,
+      "recoveredBlockLabels": 0,
+      "billAccessorsChecked": 8
+    },
+    {
+      "source": "h.java",
+      "target": "IdlefishRule.kt",
+      "sourceSha256": "070e9611005e3e1aebd5210e48127692619d171be37180242a47ef0e6b0187b0",
+      "methods": 5,
+      "recoveredBlockLabels": 0,
+      "billAccessorsChecked": 8
+    },
+    {
+      "source": "i.java",
+      "target": "JingdongRule.kt",
+      "sourceSha256": "0e8059f5cfa0f430b14c9f239e11286412be549525a449297ee6db730572286c",
+      "methods": 11,
+      "recoveredBlockLabels": 34,
+      "billAccessorsChecked": 17
+    },
+    {
+      "source": "j.java",
+      "target": "CcbRule.kt",
+      "sourceSha256": "1043c323e5e9c6940500ce5ffc38c9bfdd20a841f44b48636cfd01da30f533cc",
+      "methods": 7,
+      "recoveredBlockLabels": 0,
+      "billAccessorsChecked": 10
+    },
+    {
+      "source": "k.java",
+      "target": "MeituanRule.kt",
+      "sourceSha256": "b396d9ea420bb5ab15e7442bf6195b4f46fd1203374c587f604a61bade9caea3",
+      "methods": 9,
+      "recoveredBlockLabels": 0,
+      "billAccessorsChecked": 11
+    },
+    {
+      "source": "l.java",
+      "target": "PinduoduoRule.kt",
+      "sourceSha256": "6f843c7d06749c13c960e25368f590abec89ae8f619f309f7e997c215c3af7cf",
+      "methods": 10,
+      "recoveredBlockLabels": 77,
+      "billAccessorsChecked": 11
+    },
+    {
+      "source": "m.java",
+      "target": "TaobaoRule.kt",
+      "sourceSha256": "15bf2a2af12dfe5285f0626e5c94d99efc643a16c7d54ccfbf2afcadbb500187",
+      "methods": 6,
+      "recoveredBlockLabels": 0,
+      "billAccessorsChecked": 8
+    },
+    {
+      "source": "n.java",
+      "target": "DouyinRule.kt",
+      "sourceSha256": "4701e77e519b45c17dc27fcb1f20a00a2a40c2fc12c20952458310d2bfc24bd7",
+      "methods": 16,
+      "recoveredBlockLabels": 247,
+      "billAccessorsChecked": 16
+    },
+    {
+      "source": "o.java",
+      "target": "UnionPayRule.kt",
+      "sourceSha256": "f869137cff375c7b384bd34111c81fb743681c2ef33dbc3cd095c840a50d0652",
+      "methods": 16,
+      "recoveredBlockLabels": 169,
+      "billAccessorsChecked": 20
+    },
+    {
+      "source": "p.java",
+      "target": "WechatRule.kt",
+      "sourceSha256": "7065c033c395d2804031f518dfc22e06e634f185f0f65669fe0e6ec76bdae8b5",
+      "methods": 20,
+      "recoveredBlockLabels": 55,
+      "billAccessorsChecked": 19
+    }
+  ]
+}

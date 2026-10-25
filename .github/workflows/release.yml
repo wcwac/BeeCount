@@ -1,4 +1,4 @@
-name: Yimu reference Android full validation (manual)
+name: BeeCount native offline validation (manual)
 
 on:
   workflow_dispatch:
@@ -9,7 +9,7 @@ on:
         default: "0.1.0"
         required: true
       sign_apk:
-        description: "使用仓库固定密钥签名"
+        description: "必须开启才能完成设备验收和发布；关闭仅诊断编译"
         type: boolean
         default: true
       create_release:
@@ -21,7 +21,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: yimu-reference-${{ github.ref }}
+  group: native-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -50,14 +50,14 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          [[ "$GITHUB_REF" == refs/heads/feat/yimu-reference-rebuild ]]
+          [[ "$GITHUB_REF" == refs/heads/feat/kotlin-compose-offline ]]
           [[ "$BUILD_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
           if [[ "$CREATE_RELEASE" == true && "$SIGN_APK" != true ]]; then
             echo "::error::Publishing requires the stable signing key"
             exit 1
           fi
-          echo "tag=yimu-reference-v${BUILD_VERSION}-${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
-          python3 .github/scripts/reference_security.py
+          echo "tag=native-v${BUILD_VERSION}-${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
+          python3 .github/scripts/native_checks.py
       - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad
         with:
           distribution: temurin
@@ -88,7 +88,7 @@ jobs:
           python3 .github/scripts/run_checked.py gradle -p android
           :app:assembleRelease :app:assembleDebug :app:assembleDebugAndroidTest
           :captureFixture:assembleWechatDebug :captureFixture:assembleTaobaoDebug :captureFixture:assembleAlipayDebug :captureFixture:assembleMeituanDebug :captureFixture:assembleIgnoredDebug
-          :app:testDebugUnitTest :app:lintRelease --continue --no-daemon --console=plain --stacktrace
+          :domain:test :capture:testDebugUnitTest :app:lintRelease :data:lintRelease :capture:lintRelease :ui:lintRelease --continue --no-daemon --console=plain --stacktrace
       - name: Remove signing material before device tests
         if: always()
         run: rm -f android/key.properties android/app/offline-release.keystore
@@ -96,7 +96,7 @@ jobs:
         id: unit_reports
         if: ${{ !cancelled() }}
         continue-on-error: true
-        run: python3 .github/scripts/reference_reports.py
+        run: python3 .github/scripts/native_checks.py --unit
       - name: Inspect packaged app and verify signature
         id: packaged
         if: ${{ !cancelled() }}
@@ -106,14 +106,14 @@ jobs:
           set -euo pipefail
           apk=build/app/outputs/apk/release/app-release.apk
           if [[ "$SIGN_APK" != true ]]; then apk=build/app/outputs/apk/release/app-release-unsigned.apk; fi
-          "$ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer" manifest print "$apk" > "$RUNNER_TEMP/reference-manifest.xml"
-          python3 .github/scripts/reference_security.py --manifest "$RUNNER_TEMP/reference-manifest.xml" --apk "$apk"
+          "$ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer" manifest print "$apk" > "$RUNNER_TEMP/native-manifest.xml"
+          python3 .github/scripts/native_checks.py --manifest "$RUNNER_TEMP/native-manifest.xml" --apk "$apk"
           mkdir -p dist
           if [[ "$SIGN_APK" == true ]]; then
             "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose "$apk"
-            cp "$apk" "dist/yimu-reference-v${BUILD_VERSION}-${GITHUB_RUN_NUMBER}.apk"
+            cp "$apk" "dist/native-v${BUILD_VERSION}-${GITHUB_RUN_NUMBER}.apk"
           else
-            cp "$apk" "dist/UNSIGNED-yimu-reference-v${BUILD_VERSION}-${GITHUB_RUN_NUMBER}.apk"
+            cp "$apk" "dist/UNSIGNED-native-v${BUILD_VERSION}-${GITHUB_RUN_NUMBER}.apk"
           fi
       - name: Stage device APKs from this build
         id: device_inputs
@@ -152,7 +152,12 @@ jobs:
         if: ${{ !cancelled() && steps.device_setup.outcome == 'success' }}
         timeout-minutes: 45
         continue-on-error: true
-        run: python3 .github/scripts/run_checked.py bash .github/scripts/run_capture_device_tests.sh
+        run: python3 .github/scripts/run_checked.py bash .github/scripts/run_native_device_checks.sh
+      - name: Launch the same minimized release APK and collect runtime evidence
+        id: release_smoke
+        if: ${{ !cancelled() && steps.device.outcome == 'success' }}
+        continue-on-error: true
+        run: python3 .github/scripts/native_checks.py --release-evidence
       - name: Remove signing material on every exit path
         if: always()
         run: rm -f android/key.properties android/app/offline-release.keystore
@@ -161,8 +166,9 @@ jobs:
         with:
           name: reference-validation-${{ github.run_number }}
           path: |
-            build/app/reports/
-            build/app/test-results/
+            build/**/reports/
+            build/**/test-results/
+            android/data/schemas/
             ${{ runner.temp }}/validation-logs/
             ${{ runner.temp }}/capture-device/
           if-no-files-found: warn
@@ -177,11 +183,12 @@ jobs:
           DEVICE_INPUTS: ${{ steps.device_inputs.outcome }}
           DEVICE_SETUP: ${{ steps.device_setup.outcome }}
           DEVICE: ${{ steps.device.outcome }}
+          RELEASE_SMOKE: ${{ steps.release_smoke.outcome }}
         run: |
           python3 - <<'PY'
           import os
           from pathlib import Path
-          labels={'VALIDATION':'Compile, unit tests and lint','UNIT_REPORTS':'Required named unit cases without failures or skips','PACKAGED':'Packaged APK, security and signature','DEVICE_INPUTS':'Device APKs from this build','DEVICE_SETUP':'Official disposable emulator setup','DEVICE':'Required named device cases and screen evidence'}
+          labels={'VALIDATION':'Compile, unit tests and lint','UNIT_REPORTS':'Required named unit cases without failures or skips','PACKAGED':'Packaged APK, security and signature','DEVICE_INPUTS':'Device APKs from this build','DEVICE_SETUP':'Official disposable emulator setup','DEVICE':'Required named device cases and screen evidence','RELEASE_SMOKE':'Launch minimized release APK and inspect runtime evidence'}
           failed=[]
           with Path(os.environ['GITHUB_STEP_SUMMARY']).open('a') as summary:
               summary.write('## Android full validation\n\n| Check | Result |\n| --- | --- |\n')
@@ -196,7 +203,7 @@ jobs:
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         if: ${{ success() && steps.gate.outcome == 'success' }}
         with:
-          name: yimu-reference-${{ github.run_number }}
+          name: native-${{ github.run_number }}
           path: dist/*.apk
           if-no-files-found: error
           retention-days: 14
@@ -210,7 +217,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
         with:
-          name: yimu-reference-${{ github.run_number }}
+          name: native-${{ github.run_number }}
           path: dist
       - name: Publish experimental prerelease
         env:
@@ -221,12 +228,12 @@ jobs:
         run: |
           set -euo pipefail
           cat > "$RUNNER_TEMP/reference-release-notes.md" <<'EOF'
-          Android 一木离线行为对比实验，最低 Android 8.0，独立包名和数据库。
+          BeeCount 原生离线实验版，Android 8.0+，独立包名和数据库，可与 73 版同时安装。
 
-          本批包含自动采集与确认浮窗、账本与账户、转账还款、借贷与结算、退款报销、消费分期、分类与自定义预算、本地投资持仓、目标与周期规则，以及 CSV 和完整 ZIP 备份、每日本地自动备份与应用锁。
+          Kotlin + Compose + Room。包含自动记账候选与浮窗、账本账户、账单统计预算、退款转账还款借贷分期、投资日志、周期、附件与 CSV/ZIP 数据保护。
 
-          无 INTERNET 权限，不接入联网、广告或会员授权服务。分类权重和词典来自静态恢复，分词采用近似实现。投资持仓日志独立于现金账户。部分高级设置与原版细节尚未复刻。
+          从空库开始，不导入旧版数据；没有 INTERNET 权限，不含联网、AI、分类模型或一木二进制。自动记账默认关闭。
 
-          此 APK 已通过本次完整云端流水线；设备检查使用项目自有支付窗口，不能代替真实支付应用版本与手机系统的兼容性验证。
+          本 APK 为本次流水线已验证的同一签名 Release 产物。设备验证使用自有支付页面，仅覆盖关键路径；22 个包名的真实版本兼容性、低端真机性能仍需实机反馈。具体范围见仓库 docs/NATIVE_IMPLEMENTATION.md。
           EOF
           gh release create "$TAG" dist/*.apk --target "$COMMIT" --prerelease --title "$TAG" --notes-file "$RUNNER_TEMP/reference-release-notes.md"

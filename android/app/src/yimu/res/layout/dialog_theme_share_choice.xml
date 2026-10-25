@@ -1,7 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:background="@drawable/dialog_user_agreement_bg" android:layout_width="match_parent" android:layout_height="wrap_content">
-    <LinearLayout android:orientation="vertical" android:paddingTop="20dp" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="50dp">
-        <TextView android:textSize="16sp" android:textStyle="bold" android:textColor="@color/black" android:layout_gravity="center_horizontal" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="选择主题" />
-        <androidx.recyclerview.widget.RecyclerView android:id="@+id/theme_list" android:paddingTop="20dp" android:clipChildren="false" android:clipToPadding="false" android:layout_width="match_parent" android:layout_height="wrap_content" android:overScrollMode="never" app:maxHeight="500dp" />
-    </LinearLayout>
-</FrameLayout>

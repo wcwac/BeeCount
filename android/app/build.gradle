@@ -1,14 +1,14 @@
-plugins { id "com.android.application" }
+plugins { id 'com.android.application'; id 'org.jetbrains.kotlin.android'; id 'org.jetbrains.kotlin.plugin.compose' }
 
 def signing = new Properties()
 def signingFile = rootProject.file('key.properties')
 if (signingFile.exists()) signingFile.withInputStream { signing.load(it) }
 
 android {
-    namespace 'com.wangc.bill'
+    namespace 'io.github.wcwac.beecount.nativeapp'
     compileSdk 36
     defaultConfig {
-        applicationId 'io.github.wcwac.yimu.reference'
+        applicationId 'io.github.wcwac.beecount.nativeapp'
         minSdk 26
         targetSdk 36
         versionCode = Integer.parseInt(System.getenv('BUILD_NUMBER') ?: '1')
@@ -16,12 +16,12 @@ android {
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
     }
     sourceSets {
-        main { java.srcDirs = ['src/yimu/java']; res.srcDirs = [project.layout.buildDirectory.dir('generated/referenceResources').get().asFile]; manifest.srcFile 'src/yimu/AndroidManifest.xml'; assets.srcDirs = []; jniLibs.srcDirs = [] }
-        test { java.srcDirs = ['src/yimuUnit/java'] }
-        androidTest { java.srcDirs = ['src/yimuTest/java']; manifest.srcFile 'src/yimuTest/AndroidManifest.xml'; res.srcDirs = []; assets.srcDirs = [] }
+        main { java.srcDirs = ['src/native/kotlin']; res.srcDirs = ['src/native/res']; manifest.srcFile 'src/native/AndroidManifest.xml'; assets.srcDirs = []; jniLibs.srcDirs = [] }
+        test { java.srcDirs = ['src/nativeUnit/kotlin'] }
+        androidTest { java.srcDirs = ['src/nativeTest/kotlin']; manifest.srcFile 'src/nativeTest/AndroidManifest.xml'; res.srcDirs = []; assets.srcDirs = [] }
     }
+    buildFeatures { compose true; buildConfig true }
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
-    buildFeatures { buildConfig true }
     signingConfigs {
         release {
             if (signing['storeFile']) {
@@ -31,54 +31,39 @@ android {
         }
     }
     buildTypes {
-        debug { applicationIdSuffix ".debug"; versionNameSuffix "-debug" }
+        debug { applicationIdSuffix '.debug'; versionNameSuffix '-debug' }
         release {
             if (signing['storeFile']) signingConfig signingConfigs.release
-            minifyEnabled false
-            shrinkResources false
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'native-proguard-rules.pro'
         }
     }
-    lint { abortOnError true; checkReleaseBuilds true; disable 'MissingTranslation', 'ExtraTranslation', 'TypographyFractions', 'TypographyQuotes', 'ObsoleteSdkInt', 'UnusedResources' }
+    lint { abortOnError true; checkReleaseBuilds true }
     packaging { resources.excludes += ['META-INF/DEPENDENCIES', 'META-INF/LICENSE*', 'META-INF/NOTICE*'] }
 }
+kotlin { jvmToolchain(17) }
 dependencies {
-    implementation platform('org.jetbrains.kotlin:kotlin-bom:1.8.22')
-    implementation 'androidx.appcompat:appcompat:1.7.1'
-    implementation 'androidx.recyclerview:recyclerview:1.4.0'
-    implementation 'androidx.constraintlayout:constraintlayout:2.2.1'
-    implementation 'androidx.cardview:cardview:1.0.0'
-    implementation 'androidx.drawerlayout:drawerlayout:1.2.0'
-    // Exact version recorded in the reference APK's Material version marker.
-    implementation('com.google.android.material:material:1.10.0') {
-        // Static bytecode review found no executable ErrorProne dependency in
-        // Material. This app does not consume its checker-annotation metadata.
-        exclude group: 'com.google.errorprone', module: 'error_prone_annotations'
-    }
-    compileOnly 'com.google.errorprone:error_prone_annotations:2.15.0'
+    implementation project(':domain')
+    implementation project(':data')
+    implementation project(':capture')
+    implementation project(':ui')
+    implementation platform(libs.compose.bom)
+    implementation libs.compose.ui
+    implementation libs.compose.material3
+    implementation libs.activity.compose
+    implementation libs.lifecycle.runtime.compose
+    implementation libs.lifecycle.viewmodel.compose
+    implementation libs.coroutines.android
+    implementation libs.datastore
+    implementation libs.work
+    implementation 'androidx.core:core-ktx:1.16.0'
+    implementation 'androidx.documentfile:documentfile:1.1.0'
+    implementation libs.room.runtime
+    implementation libs.room.ktx
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test:runner:1.6.2'
     androidTestImplementation 'androidx.test.ext:junit:1.2.1'
     androidTestImplementation 'androidx.test:core:1.6.1'
     androidTestImplementation 'androidx.test.uiautomator:uiautomator:2.3.0'
 }
-tasks.withType(JavaCompile).configureEach { options.compilerArgs += ['-Xmaxerrs', '1000', '-Xlint:unchecked'] }
-def prepareReferenceResources = tasks.register('prepareReferenceResources', Exec) {
-    inputs.dir('src/yimu/res')
-    inputs.dir('src/yimu/java')
-    inputs.file('src/yimu/AndroidManifest.xml')
-    inputs.file(rootProject.file('../.github/scripts/prepare_reference_resources.py'))
-    inputs.files(configurations.releaseRuntimeClasspath)
-    outputs.dir(layout.buildDirectory.dir('generated/referenceResources'))
-    doFirst {
-        def arguments = ['python3', rootProject.file('../.github/scripts/prepare_reference_resources.py').absolutePath,
-            '--source', file('src/yimu/res').absolutePath,
-            '--output', layout.buildDirectory.dir('generated/referenceResources').get().asFile.absolutePath,
-            '--java', file('src/yimu/java').absolutePath,
-            '--manifest', file('src/yimu/AndroidManifest.xml').absolutePath]
-        configurations.releaseRuntimeClasspath.resolvedConfiguration.resolvedArtifacts.findAll { it.extension == 'aar' }.each {
-            arguments.addAll(['--aar', it.file.absolutePath])
-        }
-        commandLine arguments
-    }
-}
-tasks.named('preBuild').configure { dependsOn prepareReferenceResources }

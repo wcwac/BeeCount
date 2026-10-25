@@ -1,9 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:orientation="vertical" android:id="@+id/parent_layout" android:background="@drawable/bg_add_bill_dialog" android:layout_width="match_parent" android:layout_height="wrap_content">
-    <RelativeLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:paddingStart="15dp">
-        <TextView android:textSize="15sp" android:textStyle="bold" android:textColor="@color/black" android:id="@+id/title" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="15dp" android:text="选择账户" />
-        <TextView android:textSize="14sp" android:textColor="@color/textColorPrimary" android:gravity="center" android:id="@+id/choice_all" android:layout_width="60dp" android:layout_height="45dp" android:text="全选" android:layout_centerVertical="true" android:layout_toStartOf="@+id/complete" />
-        <TextView android:textSize="14sp" android:textColor="@color/black" android:gravity="center" android:id="@+id/complete" android:layout_width="60dp" android:layout_height="45dp" android:text="完成" android:layout_centerVertical="true" android:layout_alignParentEnd="true" />
-    </RelativeLayout>
-    <androidx.recyclerview.widget.RecyclerView android:id="@+id/data_list" android:paddingBottom="30dp" android:clipChildren="false" android:clipToPadding="false" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="150dp" android:overScrollMode="never" />
-</LinearLayout>

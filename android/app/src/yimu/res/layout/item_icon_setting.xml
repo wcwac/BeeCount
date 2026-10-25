@@ -1,8 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android" android:background="@drawable/selectable_item_expand_mask" android:layout_width="match_parent" android:layout_height="56dp">
-    <TextView android:textSize="15sp" android:textColor="@color/black" android:id="@+id/name" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="转账" android:layout_centerVertical="true" android:layout_marginStart="15dp" />
-    <LinearLayout android:orientation="horizontal" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_centerVertical="true" android:layout_marginEnd="15dp" android:layout_alignParentEnd="true">
-        <ImageView android:id="@+id/icon" android:background="@drawable/shape_type_normal" android:padding="8dp" android:layout_width="35dp" android:layout_height="35dp" android:layout_marginEnd="10dp" />
-        <ImageView android:id="@+id/icon_night" android:background="@drawable/shape_type_normal_night" android:padding="8dp" android:layout_width="35dp" android:layout_height="35dp" />
-    </LinearLayout>
-</RelativeLayout>

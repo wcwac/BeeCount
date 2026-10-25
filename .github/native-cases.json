@@ -1,0 +1,38 @@
+{
+  "unit": [
+    "io.github.wcwac.beecount.capture.CaptureIdentityRegressionTest.merchantOrdersCannotMergeSeparatePartialPayments",
+    "io.github.wcwac.beecount.capture.CaptureIdentityRegressionTest.realPaymentIdentitySurvivesDisplayCorrectionsButNotPackageChanges",
+    "io.github.wcwac.beecount.capture.CaptureQueueRegressionTest.burstKeepsOnlyNewestQueuedSourceAndClosesEveryOwnerOnce",
+    "io.github.wcwac.beecount.capture.CaptureQueueRegressionTest.checkoutAndCompletionEventsRetainTheirOrderingBoundary",
+    "io.github.wcwac.beecount.capture.SourceResolverRegressionTest.leafSourceUsesCompleteRootAndNullSourceUsesMatchingInteractiveWindow",
+    "io.github.wcwac.beecount.capture.SourceResolverRegressionTest.wrongWindowOrSlowLookupCannotReplaceTheAlreadyValidatedEventSource",
+    "io.github.wcwac.beecount.domain.MoneyTest.currencyPrecisionIsEnforced",
+    "io.github.wcwac.beecount.domain.MoneyTest.decimalsNeverUseBinaryFloatingPoint",
+    "io.github.wcwac.beecount.domain.MoneyTest.instalmentAllocationConservesMoneyAndAnchorsMonthEnd",
+    "io.github.wcwac.beecount.domain.MoneyTest.rejectsAmbiguousOrUnboundedInput"
+  ],
+  "device": [
+    "io.github.wcwac.beecount.nativeapp.NativeCaptureDeviceTest.amountLeafReadsWholeWindowAndOverlaySavesExactlyOnce",
+    "io.github.wcwac.beecount.nativeapp.NativeCaptureDeviceTest.nullEventSourceFallsBackToVerifiedPaymentWindow",
+    "io.github.wcwac.beecount.nativeapp.NativeFinancialDeviceTest.candidateConfirmationIsIdempotentAcrossSaveAttempts",
+    "io.github.wcwac.beecount.nativeapp.NativeFinancialDeviceTest.excessiveRefundLeavesNoPartialChanges",
+    "io.github.wcwac.beecount.nativeapp.NativeFinancialDeviceTest.expenseAndIncomeChangeBalanceAndSummary",
+    "io.github.wcwac.beecount.nativeapp.NativeFinancialDeviceTest.instalmentPaymentDoesNotCountPrincipalTwice",
+    "io.github.wcwac.beecount.nativeapp.NativeFinancialDeviceTest.lateCandidateFailureRollsBackAccountingAndAllowsRetry",
+    "io.github.wcwac.beecount.nativeapp.NativeFinancialDeviceTest.loanCollectionSeparatesPrincipalAndInterest",
+    "io.github.wcwac.beecount.nativeapp.NativeFinancialDeviceTest.refundDeleteAndRestoreReverseExactlyOnePosting",
+    "io.github.wcwac.beecount.nativeapp.NativeFinancialDeviceTest.transferFeeUpdatesBothAccountsWithoutIncome",
+    "io.github.wcwac.beecount.nativeapp.NativeScreenDeviceTest.editorAndCaptureSettingsRenderWithoutOriginalBitmapBackgrounds",
+    "io.github.wcwac.beecount.nativeapp.NativeScreenDeviceTest.mainFourTabsRenderAndProduceScreenshots"
+  ],
+  "screens": [
+    "main-ledger.png",
+    "main-assets.png",
+    "main-statistics.png",
+    "main-more.png",
+    "entry-editor.png",
+    "capture-settings.png",
+    "capture-null-source-overlay.png",
+    "capture-leaf-source-overlay.png"
+  ]
+}

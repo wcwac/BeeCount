@@ -1,0 +1,26 @@
+plugins { id 'com.android.library'; id 'org.jetbrains.kotlin.android'; id 'org.jetbrains.kotlin.plugin.compose'; id 'org.jetbrains.kotlin.plugin.serialization' }
+android {
+    namespace 'io.github.wcwac.beecount.ui'
+    compileSdk 36
+    defaultConfig { minSdk 26 }
+    buildFeatures { compose true }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+}
+kotlin { jvmToolchain(17) }
+dependencies {
+    api project(':domain')
+    api project(':data')
+    api platform(libs.compose.bom)
+    api libs.compose.ui
+    api libs.compose.material3
+    implementation libs.compose.foundation
+    implementation libs.activity.compose
+    implementation libs.lifecycle.runtime.compose
+    implementation libs.lifecycle.viewmodel.compose
+    implementation libs.navigation.compose
+    implementation libs.serialization
+    implementation libs.paging.compose
+    implementation libs.coroutines.android
+    implementation libs.coil.compose
+    debugImplementation libs.compose.tooling
+}

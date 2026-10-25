@@ -1,9 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/total_layout" android:background="@drawable/shape_bg_setting" android:layout_width="match_parent" android:layout_height="75dp" android:layout_marginTop="15dp" android:layout_marginStart="15dp" android:layout_marginEnd="15dp">
-    <TextView android:textSize="14sp" android:textColor="@color/black" android:id="@+id/origin" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="15dp" android:text="从支付宝导入账单" android:layout_marginStart="15dp" />
-    <LinearLayout android:orientation="horizontal" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginBottom="15dp" android:layout_alignParentBottom="true" android:layout_marginStart="15dp">
-        <TextView android:textSize="12sp" android:textColor="@color/grey" android:id="@+id/num" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="共123条数据" />
-        <TextView android:textSize="12sp" android:textColor="@color/grey" android:id="@+id/time" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="执行于2020.7.16 12.33" android:layout_marginStart="15dp" />
-    </LinearLayout>
-    <ImageView android:id="@+id/delete" android:background="@drawable/selectable_item_circle" android:padding="15dp" android:layout_width="50dp" android:layout_height="50dp" android:src="@mipmap/ic_delete" android:layout_centerVertical="true" android:layout_alignParentEnd="true" />
-</RelativeLayout>

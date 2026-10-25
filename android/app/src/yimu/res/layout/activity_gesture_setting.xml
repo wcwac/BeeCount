@@ -1,8 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:background="@color/backgroundLight" android:layout_width="match_parent" android:layout_height="match_parent">
-    <LinearLayout android:gravity="center" android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_above="@+id/forget_password" android:layout_centerInParent="true">
-        <TextView android:textSize="16sp" android:textColor="@color/black" android:id="@+id/tip_text" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="100dp" android:text="绘制解锁图案" />
-        <FrameLayout android:id="@+id/gesture_lock" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginStart="30dp" android:layout_marginEnd="30dp" app:line_normal_color="@color/colorPrimaryDark" app:line_width="2dp" />
-    </LinearLayout>
-    <TextView android:textSize="13sp" android:textColor="@color/grey" android:id="@+id/forget_password" android:padding="20dp" android:visibility="gone" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="忘记密码" android:layout_alignParentBottom="true" android:layout_centerHorizontal="true" />
-</RelativeLayout>

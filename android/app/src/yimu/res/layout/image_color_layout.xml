@@ -1,9 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:gravity="center" android:layout_gravity="center_horizontal" android:orientation="horizontal" android:id="@+id/cg_colors" android:padding="4dp" android:layout_width="wrap_content" android:layout_height="wrap_content" android:checkedButton="@+id/cr_white">
-    <FrameLayout android:id="@+id/cr_white" android:layout_width="@dimen/image_color" android:layout_height="@dimen/image_color" android:layout_margin="@dimen/image_color_margin" app:image_color="@color/image_color_white" />
-    <FrameLayout android:layout_width="@dimen/image_color" android:layout_height="@dimen/image_color" android:layout_margin="@dimen/image_color_margin" app:image_color="@color/image_color_black" />
-    <FrameLayout android:layout_width="@dimen/image_color" android:layout_height="@dimen/image_color" android:layout_margin="@dimen/image_color_margin" app:image_color="@color/image_color_red" />
-    <FrameLayout android:layout_width="@dimen/image_color" android:layout_height="@dimen/image_color" android:layout_margin="@dimen/image_color_margin" app:image_color="@color/image_color_cyan" />
-    <FrameLayout android:layout_width="@dimen/image_color" android:layout_height="@dimen/image_color" android:layout_margin="@dimen/image_color_margin" app:image_color="@color/image_color_yellow" />
-    <FrameLayout android:layout_width="@dimen/image_color" android:layout_height="@dimen/image_color" android:layout_margin="@dimen/image_color_margin" app:image_color="@color/image_color_blue" />
-</FrameLayout>

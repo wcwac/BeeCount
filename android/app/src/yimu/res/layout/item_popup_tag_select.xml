@@ -1,9 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:orientation="vertical" android:background="@drawable/shape_bg_setting" android:layout_width="match_parent" android:layout_height="wrap_content">
-    <RelativeLayout android:orientation="horizontal" android:id="@+id/total_layout" android:layout_width="match_parent" android:layout_height="40dp">
-        <View android:id="@+id/tag_color" android:layout_width="12dp" android:layout_height="12dp" android:layout_centerVertical="true" android:layout_marginStart="15dp" />
-        <TextView android:textSize="13sp" android:textColor="@color/black" android:id="@+id/tag_name" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="标签名" android:layout_centerVertical="true" android:layout_marginStart="10dp" android:layout_toEndOf="@+id/tag_color" />
-        <ImageView android:id="@+id/tag_choice" android:background="@drawable/selectable_item_circle" android:padding="12dp" android:layout_width="40dp" android:layout_height="40dp" android:src="@mipmap/ic_not_check" android:tint="@color/black" android:layout_alignParentEnd="true" />
-    </RelativeLayout>
-    <androidx.recyclerview.widget.RecyclerView android:id="@+id/child_tag" android:layout_width="match_parent" android:layout_height="wrap_content" android:overScrollMode="never" android:layout_marginStart="15dp" android:layout_marginEnd="15dp" />
-</LinearLayout>
