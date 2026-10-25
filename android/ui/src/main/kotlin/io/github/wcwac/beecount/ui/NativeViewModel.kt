@@ -29,15 +29,25 @@ internal class NativeViewModel(val repository: NativeRepository, var platform: N
         busy.value = true
         viewModelScope.launch {
             try {
-                withContext(MutationGeneration(generation)) {
-                    require(generation == repository.currentGeneration) { "数据已恢复，请重新打开当前页面" }
-                    operation()
-                    require(generation == repository.currentGeneration) { "数据已恢复，请重新打开当前页面" }
+                try {
+                    withContext(MutationGeneration(generation)) {
+                        require(generation == repository.currentGeneration) { "数据已恢复，请重新打开当前页面" }
+                        operation()
+                        require(generation == repository.currentGeneration) { "数据已恢复，请重新打开当前页面" }
+                    }
+                } catch (error: Exception) {
+                    if (error is kotlinx.coroutines.CancellationException) throw error
+                    message.value = error.message ?: "操作失败，请重试"
+                    return@launch
                 }
                 if (success != null) message.value = success
-                after()
+                // A failed navigation/refresh cannot turn a completed write into a failed save.
+                try { after() }
+                catch (error: Exception) {
+                    if (error is kotlinx.coroutines.CancellationException) throw error
+                    message.value = "操作已完成，但界面未更新，请返回列表查看"
+                }
             }
-            catch (error: Exception) { if (error is kotlinx.coroutines.CancellationException) throw error; message.value = error.message ?: "操作失败，请重试" }
             finally { busy.value = false }
         }
     }

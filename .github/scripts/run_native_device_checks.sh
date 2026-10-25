@@ -168,37 +168,76 @@ for package,apk in found.items():
 PY_APKS
 
 capture_instrument_status=0
-timeout --signal=TERM --kill-after=20s 15m \
-  "$capture_adb" -s "$capture_serial" shell am instrument -w -r \
-  -e native_cloud_only true -e timeout_msec 180000 \
-  io.github.wcwac.beecount.nativeapp.debug.test/androidx.test.runner.AndroidJUnitRunner \
-  < /dev/null | tee "$capture_logs/instrumentation.txt" || capture_instrument_status=$?
+: > "$capture_logs/instrumentation.txt"
+: > "$capture_logs/instrumentation-groups.tsv"
+# Isolate runner crashes by class while keeping the same APKs and emulator.
+# No group is retried; all named cases must still pass exactly once.
+for capture_group in financial screen capture; do
+  case "$capture_group" in
+    financial) capture_class=NativeFinancialDeviceTest; capture_case_count=8 ;;
+    screen) capture_class=NativeScreenDeviceTest; capture_case_count=2 ;;
+    capture) capture_class=NativeCaptureDeviceTest; capture_case_count=2 ;;
+  esac
+  capture_group_status=0
+  timeout 15s "$capture_adb" -s "$capture_serial" shell am force-stop io.github.wcwac.beecount.nativeapp.debug \
+    > "$capture_logs/$capture_group-reset.txt" 2>&1 || capture_group_status=$?
+  timeout 10s "$capture_adb" -s "$capture_serial" logcat -c \
+    > "$capture_logs/$capture_group-logcat-clear.txt" 2>&1 || true
+  timeout --signal=TERM --kill-after=20s 10m \
+    "$capture_adb" -s "$capture_serial" shell am instrument -w -r \
+    -e class "io.github.wcwac.beecount.nativeapp.$capture_class" \
+    -e native_cloud_only true -e timeout_msec 180000 \
+    io.github.wcwac.beecount.nativeapp.debug.test/androidx.test.runner.AndroidJUnitRunner \
+    < /dev/null 2>&1 | tee "$capture_logs/instrumentation-$capture_group.txt" || capture_group_status=$?
+  printf '%s\t%s\t%s\n' "$capture_group" "$capture_case_count" "$capture_group_status" >> "$capture_logs/instrumentation-groups.tsv"
+  printf '# instrumentation group: %s\n' "$capture_group" >> "$capture_logs/instrumentation.txt"
+  cat "$capture_logs/instrumentation-$capture_group.txt" >> "$capture_logs/instrumentation.txt"
+  printf '\n' >> "$capture_logs/instrumentation.txt"
+  timeout 20s "$capture_adb" -s "$capture_serial" logcat -b main -b system -b crash -d -v threadtime \
+    > "$capture_logs/$capture_group-logcat.txt" 2>&1 || true
+  if [[ "$capture_group_status" != 0 ]]; then capture_instrument_status=1; fi
+done
 collect_screen_evidence || capture_evidence_status=$?
-python3 .github/scripts/native_checks.py --device
-[[ "$capture_instrument_status" == 0 && "$capture_evidence_status" == 0 ]]
+capture_device_validation_status=0
+python3 .github/scripts/native_checks.py --device || capture_device_validation_status=$?
 
 # Verify the exact shrunk release artifact, without rebuilding or modifying it.
+# A failed instrumentation group must not prevent independent release evidence.
 # This same temporary emulator remains alive until EXIT cleanup.
-if [[ "${SIGN_APK:-true}" == true ]]; then
+capture_release_status=0
+if [[ "${SIGN_APK:-false}" == true && "${NATIVE_RELEASE_VERIFIED:-false}" == true \
+    && -f "$RUNNER_TEMP/native-release-verified.sha256" ]] \
+    && sha256sum --check --status "$RUNNER_TEMP/native-release-verified.sha256"; then
   capture_release_apk="build/app/outputs/apk/release/app-release.apk"
-  timeout 90s "$capture_adb" -s "$capture_serial" install -r "$capture_release_apk"
-  timeout 15s "$capture_adb" -s "$capture_serial" shell am force-stop io.github.wcwac.beecount.nativeapp.debug
-  timeout 15s "$capture_adb" -s "$capture_serial" logcat -c
-  timeout 30s "$capture_adb" -s "$capture_serial" shell am start -W -n io.github.wcwac.beecount.nativeapp/.MainActivity > "$capture_logs/release-start.txt"
-  capture_home_ready=false
-  for capture_attempt in {1..20}; do
-    timeout 15s "$capture_adb" -s "$capture_serial" shell uiautomator dump /data/local/tmp/native-release-ui.xml >/dev/null 2>&1 || true
-    timeout 10s "$capture_adb" -s "$capture_serial" exec-out cat /data/local/tmp/native-release-ui.xml > "$capture_logs/release-ui.xml" || true
-    if python3 -c 'import sys,xml.etree.ElementTree as E; r=E.parse(sys.argv[1]); sys.exit(0 if any(n.get("text")=="全部流水" for n in r.iter("node")) else 1)' "$capture_logs/release-ui.xml" 2>/dev/null; then capture_home_ready=true; break; fi
-    sleep 1
-  done
-  [[ "$capture_home_ready" == true ]] || { echo "::error::Release home did not finish initialization"; exit 1; }
-  timeout 10s "$capture_adb" -s "$capture_serial" shell pidof io.github.wcwac.beecount.nativeapp > "$capture_logs/release-pid.txt"
-  timeout 10s "$capture_adb" -s "$capture_serial" shell dumpsys activity activities > "$capture_logs/release-activities.txt"
-  timeout 10s "$capture_adb" -s "$capture_serial" shell dumpsys meminfo io.github.wcwac.beecount.nativeapp > "$capture_logs/release-memory.txt"
-  timeout 10s "$capture_adb" -s "$capture_serial" shell dumpsys gfxinfo io.github.wcwac.beecount.nativeapp framestats > "$capture_logs/release-frames.txt"
-  timeout 10s "$capture_adb" -s "$capture_serial" logcat -d -v threadtime > "$capture_logs/release-logcat.txt"
-  timeout 10s "$capture_adb" -s "$capture_serial" exec-out screencap -p > "$capture_logs/release-home.png"
+  if timeout 90s "$capture_adb" -s "$capture_serial" install -r "$capture_release_apk" \
+      > "$capture_logs/release-install.txt" 2>&1; then
+    timeout 15s "$capture_adb" -s "$capture_serial" shell am force-stop io.github.wcwac.beecount.nativeapp.debug || capture_release_status=1
+    timeout 15s "$capture_adb" -s "$capture_serial" logcat -c || capture_release_status=1
+    timeout 30s "$capture_adb" -s "$capture_serial" shell am start -W -n io.github.wcwac.beecount.nativeapp/.MainActivity \
+      > "$capture_logs/release-start.txt" 2>&1 || capture_release_status=1
+    capture_home_ready=false
+    for capture_attempt in {1..20}; do
+      timeout 15s "$capture_adb" -s "$capture_serial" shell uiautomator dump /data/local/tmp/native-release-ui.xml >/dev/null 2>&1 || true
+      timeout 10s "$capture_adb" -s "$capture_serial" exec-out cat /data/local/tmp/native-release-ui.xml > "$capture_logs/release-ui.xml" 2> "$capture_logs/release-ui-read.txt" || true
+      if python3 -c 'import sys,xml.etree.ElementTree as E; r=E.parse(sys.argv[1]); sys.exit(0 if any(n.get("text")=="全部流水" for n in r.iter("node")) else 1)' "$capture_logs/release-ui.xml" 2>/dev/null; then capture_home_ready=true; break; fi
+      sleep 1
+    done
+    # Collect the crash/initialization failure evidence BEFORE reporting failure.
+    timeout 15s "$capture_adb" -s "$capture_serial" logcat -b main -b system -b crash -d -v threadtime > "$capture_logs/release-logcat.txt" 2>&1 || capture_release_status=1
+    timeout 10s "$capture_adb" -s "$capture_serial" shell pidof io.github.wcwac.beecount.nativeapp > "$capture_logs/release-pid.txt" 2> "$capture_logs/release-pid-error.txt" || capture_release_status=1
+    timeout 10s "$capture_adb" -s "$capture_serial" shell dumpsys activity activities > "$capture_logs/release-activities.txt" 2>&1 || capture_release_status=1
+    timeout 10s "$capture_adb" -s "$capture_serial" shell dumpsys meminfo io.github.wcwac.beecount.nativeapp > "$capture_logs/release-memory.txt" 2>&1 || capture_release_status=1
+    timeout 10s "$capture_adb" -s "$capture_serial" shell dumpsys gfxinfo io.github.wcwac.beecount.nativeapp framestats > "$capture_logs/release-frames.txt" 2>&1 || capture_release_status=1
+    timeout 10s "$capture_adb" -s "$capture_serial" exec-out screencap -p > "$capture_logs/release-home.png" 2> "$capture_logs/release-screen-error.txt" || capture_release_status=1
+    printf '%s\n' "$capture_home_ready" > "$capture_logs/release-home-ready.txt"
+    if [[ "$capture_home_ready" != true ]]; then echo "::error::Release home did not finish initialization; runtime evidence retained"; capture_release_status=1; fi
+  else
+    capture_release_status=1
+  fi
 else
-  echo "Unsigned release cannot be executed" > "$capture_logs/release-blocked.txt"
+  echo "Release signature/provenance was not verified or the APK changed after verification" > "$capture_logs/release-blocked.txt"
+  capture_release_status=1
 fi
+printf '%s\n' "$capture_release_status" > "$capture_logs/release-command-status.txt"
+[[ "$capture_instrument_status" == 0 && "$capture_evidence_status" == 0 \
+  && "$capture_device_validation_status" == 0 && "$capture_release_status" == 0 ]]

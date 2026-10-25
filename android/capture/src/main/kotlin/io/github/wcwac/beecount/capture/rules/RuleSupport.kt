@@ -11,6 +11,7 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.IdentityHashMap
 import java.util.Locale
+import kotlin.text.replace as replaceLiteral
 
 internal interface RuleCallback { fun dismiss() }
 internal class RuleContext(val autoSave: Boolean, val onRead: (Int) -> Unit) {
@@ -150,8 +151,15 @@ internal fun dexCompareD(x: Any?, y: Any?, nan: Int): Int { val a = dexD(x); val
 internal fun dexCompareF(x: Any?, y: Any?, nan: Int): Int { val a = dexF(x); val b = dexF(y); return if (a.isNaN() || b.isNaN()) nan else if (a == b) 0 else if (a < b) -1 else 1 }
 internal fun dexLength(value: Any?): Int = when (value) { is Array<*> -> value.size; is IntArray -> value.size; is LongArray -> value.size; is ByteArray -> value.size; else -> error("Unsupported rule array") }
 
-/** Java String.replace(CharSequence, CharSequence) has no direct Kotlin String overload. */
-internal fun String.replace(old: CharSequence, replacement: CharSequence): String = replace(old.toString(), replacement.toString())
+/**
+ * Java's CharSequence overload is literal, including dollar signs and backslashes.
+ * Use an explicit stdlib alias: an unqualified replace(String, String) here resolves
+ * back to this same-package extension and recurses instead of calling the stdlib.
+ */
+internal fun String.replace(old: CharSequence, replacement: CharSequence): String =
+    this.replaceLiteral(old.toString(), replacement.toString())
 
+// Keep Java's default limit=0 behavior: discard trailing empty fields, retain leading ones.
 internal fun javaSplit(input: String, pattern: String): Array<String?> = java.util.regex.Pattern.compile(pattern).split(input)
+// Matcher preserves Java replacement groups ($1) and escapes; String.replaceFirst is literal in Kotlin.
 internal fun replaceFirstRegex(input: String, pattern: String, replacement: String): String = java.util.regex.Pattern.compile(pattern).matcher(input).replaceFirst(replacement)

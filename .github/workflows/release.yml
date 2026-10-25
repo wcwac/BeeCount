@@ -111,6 +111,7 @@ jobs:
           mkdir -p dist
           if [[ "$SIGN_APK" == true ]]; then
             "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose "$apk"
+            sha256sum "$apk" > "$RUNNER_TEMP/native-release-verified.sha256"
             cp "$apk" "dist/native-v${BUILD_VERSION}-${GITHUB_RUN_NUMBER}.apk"
           else
             cp "$apk" "dist/UNSIGNED-native-v${BUILD_VERSION}-${GITHUB_RUN_NUMBER}.apk"
@@ -152,10 +153,12 @@ jobs:
         if: ${{ !cancelled() && steps.device_setup.outcome == 'success' }}
         timeout-minutes: 45
         continue-on-error: true
+        env:
+          NATIVE_RELEASE_VERIFIED: ${{ inputs.sign_apk && steps.packaged.outcome == 'success' }}
         run: python3 .github/scripts/run_checked.py bash .github/scripts/run_native_device_checks.sh
-      - name: Launch the same minimized release APK and collect runtime evidence
+      - name: Verify collected minimized release runtime evidence
         id: release_smoke
-        if: ${{ !cancelled() && steps.device.outcome == 'success' }}
+        if: ${{ !cancelled() && inputs.sign_apk && steps.packaged.outcome == 'success' && steps.device_setup.outcome == 'success' && (steps.device.outcome == 'success' || steps.device.outcome == 'failure') }}
         continue-on-error: true
         run: python3 .github/scripts/native_checks.py --release-evidence
       - name: Remove signing material on every exit path
@@ -209,7 +212,7 @@ jobs:
           retention-days: 14
   publish:
     needs: android
-    if: ${{ inputs.create_release }}
+    if: ${{ inputs.create_release && needs.android.result == 'success' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:

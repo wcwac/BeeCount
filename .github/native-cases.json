@@ -6,6 +6,7 @@
     "io.github.wcwac.beecount.capture.CaptureQueueRegressionTest.checkoutAndCompletionEventsRetainTheirOrderingBoundary",
     "io.github.wcwac.beecount.capture.SourceResolverRegressionTest.leafSourceUsesCompleteRootAndNullSourceUsesMatchingInteractiveWindow",
     "io.github.wcwac.beecount.capture.SourceResolverRegressionTest.wrongWindowOrSlowLookupCannotReplaceTheAlreadyValidatedEventSource",
+    "io.github.wcwac.beecount.capture.rules.RuleTextCompatibilityRegressionTest.javaStringOperationsPreserveLiteralAndRegexBoundaries",
     "io.github.wcwac.beecount.domain.MoneyTest.currencyPrecisionIsEnforced",
     "io.github.wcwac.beecount.domain.MoneyTest.decimalsNeverUseBinaryFloatingPoint",
     "io.github.wcwac.beecount.domain.MoneyTest.instalmentAllocationConservesMoneyAndAnchorsMonthEnd",

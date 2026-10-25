@@ -45,16 +45,20 @@ def datastore_native_evidence(archive, native):
     # recovered application payloads. Verify bytes against the resolved AAR; the
     # build reports that these already-built libraries are packaged without stripping.
     version = tomllib.loads((ROOT/'android/gradle/libs.versions.toml').read_text())['versions']['datastore']
+    assert version == '1.1.7', 'Review DataStore native provenance before changing its pinned version'
+    approved_aar = 'adca1d7cde73406fcca2a0eeabac63459adc9d1fe201b79ba08711fa2e331984'
     cache = Path(os.environ.get('GRADLE_USER_HOME', str(Path.home()/'.gradle')))/'caches/modules-2/files-2.1/androidx.datastore'
     sources = {}
-    for module in ('datastore-core-android', 'datastore-core'):
+    for module in ('datastore-core-android',):
         for artifact in sorted((cache/module/version).glob('*/*.aar')):
+            artifact_digest = hashlib.sha256(artifact.read_bytes()).hexdigest()
+            assert artifact_digest == approved_aar, 'DataStore AAR differs from the reviewed 1.1.7 artifact'
             with zipfile.ZipFile(artifact) as dependency:
                 for name in dependency.namelist():
                     if re.fullmatch(r'jni/(arm64-v8a|armeabi-v7a|x86|x86_64)/libdatastore_shared_counter\.so', name):
                         key = name.removeprefix('jni/')
                         digest = hashlib.sha256(dependency.read(name)).hexdigest()
-                        sources.setdefault(key, []).append({'coordinate': 'androidx.datastore:'+module+':'+version, 'aarSha256': hashlib.sha256(artifact.read_bytes()).hexdigest(), 'sha256': digest})
+                        sources.setdefault(key, []).append({'coordinate': 'androidx.datastore:'+module+':'+version, 'aarSha256': artifact_digest, 'sha256': digest})
     evidence = []
     for name in native:
         if Path(name).name != 'libdatastore_shared_counter.so': continue
@@ -131,33 +135,69 @@ def extract(archive,destination):
             with stream.extractfile(entry) as source, target.open('xb') as output: shutil.copyfileobj(source,output)
 
 
-def device():
-    folder=Path(os.environ['RUNNER_TEMP'])/'capture-device'
-    text=(folder/'instrumentation.txt').read_text()
-    assert not any(word in text for word in ('FAILURES!!!','INSTRUMENTATION_FAILED','Process crashed','INSTRUMENTATION_RESULT: shortMsg'))
-    spec=json.loads(INVENTORY.read_text()); required=set(spec['device'])
-    started=Counter(); passed=Counter(); case={}
+def instrumentation_group(text, required, count):
+    started=Counter(); passed=Counter(); case={}; errors=[]
+    if any(word in text for word in ('FAILURES!!!','INSTRUMENTATION_FAILED','INSTRUMENTATION_ABORTED','Process crashed','INSTRUMENTATION_RESULT: shortMsg')):
+        errors.append('Runner reported a failure/crash')
     for line in text.splitlines():
         field=re.fullmatch(r'INSTRUMENTATION_STATUS: (class|test)=(.*)',line.strip())
         if field:case[field[1]]=field[2]
         status=re.fullmatch(r'INSTRUMENTATION_STATUS_CODE: (-?\d+)',line.strip())
         if not status:continue
         if 'class' in case and 'test' in case:
-            name=case['class']+'.'+case['test']; code=int(status[1]); assert code in (0,1), name+' failed/skipped'
-            (started if code==1 else passed)[name]+=1
+            name=case['class']+'.'+case['test']; code=int(status[1])
+            if code in (0,1): (started if code==1 else passed)[name]+=1
+            else: errors.append(name+' failed/skipped (status '+str(code)+')')
         case={}
-    assert set(started)==set(passed)==required and all(n==1 for n in list(started.values())+list(passed.values())), 'Device case inventory mismatch: '+str(required-set(passed))
-    assert [int(v) for v in re.findall(r'OK \(([0-9]+) tests?\)',text)]==[len(required)]
+    if set(started)!=required or set(passed)!=required or any(n!=1 for n in list(started.values())+list(passed.values())):
+        errors.append('Named case inventory mismatch: missing='+str(sorted(required-set(passed)))+' unexpected='+str(sorted((set(started)|set(passed))-required)))
+    ok=[int(v) for v in re.findall(r'OK \(([0-9]+) tests?\)',text)]
+    if ok!=[count]: errors.append('Expected exactly one OK ('+str(count)+' tests), found '+str(ok))
+    return {'started':dict(started),'passed':dict(passed),'errors':errors}
+
+
+def device():
+    folder=Path(os.environ['RUNNER_TEMP'])/'capture-device'
+    spec=json.loads(INVENTORY.read_text()); required=set(spec['device'])
+    groups=(('financial','NativeFinancialDeviceTest',8),('screen','NativeScreenDeviceTest',2),('capture','NativeCaptureDeviceTest',2))
+    assert len(required)==len(spec['device'])==12, 'The approved device inventory must contain exactly 12 distinct cases'
+    errors=[]; results=[]; combined=[]; grouped_cases=set()
+    for name, class_name, count in groups:
+        group_required={case for case in required if case.startswith(PKG+'.'+class_name+'.')}
+        assert len(group_required)==count, 'Device class count changed: '+class_name
+        grouped_cases.update(group_required)
+        path=folder/('instrumentation-'+name+'.txt')
+        text=path.read_text() if path.is_file() else ''
+        result=instrumentation_group(text,group_required,count)
+        results.append({'group':name,'expected':count,**result})
+        errors.extend(name+': '+error for error in result['errors'])
+        combined.append('# instrumentation group: '+name+'\n'+text+'\n')
+    assert grouped_cases==required, 'Device classes do not cover the approved inventory'
+    status_path=folder/'instrumentation-groups.tsv'
+    statuses=status_path.read_text().splitlines() if status_path.is_file() else []
+    if statuses!=[name+'\t'+str(count)+'\t0' for name,_,count in groups]: errors.append('Instrumentation command exits were not all zero: '+str(statuses))
+    summary_path=folder/'instrumentation.txt'
+    summary=summary_path.read_text() if summary_path.is_file() else ''
+    if summary!=''.join(combined): errors.append('Combined instrumentation log differs from the three group logs')
+    if [int(v) for v in re.findall(r'OK \(([0-9]+) tests?\)',summary)]!=[8,2,2]: errors.append('Combined instrumentation must report exactly OK (8), OK (2), OK (2)')
     images=sorted((folder/'screen-evidence').rglob('*.png'))
-    assert {p.name for p in images}==set(spec['screens']) and len(images)==len(spec['screens']), 'Missing/duplicate screenshots'
-    evidence={'cases':len(required),'screens':[png(p) for p in images],'scope':'Synthetic project payment pages and selected native screens; not third-party app compatibility or complete UI coverage.'}
+    if {p.name for p in images}!=set(spec['screens']) or len(images)!=len(spec['screens']): errors.append('Missing/duplicate screenshots')
+    screenshots=[]
+    for path in images:
+        try: screenshots.append(png(path))
+        except (AssertionError,OSError,struct.error) as error: errors.append(str(error))
+    evidence={'cases':len(required),'groups':results,'screens':screenshots,'errors':errors,'scope':'Synthetic project payment pages and selected native screens; not third-party app compatibility or complete UI coverage.'}
+    (folder/'device-results.json').write_text(json.dumps(evidence,ensure_ascii=False,indent=2)+'\n')
+    assert not errors, '\n'.join(errors)
     (folder/'verified.json').write_text(json.dumps(evidence,ensure_ascii=False,indent=2)+'\n')
     print('Device checks and screenshots verified:',len(required),len(images))
 
 
 def release():
     folder=Path(os.environ['RUNNER_TEMP'])/'capture-device'
-    assert not (folder/'release-blocked.txt').exists(), 'Unsigned release cannot pass launch gate'
+    assert not (folder/'release-blocked.txt').exists(), 'Unverified/unsigned release cannot pass launch gate'
+    assert (folder/'release-command-status.txt').read_text().strip()=='0', 'Release execution/evidence collection failed'
+    assert (folder/'release-home-ready.txt').read_text().strip()=='true', 'Release home did not finish initialization'
     assert 'Status: ok' in (folder/'release-start.txt').read_text()
     assert re.fullmatch(r'\d+\s*', (folder/'release-pid.txt').read_text()), 'Release process exited'
     activities=(folder/'release-activities.txt').read_text()

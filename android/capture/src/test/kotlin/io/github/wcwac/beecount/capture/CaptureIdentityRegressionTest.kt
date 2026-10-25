@@ -4,7 +4,7 @@ import io.github.wcwac.beecount.domain.EntryKind
 import org.junit.Assert.*
 import org.junit.Test
 
-/** Six key regressions in this module are ported from the existing 73 tests, not a new fixture suite. */
+/** Identity regressions ported from the existing 73 tests. */
 class CaptureIdentityRegressionTest {
     private fun identity(pkg: String = "wechat", session: String = "session-one", window: Int = 7,
                          amount: Long = 3010, time: Long = 1, texts: List<String>) =
