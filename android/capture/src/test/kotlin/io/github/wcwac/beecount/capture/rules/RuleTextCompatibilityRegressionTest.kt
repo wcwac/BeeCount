@@ -6,6 +6,7 @@ import org.junit.Test
 
 class RuleTextCompatibilityRegressionTest {
     @Test fun javaStringOperationsPreserveLiteralAndRegexBoundaries() {
+        assertEquals(1.25, Amounts.S("1,25"), 0.0)
         // CharSequence arguments force the compatibility overload; the same-package
         // String arguments below also follow the generated rules' original call shape.
         val currency: CharSequence = StringBuilder("¥")

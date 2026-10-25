@@ -32,7 +32,7 @@ internal object RuleTags { fun d(source: String?): MutableList<Long> = mutableLi
 internal object RuleLog { fun l(vararg ignored: Any?) {} ; fun a(vararg ignored: Any?) {} }
 internal object Amounts {
     fun J(value: String?): Boolean = !value.isNullOrEmpty() && value.toDoubleOrNull() != null
-    fun S(value: String?): Double = value?.replace(',', '.')?.toDoubleOrNull() ?: 0.0
+    fun S(value: String?): Double = value?.replaceLiteral(',', '.')?.toDoubleOrNull() ?: 0.0
     fun t(value: Double): String {
         val rounded = DecimalFormat("0.00").apply { roundingMode = RoundingMode.HALF_UP }.format(value)
         if (value == 0.0 || S(rounded) == 0.0) return "0.00"
