@@ -92,17 +92,23 @@ internal class RestoreValidator(private val repo: NativeRepository) {
             // Processed candidate templates may retain attachment IDs later removed from the bill.
             if (candidate.state == "PENDING") repo.engine.validate(template.template.draft(splitIds(template.tagIds), splitIds(template.attachmentIds)), template.template, allowArchived = true)
         }
+        sql.query("SELECT paymentId FROM instalments WHERE paymentId IS NOT NULL GROUP BY paymentId HAVING COUNT(*)>1 LIMIT 1").use { rows ->
+            require(!rows.moveToFirst()) { "一笔分期还款不能同时结清多个期次" }
+        }
         scan("instalments") { row ->
             id(row, "id"); val parent = requireNotNull(dao.entry(text(row, "entryId"))) { "分期消费不存在" }
             require(parent.kind == "EXPENSE" && !parent.deleted && parent.currency == dao.book(parent.bookId)?.currency && parent.accountId?.let { dao.account(it) }?.kind == "CREDIT") { "分期原消费无效" }
-            require(integer(row, "sequence") in 1..120 && integer(row, "principal") > 0 && integer(row, "fee") >= 0 && integer(row, "dueAt") > 0) { "分期数值无效" }
+            require(integer(row, "sequence") in 1..120 && integer(row, "principal") > 0 && integer(row, "fee") in 0..FinancialEngine.MAX_MONEY && integer(row, "dueAt") > 0) { "分期数值无效" }
             nullable(row, "paymentId")?.let { paymentId ->
                 val payment = requireNotNull(dao.entry(paymentId)) { "分期还款不存在" }
-                require(payment.kind == "CREDIT_PAYMENT" && payment.parentId == parent.id && payment.amount == integer(row, "principal") && payment.feeMinor == integer(row, "fee")) { "分期还款金额不符" }
+                require(payment.kind == "CREDIT_PAYMENT" && payment.parentId == parent.id && payment.bookId == parent.bookId && payment.currency == parent.currency && payment.otherAccountId == parent.accountId && payment.amount == integer(row, "principal") && payment.feeMinor == integer(row, "fee")) { "分期还款与原消费、金额或账户不符" }
             }
         }
-        sql.query("SELECT p.entryId,SUM(p.principal) amount,e.amount original,COUNT(*) n,MAX(p.sequence) maxSequence FROM instalments p JOIN entries e ON e.id=p.entryId GROUP BY p.entryId").use { rows ->
-            while (rows.moveToNext()) require(rows.getLong(1) == rows.getLong(2) && rows.getLong(3) == rows.getLong(4)) { "分期本金或期数不完整" }
+        sql.query("SELECT p.entryId,SUM(p.principal) amount,e.amount original,COUNT(*) n,MAX(p.sequence) maxSequence,SUM(p.fee) totalFee FROM instalments p JOIN entries e ON e.id=p.entryId GROUP BY p.entryId").use { rows ->
+            while (rows.moveToNext()) require(rows.getLong(1) == rows.getLong(2) && rows.getLong(3) == rows.getLong(4) && rows.getLong(5) in 0..FinancialEngine.MAX_MONEY) { "分期本金、期数或总手续费无效" }
+        }
+        sql.query("SELECT e.id FROM entries e WHERE e.kind='CREDIT_PAYMENT' AND e.parentId IS NOT NULL AND e.deleted=0 AND NOT EXISTS(SELECT 1 FROM instalments p WHERE p.paymentId=e.id) LIMIT 1").use { rows ->
+            require(!rows.moveToFirst()) { "有效分期还款缺少对应期次，不能恢复为未还计划" }
         }
         scan("investments") { row ->
             id(row, "id"); repo.name(text(row, "name")); require(dao.book(text(row, "bookId"))?.currency == text(row, "currency")) { "投资币种无效" }

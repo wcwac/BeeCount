@@ -18,7 +18,7 @@ fun CandidateReviewContent(
     busy: Boolean,
     onSave: (EntryDraft) -> Unit,
     onDismiss: () -> Unit,
-    onEdit: () -> Unit,
+    onEdit: (EditorDraftSnapshot) -> Unit,
     countdownSeconds: Int? = null,
     onInteraction: () -> Unit = {},
     initialDraft: EntryDraft? = null,
@@ -31,6 +31,7 @@ fun CandidateReviewContent(
     var accountId by rememberSaveable(candidate.id) { mutableStateOf(candidate.accountId) }
     var otherAccountId by rememberSaveable(candidate.id) { mutableStateOf(candidate.otherAccountId ?: initialDraft?.otherAccountId) }
     var categoryId by rememberSaveable(candidate.id) { mutableStateOf(candidate.categoryId) }
+    val fallbackDraftId = rememberSaveable(candidate.id) { newId() }
     var error by remember { mutableStateOf<String?>(null) }
     val currency = candidate.proposal.amount.currency
     val ordinary = candidate.proposal.kind in listOf(EntryKind.EXPENSE, EntryKind.INCOME, EntryKind.REFUND)
@@ -45,6 +46,11 @@ fun CandidateReviewContent(
         else -> true
     } }
     val income = candidate.proposal.kind == EntryKind.INCOME
+    fun editedSnapshot(): EditorDraftSnapshot {
+        require(candidate.proposal.packageName != "local.recurring" || initialDraft != null) { "周期记录正在读取，请稍后编辑" }
+        val base = initialDraft ?: EntryDraft(id = fallbackDraftId, bookId = bookId.orEmpty(), kind = candidate.proposal.kind, amount = candidate.proposal.amount, occurredAt = candidate.proposal.occurredAt, feeMinor = candidate.proposal.feeMinor)
+        return EditorDraftSnapshot(base.copy(bookId = bookId.orEmpty(), accountId = accountId, otherAccountId = otherAccountId, categoryId = categoryId, merchant = merchant, note = note), amount)
+    }
     Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text("确认${kindLabel(candidate.proposal.kind)}", style = MaterialTheme.typography.titleLarge)
         Text(candidate.proposal.packageName, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -59,7 +65,7 @@ fun CandidateReviewContent(
         InlineError(error)
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             TextButton(onClick = { onInteraction(); onDismiss() }, enabled = !busy) { Text("忽略") }
-            TextButton(onClick = { onInteraction(); onEdit() }, enabled = !busy) { Text("完整编辑") }
+            TextButton(onClick = { onInteraction(); try { onEdit(editedSnapshot()); error = null } catch (failure: IllegalArgumentException) { error = failure.message } }, enabled = !busy) { Text("完整编辑") }
             Spacer(Modifier.weight(1f))
             Button(onClick = {
                 onInteraction()

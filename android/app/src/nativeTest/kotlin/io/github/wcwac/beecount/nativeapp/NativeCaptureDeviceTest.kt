@@ -4,6 +4,7 @@ import android.accessibilityservice.AccessibilityServiceInfo
 import android.app.UiAutomation
 import android.content.ComponentName
 import android.provider.Settings
+import android.view.accessibility.AccessibilityEvent
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import io.github.wcwac.beecount.capture.NativeCaptureService
@@ -64,7 +65,16 @@ class NativeCaptureDeviceTest {
         shell("settings put secure accessibility_enabled 1")
         NativeDeviceSupport.await("Capture service did not connect") { container.status.value.connected }
         runBlocking { container.updatePreferences { it.copy(capture = it.capture.copy(enabled = true)) } }
-        NativeDeviceSupport.await("Selected package filter was not applied") { container.status.value.effectivePackages == setOf(ALIPAY) }
+        // A disabled service already has selected package names. Wait until Android has
+        // registered the enabled event mask before the fixture emits its initial page STATE.
+        NativeDeviceSupport.await("Capture service did not apply the enabled event filter and reading capabilities") {
+            val actual = NativeCaptureService.connectionInfo()
+            val expectedEvents = AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED or AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
+            val requiredFlags = AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS or AccessibilityServiceInfo.FLAG_INCLUDE_NOT_IMPORTANT_VIEWS
+            container.captureConfig.value.enabled && actual.connected && actual.ready &&
+                actual.eventTypes == expectedEvents && actual.packages == setOf(ALIPAY) &&
+                (actual.flags and requiredFlags) == requiredFlags && actual.canRetrieveWindowContent && actual.toolIdentity
+        }
     }
 
     @After fun restore() {

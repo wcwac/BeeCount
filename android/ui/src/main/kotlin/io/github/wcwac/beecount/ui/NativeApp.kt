@@ -1,5 +1,6 @@
 package io.github.wcwac.beecount.ui
 
+import androidx.annotation.Keep
 import androidx.compose.foundation.layout.*
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
@@ -21,6 +22,7 @@ import io.github.wcwac.beecount.domain.*
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.serialization.Serializable
 
+@Keep
 @Serializable
 internal enum class Screen(val label: String) {
     LEDGER("账单"), ASSETS("资产"), STATS("统计"), MORE("更多"),
@@ -30,9 +32,9 @@ internal enum class Screen(val label: String) {
     DATA("数据与备份"), SETTINGS("外观与隐私"), TRASH("回收站"), ATTACHMENTS("账单附件"), LOANS("借贷与报销"), CREDIT("信用账期"), WIDGETS("桌面与快捷入口"), HELP("帮助与关于")
 }
 @Serializable
-internal data class Destination(val screen: Screen, val id: String = "", val kind: String = "", val parentId: String = "", val candidateId: String = "")
+internal data class Destination(val screen: Screen, val id: String = "", val kind: String = "", val parentId: String = "", val candidateId: String = "", val draftToken: String = "")
 internal class Navigator(private val controller: NavHostController) {
-    fun open(screen: Screen, id: String = "", kind: String = "", parentId: String = "", candidateId: String = "") { controller.navigate(Destination(screen, id, kind, parentId, candidateId)) }
+    fun open(screen: Screen, id: String = "", kind: String = "", parentId: String = "", candidateId: String = "", draftToken: String = "") { controller.navigate(Destination(screen, id, kind, parentId, candidateId, draftToken)) }
     fun root(screen: Screen) {
         if (controller.currentBackStackEntry?.toRoute<Destination>()?.screen == screen) return
         controller.navigate(Destination(screen)) { popUpTo(controller.graph.id); launchSingleTop = true }
@@ -66,6 +68,10 @@ fun NativeApp(repository: NativeRepository, platform: NativePlatformActions, ini
         // The host attaches a request token so repeated shortcut actions are distinct events.
         val requestedRoute = routeRequest?.substringBefore('#')
         when {
+            requestedRoute?.startsWith("draft-edit:") == true -> {
+                val parts = requestedRoute.substringAfter(':').split(':', limit = 2)
+                nav.open(Screen.EDITOR, candidateId = parts.getOrElse(1) { "" }, draftToken = parts[0])
+            }
             requestedRoute == "editor" -> nav.open(Screen.EDITOR)
             requestedRoute == "inbox" -> nav.open(Screen.INBOX)
             requestedRoute == "capture" -> nav.open(Screen.CAPTURE)

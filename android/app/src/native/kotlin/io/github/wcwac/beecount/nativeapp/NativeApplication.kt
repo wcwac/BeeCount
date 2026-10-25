@@ -2,12 +2,15 @@ package io.github.wcwac.beecount.nativeapp
 
 import android.app.Application
 import android.content.Context
+import android.os.SystemClock
 import androidx.work.Configuration
 import io.github.wcwac.beecount.capture.CaptureApps
 import io.github.wcwac.beecount.capture.NativeCaptureService
 import io.github.wcwac.beecount.data.NativeDatabase
 import io.github.wcwac.beecount.data.NativeRepository
 import io.github.wcwac.beecount.domain.*
+import io.github.wcwac.beecount.ui.EditorDraftSnapshot
+import io.github.wcwac.beecount.ui.EditorDraftHandoff
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.sync.Mutex
@@ -42,6 +45,27 @@ class NativeContainer(val context: Context) : CaptureHost {
     private var overlayInstance: NativeOverlay? = null
     private val initializationMutex = Mutex()
     private var initialized = false
+    private data class HeldDraft(val value: EditorDraftHandoff, val expiresAt: Long)
+    private val editorDrafts = LinkedHashMap<String, HeldDraft>()
+
+    fun stageEditorDraft(snapshot: EditorDraftSnapshot, candidateId: String?, candidateRevision: Long?, expectedGeneration: Long = captureGeneration): String = synchronized(editorDrafts) {
+        require(expectedGeneration == captureGeneration) { "数据已恢复，请重新打开当前页面" }
+        require(snapshot.amountText.length <= 100 && snapshot.draft.merchant.length <= 500 && snapshot.draft.note.length <= 4000) { "输入内容过长，请缩短后再编辑" }
+        val now = SystemClock.elapsedRealtime()
+        editorDrafts.entries.removeAll { it.value.expiresAt <= now || it.value.value.generation != captureGeneration }
+        while (editorDrafts.size >= 8) editorDrafts.remove(editorDrafts.keys.first())
+        val token = newId()
+        val value = EditorDraftHandoff(snapshot.copy(draft = snapshot.draft.copy(tagIds = snapshot.draft.tagIds.toList(), attachmentIds = snapshot.draft.attachmentIds.toList())), candidateId, candidateRevision, expectedGeneration)
+        editorDrafts[token] = HeldDraft(value, now + 30 * 60_000L)
+        token
+    }
+
+    fun editorDraft(token: String): EditorDraftHandoff? = synchronized(editorDrafts) {
+        val item = editorDrafts[token] ?: return@synchronized null
+        if (item.expiresAt <= SystemClock.elapsedRealtime() || item.value.generation != captureGeneration) { editorDrafts.remove(token); null } else item.value
+    }
+
+    fun forgetEditorDraft(token: String) { synchronized(editorDrafts) { editorDrafts.remove(token) } }
 
     suspend fun <T> withRestoreGate(block: suspend () -> T): T = initializationMutex.withLock { block() }
 
@@ -83,6 +107,7 @@ class NativeContainer(val context: Context) : CaptureHost {
 
     suspend fun invalidateForRestore() {
         generation.incrementAndGet()
+        synchronized(editorDrafts) { editorDrafts.clear() }
         withContext(Dispatchers.Main.immediate) { overlayInstance?.close(clearQueue = true); NativeCaptureService.invalidateForRestore() }
     }
 

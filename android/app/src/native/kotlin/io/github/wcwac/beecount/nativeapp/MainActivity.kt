@@ -17,6 +17,8 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.core.view.WindowCompat
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -87,6 +89,13 @@ class MainActivity : ComponentActivity() {
         override val captureStatus get() = container.status
         override val permissions: StateFlow<PermissionSnapshot> get() = permissionState
         override val attachmentResults get() = activityState.attachmentResults
+        override fun stageEditorDraft(snapshot: EditorDraftSnapshot, candidateId: String?, candidateRevision: Long?): String {
+            require(!container.settings.preferences.value.appLock || unlocked.value) { "请先解锁应用" }
+            return container.stageEditorDraft(snapshot, candidateId, candidateRevision)
+        }
+        override fun editorDraft(token: String): EditorDraftHandoff? =
+            if (container.settings.preferences.value.appLock && !unlocked.value) null else container.editorDraft(token)
+        override fun forgetEditorDraft(token: String) = container.forgetEditorDraft(token)
         override suspend fun updatePreferences(transform: (UserPreferences) -> UserPreferences) {
             val desired = transform(container.settings.load())
             if (desired.appLock) require(getSystemService(KeyguardManager::class.java).isDeviceSecure) { "请先在系统中设置设备密码或生物识别" }
@@ -147,6 +156,13 @@ class MainActivity : ComponentActivity() {
             val failure by container.initializationFailure.collectAsStateWithLifecycle()
             val focus = LocalFocusManager.current
             val keyboard = LocalSoftwareKeyboardController.current
+            val darkBars = prefs.theme == "dark" || (prefs.theme == "system" && isSystemInDarkTheme())
+            LaunchedEffect(darkBars) {
+                WindowCompat.getInsetsController(window, window.decorView).apply {
+                    isAppearanceLightStatusBars = !darkBars
+                    isAppearanceLightNavigationBars = !darkBars
+                }
+            }
             val locked = prefs.appLock && !authenticated
             val blocked = locked || working != null
             LaunchedEffect(operationMessage, locked) { if (!locked) operationMessage?.let { message(it); activityState.messages.value = null } }

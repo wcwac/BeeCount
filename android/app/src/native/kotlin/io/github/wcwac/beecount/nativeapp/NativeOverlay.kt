@@ -24,6 +24,7 @@ import androidx.savedstate.*
 import io.github.wcwac.beecount.capture.NativeCaptureService
 import io.github.wcwac.beecount.domain.*
 import io.github.wcwac.beecount.ui.CandidateReviewContent
+import io.github.wcwac.beecount.ui.EditorDraftSnapshot
 import io.github.wcwac.beecount.ui.NativeTheme
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
@@ -131,7 +132,7 @@ class NativeOverlay(private val container: NativeContainer) {
                                     CandidateReviewContent(
                                         candidateNow, books, accounts, categories, busy,
                                         onSave = { save(it, automatic = false) }, onDismiss = { dismiss() },
-                                        onEdit = { openEditor(true) }, countdownSeconds = seconds,
+                                        onEdit = { snapshot -> openEditor(true, snapshot) }, countdownSeconds = seconds,
                                         onInteraction = { dirty = true; cancelCountdown() }, initialDraft = draft, inlineChoices = true
                                     )
                                     }
@@ -249,12 +250,21 @@ class NativeOverlay(private val container: NativeContainer) {
         }
     }
 
-    private fun openEditor(edit: Boolean) {
-        val id = current?.id ?: return
+    private fun openEditor(edit: Boolean, snapshot: EditorDraftSnapshot? = null) {
+        if (busy) return
+        val candidate = current ?: return
         cancelCountdown()
-        context.startActivity(Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-            .putExtra("route", if (manualQuick) "editor" else (if (edit) "candidate-edit:" else "candidate:") + id))
-        close(clearQueue = true)
+        val candidateId = candidate.id.takeUnless { manualQuick }
+        var token: String? = null
+        try {
+            token = snapshot?.let { container.stageEditorDraft(it, candidateId, candidate.revision.takeUnless { manualQuick }, windowGeneration) }
+            val route = if (token != null) "draft-edit:$token:${candidateId.orEmpty()}" else if (manualQuick) "editor" else (if (edit) "candidate-edit:" else "candidate:") + candidate.id
+            context.startActivity(Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP).putExtra("route", route))
+            close(clearQueue = true)
+        } catch (failure: RuntimeException) {
+            token?.let(container::forgetEditorDraft)
+            error = if (failure is IllegalArgumentException) failure.message ?: "无法转交当前输入" else "无法打开完整编辑，请稍后重试"
+        }
     }
 
     fun close(clearQueue: Boolean = false) {

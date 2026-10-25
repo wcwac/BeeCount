@@ -10,6 +10,10 @@ data class PermissionSnapshot(
     val batteryUnrestricted: Boolean = false,
 )
 
+/** Transient editor input; only an opaque token crosses an Intent/navigation boundary. */
+data class EditorDraftSnapshot(val draft: EntryDraft, val amountText: String)
+data class EditorDraftHandoff(val snapshot: EditorDraftSnapshot, val candidateId: String?, val candidateRevision: Long?, val generation: Long)
+
 /** Activity-owned system operations. UI and capture never hold each other's lifecycle. */
 interface NativePlatformActions {
     val preferences: StateFlow<UserPreferences>
@@ -31,6 +35,9 @@ interface NativePlatformActions {
     fun backupNow()
     fun pickAttachments(draftId: String)
     fun consumeAttachmentResults(draftId: String, ids: List<String>)
+    fun stageEditorDraft(snapshot: EditorDraftSnapshot, candidateId: String?, candidateRevision: Long?): String
+    fun editorDraft(token: String): EditorDraftHandoff?
+    fun forgetEditorDraft(token: String)
     fun openAttachment(attachment: Attachment)
     fun pinWidget(kind: String)
     fun copyDiagnostics()

@@ -17,13 +17,23 @@ import io.github.wcwac.beecount.domain.*
 import java.time.*
 import java.time.format.DateTimeFormatter
 
-private data class LoadedEditor(val ready: Boolean = false, val draft: EntryDraft? = null, val revision: Long? = null, val candidate: CaptureCandidate? = null, val error: String? = null)
+private data class LoadedEditor(val ready: Boolean = false, val draft: EntryDraft? = null, val revision: Long? = null, val candidate: CaptureCandidate? = null, val error: String? = null, val amountText: String? = null, val generation: Long? = null, val notice: String? = null)
 
 @Composable
 internal fun EntryEditor(vm: NativeViewModel, nav: Navigator, route: Destination, books: List<Book>, book: Book?, accounts: List<Account>, categories: List<Category>, tags: List<Tag>) {
-    val loaded by produceState(LoadedEditor(), route) {
+    val canReadDraft = LocalUiWindowsAllowed.current
+    val loaded by produceState(LoadedEditor(), route, canReadDraft) {
+        if (!canReadDraft) return@produceState
         value = try {
-            when {
+            val handoff = route.draftToken.takeIf { it.isNotBlank() }?.let(vm.platform::editorDraft)
+            val result = when {
+                handoff != null -> {
+                    require(handoff.candidateId.orEmpty() == route.candidateId) { "临时草稿与候选记录不匹配，请重新打开" }
+                    val candidate = handoff.candidateId?.let { vm.repository.candidate(it) }
+                    if (handoff.candidateId != null && (candidate == null || candidate.state != CandidateState.PENDING)) LoadedEditor(true, error = "这条采集记录已处理或不存在")
+                    else if (candidate != null && candidate.revision != handoff.candidateRevision) LoadedEditor(true, error = "候选内容已更新，请返回待确认列表重新核对")
+                    else LoadedEditor(true, handoff.snapshot.draft, candidate = candidate, amountText = handoff.snapshot.amountText, generation = handoff.generation)
+                }
                 route.candidateId.isNotEmpty() -> {
                     val candidate = vm.repository.candidate(route.candidateId)
                     if (candidate == null || candidate.state != CandidateState.PENDING) LoadedEditor(true, error = "这条采集记录已处理或不存在")
@@ -37,7 +47,8 @@ internal fun EntryEditor(vm: NativeViewModel, nav: Navigator, route: Destination
                 route.id.isNotEmpty() -> vm.repository.entry(route.id).let { LoadedEditor(true, it?.draft, it?.revision, error = if (it == null) "记录已不存在" else null) }
                 else -> LoadedEditor(true)
             }
-        } catch (failure: Exception) { LoadedEditor(true, error = failure.message ?: "读取失败") }
+            if (route.draftToken.isNotBlank() && handoff == null) result.copy(notice = if (route.candidateId.isNotEmpty()) "临时草稿已失效，已重新读取原候选；请核对表单后保存。" else "临时草稿已失效，请重新填写。") else result
+        } catch (failure: Exception) { if (failure is kotlinx.coroutines.CancellationException) throw failure; LoadedEditor(true, error = failure.message ?: "读取失败") }
     }
     if (!loaded.ready) { LinearProgressIndicator(Modifier.fillMaxWidth()); return }
     if (loaded.error != null) { EmptyState(loaded.error!!); return }
@@ -51,8 +62,8 @@ private fun EditorForm(vm: NativeViewModel, nav: Navigator, route: Destination, 
     val initial = loaded.draft
     val draftId = rememberSaveable { initial?.id ?: newId() }
     var kindName by rememberSaveable { mutableStateOf(initial?.kind?.name ?: route.kind.ifEmpty { EntryKind.EXPENSE.name }) }
-    var bookId by rememberSaveable { mutableStateOf(initial?.bookId ?: defaultBook!!.id) }
-    var amount by rememberSaveable { mutableStateOf(initial?.amount?.decimal() ?: "") }
+    var bookId by rememberSaveable { mutableStateOf(initial?.bookId?.takeIf { it.isNotBlank() } ?: defaultBook?.id.orEmpty()) }
+    var amount by rememberSaveable { mutableStateOf(loaded.amountText ?: initial?.amount?.decimal() ?: "") }
     var currencyCode by rememberSaveable { mutableStateOf(initial?.amount?.currency?.value ?: defaultBook?.currency ?: "CNY") }
     var accountId by rememberSaveable { mutableStateOf(initial?.accountId) }
     var otherAccountId by rememberSaveable { mutableStateOf(initial?.otherAccountId) }
@@ -104,7 +115,8 @@ private fun EditorForm(vm: NativeViewModel, nav: Navigator, route: Destination, 
         if (otherAccountId != null && accounts.any { it.id == otherAccountId && it.currency != currency.value }) otherAccountId = null
     }
     PageColumn {
-        if (initial == null && !child && loaded.candidate == null) ChoiceField("类型", listOf(EntryKind.EXPENSE, EntryKind.INCOME, EntryKind.TRANSFER, EntryKind.CREDIT_PAYMENT, EntryKind.LEND, EntryKind.BORROW), kind, ::kindLabel, { kindName = it.name })
+        loaded.notice?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
+        if (loaded.revision == null && !child && loaded.candidate == null) ChoiceField("类型", listOf(EntryKind.EXPENSE, EntryKind.INCOME, EntryKind.TRANSFER, EntryKind.CREDIT_PAYMENT, EntryKind.LEND, EntryKind.BORROW), kind, ::kindLabel, { kindName = it.name })
         else Text(kindLabel(kind), style = MaterialTheme.typography.titleLarge)
         ChoiceField("账本", books.filter { !it.archived }, book, Book::name, { selected -> if (!ordinary && selected.currency != currency.value) { accountId = null; otherAccountId = null }; bookId = selected.id })
         if (ordinary) ChoiceField("记录币种", SupportedCurrencies, currency.value, { it }, { currencyCode = it })
@@ -138,7 +150,10 @@ private fun EditorForm(vm: NativeViewModel, nav: Navigator, route: Destination, 
                 val draft = EntryDraft(id = draftId, bookId = bookId, kind = kind, amount = parsed, accountId = accountId, otherAccountId = otherAccountId, categoryId = categoryId, merchant = merchant.trim(), note = note.trim(), occurredAt = instant, parentId = parentId,
                     feeMinor = Money.parse(fee.ifBlank { "0" }, currency).minor, interestMinor = Money.parse(interest.ifBlank { "0" }, currency).minor, excludedFromTotals = excludedTotals, excludedFromBudget = excludedBudget, tagIds = tagIds, attachmentIds = attachmentIds)
                 error = null
-                vm.commit(FinancialCommand.Save(draft, loaded.revision, loaded.candidate?.id, loaded.candidate?.revision), nav::back)
+                vm.commit(FinancialCommand.Save(draft, loaded.revision, loaded.candidate?.id, loaded.candidate?.revision, expectedGeneration = loaded.generation)) {
+                    if (route.draftToken.isNotBlank()) vm.platform.forgetEditorDraft(route.draftToken)
+                    nav.back()
+                }
             } catch (failure: Exception) { error = failure.message ?: "请检查填写内容" }
         }, enabled = !busy, modifier = Modifier.fillMaxWidth()) { Text(if (busy) "保存中…" else "保存") }
     }

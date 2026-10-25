@@ -3,6 +3,7 @@ package io.github.wcwac.beecount.capture
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.AccessibilityServiceInfo
 import android.content.Intent
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
@@ -19,6 +20,17 @@ import java.math.RoundingMode
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
+
+/** Read-only view of the service configuration currently registered with Android. */
+data class CaptureConnectionInfo(
+    val connected: Boolean = false,
+    val ready: Boolean = false,
+    val eventTypes: Int = 0,
+    val packages: Set<String> = emptySet(),
+    val flags: Int = 0,
+    val canRetrieveWindowContent: Boolean = false,
+    val toolIdentity: Boolean = false,
+)
 
 /** A native capture pipeline whose lifetime never depends on Activity or Compose. */
 class NativeCaptureService : AccessibilityService() {
@@ -197,6 +209,17 @@ class NativeCaptureService : AccessibilityService() {
     companion object {
         @Volatile private var connected = WeakReference<NativeCaptureService>(null)
         fun isConnected(): Boolean = connected.get() != null
+        /** Queries actual Android registration, independently of the persisted master switch. */
+        fun connectionInfo(): CaptureConnectionInfo {
+            val service = connected.get() ?: return CaptureConnectionInfo()
+            val info = try { service.serviceInfo } catch (_: RuntimeException) { null }
+            return CaptureConnectionInfo(
+                connected = true, ready = service.ready && !service.restorePaused,
+                eventTypes = info?.eventTypes ?: 0, packages = info?.packageNames?.toSet().orEmpty(), flags = info?.flags ?: 0,
+                canRetrieveWindowContent = info != null && (info.capabilities and AccessibilityServiceInfo.CAPABILITY_CAN_RETRIEVE_WINDOW_CONTENT) != 0,
+                toolIdentity = Build.VERSION.SDK_INT >= 31 && info?.isAccessibilityTool == true,
+            )
+        }
         fun candidateHandled(candidateId: String) { connected.get()?.handled(candidateId) }
         fun invalidateForRestore() { connected.get()?.let { it.restorePaused = true; it.invalidate() } }
         fun resumeAfterRestore() { connected.get()?.let { it.generation.incrementAndGet(); it.restorePaused = false } }

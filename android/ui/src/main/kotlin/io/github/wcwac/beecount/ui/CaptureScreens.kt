@@ -87,7 +87,10 @@ internal fun CandidateScreen(vm: NativeViewModel, nav: Navigator, id: String, bo
         CandidateReviewContent(candidate, books, accounts, categories, busy,
             onSave = { vm.commit(FinancialCommand.Save(it, candidateId = candidate.id, candidateRevision = candidate.revision), nav::back) },
             onDismiss = { vm.run(success = "已忽略", after = nav::back) { vm.repository.dismiss(candidate.id, candidate.revision) } },
-            onEdit = { nav.open(Screen.EDITOR, candidateId = candidate.id) }, initialDraft = draft)
+            onEdit = { snapshot ->
+                val token = vm.platform.stageEditorDraft(snapshot, candidate.id, candidate.revision)
+                nav.open(Screen.EDITOR, candidateId = candidate.id, draftToken = token)
+            }, initialDraft = draft)
     }
 }
 
