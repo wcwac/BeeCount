@@ -371,18 +371,18 @@ internal class WechatRule : RuleBase(), RuleCallback {
                             }
                         }
                     } else if (((((((((str)!!.equals("支付时间") || (str)!!.equals("转账时间")) || (str)!!.equals("收款时间")) || (str)!!.equals("到账时间")) || (str)!!.equals("退款时间")) || (str)!!.equals("交易时间"))) && (i6 < ((list)!!.size - 1)))) {
-                        if (((!((str)!!.equals("收款时间")) || (billInfo)!!.isIncome()) || ((billInfo)!!.getTime() == 0))) {
+                        if (((!((str)!!.equals("收款时间")) || (billInfo)!!.isIncome()) || ((billInfo)!!.getTime() == 0L))) {
                             var i7: Int = (i6 + 1)
-                            if ((Dates.X0((list)!![i7], "yyyy年MM月dd日 HH:mm:ss") != -(1))) {
+                            if ((Dates.X0((list)!![i7], "yyyy年MM月dd日 HH:mm:ss") != -(1L))) {
                                 (billInfo)!!.setTime(Dates.X0((list)!![i7], "yyyy年MM月dd日 HH:mm:ss"))
-                            } else if ((Dates.X0((list)!![i7], "yyyy-MM-dd HH:mm:ss") != -(1))) {
+                            } else if ((Dates.X0((list)!![i7], "yyyy-MM-dd HH:mm:ss") != -(1L))) {
                                 (billInfo)!!.setTime(Dates.X0((list)!![i7], "yyyy-MM-dd HH:mm:ss"))
-                            } else if ((Dates.X0((list)!![i7], "yyyy年MM月dd日 HH点mm分ss秒") != -(1))) {
+                            } else if ((Dates.X0((list)!![i7], "yyyy年MM月dd日 HH点mm分ss秒") != -(1L))) {
                                 (billInfo)!!.setTime(Dates.X0((list)!![i7], "yyyy年MM月dd日 HH点mm分ss秒"))
                             }
                         }
                     } else if ((str)!!.contains(("交易时间")!!)) {
-                        if ((Dates.X0((str)!!.replace(("交易时间 ")!!, ("")!!), "yyyy年MM月dd日 HH点mm分ss秒") != -(1))) {
+                        if ((Dates.X0((str)!!.replace(("交易时间 ")!!, ("")!!), "yyyy年MM月dd日 HH点mm分ss秒") != -(1L))) {
                             (billInfo)!!.setTime(Dates.X0((str)!!.replace(("交易时间 ")!!, ("")!!), "yyyy年MM月dd日 HH点mm分ss秒"))
                         }
                     } else if (((str)!!.equals("优惠") && (i6 < ((list)!!.size - 1)))) {
@@ -944,12 +944,12 @@ internal class WechatRule : RuleBase(), RuleCallback {
                         }
                     } else if (((z5 && (str)!!.equals("收款时间")) && (i6 < ((list)!!.size - 1)))) {
                         var jX0: Long = Dates.X0((list)!![(i6 + 1)], "yyyy年MM月dd日 HH:mm:ss")
-                        if ((jX0 != -(1))) {
+                        if ((jX0 != -(1L))) {
                             (billInfo)!!.setTime(jX0)
                         }
                     } else if (((!(z5) && (str)!!.equals("转账时间")) && (i6 < ((list)!!.size - 1)))) {
                         var jX1: Long = Dates.X0((list)!![(i6 + 1)], "yyyy年MM月dd日 HH:mm:ss")
-                        if ((jX1 != -(1))) {
+                        if ((jX1 != -(1L))) {
                             (billInfo)!!.setTime(jX1)
                         }
                     } else if (((str)!!.equals("转账说明") && (i6 < ((list)!!.size - 1)))) {
@@ -1089,11 +1089,11 @@ internal class WechatRule : RuleBase(), RuleCallback {
                     } else if (((((((str)!!.equals("申请时间") || (str)!!.equals("到账时间")) || (str)!!.equals("充值时间")) || (str)!!.equals("支付时间"))) && (i6 < ((list)!!.size - 1)))) {
                         var i7: Int = (i6 + 1)
                         (billInfo)!!.setTime(Dates.X0((list)!![i7], "yyyy年MM月dd日 HH:mm:ss"))
-                        if (((billInfo)!!.getTime() == -(1))) {
+                        if (((billInfo)!!.getTime() == -(1L))) {
                             (billInfo)!!.setTime(Dates.X0((list)!![i7], "yyyy-MM-dd HH:mm:ss"))
                         }
                     } else if ((str)!!.contains(("交易时间")!!)) {
-                        if ((Dates.X0((str)!!.replace(("交易时间 ")!!, ("")!!), "yyyy年MM月dd日 HH点mm分ss秒") != -(1))) {
+                        if ((Dates.X0((str)!!.replace(("交易时间 ")!!, ("")!!), "yyyy年MM月dd日 HH点mm分ss秒") != -(1L))) {
                             (billInfo)!!.setTime(Dates.X0((str)!!.replace(("交易时间 ")!!, ("")!!), "yyyy年MM月dd日 HH点mm分ss秒"))
                         }
                     } else if (((str)!!.contains((",")!!) && (str)!!.contains(("元")!!))) {

@@ -52,8 +52,8 @@ class NativeRepository(val db: NativeDatabase, private val configProvider: () ->
     fun observeTags(): Flow<List<Tag>> = dao.observeTags().map { rows -> rows.map { Tag(it.id, it.name) } }
     /** Room emits table invalidations even when these bounded existence probes are unchanged. */
     fun observeWidgetChanges(): Flow<Unit> = dao.observeWidgetChanges().map { Unit }
-    fun observeEntry(id: String): Flow<LedgerEntry?> = dao.observeEntry(id).map { it?.let { row -> dao.hydrate(row) } }
-    suspend fun entry(id: String): LedgerEntry? = dao.entryRow(id)?.let { dao.hydrate(it) }
+    fun observeEntry(id: String): Flow<LedgerEntry?> = dao.observeEntry(id).map { it?.domain() }
+    suspend fun entry(id: String): LedgerEntry? = dao.entryRow(id)?.domain()
     fun history(filter: HistoryFilter): Flow<PagingData<LedgerEntry>> {
         val where = mutableListOf("e.deleted=?")
         val args = mutableListOf<Any>(if (filter.deleted) 1 else 0)
@@ -73,8 +73,8 @@ class NativeRepository(val db: NativeDatabase, private val configProvider: () ->
             val q = "%${filter.query.trim().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")}%"
             repeat(3) { args += q }
         }
-        val sql = "SELECT e.*,c.name categoryName,a.name accountName FROM entries e LEFT JOIN categories c ON c.id=e.categoryId LEFT JOIN accounts a ON a.id=e.accountId WHERE ${where.joinToString(" AND ")} ORDER BY e.occurredAt DESC,e.id DESC"
-        return Pager(PagingConfig(pageSize = 50, initialLoadSize = 50, enablePlaceholders = false, maxSize = 200)) { dao.history(SimpleSQLiteQuery(sql, args.toTypedArray())) }.flow.map { page -> page.map { dao.hydrate(it) } }
+        val sql = EntrySql.SELECT + " WHERE ${where.joinToString(" AND ")} ORDER BY e.occurredAt DESC,e.id DESC"
+        return Pager(PagingConfig(pageSize = 50, initialLoadSize = 50, enablePlaceholders = false, maxSize = 200)) { dao.history(SimpleSQLiteQuery(sql, args.toTypedArray())) }.flow.map { page -> page.map { it.domain() } }
     }
     fun observeSummary(bookId: String, start: Long, endExclusive: Long): Flow<Summary> = dao.observeSummary(bookId, start, endExclusive).map { Summary(it.income, it.expense) }
     fun observeChart(bookId: String, start: Long, endExclusive: Long): Flow<List<ChartPoint>> = dao.observeChart(bookId, start, endExclusive).map { rows -> rows.map { ChartPoint(it.label, it.income, it.expense) } }

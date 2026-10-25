@@ -87,11 +87,12 @@ class NativeContainer(val context: Context) : CaptureHost {
     }
 
     suspend fun updatePreferences(transform: (UserPreferences) -> UserPreferences) {
+        val previous = settings.load()
         settings.update(transform)
         val latest = settings.load()
-        if (!latest.capture.enabled || !latest.capture.overlayEnabled || !latest.capture.autoSave || latest.appLock) {
+        if (!latest.capture.enabled || !latest.capture.overlayEnabled || !latest.capture.autoSave || latest.appLock || previous.secureScreen != latest.secureScreen) {
             withContext(Dispatchers.Main.immediate) {
-                if (!latest.capture.enabled || !latest.capture.overlayEnabled) overlayInstance?.close(clearQueue = true)
+                if (!latest.capture.enabled || !latest.capture.overlayEnabled || previous.secureScreen != latest.secureScreen) overlayInstance?.close(clearQueue = true)
                 else overlayInstance?.cancelCountdown()
             }
         }

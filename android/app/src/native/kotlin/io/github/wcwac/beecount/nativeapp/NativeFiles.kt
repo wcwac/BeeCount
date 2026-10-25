@@ -121,7 +121,7 @@ class NativeFiles(private val container: NativeContainer) {
                 }
                 val manifestEntry = requireNotNull(zip.getEntry("manifest.json")) { "缺少备份说明" }
                 require(manifestEntry.size <= 65536) { "备份说明过大" }
-                val manifest = JSONObject(BoundedInput(zip.getInputStream(manifestEntry), 65536, actualBudget).bufferedReader(Charsets.UTF_8).use { it.readText() })
+                val manifest = JSONObject(BoundedInput(zip.getInputStream(manifestEntry), 65536, actualBudget, manifestEntry.crc).bufferedReader(Charsets.UTF_8).use { it.readText() })
                 require(manifest.optString("format") == "BeeCountNativeBackup" && manifest.optInt("version") == 1) { "仅支持本原生版的完整备份" }
                 preferences = parseBackupPreferences(manifest.optJSONObject("preferences"))
                 val manifestTables = manifest.getJSONArray("tables")
@@ -131,7 +131,7 @@ class NativeFiles(private val container: NativeContainer) {
                     for (table in TABLES) {
                         val entry = requireNotNull(zip.getEntry("tables/$table.json")) { "备份缺少 $table" }
                         require(entry.size <= MAX_TABLE_BYTES) { "数据表超过单表大小限制" }
-                        BoundedInput(zip.getInputStream(entry), MAX_TABLE_BYTES, actualBudget).bufferedReader(Charsets.UTF_8).use { text ->
+                        BoundedInput(zip.getInputStream(entry), MAX_TABLE_BYTES, actualBudget, entry.crc).bufferedReader(Charsets.UTF_8).use { text ->
                             val reader = JsonReader(JsonSafetyReader(text))
                             reader.beginArray(); reader.beginArray()
                             val columns = mutableListOf<String>()
@@ -184,7 +184,7 @@ class NativeFiles(private val container: NativeContainer) {
                         require(size in 0..MAX_ATTACHMENT_BYTES) { "附件超过 16 MiB" }
                         val entry = requireNotNull(zip.getEntry("attachments/$attachmentId")) { "备份缺少附件" }
                         require(entry.size == size) { "附件大小与记录不一致" }
-                        BoundedInput(zip.getInputStream(entry), MAX_ATTACHMENT_BYTES, actualBudget).use { input -> File(directory, attachmentId).outputStream().use { output -> require(copyBounded(input, output, MAX_ATTACHMENT_BYTES) == size) } }
+                        BoundedInput(zip.getInputStream(entry), MAX_ATTACHMENT_BYTES, actualBudget, entry.crc).use { input -> File(directory, attachmentId).outputStream().use { output -> require(copyBounded(input, output, MAX_ATTACHMENT_BYTES) == size) } }
                     }
                     require(names.count { it.startsWith("attachments/") } == expectedAttachments) { "备份含未关联的附件文件" }
                 }
@@ -421,11 +421,13 @@ class NativeFiles(private val container: NativeContainer) {
         private var total = 0L
         fun add(bytes: Int) { total = Math.addExact(total, bytes.toLong()); require(total <= MAX_ARCHIVE_BYTES) { "备份解压内容超过 512 MiB" } }
     }
-    private class BoundedInput(private val source: InputStream, private val limit: Long, private val budget: ExpansionBudget) : InputStream() {
+    private class BoundedInput(private val source: InputStream, private val limit: Long, private val budget: ExpansionBudget, private val expectedCrc: Long) : InputStream() {
+        private val checksum = java.util.zip.CRC32()
         private var total = 0L
         private fun charge(count: Int) { if (count > 0) { total += count; require(total <= limit) { "备份条目实际大小超限" }; budget.add(count) } }
-        override fun read(): Int = source.read().also { if (it >= 0) charge(1) }
-        override fun read(buffer: ByteArray, offset: Int, length: Int): Int = source.read(buffer, offset, length).also(::charge)
+        override fun read(): Int = source.read().also { if (it >= 0) { charge(1); checksum.update(it) } else verify() }
+        override fun read(buffer: ByteArray, offset: Int, length: Int): Int = source.read(buffer, offset, length).also { if (it >= 0) { charge(it); checksum.update(buffer, offset, it) } else verify() }
+        private fun verify() { require(expectedCrc >= 0 && checksum.value == expectedCrc) { "备份文件内容校验失败" } }
         override fun close() = source.close()
     }
     private class BoundedOutput(private val target: OutputStream, private val limit: Long, private val budget: ExpansionBudget) : OutputStream() {

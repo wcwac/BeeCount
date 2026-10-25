@@ -60,11 +60,19 @@ data class AccountMappingEntity(@PrimaryKey val id: String, val packageName: Str
 data class PeriodNoteEntity(val bookId: String, val start: Long, val endExclusive: Long, val note: String)
 
 data class AccountRow(@Embedded val account: AccountEntity, val balance: Long)
-data class EntryRow(@Embedded val entry: EntryEntity, val categoryName: String?, val accountName: String?)
+data class EntryRow(@Embedded val entry: EntryEntity, val categoryName: String?, val accountName: String?, val tagIds: String, val attachmentIds: String)
 data class TotalsRow(val income: Long, val expense: Long)
 data class ChartRow(val label: String, val income: Long, val expense: Long)
 data class CategoryTotalRow(val categoryId: String?, val label: String, val amount: Long)
 data class CreditMovementRow(val charges: Long, val repayments: Long)
+
+/** Relation IDs share the row's SQLite snapshot; both relation tables index entryId first. */
+internal object EntrySql {
+    const val SELECT = "SELECT e.*,c.name categoryName,a.name accountName," +
+        "COALESCE((SELECT GROUP_CONCAT(t.tagId,'|') FROM entry_tags t WHERE t.entryId=e.id),'') tagIds," +
+        "COALESCE((SELECT GROUP_CONCAT(x.attachmentId,'|') FROM entry_attachments x WHERE x.entryId=e.id),'') attachmentIds " +
+        "FROM entries e LEFT JOIN categories c ON c.id=e.categoryId LEFT JOIN accounts a ON a.id=e.accountId"
+}
 
 /** Shared SQL expressions keep dashboard, budget and categories on one definition. */
 internal object ReportSql {

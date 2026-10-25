@@ -104,10 +104,10 @@ internal class JingdongRule : RuleBase(), RuleCallback {
                     } else if (((((strTrim)!!.equals("创建时间：") || (strTrim)!!.equals("创建时间"))) && (i6 < ((list)!!.size - 1)))) {
                         var i8: Int = (i6 + 1)
                         (billInfo)!!.setTime(Dates.X0((list)!![i8], "yyyy-MM-dd HH:mm:ss"))
-                        if ((((billInfo)!!.getTime() == -(1)) && (i6 < ((list)!!.size - 2)))) {
+                        if ((((billInfo)!!.getTime() == -(1L)) && (i6 < ((list)!!.size - 2)))) {
                             (billInfo)!!.setTime(Dates.X0((((list)!![i8] + " ") + (list)!![(i6 + 2)]), "yyyy-MM-dd HH:mm:ss"))
                         }
-                        if (((billInfo)!!.getTime() == -(1))) {
+                        if (((billInfo)!!.getTime() == -(1L))) {
                             (billInfo)!!.setTime(Dates.X0((list)!![i8], "yyyy-MM-dd"))
                         }
                     } else if (((strTrim)!!.equals("支付立减") && (i6 < ((list)!!.size - 1)))) {

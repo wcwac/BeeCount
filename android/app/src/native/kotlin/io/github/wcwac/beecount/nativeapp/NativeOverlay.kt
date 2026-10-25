@@ -148,7 +148,7 @@ class NativeOverlay(private val container: NativeContainer) {
         val width = minOf((420 * density).toInt(), context.resources.displayMetrics.widthPixels - (24 * density).toInt())
         val params = WindowManager.LayoutParams(width, WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-            WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
+            WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or (if (container.settings.preferences.value.secureScreen) WindowManager.LayoutParams.FLAG_SECURE else 0),
             PixelFormat.TRANSLUCENT).apply {
             gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
             y = (36 * density).toInt()

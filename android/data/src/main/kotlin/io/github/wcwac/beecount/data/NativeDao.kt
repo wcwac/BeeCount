@@ -25,8 +25,8 @@ interface NativeDao {
     @Query("SELECT * FROM tags WHERE id=:id") suspend fun tag(id: String): TagEntity?
     @Upsert suspend fun putTag(value: TagEntity)
     @Query("DELETE FROM tags WHERE id=:id") suspend fun deleteTag(id: String)
-    @Query("SELECT e.*,c.name categoryName,a.name accountName FROM entries e LEFT JOIN categories c ON c.id=e.categoryId LEFT JOIN accounts a ON a.id=e.accountId WHERE e.id=:id") fun observeEntry(id: String): Flow<EntryRow?>
-    @Query("SELECT e.*,c.name categoryName,a.name accountName FROM entries e LEFT JOIN categories c ON c.id=e.categoryId LEFT JOIN accounts a ON a.id=e.accountId WHERE e.id=:id") suspend fun entryRow(id: String): EntryRow?
+    @Query(EntrySql.SELECT + " WHERE e.id=:id") fun observeEntry(id: String): Flow<EntryRow?>
+    @Query(EntrySql.SELECT + " WHERE e.id=:id") suspend fun entryRow(id: String): EntryRow?
     @Query("SELECT * FROM entries WHERE id=:id") suspend fun entry(id: String): EntryEntity?
     @Query("SELECT * FROM entries WHERE id>:after ORDER BY id LIMIT :limit") suspend fun entriesPage(after: String, limit: Int): List<EntryEntity>
     @Query("SELECT * FROM entries WHERE parentId=:id AND deleted=0") suspend fun children(id: String): List<EntryEntity>
@@ -34,7 +34,7 @@ interface NativeDao {
     @Query("SELECT COUNT(*) FROM entries WHERE bookId=:id") suspend fun bookEntryCount(id: String): Int
     @Query("SELECT COUNT(*) FROM entries WHERE accountId=:id OR otherAccountId=:id") suspend fun accountEntryCount(id: String): Int
     @Query("SELECT COUNT(*) FROM entries WHERE categoryId=:id") suspend fun categoryEntryCount(id: String): Int
-    @RawQuery(observedEntities = [EntryEntity::class, CategoryEntity::class, AccountEntity::class, EntryAttachmentEntity::class, EntryTagEntity::class, BudgetEntity::class]) fun history(query: SupportSQLiteQuery): PagingSource<Int, EntryRow>
+    @RawQuery(observedEntities = [EntryEntity::class, CategoryEntity::class, AccountEntity::class, EntryAttachmentEntity::class, EntryTagEntity::class, BudgetEntity::class, BookEntity::class]) fun history(query: SupportSQLiteQuery): PagingSource<Int, EntryRow>
     @Upsert suspend fun putEntry(value: EntryEntity)
     @Query("DELETE FROM entries WHERE id=:id") suspend fun deleteEntry(id: String)
     @Query("DELETE FROM account_entries WHERE entryId=:id") suspend fun deletePostings(id: String)

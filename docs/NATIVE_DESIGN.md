@@ -16,7 +16,7 @@ capture ←─────── app
 - ui：Material 3 主题、四栏页面、类型化 Navigation、ViewModel/StateFlow、统一表单和选择器。
 - app：应用容器、独立生命周期 Compose 浮窗、权限、认证、文件交换、WorkManager、RemoteViews。
 
-使用构造器与应用容器组织依赖，不引入 DI 框架、事件总线、多进程、动态插件或大型图表框架。工具链固定 AGP 9.2.1 / Gradle 9.4.1 / JDK 17 / SDK 36；Kotlin 2.4.21 沿用现有 Flutter 分支已选版本，不声称最新。新增依赖固定版本，Compose 统一 BOM 2025.08.00。
+使用构造器与应用容器组织依赖，不引入 DI 框架、事件总线、多进程、动态插件或大型图表框架。工具链固定 AGP 9.2.1 / Gradle 9.4.1 / JDK 17 / SDK 36；Kotlin 2.4.21 沿用现有 Flutter 分支已选版本，不声称最新。源码语言/API与元数据目标统一为2.2，匹配Room 2.7.2处理器支持范围，Compose编译器插件仍与Kotlin编译器同版本。新增依赖固定版本，Compose 统一 BOM 2025.08.00。
 
 ## 账务一致性
 

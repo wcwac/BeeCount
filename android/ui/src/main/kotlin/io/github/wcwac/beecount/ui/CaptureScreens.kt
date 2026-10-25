@@ -15,7 +15,7 @@ internal val SupportedApps = listOf(
     "支付宝" to "com.eg.android.AlipayGphone", "微信" to "com.tencent.mm", "云闪付" to "com.unionpay", "京东金融" to "com.jd.jrapp",
     "京东" to "com.jingdong.app.mall", "拼多多" to "com.xunmeng.pinduoduo", "美团" to "com.sankuai.meituan", "大众点评" to "com.dianping.v1", "美团外卖" to "com.sankuai.meituan.takeoutnew",
     "1688" to "com.alibaba.wireless", "闲鱼" to "com.taobao.idlefish", "盒马" to "com.wudaokou.hippo", "饿了么" to "me.ele", "华为钱包" to "com.huawei.wallet", "建行生活" to "com.ccb.longjiLife",
-    "快手" to "com.smile.gifmaker", "快手极速版" to "com.kuaishou.nebula", "抖音" to "com.ss.android.ugc.aweme", "抖音火山版" to "com.ss.android.ugc.livelite", "抖音极速版" to "com.ss.android.ugc.aweme.lite", "汽水音乐" to "com.ss.android.yumme.video", "淘宝" to "com.taobao.taobao",
+    "快手" to "com.smile.gifmaker", "快手极速版" to "com.kuaishou.nebula", "抖音" to "com.ss.android.ugc.aweme", "抖音商城" to "com.ss.android.ugc.livelite", "抖音极速版" to "com.ss.android.ugc.aweme.lite", "抖音精选" to "com.ss.android.yumme.video", "淘宝" to "com.taobao.taobao",
 )
 
 @Composable

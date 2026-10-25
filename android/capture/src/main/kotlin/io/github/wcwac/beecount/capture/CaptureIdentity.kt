@@ -27,7 +27,7 @@ internal object CaptureIdentity {
         var found: String? = null
         texts.forEachIndexed { index, text -> labels.forEach labelLoop@ { label ->
             val token = text.trim(); if (!token.startsWith(label)) return@labelLoop
-            val tail = token.substring(label.length())
+            val tail = token.substring(label.length)
             if (tail.isNotEmpty() && tail.first() != ':' && tail.first() != '：' && !tail.first().isWhitespace()) return@labelLoop
             val suffix = tail.trim().removePrefix(":").removePrefix("：").trim()
             val candidate = valid(suffix) ?: if (suffix.isEmpty()) texts.getOrNull(index + 1)?.let(::valid) else null

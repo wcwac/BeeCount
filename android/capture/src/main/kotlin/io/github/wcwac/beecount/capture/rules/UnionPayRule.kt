@@ -531,7 +531,7 @@ internal class UnionPayRule : RuleBase(), RuleCallback {
                     } else if (((((((str)!!.equals("时间") || (str)!!.equals("订单时间")) || (str)!!.equals("扣款时间")) || (str)!!.equals("交易时间"))) && (i6 < ((list)!!.size - 1)))) {
                         var i9: Int = (i6 + 1)
                         (billInfo)!!.setTime(Dates.X0((list)!![i9], "yyyy-MM-dd HH:mm"))
-                        if ((((billInfo)!!.getTime() == -(1)) || ((billInfo)!!.getTime() == 0))) {
+                        if ((((billInfo)!!.getTime() == -(1L)) || ((billInfo)!!.getTime() == 0L))) {
                             (billInfo)!!.setTime(Dates.X0((list)!![i9], "yyyy-MM-dd HH:mm:ss"))
                         }
                     } else if (((str)!!.equals("分类") && (i6 < ((list)!!.size - 1)))) {
@@ -1121,13 +1121,13 @@ internal class UnionPayRule : RuleBase(), RuleCallback {
                     } else if (((((str)!!.equals("订单时间") || (str)!!.equals("退款时间"))) && (i6 < ((list)!!.size - 1)))) {
                         var i10: Int = (i6 + 1)
                         (billInfo)!!.setTime(Dates.X0((list)!![i10], "yyyy年MM月dd日 HH:mm:ss"))
-                        if (((billInfo)!!.getTime() == -(1))) {
+                        if (((billInfo)!!.getTime() == -(1L))) {
                             (billInfo)!!.setTime(Dates.X0((list)!![i10], "yyyy.MM.dd HH:mm:ss"))
                         }
                     } else if (((str)!!.equals("扣款时间") && (i6 < ((list)!!.size - 1)))) {
                         var i11: Int = (i6 + 1)
                         (billInfo)!!.setTime(Dates.X0(((list)!![i11])!!.replace(("延迟扣费|")!!, ("")!!), "yyyy年MM月dd日 HH:mm:ss"))
-                        if (((billInfo)!!.getTime() == -(1))) {
+                        if (((billInfo)!!.getTime() == -(1L))) {
                             (billInfo)!!.setTime(Dates.X0(((list)!![i11])!!.replace(("延迟扣费|")!!, ("")!!), "yyyy.MM.dd HH:mm:ss"))
                         }
                     }
