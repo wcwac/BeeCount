@@ -19,6 +19,8 @@ INVENTORY = ROOT / '.github/native-cases.json'
 
 
 def source():
+    settings=(ROOT/'android/settings.gradle').read_text()
+    assert settings.index('plugins {') < settings.index('dependencyResolutionManagement {'), 'Gradle plugin block must precede dependency resolution statements'
     manifest = ET.parse(ROOT / 'android/app/src/native/AndroidManifest.xml').getroot()
     assert manifest.find('application').get(ANDROID + 'name') == '.NativeApplication'
     for name in ('app/src/native', 'capture/src/main', 'data/src/main', 'domain/src/main', 'ui/src/main'):
