@@ -9,6 +9,7 @@ import io.github.wcwac.beecount.domain.*
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalCoroutinesApi::class)
 internal class NativeViewModel(val repository: NativeRepository, var platform: NativePlatformActions) : ViewModel() {
@@ -24,9 +25,18 @@ internal class NativeViewModel(val repository: NativeRepository, var platform: N
 
     fun run(success: String? = "已保存", after: () -> Unit = {}, operation: suspend () -> Unit) {
         if (busy.value) return
+        val generation = repository.currentGeneration
         busy.value = true
         viewModelScope.launch {
-            try { operation(); if (success != null) message.value = success; after() }
+            try {
+                withContext(MutationGeneration(generation)) {
+                    require(generation == repository.currentGeneration) { "数据已恢复，请重新打开当前页面" }
+                    operation()
+                    require(generation == repository.currentGeneration) { "数据已恢复，请重新打开当前页面" }
+                }
+                if (success != null) message.value = success
+                after()
+            }
             catch (error: Exception) { if (error is kotlinx.coroutines.CancellationException) throw error; message.value = error.message ?: "操作失败，请重试" }
             finally { busy.value = false }
         }

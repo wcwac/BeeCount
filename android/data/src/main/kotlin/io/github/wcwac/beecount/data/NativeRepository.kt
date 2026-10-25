@@ -16,16 +16,18 @@ import java.math.RoundingMode
 import java.time.Instant
 import java.time.ZoneId
 import java.util.UUID
+import kotlin.coroutines.coroutineContext
 
 class NativeRepository(val db: NativeDatabase, private val configProvider: () -> CaptureConfig = { CaptureConfig() }, private val generationProvider: () -> Long = { 0L }) : FinancialWriter, CaptureInbox {
     val dao: NativeDao = db.dao()
+    val currentGeneration: Long get() = generationProvider()
     /** Shared with streaming backup/restore. No public mutator may bypass this lock. */
     val maintenanceMutex = Mutex()
     internal val engine = FinancialEngine(this)
     internal suspend fun <T> mutate(block: suspend () -> T): T {
-        val generation = generationProvider()
+        val generation = coroutineContext[MutationGeneration]?.expectedGeneration ?: currentGeneration
         return maintenanceMutex.withLock {
-            require(generation == generationProvider()) { "数据已恢复，请重新打开当前页面" }
+            require(generation == currentGeneration) { "数据已恢复，请重新打开当前页面" }
             db.withTransaction { block() }
         }
     }

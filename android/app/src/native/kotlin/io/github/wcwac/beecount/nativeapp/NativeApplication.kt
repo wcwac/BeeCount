@@ -87,8 +87,12 @@ class NativeContainer(val context: Context) : CaptureHost {
     }
 
     suspend fun updatePreferences(transform: (UserPreferences) -> UserPreferences) {
+        val expected = kotlin.coroutines.coroutineContext[MutationGeneration]?.expectedGeneration ?: captureGeneration
         val previous = settings.load()
-        settings.update(transform)
+        settings.update { current ->
+            require(expected == captureGeneration) { "数据已恢复，请重新打开设置页面" }
+            transform(current)
+        }
         val latest = settings.load()
         if (!latest.capture.enabled || !latest.capture.overlayEnabled || !latest.capture.autoSave || latest.appLock || previous.secureScreen != latest.secureScreen) {
             withContext(Dispatchers.Main.immediate) {

@@ -292,7 +292,15 @@ class NativeFiles(private val container: NativeContainer) {
             val size = requireNotNull(context.contentResolver.openInputStream(uri)) { "无法读取附件" }.use { input -> file.outputStream().use { output -> copyBounded(input, output, MAX_ATTACHMENT_BYTES) } }
             val attachment = Attachment(id, name, context.contentResolver.getType(uri) ?: "application/octet-stream", size, file.absolutePath)
             repo.saveAttachment(attachment); attachment
-        } catch (failure: Throwable) { file.delete(); throw failure }
+        } catch (failure: Throwable) {
+            // A cancellation may arrive after Room committed the metadata. Preserve
+            // the file whenever commitment is confirmed or cannot be determined.
+            withContext(NonCancellable + Dispatchers.IO) {
+                val referenced = runCatching { repo.dao.attachment(id) != null }.getOrDefault(true)
+                if (!referenced) file.delete()
+            }
+            throw failure
+        }
     }
 
     suspend fun backupNow(): String = withContext(Dispatchers.IO) {
