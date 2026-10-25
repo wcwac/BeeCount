@@ -1,0 +1,60 @@
+{
+  "release": "native-v0.1.0-81",
+  "sourceCommit": "959567a1e04ba5a018cc3323c6dc2cbe21666454",
+  "branch": "feat/kotlin-compose-offline",
+  "releaseUrl": "https://github.com/wcwac/BeeCount/releases/tag/native-v0.1.0-81",
+  "workflow": {
+    "id": 40169030731,
+    "number": 81,
+    "url": "https://github.com/wcwac/BeeCount/actions/runs/40169030731",
+    "conclusion": "success",
+    "implementationValidationRounds": 8
+  },
+  "apk": {
+    "name": "native-v0.1.0-81.apk",
+    "package": "io.github.wcwac.beecount.nativeapp",
+    "sizeBytes": 2111721,
+    "sha256": "591bb8d9e1b3ec036c7897c962cc46c6f65ef2344889358674d74a27f0b71ea3",
+    "url": "https://github.com/wcwac/BeeCount/releases/download/native-v0.1.0-81/native-v0.1.0-81.apk",
+    "sameArtifactVerifiedAndPublished": true,
+    "internetPermission": false,
+    "networkStatePermission": false,
+    "signatureVerified": true,
+    "originalApkDexOrSoIncluded": false
+  },
+  "checks": {
+    "productionCompilation": "passed",
+    "roomGeneration": "passed",
+    "lint": "passed",
+    "releaseShrinking": "passed",
+    "unitCasesPassed": 11,
+    "deviceBuildType": "debug",
+    "deviceFinancialCasesPassed": 8,
+    "deviceScreenCasesPassed": 2,
+    "deviceCaptureCasesPassed": 2,
+    "deviceApi": 36,
+    "deviceAbi": "x86_64",
+    "devicePaymentPages": "project-owned synthetic fixtures",
+    "exactReleaseApkInstalledAndHomeInitialized": true,
+    "realPaymentAppsIndividuallyVerified": 0
+  },
+  "screenshots": {
+    "functionalFilesGenerated": 8,
+    "ordinaryPagesVisuallyReviewed": 6,
+    "releaseHomeVisuallyReviewed": true,
+    "overlayVisualAcceptance": "inconclusive",
+    "overlayCaptureIssue": "Both capture screenshots preceded visible overlay content; one shows the fixture and one a startup transition. File existence and dimensions do not establish correct content."
+  },
+  "releaseEmptyHomeMemorySnapshot": {
+    "pssKiB": 31516,
+    "rssKiB": 165992,
+    "scope": "Single API 36 x86_64 emulator snapshot; not background-service, real-phone or repeated-overlay performance acceptance."
+  },
+  "notFullyDeviceValidated": [
+    "All 22 real payment application versions and OEM systems",
+    "All business flows on shrunk Release",
+    "API 26, dark mode, large fonts and keyboard combinations",
+    "Complete backup and restore, CSV, investments, goals, recurring entries, application lock and widgets",
+    "Background collection, large ledger, overlay open/close memory comparisons and long-running growth"
+  ]
+}
